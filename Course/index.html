@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Courses L&amp;C</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F6F4E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Courses">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" href="data:image/png;base64,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">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+
+<!-- Firebase (compat SDK — obligatoire pour Safari iOS, pas d'import ES module) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+  :root{
+    --bg:#F2F4F7;
+    --surface:#FFFFFF;
+    --surface-soft:#E9ECF1;
+    --ink:#1F2530;
+    --ink-soft:#767E8C;
+    --line:#DCE1E8;
+    --corentin:#1f8fff;
+    --corentin-soft:#E3F0FF;
+    --lisa:#ff3d7e;
+    --lisa-soft:#FFE4EC;
+    --error:#D64545;
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#161B22;
+      --surface:#1F252E;
+      --surface-soft:#272E38;
+      --ink:#F3F5F7;
+      --ink-soft:#8B93A0;
+      --line:#2E3540;
+      --corentin:#4FA6FF;
+      --corentin-soft:#1D2E42;
+      --lisa:#FF6B98;
+      --lisa-soft:#3A2130;
+      --error:#E26666;
+    }
+    html, body{
+      background-image:
+        radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        radial-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 3px 3px, 5px 5px;
+      background-position: 0 0, 2px 2px;
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background-color:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior-y:none;}
+  input,select,textarea,button{font-family:inherit;}
+  .display{font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.5px;}
+
+  #app{display:none; flex-direction:column; height:100vh; height:100dvh;}
+  #app.visible{display:flex;}
+
+  header.topbar{
+    padding: calc(14px + var(--safe-top)) 18px 14px;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+    flex-shrink:0;
+  }
+  header.topbar h1{margin:0; font-size:26px; color:var(--corentin);}
+  .profil-badge{
+    font-size:13px; color:var(--ink-soft); background:var(--surface-soft);
+    padding:6px 12px; border-radius:20px; border:1px solid var(--line);
+  }
+
+  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px;}
+
+  /* --- Barre de recherche (Saisie) --- */
+  .searchbar{
+    margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:10px 14px;
+  }
+  .searchbar input{
+    border:none; outline:none; background:transparent; flex:1; font-size:16px; color:var(--ink);
+  }
+  .searchbar input::placeholder{color:var(--ink-soft);}
+
+  /* --- Listes produits --- */
+  .liste{padding: 6px 18px 100px;}
+  .section-rayon{margin-top:22px;}
+  .section-rayon:first-child{margin-top:10px;}
+  .section-rayon h2{
+    font-size:19px; margin: 0 0 8px 2px; color:var(--lisa);
+  }
+  .carte-produit{
+    display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:12px 14px; margin-bottom:8px;
+  }
+  .checkbox{
+    width:26px; height:26px; border-radius:8px; border:2px solid var(--line);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    transition:background .15s, border-color .15s;
+  }
+  .checkbox.checked{background:var(--corentin); border-color:var(--corentin);}
+  .checkbox.checked.mode-course{background:var(--lisa); border-color:var(--lisa);}
+  .checkbox svg{width:16px; height:16px; display:none;}
+  .checkbox.checked svg{display:block;}
+
+  .infos-produit{flex:1; min-width:0;}
+  .nom-produit{font-size:16px; font-weight:600; line-height:1.25;}
+  .nom-produit.achete{color:var(--ink-soft); text-decoration:line-through;}
+  .rayon-tag{
+    font-size:12px; color:var(--ink-soft); margin-top:2px;
+  }
+  .quantite-input{
+    width:82px; flex-shrink:0; border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:8px 10px; font-size:15px; text-align:center; background:var(--surface-soft); color:var(--ink);
+  }
+  .quantite-input:focus{outline:2px solid var(--corentin); border-color:var(--corentin);}
+
+  .empty-state{
+    text-align:center; padding:60px 30px; color:var(--ink-soft);
+  }
+  .empty-state .display{font-size:24px; color:var(--ink); margin-bottom:6px;}
+
+  /* --- Section "acheté" (Course) --- */
+  .section-achete{margin-top:26px; padding-top:14px; border-top:1px dashed var(--line);}
+  .section-achete h2{font-size:17px; margin:0 0 8px 2px; color:var(--ink-soft);}
+  .carte-produit.achete-carte{opacity:.6;}
+
+  .btn-course-terminee{
+    position:fixed; left:18px; right:18px; bottom: calc(88px + var(--safe-bottom));
+    padding:15px; border:none; border-radius:var(--radius-md); background:var(--lisa);
+    color:#fff; font-size:16px; font-weight:600; box-shadow:0 6px 16px rgba(0,0,0,.22); z-index:19;
+  }
+
+  /* --- Barre d'ajout produit (Saisie) --- */
+  .fab-ajouter{
+    position:fixed; right:18px; bottom: calc(88px + var(--safe-bottom));
+    width:56px; height:56px; border-radius:50%; background:var(--corentin);
+    color:#fff; border:none; font-size:30px; line-height:56px; text-align:center;
+    box-shadow:0 6px 16px rgba(0,0,0,.22); z-index:20;
+  }
+
+  /* --- Tab bar --- */
+  nav.tabbar{
+    display:flex; border-top:1px solid var(--line); background:var(--surface);
+    padding-bottom: var(--safe-bottom); flex-shrink:0;
+  }
+  nav.tabbar button{
+    flex:1; border:none; background:transparent; padding:12px 0 10px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--ink-soft); font-size:12px;
+  }
+  nav.tabbar button .tab-icon{font-size:22px;}
+  nav.tabbar button.actif{color:var(--corentin);}
+  nav.tabbar button.actif .badge-course{background:var(--lisa); color:#fff;}
+  .badge-course{
+    display:inline-block; min-width:18px; padding:0 5px; border-radius:9px;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:11px; line-height:18px;
+  }
+
+  /* --- Écran profil --- */
+  #ecran-profil{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100vh; height:100dvh; gap:26px; padding: 0 30px;
+    padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+  }
+  #ecran-profil .display{font-size:34px; color:var(--corentin);}
+  #ecran-profil p{color:var(--ink-soft); text-align:center; margin:0;}
+  .choix-profil{display:flex; gap:16px; width:100%; max-width:340px;}
+  .btn-profil{
+    flex:1; padding:22px 10px; border-radius:var(--radius-lg); border:1px solid var(--line);
+    background:var(--surface); font-size:17px; font-weight:600; color:var(--ink);
+  }
+  .btn-profil:active{background:var(--surface-soft);}
+
+  /* --- Modales --- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.4); display:none;
+    align-items:flex-end; z-index:50;
+  }
+  .overlay.visible{display:flex;}
+  .modale{
+    background:var(--surface); width:100%; border-radius:22px 22px 0 0;
+    padding: 22px 20px calc(26px + var(--safe-bottom));
+    max-height:80vh; overflow-y:auto;
+  }
+  .modale h3{margin:0 0 16px; font-size:20px;}
+  .champ{margin-bottom:14px;}
+  .champ label{display:block; font-size:13px; color:var(--ink-soft); margin-bottom:6px;}
+  .champ input, .champ select{
+    width:100%; padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--line);
+    background:var(--surface-soft); font-size:16px; color:var(--ink);
+  }
+  .modale-actions{display:flex; gap:10px; margin-top:6px;}
+  .btn{flex:1; padding:14px; border-radius:var(--radius-md); border:none; font-size:16px; font-weight:600;}
+  .btn-primaire{background:var(--corentin); color:#fff;}
+  .btn-secondaire{background:var(--surface-soft); color:var(--ink);}
+
+  #splash{
+    position:fixed; inset:0; background:var(--bg); z-index:100;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #splash .display{font-size:30px; color:var(--corentin);}
+
+  #ecran-login{
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    height:100vh; height:100dvh; gap:22px; padding: 0 30px;
+    padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+  }
+  #ecran-login .display{font-size:34px; color:var(--corentin);}
+  .form-login{width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px;}
+  .form-login input{
+    width:100%; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--line);
+    background:var(--surface); font-size:16px; color:var(--ink);
+  }
+  .erreur-login{color:var(--error); font-size:13px; text-align:center; min-height:16px;}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="display">Courses L&amp;C</div></div>
+
+<div id="ecran-login">
+  <div class="display">Courses L&amp;C</div>
+  <div class="form-login">
+    <input type="email" id="input-email-login" placeholder="Email" autocomplete="username">
+    <input type="password" id="input-password-login" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="erreur-login" id="erreur-login"></div>
+    <button class="btn btn-primaire" id="btn-connexion">Se connecter</button>
+  </div>
+</div>
+
+<div id="ecran-profil" style="display:none;">
+  <div class="display">Courses L&amp;C</div>
+  <p>Qui es-tu ?</p>
+  <div class="choix-profil">
+    <button class="btn-profil" data-profil="Corentin">Corentin</button>
+    <button class="btn-profil" data-profil="Lisa">Lisa</button>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <h1 class="display" id="titre-onglet">Saisie</h1>
+    <span class="profil-badge" id="badge-profil"></span>
+  </header>
+
+  <main>
+    <!-- VUE SAISIE -->
+    <div id="vue-saisie">
+      <div class="searchbar">
+        <span>🔍</span>
+        <input type="text" id="recherche-saisie" placeholder="Chercher un produit…">
+      </div>
+      <div class="liste" id="liste-saisie"></div>
+    </div>
+
+    <!-- VUE COURSE -->
+    <div id="vue-course" style="display:none;">
+      <div class="liste" id="liste-course"></div>
+    </div>
+  </main>
+
+  <button class="btn-course-terminee" id="btn-course-terminee" style="display:none;" onclick="terminerCourse()">Course terminée</button>
+
+  <button class="fab-ajouter" id="btn-ouvrir-ajout">+</button>
+
+  <nav class="tabbar">
+    <button class="onglet-btn actif" data-onglet="saisie">
+      <span class="tab-icon">📝</span>
+      <span>Saisie</span>
+    </button>
+    <button class="onglet-btn" data-onglet="course">
+      <span class="tab-icon">🛒</span>
+      <span>Course <span class="badge-course" id="compteur-course">0</span></span>
+    </button>
+  </nav>
+</div>
+
+<!-- Modale ajout produit -->
+<div class="overlay" id="overlay-ajout">
+  <div class="modale">
+    <h3>Ajouter un produit</h3>
+    <div class="champ">
+      <label>Nom du produit</label>
+      <input type="text" id="input-nom-produit" placeholder="Ex : Yaourts nature">
+    </div>
+    <div class="champ">
+      <label>Quantité (optionnel)</label>
+      <input type="text" id="input-quantite-produit" placeholder="Ex : 4, grand format…">
+    </div>
+    <div class="champ">
+      <label>Rayon</label>
+      <select id="select-rayon-produit"></select>
+    </div>
+    <div class="champ" id="champ-nouveau-rayon" style="display:none;">
+      <label>Nom du nouveau rayon</label>
+      <input type="text" id="input-nouveau-rayon" placeholder="Ex : Bricolage">
+    </div>
+    <div class="modale-actions">
+      <button class="btn btn-secondaire" id="btn-annuler-ajout">Annuler</button>
+      <button class="btn btn-primaire" id="btn-valider-ajout">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale changer de rayon -->
+<div class="overlay" id="overlay-rayon">
+  <div class="modale">
+    <h3>Changer le rayon</h3>
+    <div class="champ">
+      <select id="select-rayon-existant"></select>
+    </div>
+    <div class="modale-actions">
+      <button class="btn btn-secondaire" id="btn-annuler-rayon">Annuler</button>
+      <button class="btn btn-primaire" id="btn-valider-rayon">Valider</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG FIREBASE — À COMPLÉTER PAR CORENTIN
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+  authDomain: "course-app-36e9d.firebaseapp.com",
+  databaseURL: "https://course-app-36e9d-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "course-app-36e9d",
+  storageBucket: "course-app-36e9d.firebasestorage.app",
+  messagingSenderId: "55041357024",
+  appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+/* Wrappers (évite les conflits de noms globaux, cf. Budget L&C) */
+function dbRef(path){ return db.ref(path); }
+function dbSet(path, val){ return dbRef(path).set(val); }
+function dbUpdate(path, val){ return dbRef(path).update(val); }
+function dbPush(path, val){ return dbRef(path).push(val); }
+function dbOn(path, cb){ dbRef(path).on('value', cb); }
+function authListen(cb){ auth.onAuthStateChanged(cb); }
+
+function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let state = {
+  produits: {},   // id -> {nom, rayon, quantite, aAcheter, compteur}
+  rayons: {},     // id -> nom
+  onglet: 'saisie',
+  recherche: '',
+  profil: localStorage.getItem('courses_profil') || null,
+  rayonCibleAjout: null // pour la modale ajout produit
+};
+
+/* ============================================================
+   CATALOGUE DE DÉPART (seed, importé une seule fois si la base est vide)
+   ============================================================ */
+const RAYONS_SEED = [
+  "Épicerie sucrée","Épicerie salée","Crèmerie","Fruits & légumes",
+  "Viandes & poissons","Surgelés","Boulangerie","Boissons & alcools",
+  "Hygiène & beauté","Bébé","Entretien maison","Divers maison"
+];
+
+const PRODUITS_SEED = [
+  ["Pâte à tartiner chocolat blanc-noisette","Épicerie sucrée",""],
+  ["Pâte à tartiner chocolat blanc-amandes","Épicerie sucrée",""],
+  ["Pâte à tartiner noisette (nature)","Épicerie sucrée",""],
+  ["Pâte à tartiner spéculos","Épicerie sucrée",""],
+  ["Nutella","Épicerie sucrée","grand format"],
+  ["Chocolat blanc-noisette ou au lait","Épicerie sucrée","tablette"],
+  ["Chocolat fleur de sel","Épicerie sucrée",""],
+  ["Bonbons","Épicerie sucrée",""],
+  ["M&Ms","Épicerie sucrée",""],
+  ["Biscuits spéculos","Épicerie sucrée",""],
+  ["Biscuits Roudor","Épicerie sucrée",""],
+  ["Cigarettes russes","Épicerie sucrée",""],
+  ["Biscuits apéro","Épicerie sucrée","1 boîte"],
+  ["Gressin","Épicerie sucrée",""],
+  ["Amandes","Épicerie sucrée",""],
+  ["Pistaches","Épicerie sucrée","grand paquet"],
+  ["Compotes pommes / pomme-vanille","Épicerie sucrée","x12, sans sucre"],
+  ["Brioche pépites de chocolat","Épicerie sucrée",""],
+  ["Sirop d'érable","Épicerie sucrée",""],
+  ["Sucre","Épicerie sucrée",""],
+  ["Sucre vanillé","Épicerie sucrée",""],
+  ["Farine","Épicerie sucrée",""],
+  ["Bicarbonate","Épicerie sucrée",""],
+  ["Pois chiche","Épicerie salée",""],
+  ["Riz avec goût","Épicerie salée","semaine"],
+  ["Riz blanc","Épicerie salée",""],
+  ["Pâtes instantanées","Épicerie salée",""],
+  ["Coquillettes cuisson 3 min","Épicerie salée",""],
+  ["Haricots verts (boîte)","Épicerie salée",""],
+  ["Tortillas de blé","Épicerie salée","grandes"],
+  ["Galettes de sarrasin","Épicerie salée",""],
+  ["Curry","Épicerie salée",""],
+  ["Paprika","Épicerie salée",""],
+  ["Poivre","Épicerie salée",""],
+  ["Vinaigre","Épicerie salée",""],
+  ["Vin rouge de cuisson","Épicerie salée",""],
+  ["Mayo","Épicerie salée",""],
+  ["Sauce pour pommes de terre/frites","Épicerie salée",""],
+  ["Cottage cheese","Crèmerie","0%"],
+  ["Fromage blanc","Crèmerie",""],
+  ["Skyr vanille","Crèmerie",""],
+  ["Fromage apéro","Crèmerie",""],
+  ["Coulommiers","Crèmerie",""],
+  ["Fromage râpé","Crèmerie",""],
+  ["Leerdamer","Crèmerie","boîte de 16"],
+  ["Parmesan","Crèmerie",""],
+  ["Beurre","Crèmerie",""],
+  ["Chantilly","Crèmerie",""],
+  ["Crème fraîche","Crèmerie","risotto"],
+  ["Œufs","Crèmerie",""],
+  ["Lait soja vanille","Crèmerie",""],
+  ["Lait de coco","Crèmerie","sans sucre, graines de chia"],
+  ["Aneth","Fruits & légumes",""],
+  ["Ciboulette","Fruits & légumes",""],
+  ["Cornichons","Fruits & légumes",""],
+  ["Kiwis","Fruits & légumes",""],
+  ["Bananes vertes","Fruits & légumes",""],
+  ["Carottes","Fruits & légumes",""],
+  ["Concombre","Fruits & légumes",""],
+  ["Gingembre","Fruits & légumes",""],
+  ["Pommes","Fruits & légumes",""],
+  ["Tomates cerises","Fruits & légumes",""],
+  ["Choux de Bruxelles","Fruits & légumes",""],
+  ["Olives","Fruits & légumes",""],
+  ["Oignons","Fruits & légumes","risotto"],
+  ["Champignons","Fruits & légumes","risotto"],
+  ["Citron (jus de)","Fruits & légumes",""],
+  ["Steak haché 5% MG ou bavette","Viandes & poissons",""],
+  ["Cordon bleu","Viandes & poissons",""],
+  ["Thon","Viandes & poissons","gamelles"],
+  ["Jambon de pays","Viandes & poissons",""],
+  ["Jambon (tranches)","Viandes & poissons",""],
+  ["Jambonneau","Viandes & poissons",""],
+  ["Saucisson","Viandes & poissons",""],
+  ["Bacon","Viandes & poissons",""],
+  ["Poulet","Viandes & poissons","risotto"],
+  ["Protéines (poudre)","Viandes & poissons",""],
+  ["Frites de patates douces","Surgelés",""],
+  ["Brocolis surgelés","Surgelés",""],
+  ["Pommes de terre","Surgelés","gamelle"],
+  ["Glaces","Surgelés",""],
+  ["Pain de mie","Boulangerie","format maxi"],
+  ["Pain aux figues","Boulangerie",""],
+  ["Pain normal","Boulangerie",""],
+  ["Eau Contrex","Boissons & alcools",""],
+  ["Eau de coco","Boissons & alcools",""],
+  ["Café normal","Boissons & alcools",""],
+  ["Café aromatisé","Boissons & alcools","noisette / caramel / vanille"],
+  ["Coca zéro","Boissons & alcools",""],
+  ["Tonic","Boissons & alcools",""],
+  ["Ginger beer","Boissons & alcools",""],
+  ["Desperados","Boissons & alcools",""],
+  ["Canadou","Boissons & alcools",""],
+  ["Vodka","Boissons & alcools",""],
+  ["Gin","Boissons & alcools",""],
+  ["Get 27","Boissons & alcools",""],
+  ["Baileys","Boissons & alcools",""],
+  ["Vin","Boissons & alcools","blanc moelleux ou rouge"],
+  ["Déodorant","Hygiène & beauté",""],
+  ["Shampoing sec","Hygiène & beauté",""],
+  ["Patch boutons","Hygiène & beauté",""],
+  ["Bandes d'épilation","Hygiène & beauté",""],
+  ["Eau micellaire Naé","Hygiène & beauté","rose"],
+  ["Serviettes hygiéniques Always","Hygiène & beauté","vert et normal, sans languette"],
+  ["Gel douche","Hygiène & beauté","Corentin"],
+  ["Coton-tiges","Hygiène & beauté",""],
+  ["Coton démaquillant bébé","Bébé",""],
+  ["Lingettes Pampers","Bébé",""],
+  ["Pastilles lave-vaisselle","Entretien maison",""],
+  ["Gros sel lave-vaisselle","Entretien maison",""],
+  ["Liquide vaisselle Arbre Vert","Entretien maison",""],
+  ["Soupline","Entretien maison",""],
+  ["Gel WC","Entretien maison",""],
+  ["Destop","Entretien maison",""],
+  ["Répulsif fourmis","Entretien maison",""],
+  ["Scotch marron","Divers maison",""],
+  ["Litière Rajah","Divers maison",""],
+  ["Piles (détecteur/bip)","Divers maison",""],
+  ["Piles AAA","Divers maison","télécommande TV"],
+  ["Sacs poubelle","Divers maison",""],
+  ["Éponges cuisine","Divers maison",""],
+  ["Papier film fraîcheur","Divers maison",""],
+  ["Sopalin","Divers maison",""],
+  ["Papier toilette","Divers maison",""],
+  ["Blanco","Divers maison","correcteur ruban, école"]
+];
+
+function lancerSeedSiVide(){
+  dbRef('courses/rayons').once('value').then(snap=>{
+    if(snap.exists()) return; // déjà initialisé, on ne touche à rien
+    const rayonsObj = {};
+    RAYONS_SEED.forEach(nom=>{
+      const id = dbPush('courses/rayons').key;
+      rayonsObj[id] = nom;
+    });
+    dbSet('courses/rayons', rayonsObj).then(()=>{
+      // reconstruire une map nom->id pour lier les produits
+      const nomVersId = {};
+      Object.entries(rayonsObj).forEach(([id,nom])=> nomVersId[nom]=id);
+      const produitsObj = {};
+      PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
+        const id = dbPush('courses/produits').key;
+        produitsObj[id] = {
+          nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
+          aAcheter:false, compteur:0
+        };
+      });
+      dbSet('courses/produits', produitsObj);
+    });
+  });
+}
+
+/* ============================================================
+   AUTH + CHARGEMENT
+   ============================================================ */
+function demarrer(){
+  authListen(user=>{
+    if(user){
+      lancerSeedSiVide();
+      dbOn('courses/produits', snap=>{
+        state.produits = snap.val() || {};
+        render();
+      });
+      dbOn('courses/rayons', snap=>{
+        state.rayons = snap.val() || {};
+        render();
+      });
+      document.getElementById('splash').style.display='none';
+      document.getElementById('ecran-login').style.display='none';
+      if(state.profil){
+        afficherApp();
+      }else{
+        document.getElementById('ecran-profil').style.display='flex';
+      }
+    }else{
+      document.getElementById('splash').style.display='none';
+      document.getElementById('ecran-login').style.display='flex';
+    }
+  });
+}
+
+document.getElementById('btn-connexion').addEventListener('click', ()=>{
+  const email = document.getElementById('input-email-login').value.trim();
+  const password = document.getElementById('input-password-login').value;
+  const zoneErreur = document.getElementById('erreur-login');
+  zoneErreur.textContent = '';
+  if(!email || !password){
+    zoneErreur.textContent = "Remplis les deux champs.";
+    return;
+  }
+  auth.signInWithEmailAndPassword(email, password).catch(err=>{
+    console.error("Erreur connexion :", err);
+    zoneErreur.textContent = "Email ou mot de passe incorrect.";
+  });
+});
+
+function afficherApp(){
+  document.getElementById('ecran-profil').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('badge-profil').textContent = state.profil;
+}
+
+document.querySelectorAll('.btn-profil').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    state.profil = btn.dataset.profil;
+    localStorage.setItem('courses_profil', state.profil);
+    afficherApp();
+    render();
+  });
+});
+
+/* ============================================================
+   NAVIGATION ONGLETS
+   ============================================================ */
+document.querySelectorAll('.onglet-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    state.onglet = btn.dataset.onglet;
+    document.querySelectorAll('.onglet-btn').forEach(b=>b.classList.toggle('actif', b===btn));
+    document.getElementById('vue-saisie').style.display = state.onglet==='saisie' ? 'block':'none';
+    document.getElementById('vue-course').style.display = state.onglet==='course' ? 'block':'none';
+    document.getElementById('titre-onglet').textContent = state.onglet==='saisie' ? 'Saisie' : 'Course';
+    document.getElementById('btn-ouvrir-ajout').style.display = state.onglet==='saisie' ? 'block':'none';
+    if(state.onglet==='course') renderCourse();
+    vibrer(8);
+  });
+});
+
+document.getElementById('recherche-saisie').addEventListener('input', e=>{
+  state.recherche = e.target.value.trim().toLowerCase();
+  renderSaisie();
+});
+
+/* ============================================================
+   ACTIONS PRODUITS
+   ============================================================ */
+function toggleAcheter(id){
+  const p = state.produits[id];
+  if(!p) return;
+  const nouveauStatut = !p.aAcheter;
+  const updates = { aAcheter: nouveauStatut };
+  if(nouveauStatut){
+    updates.compteur = (p.compteur||0) + 1;
+  }
+  dbUpdate('courses/produits/'+id, updates);
+  vibrer(12);
+}
+
+function toggleAcheteCourse(id){
+  const p = state.produits[id];
+  if(!p) return;
+  dbUpdate('courses/produits/'+id, { achete: !p.achete });
+  vibrer(15);
+}
+
+function terminerCourse(){
+  const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
+  if(aEffacer.length===0) return;
+  const updates = {};
+  aEffacer.forEach(([id])=>{
+    updates['courses/produits/'+id+'/aAcheter'] = false;
+    updates['courses/produits/'+id+'/achete'] = false;
+  });
+  db.ref().update(updates);
+  vibrer(20);
+}
+
+function updateQuantite(id, val){
+  dbUpdate('courses/produits/'+id, { quantite: val });
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function iconeCheck(){
+  return '<svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function render(){
+  renderSaisie();
+  renderCourse();
+}
+
+function renderSaisie(){
+  const cont = document.getElementById('liste-saisie');
+  let items = Object.entries(state.produits);
+  if(state.recherche){
+    items = items.filter(([id,p])=> p.nom.toLowerCase().includes(state.recherche));
+  }
+  // Tri : compteur décroissant, puis alphabétique
+  items.sort((a,b)=>{
+    const diff = (b[1].compteur||0) - (a[1].compteur||0);
+    if(diff!==0) return diff;
+    return a[1].nom.localeCompare(b[1].nom);
+  });
+
+  if(items.length===0){
+    cont.innerHTML = `<div class="empty-state"><div class="display">Rien trouvé</div><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
+    return;
+  }
+
+  cont.innerHTML = items.map(([id,p])=>{
+    const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
+    return `
+    <div class="carte-produit">
+      <div class="checkbox ${p.aAcheter?'checked':''}" onclick="toggleAcheter('${id}')">${iconeCheck()}</div>
+      <div class="infos-produit" onclick="ouvrirModaleRayon('${id}')">
+        <div class="nom-produit">${escapeHtml(p.nom)}</div>
+        <div class="rayon-tag">${escapeHtml(rayonNom)}</div>
+      </div>
+      <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
+        onchange="updateQuantite('${id}', this.value)">
+    </div>`;
+  }).join('');
+}
+
+function renderCourse(){
+  const cont = document.getElementById('liste-course');
+  const items = Object.entries(state.produits).filter(([id,p])=>p.aAcheter);
+
+  document.getElementById('compteur-course').textContent = items.length;
+
+  if(items.length===0){
+    cont.innerHTML = `<div class="empty-state"><div class="display">Rien à acheter</div><p>Coche des produits dans l'onglet Saisie pour les faire apparaître ici.</p></div>`;
+    return;
+  }
+
+  // Groupement par rayon
+  const groupes = {};
+  items.forEach(([id,p])=>{
+    const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
+    if(!groupes[rayonNom]) groupes[rayonNom]=[];
+    groupes[rayonNom].push([id,p]);
+  });
+  const rayonsTries = Object.keys(groupes).sort((a,b)=>a.localeCompare(b));
+
+  cont.innerHTML = rayonsTries.map(rayonNom=>{
+    const produitsRayon = groupes[rayonNom].sort((a,b)=>a[1].nom.localeCompare(b[1].nom));
+    return `
+    <div class="section-rayon">
+      <h2 class="display">${escapeHtml(rayonNom)}</h2>
+      ${produitsRayon.map(([id,p])=>`
+        <div class="carte-produit">
+          <div class="checkbox mode-course" onclick="marquerAchete('${id}')">${iconeCheck()}</div>
+          <div class="infos-produit">
+            <div class="nom-produit">${escapeHtml(p.nom)}</div>
+            ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+/* ============================================================
+   MODALE : AJOUTER UN PRODUIT
+   ============================================================ */
+const overlayAjout = document.getElementById('overlay-ajout');
+
+document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{
+  document.getElementById('input-nom-produit').value='';
+  document.getElementById('input-quantite-produit').value='';
+  document.getElementById('input-nouveau-rayon').value='';
+  document.getElementById('champ-nouveau-rayon').style.display='none';
+  remplirSelectRayons('select-rayon-produit', true);
+  overlayAjout.classList.add('visible');
+});
+document.getElementById('btn-annuler-ajout').addEventListener('click', ()=> overlayAjout.classList.remove('visible'));
+overlayAjout.addEventListener('click', e=>{ if(e.target===overlayAjout) overlayAjout.classList.remove('visible'); });
+
+document.getElementById('select-rayon-produit').addEventListener('change', e=>{
+  document.getElementById('champ-nouveau-rayon').style.display = e.target.value==='__nouveau__' ? 'block':'none';
+});
+
+document.getElementById('btn-valider-ajout').addEventListener('click', async ()=>{
+  const nom = document.getElementById('input-nom-produit').value.trim();
+  const quantite = document.getElementById('input-quantite-produit').value.trim();
+  if(!nom){ return; }
+
+  let rayonId = document.getElementById('select-rayon-produit').value;
+  if(rayonId==='__nouveau__'){
+    const nomRayon = document.getElementById('input-nouveau-rayon').value.trim();
+    if(!nomRayon){ return; }
+    const ref = dbPush('courses/rayons');
+    await dbSet('courses/rayons/'+ref.key, nomRayon);
+    rayonId = ref.key;
+  }
+
+  const ref = dbPush('courses/produits');
+  await dbSet('courses/produits/'+ref.key, {
+    nom, quantite, rayonId, aAcheter:true, compteur:1
+  });
+  overlayAjout.classList.remove('visible');
+  vibrer(15);
+});
+
+function remplirSelectRayons(selectId, avecOptionNouveau, rayonSelectionne){
+  const sel = document.getElementById(selectId);
+  const rayonsTries = Object.entries(state.rayons).sort((a,b)=>a[1].localeCompare(b[1]));
+  let html = rayonsTries.map(([id,nom])=>`<option value="${id}">${escapeHtml(nom)}</option>`).join('');
+  if(avecOptionNouveau){
+    html += `<option value="__nouveau__">+ Nouveau rayon…</option>`;
+  }
+  sel.innerHTML = html;
+  if(rayonSelectionne) sel.value = rayonSelectionne;
+}
+
+/* ============================================================
+   MODALE : CHANGER LE RAYON D'UN PRODUIT
+   ============================================================ */
+const overlayRayon = document.getElementById('overlay-rayon');
+let produitEnEdition = null;
+
+function ouvrirModaleRayon(id){
+  produitEnEdition = id;
+  const p = state.produits[id];
+  remplirSelectRayons('select-rayon-existant', false, p.rayonId);
+  overlayRayon.classList.add('visible');
+}
+document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> overlayRayon.classList.remove('visible'));
+overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
+document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
+  const rayonId = document.getElementById('select-rayon-existant').value;
+  dbUpdate('courses/produits/'+produitEnEdition, { rayonId });
+  overlayRayon.classList.remove('visible');
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+demarrer();
+</script>
+</body>
+</html>
