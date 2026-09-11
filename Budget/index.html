@@ -459,8 +459,9 @@
         const db   = firebase.database();
         const auth = firebase.auth();
 
-        // Safari iOS ITP : forcer la persistance en mémoire pour éviter le blocage des cookies tiers
-        auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(() => {});
+        // Persistance LOCAL : reste connecté entre les ouvertures de l'app (survit à la fermeture de Safari/PWA)
+        // Limite connue Safari iOS : l'ITP peut purger ce stockage après plusieurs jours d'inactivité — comportement du navigateur, pas un bug corrigeable côté code.
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
         // Wrappers — noms différents pour éviter tout conflit avec l'API compat
         const dbRef   = (path)           => db.ref(path);
