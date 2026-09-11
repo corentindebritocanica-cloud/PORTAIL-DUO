@@ -4263,6 +4263,23 @@ function saveChatMessage(msg){
 }
 
 let chatBusy = false;
+let coachRequestStartedAt = null;
+let coachAbortController = null;
+const COACH_REQUEST_TIMEOUT_MS = 45000;
+
+/* Si l'app est mise en arrière-plan pendant que le coach répond (l'utilisateur
+   change d'écran, verrouille le téléphone…), iOS peut couper la requête réseau
+   sans jamais la faire échouer : le minuteur de sécurité existe déjà, mais lui
+   aussi peut être mis en pause pendant la mise en veille et ne se déclencher
+   qu'avec du retard une fois revenu. On revérifie donc dès que l'app redevient
+   visible, pour débloquer tout de suite plutôt que d'attendre. */
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(!coachAbortController || !coachRequestStartedAt) return;
+  if(Date.now() - coachRequestStartedAt >= COACH_REQUEST_TIMEOUT_MS){
+    coachAbortController.abort();
+  }
+});
 
 async function sendCoachMessage(){
   if(chatBusy) return;
@@ -4317,9 +4334,15 @@ async function sendCoachMessage(){
   }, 1000);
 
   /* Filet de sécurité : sans limite, un réseau qui reste bloqué laisserait la
-     bulle tourner indéfiniment sans jamais dire que ça a échoué. */
+     bulle tourner indéfiniment sans jamais dire que ça a échoué. Les deux
+     variables sont partagées avec le contrôle "visibilitychange" ci-dessus,
+     pour pouvoir débloquer immédiatement au retour sur l'app plutôt que
+     d'attendre que ce minuteur se déclenche (lui aussi mis en pause pendant
+     la mise en veille). */
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  coachAbortController = controller;
+  coachRequestStartedAt = startedAt;
+  const timeoutId = setTimeout(() => controller.abort(), COACH_REQUEST_TIMEOUT_MS);
 
   try{
     const reply = await withModelRepair(() => callCoachChat(controller.signal));
@@ -4339,6 +4362,8 @@ async function sendCoachMessage(){
   }finally{
     clearInterval(ticker);
     clearTimeout(timeoutId);
+    coachAbortController = null;
+    coachRequestStartedAt = null;
     const bubble = document.getElementById('chat-typing-bubble');
     if(bubble) bubble.remove();
     chatBusy = false;
