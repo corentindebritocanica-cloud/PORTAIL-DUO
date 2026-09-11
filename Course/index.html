@@ -133,6 +133,13 @@
   }
   .quantite-input:focus{outline:2px solid var(--corentin); border-color:var(--corentin);}
 
+  .btn-modifier{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+    background:var(--surface-soft); color:var(--ink-soft); font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-modifier:active{background:var(--line);}
+
   .empty-state{
     text-align:center; padding:60px 30px; color:var(--ink-soft);
   }
@@ -212,6 +219,11 @@
   .btn{flex:1; padding:14px; border-radius:var(--radius-md); border:none; font-size:16px; font-weight:600;}
   .btn-primaire{background:var(--corentin); color:#fff;}
   .btn-secondaire{background:var(--surface-soft); color:var(--ink);}
+  .btn-danger{background:var(--error); color:#fff;}
+  .lien-supprimer{
+    display:block; text-align:center; margin-top:14px; color:var(--error);
+    font-size:14px; background:none; border:none; width:100%; padding:6px;
+  }
 
   #splash{
     position:fixed; inset:0; background:var(--bg); z-index:100;
@@ -321,23 +333,37 @@
   </div>
 </div>
 
-<!-- Modale changer de rayon -->
-<div class="overlay" id="overlay-rayon">
+<!-- Modale modifier un produit (nom + quantité + rayon) -->
+<div class="overlay" id="overlay-modifier">
   <div class="modale">
-    <h3>Changer le rayon</h3>
+    <h3>Modifier le produit</h3>
     <div class="champ">
-      <select id="select-rayon-existant"></select>
+      <label>Nom du produit</label>
+      <input type="text" id="input-nom-modifier">
+    </div>
+    <div class="champ">
+      <label>Quantité (optionnel)</label>
+      <input type="text" id="input-quantite-modifier">
+    </div>
+    <div class="champ">
+      <label>Rayon</label>
+      <select id="select-rayon-modifier"></select>
+    </div>
+    <div class="champ" id="champ-nouveau-rayon-modifier" style="display:none;">
+      <label>Nom du nouveau rayon</label>
+      <input type="text" id="input-nouveau-rayon-modifier" placeholder="Ex : Bricolage">
     </div>
     <div class="modale-actions">
-      <button class="btn btn-secondaire" id="btn-annuler-rayon">Annuler</button>
-      <button class="btn btn-primaire" id="btn-valider-rayon">Valider</button>
+      <button class="btn btn-secondaire" id="btn-annuler-modifier">Annuler</button>
+      <button class="btn btn-primaire" id="btn-valider-modifier">Enregistrer</button>
     </div>
+    <button class="lien-supprimer" id="btn-supprimer-produit">Supprimer ce produit</button>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   CONFIG FIREBASE — À COMPLÉTER PAR CORENTIN
+   CONFIG FIREBASE
    ============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
@@ -358,6 +384,7 @@ function dbRef(path){ return db.ref(path); }
 function dbSet(path, val){ return dbRef(path).set(val); }
 function dbUpdate(path, val){ return dbRef(path).update(val); }
 function dbPush(path, val){ return dbRef(path).push(val); }
+function dbRemove(path){ return dbRef(path).remove(); }
 function dbOn(path, cb){ dbRef(path).on('value', cb); }
 function authListen(cb){ auth.onAuthStateChanged(cb); }
 
@@ -367,12 +394,11 @@ function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
    ÉTAT
    ============================================================ */
 let state = {
-  produits: {},   // id -> {nom, rayon, quantite, aAcheter, compteur}
+  produits: {},   // id -> {nom, rayonId, quantite, aAcheter, achete, compteur}
   rayons: {},     // id -> nom
   onglet: 'saisie',
   recherche: '',
-  profil: localStorage.getItem('courses_profil') || null,
-  rayonCibleAjout: null // pour la modale ajout produit
+  profil: localStorage.getItem('courses_profil') || null
 };
 
 /* ============================================================
@@ -521,7 +547,6 @@ function lancerSeedSiVide(){
       rayonsObj[id] = nom;
     });
     dbSet('courses/rayons', rayonsObj).then(()=>{
-      // reconstruire une map nom->id pour lier les produits
       const nomVersId = {};
       Object.entries(rayonsObj).forEach(([id,nom])=> nomVersId[nom]=id);
       const produitsObj = {};
@@ -632,6 +657,8 @@ function toggleAcheter(id){
   vibrer(12);
 }
 
+// Bug corrigé : la fonction appelée depuis renderCourse() s'appelait
+// "marquerAchete" (inexistante) au lieu de "toggleAcheteCourse".
 function toggleAcheteCourse(id){
   const p = state.produits[id];
   if(!p) return;
@@ -673,7 +700,6 @@ function renderSaisie(){
   if(state.recherche){
     items = items.filter(([id,p])=> p.nom.toLowerCase().includes(state.recherche));
   }
-  // Tri : compteur décroissant, puis alphabétique
   items.sort((a,b)=>{
     const diff = (b[1].compteur||0) - (a[1].compteur||0);
     if(diff!==0) return diff;
@@ -690,12 +716,14 @@ function renderSaisie(){
     return `
     <div class="carte-produit">
       <div class="checkbox ${p.aAcheter?'checked':''}" onclick="toggleAcheter('${id}')">${iconeCheck()}</div>
-      <div class="infos-produit" onclick="ouvrirModaleRayon('${id}')">
+      <div class="infos-produit" onclick="ouvrirModaleModifier('${id}')">
         <div class="nom-produit">${escapeHtml(p.nom)}</div>
         <div class="rayon-tag">${escapeHtml(rayonNom)}</div>
       </div>
       <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
+        onclick="event.stopPropagation()"
         onchange="updateQuantite('${id}', this.value)">
+      <button class="btn-modifier" onclick="ouvrirModaleModifier('${id}')">✎</button>
     </div>`;
   }).join('');
 }
@@ -711,7 +739,6 @@ function renderCourse(){
     return;
   }
 
-  // Groupement par rayon
   const groupes = {};
   items.forEach(([id,p])=>{
     const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
@@ -727,9 +754,9 @@ function renderCourse(){
       <h2 class="display">${escapeHtml(rayonNom)}</h2>
       ${produitsRayon.map(([id,p])=>`
         <div class="carte-produit">
-          <div class="checkbox mode-course" onclick="marquerAchete('${id}')">${iconeCheck()}</div>
+          <div class="checkbox mode-course ${p.achete?'checked':''}" onclick="toggleAcheteCourse('${id}')">${iconeCheck()}</div>
           <div class="infos-produit">
-            <div class="nom-produit">${escapeHtml(p.nom)}</div>
+            <div class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom)}</div>
             ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
           </div>
         </div>
@@ -797,23 +824,63 @@ function remplirSelectRayons(selectId, avecOptionNouveau, rayonSelectionne){
 }
 
 /* ============================================================
-   MODALE : CHANGER LE RAYON D'UN PRODUIT
+   MODALE : MODIFIER UN PRODUIT (nom + quantité + rayon + suppression)
    ============================================================ */
-const overlayRayon = document.getElementById('overlay-rayon');
+const overlayModifier = document.getElementById('overlay-modifier');
 let produitEnEdition = null;
 
-function ouvrirModaleRayon(id){
+function ouvrirModaleModifier(id){
   produitEnEdition = id;
   const p = state.produits[id];
-  remplirSelectRayons('select-rayon-existant', false, p.rayonId);
-  overlayRayon.classList.add('visible');
+  if(!p) return;
+  document.getElementById('input-nom-modifier').value = p.nom || '';
+  document.getElementById('input-quantite-modifier').value = p.quantite || '';
+  document.getElementById('input-nouveau-rayon-modifier').value = '';
+  document.getElementById('champ-nouveau-rayon-modifier').style.display = 'none';
+  remplirSelectRayons('select-rayon-modifier', true, p.rayonId);
+  overlayModifier.classList.add('visible');
 }
-document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> overlayRayon.classList.remove('visible'));
-overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
-document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
-  const rayonId = document.getElementById('select-rayon-existant').value;
-  dbUpdate('courses/produits/'+produitEnEdition, { rayonId });
-  overlayRayon.classList.remove('visible');
+
+document.getElementById('select-rayon-modifier').addEventListener('change', e=>{
+  document.getElementById('champ-nouveau-rayon-modifier').style.display = e.target.value==='__nouveau__' ? 'block':'none';
+});
+
+document.getElementById('btn-annuler-modifier').addEventListener('click', ()=>{
+  produitEnEdition = null;
+  overlayModifier.classList.remove('visible');
+});
+overlayModifier.addEventListener('click', e=>{
+  if(e.target===overlayModifier){ produitEnEdition = null; overlayModifier.classList.remove('visible'); }
+});
+
+document.getElementById('btn-valider-modifier').addEventListener('click', async ()=>{
+  if(!produitEnEdition) return;
+  const nom = document.getElementById('input-nom-modifier').value.trim();
+  const quantite = document.getElementById('input-quantite-modifier').value.trim();
+  if(!nom){ return; }
+
+  let rayonId = document.getElementById('select-rayon-modifier').value;
+  if(rayonId==='__nouveau__'){
+    const nomRayon = document.getElementById('input-nouveau-rayon-modifier').value.trim();
+    if(!nomRayon){ return; }
+    const ref = dbPush('courses/rayons');
+    await dbSet('courses/rayons/'+ref.key, nomRayon);
+    rayonId = ref.key;
+  }
+
+  await dbUpdate('courses/produits/'+produitEnEdition, { nom, quantite, rayonId });
+  overlayModifier.classList.remove('visible');
+  produitEnEdition = null;
+  vibrer(12);
+});
+
+document.getElementById('btn-supprimer-produit').addEventListener('click', async ()=>{
+  if(!produitEnEdition) return;
+  if(!confirm('Supprimer définitivement ce produit ?')) return;
+  await dbRemove('courses/produits/'+produitEnEdition);
+  overlayModifier.classList.remove('visible');
+  produitEnEdition = null;
+  vibrer(20);
 });
 
 /* ============================================================
