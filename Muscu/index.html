@@ -2507,9 +2507,9 @@ function render(){
     /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
     const isCircuitEx = ex.logType === 'circuit';
     const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name);
-    const record = isCircuitEx ? 0 : getPersonalRecord(currentProfile, ex.name);
+    const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name);
 
-    if(lastPerf || record > 0){
+    if(lastPerf || record){
       const histRow = document.createElement('div');
       histRow.className = 'exercise-history';
       if(lastPerf){
@@ -2520,10 +2520,14 @@ function render(){
           + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel;
         histRow.appendChild(span);
       }
-      if(record > 0){
+      if(record){
+        /* Le record affiche la série réellement faite (poids × reps), pas un
+           chiffre de volume abstrait : c'est ce qui reste lisible et vérifiable
+           d'un coup d'œil en salle. Le volume ne sert qu'en coulisse à décider
+           QUELLE série est le record. */
         const rec = document.createElement('span');
         rec.className = 'hist-record';
-        rec.textContent = 'Record ' + formatKg(record);
+        rec.textContent = 'Record ' + formatKg(record.weight) + ' × ' + record.reps;
         histRow.appendChild(rec);
       }
       headWrap.appendChild(histRow);
@@ -2549,18 +2553,25 @@ function render(){
     }
 
     function refreshRecordBadge(){
-      if(isCircuitEx || record <= 0){ prBadge.style.display = 'none'; return; }
+      if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
       const d = loadDayData(currentSessionId, currentProfile);
-      let best = 0;
+      /* Le mode de charge en cours de saisie compte aussi dans la comparaison :
+         un exercice passé aux haltères aujourd'hui double son volume, comme le
+         reste de l'app. */
+      const liveMode = getLoadMode(ex, exIdx, d);
+      const liveFactor = liveMode ? loadModeInfo(liveMode).factor : 1;
+      let bestVol = 0, bestWeight = 0, bestReps = 0;
       for(let n = 1; n <= ex.sets; n++){
         const cur = d.sets['ex' + exIdx + '_set' + n];
-        const val = cur ? parseNum(cur.weight) : NaN;
-        if(!isNaN(val) && val > best) best = val;
+        if(!cur) continue;
+        const w = parseNum(cur.weight), r = parseNum(cur.reps);
+        const vol = setVolume(w, r, liveFactor);
+        if(!isNaN(vol) && vol > bestVol){ bestVol = vol; bestWeight = w; bestReps = r; }
       }
-      if(best > record){
+      if(bestVol > record.volume){
         const wasHidden = prBadge.style.display === 'none';
-        prBadge.textContent = 'Nouveau record : ' + formatKg(best)
-          + '  (+' + formatKg(best - record) + ')';
+        prBadge.textContent = 'Nouveau record : ' + formatKg(bestWeight) + ' × ' + bestReps
+          + '  (précédent : ' + formatKg(record.weight) + ' × ' + record.reps + ')';
         prBadge.style.display = 'flex';
         if(wasHidden){
           prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
@@ -2804,6 +2815,7 @@ function render(){
           d.sets[setKey].reps = repsInput.value;
           saveDayData(currentSessionId, currentProfile, d);
           updateSessionProgress(); /* tonnage recalculé en direct */
+          refreshRecordBadge(); /* le volume dépend des reps, pas que du poids */
         };
         row.appendChild(repsInput);
 
@@ -3380,14 +3392,48 @@ function getLastPerformance(profile, exerciseName){
   return null;
 }
 
-/* Meilleur poids jamais soulevé sur cet exercice (archives uniquement : la
-   séance en cours ne doit pas faire bouger le record pendant qu'on la saisit). */
+/* ---------- VOLUME D'UNE SÉRIE ----------
+   Le seul poids ne dit pas si une série était plus difficile qu'une autre :
+   45 kg × 8 reps n'est pas forcément « mieux » que 40 kg × 12, qui déplace en
+   réalité plus de charge au total (480 vs 360). Le volume (poids × reps) sert
+   donc de mesure de performance à la place du poids seul, partout où on compare
+   des séries entre elles (record, badge en direct, courbe de progression, bilan
+   du coach). Le facteur de charge (haltères / un bras = ×2) s'applique comme
+   pour le tonnage de séance, pour rester cohérent avec lui. */
+function setVolume(weight, reps, factor){
+  if(isNaN(weight) || isNaN(reps)) return NaN;
+  return weight * reps * (factor || 1);
+}
+
+/* Facteur de charge d'un exercice donné dans une archive donnée (le mode a pu
+   changer d'une séance à l'autre, on ne suppose donc rien de global). */
+function archiveLoadFactor(archive, exerciseName){
+  const exIdx = (archive.exerciseNames || []).indexOf(exerciseName);
+  if(exIdx === -1) return 1;
+  const mode = normalizeLoadMode(readByExercise(archive.variants, { name: exerciseName }, exIdx));
+  return mode ? loadModeInfo(mode).factor : 1;
+}
+
+/* Meilleure série d'un exercice dans une archive, au sens du volume — pas du
+   seul poids. Retourne { weight, reps, volume } ou null si rien d'exploitable. */
+function bestSetByVolume(archive, exerciseName){
+  const factor = archiveLoadFactor(archive, exerciseName);
+  let best = null;
+  getSetsForExercise(archive, exerciseName).forEach(s => {
+    const vol = setVolume(s.weight, s.reps, factor);
+    if(!isNaN(vol) && (!best || vol > best.volume)) best = { weight: s.weight, reps: s.reps, volume: vol };
+  });
+  return best;
+}
+
+/* Meilleure série jamais faite sur cet exercice, au sens du volume (archives
+   uniquement : la séance en cours ne doit pas faire bouger le record pendant
+   qu'on la saisit). Retourne { weight, reps, volume } ou null. */
 function getPersonalRecord(profile, exerciseName){
-  let best = 0;
+  let best = null;
   getArchivesList(profile).forEach(arc => {
-    getSetsForExercise(arc, exerciseName).forEach(x => {
-      if(!isNaN(x.weight) && x.weight > best) best = x.weight;
-    });
+    const b = bestSetByVolume(arc, exerciseName);
+    if(b && (!best || b.volume > best.volume)) best = b;
   });
   return best;
 }
@@ -4753,9 +4799,12 @@ function getProgressPoints(profile, selection){
       /* seules les occurrences de CETTE séance entrent dans la courbe */
       if(arc.sessionId === wantedSession && arc.tonnage > 0) value = arc.tonnage;
     } else {
-      const sets = getSetsForExercise(arc, selection);
-      const best = sets.reduce((m, x) => (!isNaN(x.weight) && x.weight > m) ? x.weight : m, 0);
-      if(best > 0) value = best;
+      /* Le seul poids masque la difficulté réelle : 45 kg × 8 n'est pas
+         forcément mieux que 40 kg × 12. Le point tracé est donc le volume
+         (poids × reps × facteur de charge) de la meilleure série du jour, la
+         même mesure que celle qui sert au record (voir bestSetByVolume). */
+      const best = bestSetByVolume(arc, selection);
+      if(best) value = best.volume;
     }
     if(value !== null) points.push({ dateLabel: arc.dateLabel, value: value, createdAt: arc.createdAt });
   });
@@ -4784,7 +4833,7 @@ function progressMetricInfo(selection){
     const name = sess ? `${sess.label}${sess.title ? ' — ' + sess.title : ''}` : 'Séance';
     return { unit:'kg', title:'tonnage à chaque répétition de cette séance', label:name };
   }
-  return { unit:'kg', title:'meilleure série', label:selection };
+  return { unit:'kg×reps', title:'volume de la meilleure série (poids × reps)', label:selection };
 }
 
 function renderProgressChart(selection){
@@ -4963,14 +5012,12 @@ function buildCoachDigest(profile){
   getExerciseNamesFromArchives(profile).forEach(name => {
     const line = [];
     archives.slice(-8).forEach(arc => {
-      const sets = getSetsForExercise(arc, name);
-      if(sets.length === 0) return;
-      const best = sets.reduce((m, x) => (!isNaN(x.weight) && x.weight > (m.weight || 0)) ? x : m, sets[0]);
-      if(isNaN(best.weight)) return;
+      const best = bestSetByVolume(arc, name);
+      if(!best) return;
       line.push(`${arc.dateLabel} ${formatNumberFr(best.weight)}kg×${isNaN(best.reps) ? '?' : best.reps}`);
     });
     const record = getPersonalRecord(profile, name);
-    if(line.length) out += `  ${name} — record ${formatNumberFr(record)}kg | ${line.slice(-5).join(' → ')}\n`;
+    if(line.length) out += `  ${name} — record ${record ? formatNumberFr(record.weight) + 'kg×' + record.reps : '—'} | ${line.slice(-5).join(' → ')}\n`;
   });
   return out;
 }
