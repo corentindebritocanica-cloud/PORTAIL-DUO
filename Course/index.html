@@ -399,7 +399,7 @@ function ecrireQueue(q){
 }
 function ajouterOperation(op){
   const q = lireQueue();
-  op.id = 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  op._queueId = 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
   q.push(op);
   ecrireQueue(q);
   traiterQueue();
