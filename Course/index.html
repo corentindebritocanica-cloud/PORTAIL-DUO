@@ -20,7 +20,7 @@
 <!-- Firebase (compat SDK — obligatoire pour Safari iOS, pas d'import ES module) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
   :root{
@@ -85,6 +85,13 @@
     font-size:13px; color:var(--ink-soft); background:var(--surface-soft);
     padding:6px 12px; border-radius:20px; border:1px solid var(--line);
   }
+  .topbar-droite{display:flex; align-items:center; gap:10px;}
+  .btn-recharger{
+    width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+    background:var(--surface-soft); color:var(--ink-soft); font-size:18px; line-height:1;
+    flex-shrink:0;
+  }
+  .btn-recharger:active{background:var(--line);}
 
   /* --- Bandeau hors-ligne / synchronisation --- */
   .bandeau-hors-ligne{
@@ -265,7 +272,10 @@
 <div id="app">
   <header class="topbar">
     <h1 class="display" id="titre-onglet">Saisie</h1>
-    <span class="profil-badge" id="badge-profil"></span>
+    <div class="topbar-droite">
+      <button class="btn-recharger" id="btn-recharger" title="Vider le cache et recharger la dernière version">↻</button>
+      <span class="profil-badge" id="badge-profil"></span>
+    </div>
   </header>
 
   <div class="bandeau-hors-ligne" id="badge-hors-ligne" style="display:none;"></div>
@@ -350,7 +360,6 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
   authDomain: "course-app-36e9d.firebaseapp.com",
-  databaseURL: "https://course-app-36e9d-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "course-app-36e9d",
   storageBucket: "course-app-36e9d.firebasestorage.app",
   messagingSenderId: "55041357024",
@@ -358,123 +367,52 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
+const db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-/* Wrappers (évite les conflits de noms globaux, cf. Budget L&C) */
-function dbRef(path){ return db.ref(path); }
-function dbSet(path, val){ return dbRef(path).set(val); }
-function dbUpdate(path, val){ return dbRef(path).update(val); }
-function dbPush(path, val){ return dbRef(path).push(val); }
-function dbOn(path, cb){ dbRef(path).on('value', cb); }
-function authListen(cb){ auth.onAuthStateChanged(cb); }
+/* Persistance disque Firestore : le SDK garde une copie complète de la
+   base sur l'appareil (IndexedDB). L'app lit/écrit dessus même hors
+   ligne à froid, et resynchronise seule au retour du réseau — plus
+   besoin de cache/queue maison. */
+db.enablePersistence({ synchronizeTabs: true }).catch(err=>{
+  console.warn('Persistance Firestore non activée :', err.code);
+});
 
+function authListen(cb){ auth.onAuthStateChanged(cb); }
 function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
 
 /* ============================================================
-   HORS LIGNE — cache local + file d'attente d'écritures
-   Principe : chaque action modifie l'état local + le cache
-   immédiatement (affichage instantané, même sans réseau), puis
-   est ajoutée à une file persistée dans localStorage. La file est
-   rejouée dès que Firebase signale une connexion active
-   (.info/connected), donc rien n'est perdu même si l'app est
-   fermée avant le retour du réseau.
+   RÉSEAU — simple indicateur visuel (Firestore gère la file
+   d'attente d'écritures lui-même, en interne)
    ============================================================ */
-const CLE_CACHE_PRODUITS = 'courses_cache_produits';
-const CLE_CACHE_RAYONS = 'courses_cache_rayons';
-const CLE_QUEUE = 'courses_queue';
-
-function chargerCache(cle){
-  try{ return JSON.parse(localStorage.getItem(cle)) || {}; }catch(e){ return {}; }
-}
-function sauvegarderCache(cle, val){
-  try{ localStorage.setItem(cle, JSON.stringify(val)); }catch(e){}
-}
-function lireQueue(){
-  try{ return JSON.parse(localStorage.getItem(CLE_QUEUE)) || []; }catch(e){ return []; }
-}
-function ecrireQueue(q){
-  try{ localStorage.setItem(CLE_QUEUE, JSON.stringify(q)); }catch(e){}
-  majBadgeHorsLigne();
-}
-function ajouterOperation(op){
-  const q = lireQueue();
-  op._queueId = 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-  q.push(op);
-  ecrireQueue(q);
-  traiterQueue();
-}
-
-let connecteFirebase = false;
-let traitementEnCours = false;
-
-async function traiterQueue(){
-  if(traitementEnCours || !connecteFirebase) return;
-  traitementEnCours = true;
-  let q = lireQueue();
-  while(q.length > 0){
-    const op = q[0];
-    try{
-      await executerOperation(op);
-      q.shift();
-      ecrireQueue(q);
-    }catch(e){
-      console.error('Échec envoi opération (nouvelle tentative plus tard) :', op.type, e);
-      break;
-    }
-  }
-  traitementEnCours = false;
-}
-
-async function executerOperation(op){
-  switch(op.type){
-    case 'toggleAcheter': {
-      const updates = { aAcheter: op.aAcheter };
-      if(op.aAcheter) updates.compteur = op.compteur;
-      await dbRef('courses/produits/'+op.id).update(updates);
-      break;
-    }
-    case 'toggleAcheteCourse':
-      await dbRef('courses/produits/'+op.id).update({ achete: op.achete });
-      break;
-    case 'updateQuantite':
-      await dbRef('courses/produits/'+op.id).update({ quantite: op.val });
-      break;
-    case 'terminerCourse': {
-      const updates = {};
-      op.ids.forEach(id=>{
-        updates['courses/produits/'+id+'/aAcheter'] = false;
-        updates['courses/produits/'+id+'/achete'] = false;
-      });
-      await db.ref().update(updates);
-      break;
-    }
-    case 'changerRayon':
-      await dbRef('courses/produits/'+op.id).update({ rayonId: op.rayonId });
-      break;
-    case 'ajouterRayon':
-      await dbSet('courses/rayons/'+op.rayonId, op.nom);
-      break;
-    case 'ajouterProduit':
-      await dbSet('courses/produits/'+op.produitId, op.donnees);
-      break;
-  }
-}
-
-function majBadgeHorsLigne(){
+function majBandeauReseau(){
   const badge = document.getElementById('badge-hors-ligne');
   if(!badge) return;
-  const q = lireQueue();
-  if(!connecteFirebase){
+  if(!navigator.onLine){
     badge.style.display = 'block';
-    badge.textContent = q.length>0 ? ('Hors ligne · '+q.length+' en attente d\'envoi') : 'Hors ligne';
-  } else if(q.length>0){
-    badge.style.display = 'block';
-    badge.textContent = 'Envoi en cours… ('+q.length+')';
+    badge.textContent = "Hors ligne — les modifications seront envoyées au retour du réseau";
   } else {
     badge.style.display = 'none';
   }
 }
+window.addEventListener('online', majBandeauReseau);
+window.addEventListener('offline', majBandeauReseau);
+
+/* ============================================================
+   RECHARGEMENT FORCÉ — vide le cache de code (Service Worker +
+   Cache API) pour être sûr d'avoir la dernière version de l'app.
+   Ne touche pas aux données Firestore (cache hors-ligne conservé).
+   ============================================================ */
+function viderCacheEtRecharger(){
+  const tacheCache = ('caches' in window)
+    ? caches.keys().then(noms=> Promise.all(noms.map(n=>caches.delete(n))))
+    : Promise.resolve();
+  const tacheSW = ('serviceWorker' in navigator)
+    ? navigator.serviceWorker.getRegistrations().then(regs=> Promise.all(regs.map(r=>r.unregister())))
+    : Promise.resolve();
+  Promise.all([tacheCache, tacheSW]).finally(()=> location.reload());
+}
+document.getElementById('btn-recharger').addEventListener('click', viderCacheEtRecharger);
 
 /* ============================================================
    ÉTAT
@@ -626,27 +564,25 @@ const PRODUITS_SEED = [
 ];
 
 function lancerSeedSiVide(){
-  dbRef('courses/rayons').once('value').then(snap=>{
-    if(snap.exists()) return; // déjà initialisé, on ne touche à rien
-    const rayonsObj = {};
+  // source:'server' force une vraie vérification serveur (pas le cache local)
+  // pour ne jamais re-semer par erreur sur la base d'un cache incomplet.
+  db.collection('rayons').limit(1).get({ source: 'server' }).then(snap=>{
+    if(!snap.empty) return; // déjà initialisé, on ne touche à rien
+    const batch = db.batch();
+    const nomVersId = {};
     RAYONS_SEED.forEach(nom=>{
-      const id = dbPush('courses/rayons').key;
-      rayonsObj[id] = nom;
+      const ref = db.collection('rayons').doc();
+      nomVersId[nom] = ref.id;
+      batch.set(ref, { nom });
     });
-    dbSet('courses/rayons', rayonsObj).then(()=>{
-      // reconstruire une map nom->id pour lier les produits
-      const nomVersId = {};
-      Object.entries(rayonsObj).forEach(([id,nom])=> nomVersId[nom]=id);
-      const produitsObj = {};
-      PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
-        const id = dbPush('courses/produits').key;
-        produitsObj[id] = {
-          nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
-          aAcheter:false, compteur:0
-        };
+    PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
+      const ref = db.collection('produits').doc();
+      batch.set(ref, {
+        nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
+        aAcheter:false, compteur:0
       });
-      dbSet('courses/produits', produitsObj);
     });
+    batch.commit();
   }).catch(e=> console.warn('Vérification du seed impossible (hors ligne ?) :', e));
 }
 
@@ -654,31 +590,29 @@ function lancerSeedSiVide(){
    AUTH + CHARGEMENT
    ============================================================ */
 function demarrer(){
-  // Cache local chargé immédiatement : affichage possible même sans réseau du tout
-  state.produits = chargerCache(CLE_CACHE_PRODUITS);
-  state.rayons = chargerCache(CLE_CACHE_RAYONS);
-
-  // Suivi de la connexion réelle à Firebase (fiable même quand navigator.onLine ment)
-  db.ref('.info/connected').on('value', snap=>{
-    connecteFirebase = snap.val() === true;
-    majBadgeHorsLigne();
-    if(connecteFirebase) traiterQueue();
-  });
-  window.addEventListener('online', traiterQueue);
+  majBandeauReseau();
 
   authListen(user=>{
     if(user){
       lancerSeedSiVide();
-      dbOn('courses/produits', snap=>{
-        state.produits = snap.val() || {};
-        sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
+
+      // onSnapshot : livre d'abord les données du cache disque local
+      // (instantané, même hors ligne à froid), puis les mises à jour
+      // serveur dès qu'elles arrivent.
+      db.collection('produits').onSnapshot(snap=>{
+        const produits = {};
+        snap.forEach(doc=> produits[doc.id] = doc.data());
+        state.produits = produits;
         render();
-      });
-      dbOn('courses/rayons', snap=>{
-        state.rayons = snap.val() || {};
-        sauvegarderCache(CLE_CACHE_RAYONS, state.rayons);
+      }, err=> console.error('Erreur écoute produits :', err));
+
+      db.collection('rayons').onSnapshot(snap=>{
+        const rayons = {};
+        snap.forEach(doc=> rayons[doc.id] = doc.data().nom);
+        state.rayons = rayons;
         render();
-      });
+      }, err=> console.error('Erreur écoute rayons :', err));
+
       document.getElementById('splash').style.display='none';
       document.getElementById('ecran-login').style.display='none';
       if(state.profil){
@@ -692,21 +626,6 @@ function demarrer(){
       document.getElementById('ecran-login').style.display='flex';
     }
   });
-
-  // Filet de sécurité : si Firebase Auth ne répond pas (vraiment aucun réseau
-  // et session pas encore restaurée), on affiche quand même le cache local.
-  setTimeout(()=>{
-    const splash = document.getElementById('splash');
-    if(splash && splash.style.display!=='none' && Object.keys(state.produits).length>0){
-      splash.style.display='none';
-      if(state.profil){
-        afficherApp();
-        render();
-      }else{
-        document.getElementById('ecran-profil').style.display='flex';
-      }
-    }
-  }, 3000);
 }
 
 document.getElementById('btn-connexion').addEventListener('click', ()=>{
@@ -770,44 +689,35 @@ function toggleAcheter(id){
   const p = state.produits[id];
   if(!p) return;
   const nouveauStatut = !p.aAcheter;
-  p.aAcheter = nouveauStatut;
-  if(nouveauStatut) p.compteur = (p.compteur||0) + 1;
-  sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-  render();
-  ajouterOperation({type:'toggleAcheter', id, aAcheter:nouveauStatut, compteur:p.compteur});
+  const updates = { aAcheter: nouveauStatut };
+  if(nouveauStatut) updates.compteur = (p.compteur||0) + 1;
+  db.collection('produits').doc(id).update(updates)
+    .catch(e=> console.error('Erreur toggleAcheter :', e));
   vibrer(12);
 }
 
 function marquerAchete(id){
   const p = state.produits[id];
   if(!p) return;
-  p.achete = !p.achete;
-  sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-  render();
-  ajouterOperation({type:'toggleAcheteCourse', id, achete:p.achete});
+  db.collection('produits').doc(id).update({ achete: !p.achete })
+    .catch(e=> console.error('Erreur marquerAchete :', e));
   vibrer(15);
 }
 
 function terminerCourse(){
   const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
   if(aEffacer.length===0) return;
-  const ids = aEffacer.map(([id])=>id);
-  ids.forEach(id=>{
-    state.produits[id].aAcheter = false;
-    state.produits[id].achete = false;
+  const batch = db.batch();
+  aEffacer.forEach(([id])=>{
+    batch.update(db.collection('produits').doc(id), { aAcheter:false, achete:false });
   });
-  sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-  render();
-  ajouterOperation({type:'terminerCourse', ids});
+  batch.commit().catch(e=> console.error('Erreur terminerCourse :', e));
   vibrer(20);
 }
 
 function updateQuantite(id, val){
-  const p = state.produits[id];
-  if(!p) return;
-  p.quantite = val;
-  sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-  ajouterOperation({type:'updateQuantite', id, val});
+  db.collection('produits').doc(id).update({ quantite: val })
+    .catch(e=> console.error('Erreur updateQuantite :', e));
 }
 
 /* ============================================================
@@ -941,25 +851,19 @@ document.getElementById('btn-valider-ajout').addEventListener('click', ()=>{
   const quantite = document.getElementById('input-quantite-produit').value.trim();
   if(!nom){ return; }
 
-  // dbRef(...).push().key génère un identifiant valide localement,
+  // .doc() sans argument génère un identifiant valide localement,
   // sans réseau : on peut donc créer produit (et rayon) hors ligne.
   let rayonId = document.getElementById('select-rayon-produit').value;
   if(rayonId==='__nouveau__'){
     const nomRayon = document.getElementById('input-nouveau-rayon').value.trim();
     if(!nomRayon){ return; }
-    rayonId = dbRef('courses/rayons').push().key;
-    state.rayons[rayonId] = nomRayon;
-    ajouterOperation({type:'ajouterRayon', rayonId, nom: nomRayon});
+    const refRayon = db.collection('rayons').doc();
+    rayonId = refRayon.id;
+    refRayon.set({ nom: nomRayon }).catch(e=> console.error('Erreur ajout rayon :', e));
   }
 
-  const produitId = dbRef('courses/produits').push().key;
-  const donnees = { nom, quantite, rayonId, aAcheter:true, compteur:1 };
-  state.produits[produitId] = donnees;
-
-  sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-  sauvegarderCache(CLE_CACHE_RAYONS, state.rayons);
-  render();
-  ajouterOperation({type:'ajouterProduit', produitId, donnees});
+  db.collection('produits').doc().set({ nom, quantite, rayonId, aAcheter:true, compteur:1 })
+    .catch(e=> console.error('Erreur ajout produit :', e));
 
   overlayAjout.classList.remove('visible');
   vibrer(15);
@@ -992,13 +896,8 @@ document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> over
 overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
 document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
   const rayonId = document.getElementById('select-rayon-existant').value;
-  const p = state.produits[produitEnEdition];
-  if(p){
-    p.rayonId = rayonId;
-    sauvegarderCache(CLE_CACHE_PRODUITS, state.produits);
-    render();
-    ajouterOperation({type:'changerRayon', id: produitEnEdition, rayonId});
-  }
+  db.collection('produits').doc(produitEnEdition).update({ rayonId })
+    .catch(e=> console.error('Erreur changerRayon :', e));
   overlayRayon.classList.remove('visible');
 });
 
