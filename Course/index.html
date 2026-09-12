@@ -339,16 +339,25 @@
   </div>
 </div>
 
-<!-- Modale changer de rayon -->
+<!-- Modale modifier un produit -->
 <div class="overlay" id="overlay-rayon">
   <div class="modale">
-    <h3>Changer le rayon</h3>
+    <h3>Modifier le produit</h3>
     <div class="champ">
+      <label>Nom du produit</label>
+      <input type="text" id="input-nom-modifier">
+    </div>
+    <div class="champ">
+      <label>Rayon</label>
       <select id="select-rayon-existant"></select>
+    </div>
+    <div class="champ" id="champ-nouveau-rayon-modifier" style="display:none;">
+      <label>Nom du nouveau rayon</label>
+      <input type="text" id="input-nouveau-rayon-modifier" placeholder="Ex : Bricolage">
     </div>
     <div class="modale-actions">
       <button class="btn btn-secondaire" id="btn-annuler-rayon">Annuler</button>
-      <button class="btn btn-primaire" id="btn-valider-rayon">Valider</button>
+      <button class="btn btn-primaire" id="btn-valider-rayon">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -889,16 +898,34 @@ let produitEnEdition = null;
 function ouvrirModaleRayon(id){
   produitEnEdition = id;
   const p = state.produits[id];
-  remplirSelectRayons('select-rayon-existant', false, p.rayonId);
+  document.getElementById('input-nom-modifier').value = p.nom || '';
+  document.getElementById('input-nouveau-rayon-modifier').value = '';
+  document.getElementById('champ-nouveau-rayon-modifier').style.display = 'none';
+  remplirSelectRayons('select-rayon-existant', true, p.rayonId);
   overlayRayon.classList.add('visible');
 }
+document.getElementById('select-rayon-existant').addEventListener('change', e=>{
+  document.getElementById('champ-nouveau-rayon-modifier').style.display = e.target.value==='__nouveau__' ? 'block':'none';
+});
 document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> overlayRayon.classList.remove('visible'));
 overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
 document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
-  const rayonId = document.getElementById('select-rayon-existant').value;
-  db.collection('produits').doc(produitEnEdition).update({ rayonId })
-    .catch(e=> console.error('Erreur changerRayon :', e));
+  const nom = document.getElementById('input-nom-modifier').value.trim();
+  if(!nom){ return; }
+
+  let rayonId = document.getElementById('select-rayon-existant').value;
+  if(rayonId==='__nouveau__'){
+    const nomRayon = document.getElementById('input-nouveau-rayon-modifier').value.trim();
+    if(!nomRayon){ return; }
+    const refRayon = db.collection('rayons').doc();
+    rayonId = refRayon.id;
+    refRayon.set({ nom: nomRayon }).catch(e=> console.error('Erreur ajout rayon :', e));
+  }
+
+  db.collection('produits').doc(produitEnEdition).update({ nom, rayonId })
+    .catch(e=> console.error('Erreur modification produit :', e));
   overlayRayon.classList.remove('visible');
+  vibrer(12);
 });
 
 /* ============================================================
