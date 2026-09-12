@@ -3,7 +3,7 @@
 // l'app se lance même sans réseau. Les échanges temps réel avec Firebase
 // (base de données, auth) ne sont jamais interceptés.
 
-const CACHE_NAME = 'courses-lc-v1';
+const CACHE_NAME = 'courses-lc-v2';
 
 const PRECACHE_URLS = [
   './',
@@ -13,7 +13,7 @@ const PRECACHE_URLS = [
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js'
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'
 ];
 
 self.addEventListener('install', event => {
@@ -43,8 +43,7 @@ self.addEventListener('fetch', event => {
 
   // Ne jamais intercepter les échanges temps réel / auth avec Firebase
   if (
-    url.includes('firebaseio.com') ||
-    url.includes('firebasedatabase.app') ||
+    url.includes('firestore.googleapis.com') ||
     url.includes('identitytoolkit.googleapis.com') ||
     url.includes('securetoken.googleapis.com')
   ) {
