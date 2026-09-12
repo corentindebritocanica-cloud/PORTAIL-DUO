@@ -471,6 +471,7 @@
   .setting-desc{ font-size:12.5px; color:var(--text-dim); line-height:1.4; margin:0; }
   .setting-row input[type=checkbox]{ width:22px; height:22px; flex:0 0 auto; }
   .body-form{ display:flex; flex-direction:column; gap:9px; }
+  .body-form-actions{ display:flex; flex-direction:column; gap:8px; }
   .ghost-wide{ border-color:var(--border); color:var(--text-dim); }
   .body-list{ display:flex; flex-direction:column; gap:6px; }
   .body-row{
@@ -1251,6 +1252,12 @@
     <h1 class="big-question">Réglages</h1>
 
     <div class="progress-section">
+      <span class="section-label">Qui es-tu sur ce téléphone ?</span>
+      <p class="setting-desc">Détermine avec qui tes messages au coach et tes séances sont associés sur cet appareil, indépendamment de l'écran Entraînement.</p>
+      <div class="segmented" id="settings-profile-toggle"></div>
+    </div>
+
+    <div class="progress-section">
       <span class="section-label">Compte</span>
       <p class="setting-desc" id="settings-account"></p>
       <button class="coach-btn ghost-wide" onclick="doSignOut()">Se déconnecter</button>
@@ -1387,7 +1394,7 @@
 
     <div id="progress-body-panel" style="display:none">
       <div class="progress-section">
-        <span class="section-label">Nouvelle mesure</span>
+        <span class="section-label" id="body-form-label">Nouvelle mesure</span>
         <div class="body-form">
           <div class="builder-field">
             <label class="mini-label">Date de la mesure</label>
@@ -1419,7 +1426,10 @@
             <label class="mini-label">Tour d'épaule (cm)</label>
             <input type="text" inputmode="decimal" id="body-epaule" class="builder-input" placeholder="115">
           </div>
-          <button class="coach-btn" onclick="saveBodyEntry()">Enregistrer cette mesure</button>
+          <div class="body-form-actions">
+            <button class="coach-btn" id="body-save-btn" onclick="saveBodyEntry()">Enregistrer cette mesure</button>
+            <button class="coach-btn ghost" id="body-cancel-edit-btn" onclick="cancelEditBodyEntry()" style="display:none">Annuler la modification</button>
+          </div>
         </div>
       </div>
 
@@ -2152,6 +2162,7 @@ function setProgressProfile(profile){
   progressProfile = profile;
   progressSelection = null; /* les exercices diffèrent d'un profil à l'autre */
   bodyProgressSelection = null; /* les mesures d'un profil ne concernent pas l'autre */
+  cancelEditBodyEntry(); /* une édition en cours concerne l'ancien profil, pas le nouveau */
   renderProgressView();
 }
 
@@ -2207,6 +2218,7 @@ function goToProgressView(){
   progressProfile = currentProfile;
   progressSelection = null;
   bodyProgressSelection = null;
+  cancelEditBodyEntry();
   setProgressTab('training');
   renderProgressView();
   showView('view-progress', 'fwd');
@@ -3938,7 +3950,32 @@ function goToSettingsView(){
   if(account) account.textContent = window.__authUser
     ? 'Connecté avec ' + window.__authUser.email
     : 'Non connecté';
+  renderSettingsProfileToggle();
   showView('view-settings', 'fwd');
+}
+
+/* Identité explicite du téléphone, réglable sans passer par "Entraînement".
+   `currentProfile` vit en local (storage), donc ce choix est propre à CET
+   appareil : c'est justement ce qui permet de fixer, une fois pour toutes,
+   quel téléphone est Corentin et lequel est Lisa — y compris pour les
+   messages envoyés au coach, qui utilisent currentProfile comme auteur. */
+function renderSettingsProfileToggle(){
+  const wrap = document.getElementById('settings-profile-toggle');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  [['corentin', 'Corentin'], ['lisa', 'Lisa']].forEach(([id, label]) => {
+    const b = document.createElement('button');
+    b.className = 'segmented-btn' + (currentProfile === id ? ' selected' : '');
+    b.textContent = label;
+    b.onclick = () => {
+      if(currentProfile === id) return;
+      setProfile(id);
+      applyThemeColor();
+      renderSettingsProfileToggle();
+      showToast('Tu es identifié comme ' + label + ' sur ce téléphone');
+    };
+    wrap.appendChild(b);
+  });
 }
 
 function bodyEntries(profile){
@@ -3988,6 +4025,11 @@ function setBodyProgressPeriod(id){
 
 /* Reconstruit tout ce qui ne dépend PAS d'une sélection : formulaire, historique.
    Appelé au changement de profil comme à l'ouverture de l'onglet. */
+/* Mesure en cours d'édition (timestamp `at`), ou null en mode "nouvelle mesure".
+   Remis à zéro à chaque changement de profil pour ne pas laisser le formulaire
+   d'un profil pré-rempli avec la mesure de l'autre. */
+let editingBodyAt = null;
+
 function renderBodyPanel(){
   const pecLabel = document.getElementById('body-label-pec');
   if(pecLabel) pecLabel.textContent = bodyFieldLabel('pec', progressProfile) + ' (cm)';
@@ -4133,13 +4175,20 @@ function saveBodyEntry(){
 
   if(!hasValue){ showToast('Renseigne au moins une mesure'); return; }
 
-  all[progressProfile] = list.filter(e => e.at !== at).concat([entry]);
+  /* Si on éditait une mesure et qu'on a changé sa date, l'ancienne entrée (à
+     l'ancien timestamp) doit disparaître : sans ce filtre en plus de celui sur
+     `at`, on se retrouverait avec deux lignes pour ce qui n'est qu'une seule
+     mesure déplacée dans le temps. */
+  const wasEditing = editingBodyAt !== null;
+  all[progressProfile] = list
+    .filter(e => e.at !== at && e.at !== editingBodyAt)
+    .concat([entry]);
   saveCoachSettingsRemote({ body: all }).catch(err => {
     console.error('Enregistrement des mesures', err);
     showToast(firestoreErrorMessage(err, "de l'enregistrement"));
   });
-  BODY_FIELDS.forEach(f => { document.getElementById('body-' + f.id).value = ''; });
-  showToast('Mesure enregistrée');
+  showToast(wasEditing ? 'Mesure mise à jour' : 'Mesure enregistrée');
+  cancelEditBodyEntry();
   renderBodyPanel();
   if(bodyProgressSelection) renderBodyProgressChart(bodyProgressSelection);
 }
@@ -4148,8 +4197,45 @@ function deleteBodyEntry(at){
   const all = Object.assign({}, (coachSettings().body) || {});
   all[progressProfile] = (all[progressProfile] || []).filter(e => e.at !== at);
   saveCoachSettingsRemote({ body: all }).catch(err => console.error('Suppression de mesure', err));
+  if(editingBodyAt === at) cancelEditBodyEntry();
   renderBodyPanel();
   if(bodyProgressSelection) renderBodyProgressChart(bodyProgressSelection);
+}
+
+/* Charge une mesure existante dans le formulaire pour la corriger, plutôt que
+   de la supprimer et la ressaisir en entier. Le bouton "Enregistrer" existant
+   fait le travail (voir le commentaire dans saveBodyEntry) : il ne reste qu'à
+   pré-remplir la date et les champs, et à permettre d'annuler. */
+function editBodyEntry(at){
+  const entry = bodyEntries(progressProfile).find(e => e.at === at);
+  if(!entry) return;
+  editingBodyAt = at;
+  document.getElementById('body-date').value = new Date(at).toISOString().slice(0, 10);
+  BODY_FIELDS.forEach(f => {
+    document.getElementById('body-' + f.id).value = bodyEntryValue(entry, f.id);
+  });
+  const label = document.getElementById('body-form-label');
+  if(label) label.textContent = 'Modifier la mesure du ' + (entry.dateLabel || '');
+  const saveBtn = document.getElementById('body-save-btn');
+  if(saveBtn) saveBtn.textContent = 'Mettre à jour cette mesure';
+  const cancelBtn = document.getElementById('body-cancel-edit-btn');
+  if(cancelBtn) cancelBtn.style.display = 'block';
+  const form = document.querySelector('#progress-body-panel .body-form');
+  if(form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEditBodyEntry(){
+  editingBodyAt = null;
+  const label = document.getElementById('body-form-label');
+  if(label) label.textContent = 'Nouvelle mesure';
+  const saveBtn = document.getElementById('body-save-btn');
+  if(saveBtn) saveBtn.textContent = 'Enregistrer cette mesure';
+  const cancelBtn = document.getElementById('body-cancel-edit-btn');
+  if(cancelBtn) cancelBtn.style.display = 'none';
+  BODY_FIELDS.forEach(f => {
+    const input = document.getElementById('body-' + f.id);
+    if(input) input.value = '';
+  });
 }
 
 function renderBodyList(){
@@ -4174,6 +4260,11 @@ function renderBodyList(){
       if(v) parts.push(bodyFieldLabel(f.id, progressProfile).toLowerCase() + ' ' + v);
     });
     row.innerHTML = `<span class="d">${escapeHtml(e.dateLabel || '')}</span><span class="v">${escapeHtml(parts.join(' · '))}</span>`;
+    const edit = document.createElement('button');
+    edit.textContent = '✏️';
+    edit.title = 'Modifier cette mesure';
+    edit.onclick = () => editBodyEntry(e.at);
+    row.appendChild(edit);
     const del = document.createElement('button');
     del.textContent = '🗑️';
     del.title = 'Supprimer cette mesure';
@@ -5078,12 +5169,20 @@ function buildCoachDigest(profile){
      avant l'existence de ce suivi. */
   const weight = latestBodyWeight(profile) || (coachGetWeights()[profile] || '');
   if(weight) out += `Poids de corps : ${weight} kg\n`;
-  const latestMeasurements = bodyEntries(profile)[0];
-  if(latestMeasurements){
-    const parts = BODY_FIELDS.slice(1)
-      .map(f => { const v = bodyEntryValue(latestMeasurements, f.id); return v ? `${bodyFieldLabel(f.id, profile)} ${v} cm` : ''; })
+  /* Plusieurs mesures, pas seulement la dernière : sans historique, le coach ne
+     peut pas dire si un tour de taille progresse ou stagne, seulement le lire.
+     `bodyEntries` est déjà trié du plus récent au plus ancien. */
+  const measurementHistory = bodyEntries(profile).slice(0, 5);
+  if(measurementHistory.length){
+    const lines = measurementHistory
+      .map(entry => {
+        const parts = BODY_FIELDS.slice(1)
+          .map(f => { const v = bodyEntryValue(entry, f.id); return v ? `${bodyFieldLabel(f.id, profile)} ${v} cm` : ''; })
+          .filter(Boolean);
+        return parts.length ? `[${entry.dateLabel}] ${parts.join(', ')}` : '';
+      })
       .filter(Boolean);
-    if(parts.length) out += `Dernières mensurations (${latestMeasurements.dateLabel}) : ${parts.join(', ')}\n`;
+    if(lines.length) out += `Mensurations (plus récent → plus ancien) :\n${lines.join('\n')}\n`;
   }
   out += `${stats.sessions} séances archivées, ${stats.tonnage} kg cumulés.\n`;
 
