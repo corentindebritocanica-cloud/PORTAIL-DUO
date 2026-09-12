@@ -111,6 +111,16 @@
     border:none; outline:none; background:transparent; flex:1; font-size:16px; color:var(--ink);
   }
   .searchbar input::placeholder{color:var(--ink-soft);}
+  .btn-effacer-recherche{
+    background:none; border:none; color:var(--ink-soft); font-size:14px; padding:4px 2px; flex-shrink:0;
+  }
+
+  /* --- Bouton modifier un produit --- */
+  .btn-modifier{
+    width:32px; height:32px; flex-shrink:0; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:var(--surface-soft); color:var(--ink-soft); font-size:15px;
+  }
+  .btn-modifier:active{background:var(--line);}
 
   /* --- Listes produits --- */
   .liste{padding: 6px 18px 100px;}
@@ -286,6 +296,7 @@
       <div class="searchbar">
         <span>🔍</span>
         <input type="text" id="recherche-saisie" placeholder="Chercher un produit…">
+        <button class="btn-effacer-recherche" id="btn-effacer-recherche" style="display:none;" title="Effacer">✕</button>
       </div>
       <div class="liste" id="liste-saisie"></div>
     </div>
@@ -312,10 +323,10 @@
   </nav>
 </div>
 
-<!-- Modale ajout produit -->
+<!-- Modale ajout / modification produit -->
 <div class="overlay" id="overlay-ajout">
   <div class="modale">
-    <h3>Ajouter un produit</h3>
+    <h3 id="titre-modale-produit">Ajouter un produit</h3>
     <div class="champ">
       <label>Nom du produit</label>
       <input type="text" id="input-nom-produit" placeholder="Ex : Yaourts nature">
@@ -335,29 +346,6 @@
     <div class="modale-actions">
       <button class="btn btn-secondaire" id="btn-annuler-ajout">Annuler</button>
       <button class="btn btn-primaire" id="btn-valider-ajout">Ajouter</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modale modifier un produit -->
-<div class="overlay" id="overlay-rayon">
-  <div class="modale">
-    <h3>Modifier le produit</h3>
-    <div class="champ">
-      <label>Nom du produit</label>
-      <input type="text" id="input-nom-modifier">
-    </div>
-    <div class="champ">
-      <label>Rayon</label>
-      <select id="select-rayon-existant"></select>
-    </div>
-    <div class="champ" id="champ-nouveau-rayon-modifier" style="display:none;">
-      <label>Nom du nouveau rayon</label>
-      <input type="text" id="input-nouveau-rayon-modifier" placeholder="Ex : Bricolage">
-    </div>
-    <div class="modale-actions">
-      <button class="btn btn-secondaire" id="btn-annuler-rayon">Annuler</button>
-      <button class="btn btn-primaire" id="btn-valider-rayon">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -683,9 +671,19 @@ document.querySelectorAll('.onglet-btn').forEach(btn=>{
   });
 });
 
-document.getElementById('recherche-saisie').addEventListener('input', e=>{
+const inputRecherche = document.getElementById('recherche-saisie');
+const btnEffacerRecherche = document.getElementById('btn-effacer-recherche');
+inputRecherche.addEventListener('input', e=>{
   state.recherche = e.target.value.trim().toLowerCase();
+  btnEffacerRecherche.style.display = e.target.value ? 'inline-block' : 'none';
   renderSaisie();
+});
+btnEffacerRecherche.addEventListener('click', ()=>{
+  inputRecherche.value = '';
+  state.recherche = '';
+  btnEffacerRecherche.style.display = 'none';
+  renderSaisie();
+  inputRecherche.focus();
 });
 
 /* ============================================================
@@ -770,10 +768,11 @@ function renderSaisie(){
       return `
       <div class="carte-produit">
         <div class="checkbox ${p.aAcheter?'checked':''}" onclick="toggleAcheter('${id}')">${iconeCheck()}</div>
-        <div class="infos-produit" onclick="ouvrirModaleRayon('${id}')">
+        <div class="infos-produit">
           <div class="nom-produit">${escapeHtml(p.nom)}</div>
           <div class="rayon-tag">${escapeHtml(rayonNom)}</div>
         </div>
+        <button class="btn-modifier" onclick="ouvrirModaleModifier('${id}')" title="Modifier">✎</button>
         <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
           onchange="updateQuantite('${id}', this.value)">
       </div>`;
@@ -840,7 +839,14 @@ function escapeAttr(str){ return escapeHtml(str); }
    ============================================================ */
 const overlayAjout = document.getElementById('overlay-ajout');
 
+let modeModaleProduit = 'ajout';
+let produitEnEdition = null;
+
 document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{
+  modeModaleProduit = 'ajout';
+  produitEnEdition = null;
+  document.getElementById('titre-modale-produit').textContent = 'Ajouter un produit';
+  document.getElementById('btn-valider-ajout').textContent = 'Ajouter';
   document.getElementById('input-nom-produit').value='';
   document.getElementById('input-quantite-produit').value='';
   document.getElementById('input-nouveau-rayon').value='';
@@ -848,6 +854,21 @@ document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{
   remplirSelectRayons('select-rayon-produit', true);
   overlayAjout.classList.add('visible');
 });
+
+function ouvrirModaleModifier(id){
+  const p = state.produits[id];
+  if(!p) return;
+  modeModaleProduit = 'edition';
+  produitEnEdition = id;
+  document.getElementById('titre-modale-produit').textContent = 'Modifier le produit';
+  document.getElementById('btn-valider-ajout').textContent = 'Enregistrer';
+  document.getElementById('input-nom-produit').value = p.nom || '';
+  document.getElementById('input-quantite-produit').value = p.quantite || '';
+  document.getElementById('input-nouveau-rayon').value = '';
+  document.getElementById('champ-nouveau-rayon').style.display = 'none';
+  remplirSelectRayons('select-rayon-produit', true, p.rayonId);
+  overlayAjout.classList.add('visible');
+}
 document.getElementById('btn-annuler-ajout').addEventListener('click', ()=> overlayAjout.classList.remove('visible'));
 overlayAjout.addEventListener('click', e=>{ if(e.target===overlayAjout) overlayAjout.classList.remove('visible'); });
 
@@ -871,8 +892,13 @@ document.getElementById('btn-valider-ajout').addEventListener('click', ()=>{
     refRayon.set({ nom: nomRayon }).catch(e=> console.error('Erreur ajout rayon :', e));
   }
 
-  db.collection('produits').doc().set({ nom, quantite, rayonId, aAcheter:true, compteur:1 })
-    .catch(e=> console.error('Erreur ajout produit :', e));
+  if(modeModaleProduit === 'edition'){
+    db.collection('produits').doc(produitEnEdition).update({ nom, quantite, rayonId })
+      .catch(e=> console.error('Erreur modification produit :', e));
+  } else {
+    db.collection('produits').doc().set({ nom, quantite, rayonId, aAcheter:true, compteur:1 })
+      .catch(e=> console.error('Erreur ajout produit :', e));
+  }
 
   overlayAjout.classList.remove('visible');
   vibrer(15);
@@ -892,41 +918,8 @@ function remplirSelectRayons(selectId, avecOptionNouveau, rayonSelectionne){
 /* ============================================================
    MODALE : CHANGER LE RAYON D'UN PRODUIT
    ============================================================ */
-const overlayRayon = document.getElementById('overlay-rayon');
-let produitEnEdition = null;
-
-function ouvrirModaleRayon(id){
-  produitEnEdition = id;
-  const p = state.produits[id];
-  document.getElementById('input-nom-modifier').value = p.nom || '';
-  document.getElementById('input-nouveau-rayon-modifier').value = '';
-  document.getElementById('champ-nouveau-rayon-modifier').style.display = 'none';
-  remplirSelectRayons('select-rayon-existant', true, p.rayonId);
-  overlayRayon.classList.add('visible');
-}
-document.getElementById('select-rayon-existant').addEventListener('change', e=>{
-  document.getElementById('champ-nouveau-rayon-modifier').style.display = e.target.value==='__nouveau__' ? 'block':'none';
-});
-document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> overlayRayon.classList.remove('visible'));
-overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
-document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
-  const nom = document.getElementById('input-nom-modifier').value.trim();
-  if(!nom){ return; }
-
-  let rayonId = document.getElementById('select-rayon-existant').value;
-  if(rayonId==='__nouveau__'){
-    const nomRayon = document.getElementById('input-nouveau-rayon-modifier').value.trim();
-    if(!nomRayon){ return; }
-    const refRayon = db.collection('rayons').doc();
-    rayonId = refRayon.id;
-    refRayon.set({ nom: nomRayon }).catch(e=> console.error('Erreur ajout rayon :', e));
-  }
-
-  db.collection('produits').doc(produitEnEdition).update({ nom, rayonId })
-    .catch(e=> console.error('Erreur modification produit :', e));
-  overlayRayon.classList.remove('visible');
-  vibrer(12);
-});
+/* La modification de produit (nom + rayon) réutilise désormais la
+   modale d'ajout : voir ouvrirModaleModifier() plus haut. */
 
 /* ============================================================
    SERVICE WORKER — permet à l'app de se charger sans réseau
