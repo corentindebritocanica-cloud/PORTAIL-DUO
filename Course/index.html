@@ -824,76 +824,91 @@ function render(){
 
 function renderSaisie(){
   const cont = document.getElementById('liste-saisie');
-  let items = Object.entries(state.produits);
-  if(state.recherche){
-    items = items.filter(([id,p])=> p.nom.toLowerCase().includes(state.recherche));
-  }
-  // Tri : compteur décroissant, puis alphabétique
-  items.sort((a,b)=>{
-    const diff = (b[1].compteur||0) - (a[1].compteur||0);
-    if(diff!==0) return diff;
-    return a[1].nom.localeCompare(b[1].nom);
-  });
+  try{
+    // Défensif : on ignore silencieusement toute entrée corrompue (sans nom)
+    // plutôt que de planter tout l'affichage.
+    let items = Object.entries(state.produits).filter(([id,p])=> p && typeof p.nom === 'string');
+    const nbIgnores = Object.keys(state.produits).length - items.length;
+    if(nbIgnores>0) console.warn(nbIgnores+' produit(s) ignoré(s) car sans nom valide.');
 
-  if(items.length===0){
-    cont.innerHTML = `<div class="empty-state"><div class="display">Rien trouvé</div><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
-    return;
-  }
+    if(state.recherche){
+      items = items.filter(([id,p])=> p.nom.toLowerCase().includes(state.recherche));
+    }
+    // Tri : compteur décroissant, puis alphabétique
+    items.sort((a,b)=>{
+      const diff = (b[1].compteur||0) - (a[1].compteur||0);
+      if(diff!==0) return diff;
+      return a[1].nom.localeCompare(b[1].nom);
+    });
 
-  cont.innerHTML = items.map(([id,p])=>{
-    const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
-    return `
-    <div class="carte-produit">
-      <div class="checkbox ${p.aAcheter?'checked':''}" onclick="toggleAcheter('${id}')">${iconeCheck()}</div>
-      <div class="infos-produit" onclick="ouvrirModaleRayon('${id}')">
-        <div class="nom-produit">${escapeHtml(p.nom)}</div>
-        <div class="rayon-tag">${escapeHtml(rayonNom)}</div>
-      </div>
-      <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
-        onchange="updateQuantite('${id}', this.value)">
-    </div>`;
-  }).join('');
+    if(items.length===0){
+      cont.innerHTML = `<div class="empty-state"><div class="display">Rien trouvé</div><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
+      return;
+    }
+
+    cont.innerHTML = items.map(([id,p])=>{
+      const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
+      return `
+      <div class="carte-produit">
+        <div class="checkbox ${p.aAcheter?'checked':''}" onclick="toggleAcheter('${id}')">${iconeCheck()}</div>
+        <div class="infos-produit" onclick="ouvrirModaleRayon('${id}')">
+          <div class="nom-produit">${escapeHtml(p.nom)}</div>
+          <div class="rayon-tag">${escapeHtml(rayonNom)}</div>
+        </div>
+        <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
+          onchange="updateQuantite('${id}', this.value)">
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('Erreur renderSaisie :', e);
+    cont.innerHTML = `<div class="empty-state"><div class="display">Erreur d'affichage</div><p>${escapeHtml(e.message)}</p></div>`;
+  }
 }
 
 function renderCourse(){
   const cont = document.getElementById('liste-course');
-  const items = Object.entries(state.produits).filter(([id,p])=>p.aAcheter);
+  try{
+    const items = Object.entries(state.produits).filter(([id,p])=> p && typeof p.nom === 'string' && p.aAcheter);
 
-  document.getElementById('compteur-course').textContent = items.length;
+    document.getElementById('compteur-course').textContent = items.length;
 
-  const nbAchetes = items.filter(([id,p])=>p.achete).length;
-  document.getElementById('btn-course-terminee').style.display = nbAchetes>0 ? 'block' : 'none';
+    const nbAchetes = items.filter(([id,p])=>p.achete).length;
+    document.getElementById('btn-course-terminee').style.display = nbAchetes>0 ? 'block' : 'none';
 
-  if(items.length===0){
-    cont.innerHTML = `<div class="empty-state"><div class="display">Rien à acheter</div><p>Coche des produits dans l'onglet Saisie pour les faire apparaître ici.</p></div>`;
-    return;
-  }
+    if(items.length===0){
+      cont.innerHTML = `<div class="empty-state"><div class="display">Rien à acheter</div><p>Coche des produits dans l'onglet Saisie pour les faire apparaître ici.</p></div>`;
+      return;
+    }
 
-  // Groupement par rayon
-  const groupes = {};
-  items.forEach(([id,p])=>{
-    const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
-    if(!groupes[rayonNom]) groupes[rayonNom]=[];
-    groupes[rayonNom].push([id,p]);
-  });
-  const rayonsTries = Object.keys(groupes).sort((a,b)=>a.localeCompare(b));
+    // Groupement par rayon
+    const groupes = {};
+    items.forEach(([id,p])=>{
+      const rayonNom = state.rayons[p.rayonId] || 'Sans rayon';
+      if(!groupes[rayonNom]) groupes[rayonNom]=[];
+      groupes[rayonNom].push([id,p]);
+    });
+    const rayonsTries = Object.keys(groupes).sort((a,b)=>a.localeCompare(b));
 
-  cont.innerHTML = rayonsTries.map(rayonNom=>{
-    const produitsRayon = groupes[rayonNom].sort((a,b)=>a[1].nom.localeCompare(b[1].nom));
-    return `
-    <div class="section-rayon">
-      <h2 class="display">${escapeHtml(rayonNom)}</h2>
-      ${produitsRayon.map(([id,p])=>`
-        <div class="carte-produit">
-          <div class="checkbox mode-course ${p.achete?'checked':''}" onclick="marquerAchete('${id}')">${iconeCheck()}</div>
-          <div class="infos-produit">
-            <div class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom)}</div>
-            ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
+    cont.innerHTML = rayonsTries.map(rayonNom=>{
+      const produitsRayon = groupes[rayonNom].sort((a,b)=>a[1].nom.localeCompare(b[1].nom));
+      return `
+      <div class="section-rayon">
+        <h2 class="display">${escapeHtml(rayonNom)}</h2>
+        ${produitsRayon.map(([id,p])=>`
+          <div class="carte-produit">
+            <div class="checkbox mode-course ${p.achete?'checked':''}" onclick="marquerAchete('${id}')">${iconeCheck()}</div>
+            <div class="infos-produit">
+              <div class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom)}</div>
+              ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
+            </div>
           </div>
-        </div>
-      `).join('')}
-    </div>`;
-  }).join('');
+        `).join('')}
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('Erreur renderCourse :', e);
+    cont.innerHTML = `<div class="empty-state"><div class="display">Erreur d'affichage</div><p>${escapeHtml(e.message)}</p></div>`;
+  }
 }
 
 function escapeHtml(str){
