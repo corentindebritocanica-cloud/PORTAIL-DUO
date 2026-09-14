@@ -1,6 +1,6 @@
 # Duo Training
 
-Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 000 lignes, ~290 Ko (dont ~17 Ko d'icône encodée en base64).
+Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 100 lignes, ~295 Ko (dont ~17 Ko d'icône encodée en base64).
 
 ## Où vit le projet
 
@@ -87,7 +87,7 @@ Deux pièges :
 
 4 séances codées en dur (`s1` à `s4`) : `label`, `title`, `muscleIcon`, `cardio`, `exercises[]` avec `{ name, sets, target:{corentin,lisa}, logType? }`.
 - `logType:'circuit'` → pas de charge, une seule case libre (voir « Circuits »).
-- `equipmentOptions` n'est plus lu : le mode de charge est proposé sur **tous** les exercices chargés (voir « Mode de charge »).
+- `equipment` déclare, par exercice, les méthodes plausibles (voir « Équipement » plus bas) — absent ou à une seule entrée pour la plupart des exercices, plusieurs entrées seulement là où c'est réellement pratiqué.
 
 **Les 4 séances sont modifiables**, uniquement depuis le hub Build Training (voir plus bas). Éditer l'une d'elles enregistre une **surcharge** dans `customSessions`, sous le **même id** (`s1`…), qui prend le pas sur la version codée en dur. Trois conséquences voulues :
 
@@ -148,7 +148,7 @@ Deux garde-fous en place depuis :
 ### Champs
 - Poids / Reps / ✓ par série, avec bouton ⇊ de recopie à partir de la série 2.
 - ⚠️ **Champs numériques en `type="text"` + `inputMode`**, jamais `type="number"` : avec un clavier français, « 22,5 » est jugé invalide par Safari et `input.value` renvoie une chaîne vide. `sanitizeField()` filtre à la frappe ; **`parseNum()` (virgule → point) pour tout calcul**, jamais `parseFloat`.
-- Note « 🗒️ Info » par exercice, et sélecteur de mode de charge sur tout exercice chargé.
+- Note « 🗒️ Info » par exercice, et sélecteur de méthode (équipement) sur les exercices qui en ont plusieurs de plausibles — voir « Équipement » plus bas.
 
 ### Séries d'échauffement (additives, pas un état)
 Un échauffement **s'ajoute** avant les séries de travail, il ne peut pas en remplacer une. Sur 4 séries de travail prévues, ajouter 2 échauffements laisse bien 4 séries de travail numérotées 1 à 4 — jamais 2.
@@ -170,30 +170,39 @@ Grille : `Tour | Résultat | ✓`, avec **une seule case de texte libre** par to
 
 Les anciennes saisies `reps` / `duration` sont recomposées à l'affichage et à l'export (« 12 reps + 45 s ») : rien n'est perdu.
 
-La consigne d'origine reste dans le nom de l'exercice et dans la cible (« 3 tours »). Les circuits sont exclus du tonnage, des records, du rappel de dernier poids, du mode de charge et des échauffements — sans charge, aucun de ces calculs n'a de sens.
+La consigne d'origine reste dans le nom de l'exercice et dans la cible (« 3 tours »). Les circuits sont exclus du tonnage, des records, du rappel de dernier poids, de l'équipement et des échauffements — sans charge, aucun de ces calculs n'a de sens.
 
-### Mode de charge (`LOAD_MODES`)
-Le matériel n'est pas le bon critère. La seule question qui change le calcul : **une charge dans chaque main, ou une charge partagée ?**
+### Équipement (`EQUIPMENT_METHODS`) — refonte du 14/09/26
 
+⚠️ **Remplace l'ancien système `LOAD_MODES` / `equipmentOptions`**, retiré. Deux listes séparées et volontairement indépendantes, décidées après un incident concret (voir plus bas) :
+
+**Liste A — mécanique de calcul, fermée à deux valeurs.** Le matériel n'est pas le bon critère : la seule question qui change le calcul est *« une charge dans chaque main, ou une charge partagée ? »*
 - Deux haltères de 22,5 kg × 10 → chaque répétition déplace 45 kg → 450 kg.
 - Poulie à 22,5 kg, 10 à droite puis 10 à gauche → 20 répétitions → 450 kg.
+- Simultané ou alterné, le total est le même. Le facteur est **×2, pas ×4** — doubler à la fois le poids et les répétitions compterait chaque kilo deux fois.
 
-Simultané ou alterné, le total est le même. ⚠️ Le facteur est **×2, pas ×4** — doubler à la fois le poids et les répétitions compterait chaque kilo deux fois.
+**Liste B — vocabulaire équipement, ouverte (`EQUIPMENT_METHODS`).** Chaque entrée pointe vers l'une des deux valeurs de Liste A et porte sa **propre phrase d'aide**, même à facteur identique — « la charge totale (barre + disques) » et « la charge totale affichée sur la poulie » ne se confondent pas, même si toutes deux valent ×1.
 
-Trois modes, proposés sur tous les exercices chargés :
+| id | Libellé | Facteur |
+|---|---|---|
+| `barre` | Barre | ×1 |
+| `haltere` | Haltères | ×2 |
+| `machine` | Machine | ×1 |
+| `poulie2` | Poulie 2 mains | ×1 |
+| `poulie1` | Poulie unilatérale | ×2 |
 
-| id | Bouton | Sous-titre | Facteur |
-|---|---|---|---|
-| `total` | Barre / machine | charge totale | ×1 |
-| `dumbbell` | Haltères | poids par main | ×2 |
-| `single` | Un bras à la fois | poids par main | ×2 |
+**Chaque exercice porte un champ `equipment: [...]`** (ordre = méthode par défaut en premier) :
+- **Absent ou une seule entrée** → méthode fixe, aucun sélecteur affiché, facteur figé (ex. `Squat: ['barre']`, `Leg Extension: ['machine']`). La grande majorité du catalogue est dans ce cas.
+- **Plusieurs entrées** → sélecteur affiché (`.variant-row`), un bouton par entrée. Exercices concernés aujourd'hui : Développé incliné (`haltere`/`barre`), Élévations latérales (`haltere`/`poulie1`/`machine`), Tirage horizontal et Tirage vertical (`poulie2`/`poulie1`), Hip Thrust (`barre`/`machine`), Développé militaire assis (`haltere`/`machine`).
 
-- **Aucune présélection.** On arrive sur un exercice vierge : rien de coché, pas d'explication affichée, en-tête neutre, facteur ×1. Une déduction depuis le titre avait été essayée puis retirée.
-- **Re-toucher le mode actif le désactive** et revient à l'état vierge.
-- Chaque bouton porte sa conséquence **en toutes lettres**, avec un exemple chiffré dans le champ `hint` — un simple `×2` ne disait pas quoi taper.
-- L'en-tête des colonnes devient « Poids / main » et « Reps / bras » quand le mode double.
-- ⚠️ **La saisie n'est jamais modifiée.** Le doublement n'intervient qu'au calcul du tonnage. Le record reste 22,5 kg par haltère, et le rappel de dernier poids propose bien ce qu'il faut charger de chaque côté.
-- ⚠️ **Les anciennes valeurs (« Haltères », « Poulie 2 mains »…) sont ignorées.** Elles désignaient un matériel, sans effet sur le tonnage. `normalizeLoadMode()` n'accepte que les identifiants du modèle actuel (`total`/`dumbbell`/`single`).
+⚠️ **Changement de philosophie assumé sur la présélection.** L'ancien modèle n'avait *aucune* présélection ("on arrive sur un exercice vierge, rien de coché, facteur ×1 par défaut"). Ce choix a provoqué un vrai bug de données : le Développé militaire assis, toujours fait aux haltères en pratique, n'a jamais eu sa variante sélectionnée — chaque séance a donc été comptée ×1 au lieu de ×2, sous-évaluant son tonnage de moitié pendant des mois avant d'être détecté à l'occasion d'une migration de catalogue (voir plus bas). Le nouveau modèle **présélectionne la première entrée de `equipment`** tant que rien n'a été choisi explicitement (`getExerciseEquipmentId`) : la méthode réellement pratiquée par défaut porte le bon facteur dès la première utilisation, sans dépendre d'un tap que personne ne pense à faire. Il reste possible de changer de méthode à tout instant ; le bouton actif ne se désactive plus au second tap (il n'y a plus d'« état vierge » vers lequel revenir, il y a toujours une méthode par défaut).
+- Chaque bouton porte sa conséquence **en toutes lettres**, avec un exemple chiffré dans le champ `hint` de `EQUIPMENT_METHODS` — un simple `×2` ne disait pas quoi taper.
+- L'en-tête des colonnes devient « Poids / main » et « Reps / bras » quand la méthode active double (`equipmentFactor(ex, exIdx, data) === 2`).
+- ⚠️ **La saisie n'est jamais modifiée.** Le doublement n'intervient qu'au calcul (tonnage, record, courbe). Le record reste 22,5 kg par haltère, et le rappel de dernier poids propose bien ce qu'il faut charger de chaque côté.
+- **Sur une archive**, la méthode plausible d'un exercice est retrouvée par son nom via `equipmentListForExerciseName()` (cherche dans `SESSIONS` puis `customSessionsCache`) — un nom disparu du catalogue retombe sur ×1, comme le faisait déjà l'ancien modèle pour un cas inconnu.
+
+### Build Training — méthodes possibles d'un exercice
+L'ancienne case unique « Proposer variante Haltères / Poulie » (`hasEquipmentOptions`), qui forçait toujours les 3 mêmes options sans effet réel sur le calcul, est retirée. À la place : une case à cocher **par méthode de `EQUIPMENT_METHODS`** sous chaque exercice non-circuit. Cocher une ou plusieurs cases construit le tableau `equipment` de cet exercice, dans l'ordre fixe du catalogue (`EQUIPMENT_METHOD_IDS`) — la première case cochée dans cet ordre devient la méthode par défaut. Aucune case cochée = exercice à charge déjà totale, ×1, pas de sélecteur à l'usage.
 
 ### Cardio
 Proposé à la fin de **chaque** séance, y compris celles qui n'en prévoient pas (`dayProgram.cardio === null`) : la carte affiche alors « Cardio — Optionnel ».
@@ -214,7 +223,7 @@ Deux zones distinctes : `.exercise-headwrap` (fond teinté — nom, cible, histo
 - `getLastPerformance(profile, nom)` alimente les **placeholders gris** de chaque série et la ligne « Dernière fois : … ». Le placeholder n'est **jamais** une valeur : champ vide = vide dans l'export et dans le tonnage.
 - `getPersonalRecord(profile, nom)` affiche le record et déclenche le badge vert dès qu'une saisie le dépasse. Calculé **sur les archives uniquement**, au sens du **volume** (poids × reps de la meilleure série, `bestSetByVolume`) — voir « Onglet Entraînement » plus bas.
 - Les archives en corbeille sont exclues des deux. Les échauffements aussi (clés `_warm`, jamais lues par ces fonctions). Les circuits sont épargnés (pas de poids).
-- ⚠️ **Bug corrigé** : pour un exercice en mode de charge « par main » (haltères / un bras à la fois), la courbe de progression ne doublait pas le poids comme le fait le tonnage — elle affichait le poids d'une seule main. Corrigé en appliquant le même facteur (`loadModeInfo().factor`) à la lecture ; effet rétroactif sur toutes les archives où le mode avait été enregistré.
+- ⚠️ **Bug corrigé** : pour un exercice en méthode « par main » (haltères / poulie unilatérale), la courbe de progression ne doublait pas le poids comme le fait le tonnage — elle affichait le poids d'une seule main. Corrigé en appliquant le même facteur (`archiveLoadFactor()`, ex-`loadModeInfo().factor`) à la lecture ; effet rétroactif sur toutes les archives où la méthode avait été enregistrée.
 
 ### Clés de données
 - **Notes et variantes indexées par nom d'exercice** (`exerciseKey()` → `name:<nom>`), pas par position. `readByExercise()` lit le nouveau format avec repli sur l'ancienne clé numérique.
@@ -277,6 +286,13 @@ Sept mensurations en plus du poids : **Pec/Poitrine, Cuisse, Tour de fesse, Tour
 
 Compte connecté, bouton de déconnexion, et un **sélecteur de profil Corentin/Lisa explicite** (`renderSettingsProfileToggle`, bascule segmentée appelant `setProfile(id)` et `applyThemeColor()`, rendu depuis `goToSettingsView()`). Ajouté pour corriger un bug où le chat du coach affichait la mauvaise identité sur un appareil donné — le profil actif dépend maintenant d'un choix explicite ici, pas d'une déduction implicite. **Le poids de corps et les mensurations n'y vivent plus** — ils ont d'abord été conçus ici, avant d'être jugés plus à leur place dans Suivi Progression (voir ci-dessus), qui est l'endroit naturel pour un *suivi* dans le temps. Un réglage pour activer la colonne RPE y a aussi existé brièvement, avant que le RPE ne devienne actif en permanence.
 
+### Sauvegarde / Import (migration du catalogue, 14/09/26)
+Deux boutons pensés pour une migration ponctuelle du catalogue d'exercices (renommage, changement d'architecture équipement), pas pour un usage quotidien :
+
+- **📤 Exporter toutes les données** (`exportFullDataJSON`) : sert dans la modale d'export existante (textarea + Copier) un JSON brut — archives actives et corbeille des deux profils, `customSessions`, et `settings/coach.threads`/`.body`. **Clé API et modèle du coach volontairement exclus** : inutiles à une migration, pas de raison qu'ils circulent dans un texte copié-collé. Distinct de `exportAllArchives()` (bouton dans Archives) qui, lui, sert un texte lisible par un humain, pas une donnée destinée à être retraitée.
+- **📥 Importer ces données** (`askImportFullDataJSON` → confirmation via `showConfirm` → `importFullDataJSON`) : colle un JSON préparé pour réimport dans un `<textarea>`, et écrit **par id** (upsert) dans `archives` et `customSessions` — un id déjà existant est remplacé, un nouvel id s'ajoute. Ne supprime **rien par déduction** : seuls les ids listés explicitement dans `customSessionsToDelete` sont effacés (`deleteDoc`). `settings/coach` n'est touché que si le JSON contient `coachSettings.body`, et **toujours fusionné** (`Object.assign({}, coachSettings(), { body: ... })`) — jamais réécrit en entier, conformément à la règle du document partagé (voir plus haut). Écritures offline-first : pas d'attente de confirmation serveur avant le toast, seul un `.catch()` loggue une erreur éventuelle.
+- Aucune des deux fonctions ne touche à `coachChat` (les messages du fil de discussion) : décision explicite, cette collection n'a pas de mécanisme de sauvegarde à ce jour.
+
 ## Coach (IA)
 
 Deux usages distincts, qui partagent la même mémoire :
@@ -324,6 +340,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 - **Aucune collection dédiée** : dérivé de `SESSIONS`, `customSessionsCache` et des `exerciseNames` de toutes les archives.
 - Trois filets : suggestions filtrées (insensibles casse/accents), alerte de proximité par distance de Levenshtein avec bouton d'adoption, et `canonicalExerciseName()` qui recale casse, accents et espaces à l'enregistrement.
 - Panneau maison (`<datalist>` est peu fiable sur Safari iOS), options avec `onmousedown` + `preventDefault()`.
+- ⚠️ **Noms nettoyés de leur équipement le 14/09/26** : les noms embarquaient auparavant du matériel en dur (« Développé couché / incliné (Haltères) », « Rowing poulie basse (Tirage horizontal) »…), qui pouvait contredire la méthode choisie séparément. Tous renommés (voir la table `equipment` dans `SESSIONS`) ; les 16 archives existantes ont été migrées en conséquence (renommage + méthode assignée explicitement + tonnage corrigé pour le Développé militaire assis). Règle à suivre pour tout nouvel exercice à plusieurs méthodes plausibles : le nommer **sans** l'équipement, et cocher ses méthodes dans Build Training dès la création plutôt que de rattraper plus tard.
 
 ## Build Training
 
@@ -332,7 +349,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 - ⚠️ **La modification ne se fait plus directement depuis l'écran Entraînement.** Les crayons ✏️ qui apparaissaient sur la liste des séances (`view-session`) ont été retirés ; toute édition passe par le hub Build Training. La suppression et la restauration (🗑️ / ↺) restent, elles, sur `view-session`.
 - `exitBuilder()` ramène toujours au hub depuis le formulaire, et au menu depuis le hub — jamais directement du formulaire au menu, pour ne pas sauter d'étape.
 - Après enregistrement, retour au hub (liste rafraîchie), pas au menu : on voit tout de suite le résultat.
-- Nom de séance, case cardio, exercices dynamiques (nom avec autocomplétion, séries, reps par profil, case circuit, case variante, réordonnancement ▲▼).
+- Nom de séance, case cardio, exercices dynamiques (nom avec autocomplétion, séries, reps par profil, case circuit, cases de méthode d'équipement — voir « Build Training — méthodes possibles d'un exercice » plus haut, réordonnancement ▲▼).
 - ⚠️ **Le nom de séance et la case cardio sont recopiés dans `builderDraft` à chaque frappe.** Sans ça, tout re-render du formulaire les réécrase avec les valeurs périmées du brouillon.
 
 ## Animations et retours d'état
@@ -371,7 +388,7 @@ Les suites ne sont pas versionnées, elles vivent dans l'environnement d'exécut
 | Échauffement | additif (ne consomme pas une série de travail), retrait en pile (dernière ligne seulement), exclusion du tonnage par le format de clé |
 | RPE | toujours actif, menu déroulant 1-10, aucune valeur hors plage |
 | Circuits | case libre, reprise des anciennes saisies, exclusion du tonnage |
-| Mode de charge | facteur ×2, absence de présélection, en-têtes, export, anciennes valeurs ignorées |
+| Équipement | facteur ×2, présélection de la première méthode, sélecteur masqué si une seule méthode, en-têtes, export, méthode retrouvée par nom sur une archive |
 | Cardio | case à cocher, champs masqués, progression, export |
 | Note de séance | champ distinct, export, archive, rappel d'archivage |
 | Archivage | hors ligne (promesse non résolue), export texte, rappel d'archivage |
@@ -382,7 +399,7 @@ Les suites ne sont pas versionnées, elles vivent dans l'environnement d'exécut
 | Navigation | menu (5 entrées), profils, glissement, retour |
 | Progression — Entraînement | menu déroulant, tonnage par séance, période, écart, étiquettes, absence de doublon avec l'onglet Corps |
 | Progression — Corps | 7 champs, libellé selon profil, date choisie, **fusion sur une même date**, clés historiques, sélection et période indépendantes, historique, **modification d'une entrée existante**, suppression |
-| Réglages | compte + déconnexion, **sélecteur de profil Corentin/Lisa** |
+| Réglages | compte + déconnexion, **sélecteur de profil Corentin/Lisa**, export JSON brut (contenu, exclusion clé API), import JSON (upsert par id, suppression seulement sur `customSessionsToDelete`, fusion `settings/coach` sans écraser `threads`/`apiKey`) |
 | Historique | dernier poids en placeholder, record personnel **(volume, pas poids max)**, cumul |
 | Design | jetons (aucune valeur en dur), structure des cartes, alignement |
 | Retours d'état | toasts empilables, validation, 100 %, squelettes |
@@ -423,7 +440,7 @@ Poids/reps/séries, mensurations, notes libres, dates. Firestore exige désormai
 
 ## Pour la suite
 
-Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent, migration du dépôt vers `PORTAIL-DUO/Muscu/` derrière un portail commun avec Budget et Course, refonte identité visuelle « Ardoise & craie » (palette, Bebas Neue, texture craie), records et courbe de progression passés en volume (poids × reps) avec correction rétroactive du doublement par main, édition des mensurations déjà enregistrées, sélecteur de profil explicite dans Réglages (fix identité coach sur appareil partagé), indicateur d'attente avec timeout sur le chat coach.
+Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent, migration du dépôt vers `PORTAIL-DUO/Muscu/` derrière un portail commun avec Budget et Course, refonte identité visuelle « Ardoise & craie » (palette, Bebas Neue, texture craie), records et courbe de progression passés en volume (poids × reps) avec correction rétroactive du doublement par main, édition des mensurations déjà enregistrées, sélecteur de profil explicite dans Réglages (fix identité coach sur appareil partagé), indicateur d'attente avec timeout sur le chat coach, **refonte complète de l'équipement en deux listes séparées (calcul / vocabulaire), renommage du catalogue sans équipement en dur, export et import JSON bruts dans Réglages pour préparer et rejouer une migration, correction rétroactive du tonnage du Développé militaire assis (14/09/26)**.
 
 Abandonné en connaissance de cause :
 - **Types de série** (travail / dégressive / échec, cycle au clic) — ajoutés puis retirés : jugés inutiles à l'usage une fois testés en conditions réelles.
