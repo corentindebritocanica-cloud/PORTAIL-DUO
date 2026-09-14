@@ -5122,7 +5122,7 @@ function getProgressPoints(profile, selection){
   const methodId = isMethodSel ? methodProgressMethodId(selection) : null;
 
   archives.forEach(arc => {
-    let value = null;
+    let value = null, weight = null, reps = null;
     if(wantedSession !== null){
       /* seules les occurrences de CETTE séance entrent dans la courbe */
       if(arc.sessionId === wantedSession && arc.tonnage > 0) value = arc.tonnage;
@@ -5130,7 +5130,7 @@ function getProgressPoints(profile, selection){
       /* seules les séances où CETTE méthode a été utilisée pour cet exercice */
       if(archiveExerciseMethodId(arc, methodExerciseName) === methodId){
         const best = bestSetByVolume(arc, methodExerciseName);
-        if(best) value = best.volume;
+        if(best){ value = best.volume; weight = best.weight; reps = best.reps; }
       }
     } else {
       /* Le seul poids masque la difficulté réelle : 45 kg × 8 n'est pas
@@ -5138,9 +5138,38 @@ function getProgressPoints(profile, selection){
          (poids × reps × facteur de charge) de la meilleure série du jour, la
          même mesure que celle qui sert au record (voir bestSetByVolume). */
       const best = bestSetByVolume(arc, selection);
-      if(best) value = best.volume;
+      if(best){ value = best.volume; weight = best.weight; reps = best.reps; }
     }
-    if(value !== null) points.push({ dateLabel: arc.dateLabel, value: value, createdAt: arc.createdAt });
+    if(value !== null) points.push({ dateLabel: arc.dateLabel, value: value, createdAt: arc.createdAt, weight: weight, reps: reps });
+  });
+
+  return points;
+}
+
+/* ---------- TONNAGE TOTAL D'UN EXERCICE (toutes séries, pas la meilleure) ----------
+   Complète la courbe « meilleure série » ci-dessus : celle-ci peut baisser un
+   jour où la charge est montée mais les répétitions ont chuté (une série plus
+   lourde mais plus courte pèse parfois moins en volume) — visuellement
+   déroutant si rien d'autre ne l'explique. Ce second tracé additionne TOUTES
+   les séries de l'exercice ce jour-là, comme le tonnage de séance mais borné
+   à un seul exercice : une charge de travail totale en hausse malgré une
+   meilleure série en baisse s'explique alors de lui-même, sans texte de plus. */
+function getExerciseTonnagePoints(profile, selection){
+  const archives = getArchivesInPeriod(profile);
+  const points = [];
+  const isMethodSel = isMethodProgressKey(selection);
+  const exerciseName = isMethodSel ? methodProgressExerciseName(selection) : selection;
+  const methodId = isMethodSel ? methodProgressMethodId(selection) : null;
+
+  archives.forEach(arc => {
+    if(isMethodSel && archiveExerciseMethodId(arc, exerciseName) !== methodId) return;
+    const factor = archiveLoadFactor(arc, exerciseName);
+    let total = 0, any = false;
+    getSetsForExercise(arc, exerciseName).forEach(s => {
+      const vol = setVolume(s.weight, s.reps, factor);
+      if(!isNaN(vol)){ total += vol; any = true; }
+    });
+    if(any) points.push({ dateLabel: arc.dateLabel, value: total, createdAt: arc.createdAt });
   });
 
   return points;
@@ -5181,6 +5210,11 @@ function renderProgressChart(selection){
   const points = getProgressPoints(progressProfile, selection);
   const periodLabel = (PROGRESS_PERIODS.find(p => p.id === progressPeriod) || {}).label;
 
+  /* Le second tracé (tonnage total, toutes séries) n'a de sens que pour un
+     exercice suivi par sa meilleure série — pas pour un tonnage de séance
+     déjà global, ni pour une mensuration. */
+  const showTonnageChart = !isTonnageKey(selection) && !isBodyProgressKey(selection);
+
   if(points.length === 0){
     wrap.innerHTML = `
       <div class="progress-chart-card">
@@ -5191,7 +5225,7 @@ function renderProgressChart(selection){
     return;
   }
 
-  wrap.innerHTML = `
+  let html = `
     <div class="progress-chart-card">
       <div class="progress-chart-title">${escapeHtml(info.label)} — ${escapeHtml(info.title)}</div>
       ${buildChartSvg(points)}
@@ -5199,6 +5233,22 @@ function renderProgressChart(selection){
       ${buildDeltaHtml(points, info.unit, progressPeriod === 'all' ? '' : periodLabel)}
     </div>
   `;
+
+  if(showTonnageChart){
+    const tonnagePoints = getExerciseTonnagePoints(progressProfile, selection);
+    if(tonnagePoints.length > 0){
+      html += `
+        <div class="progress-chart-card">
+          <div class="progress-chart-title">${escapeHtml(info.label)} — tonnage total (toutes séries de l'exercice)</div>
+          ${buildChartSvg(tonnagePoints)}
+          <div class="progress-chart-foot">${tonnagePoints.length} séance${tonnagePoints.length > 1 ? 's' : ''} sur la période</div>
+          ${buildDeltaHtml(tonnagePoints, 'kg', progressPeriod === 'all' ? '' : periodLabel)}
+        </div>
+      `;
+    }
+  }
+
+  wrap.innerHTML = html;
 }
 
 /* Tracé partagé : une ligne, ses points, la valeur et la date de chacun.
@@ -5261,9 +5311,19 @@ function buildChartSvg(points){
   const stride = Math.ceil(points.length / 6);
   const keep = i => points.length <= 8 || i === 0 || i === points.length - 1 || i % stride === 0;
 
-  const valueLabels = coords.map((c, i) => keep(i)
-    ? `<text class="progress-value-label" x="${c.x.toFixed(1)}" y="${(c.y - 14).toFixed(1)}" text-anchor="middle">${escapeHtml(formatNumberFr(c.point.value))}</text>`
-    : '').join('');
+  const valueLabels = coords.map((c, i) => {
+    if(!keep(i)) return '';
+    /* Quand le point porte le détail poids/reps de la série (courbe
+       "meilleure série"), l'afficher directement lève l'ambiguïté qu'un
+       simple volume ne dit pas : une charge plus lourde sur moins de
+       répétitions peut donner un volume plus bas, ce qui a dérouté avant
+       que cette étiquette n'existe. */
+    const hasDetail = c.point.weight != null && c.point.reps != null && !isNaN(c.point.weight) && !isNaN(c.point.reps);
+    const text = hasDetail
+      ? `${formatNumberFr(c.point.weight)}×${formatNumberFr(c.point.reps)}`
+      : formatNumberFr(c.point.value);
+    return `<text class="progress-value-label" x="${c.x.toFixed(1)}" y="${(c.y - 14).toFixed(1)}" text-anchor="middle">${escapeHtml(text)}</text>`;
+  }).join('');
   const dateLabels = coords.map((c, i) => keep(i)
     ? `<text class="progress-point-label" x="${c.x.toFixed(1)}" y="${height - 8}" text-anchor="middle">${escapeHtml(String(c.point.dateLabel || '').slice(0,5))}</text>`
     : '').join('');
