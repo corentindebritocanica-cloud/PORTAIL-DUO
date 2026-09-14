@@ -20,7 +20,7 @@
 <!-- Firebase (compat SDK — obligatoire pour Safari iOS, pas d'import ES module) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
   :root{
@@ -350,15 +350,18 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
+const db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-/* Wrappers (évite les conflits de noms globaux, cf. Budget L&C) */
-function dbRef(path){ return db.ref(path); }
-function dbSet(path, val){ return dbRef(path).set(val); }
-function dbUpdate(path, val){ return dbRef(path).update(val); }
-function dbPush(path, val){ return dbRef(path).push(val); }
-function dbOn(path, cb){ dbRef(path).on('value', cb); }
+/* Cache hors-ligne Firestore (lecture/écriture même sans réseau, sync auto au retour) */
+db.enablePersistence({ synchronizeTabs: true }).catch(err=>{
+  console.warn("Persistance hors-ligne non activée :", err.code);
+});
+
+/* Collections Firestore (correspondent à ce qui est visible dans la console Firebase) */
+const colProduits = db.collection('produits');
+const colRayons = db.collection('rayons');
+
 function authListen(cb){ auth.onAuthStateChanged(cb); }
 
 function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
@@ -513,27 +516,23 @@ const PRODUITS_SEED = [
 ];
 
 function lancerSeedSiVide(){
-  dbRef('courses/rayons').once('value').then(snap=>{
-    if(snap.exists()) return; // déjà initialisé, on ne touche à rien
-    const rayonsObj = {};
+  colRayons.limit(1).get().then(snap=>{
+    if(!snap.empty) return; // déjà initialisé, on ne touche à rien
+    const batch = db.batch();
+    const nomVersId = {};
     RAYONS_SEED.forEach(nom=>{
-      const id = dbPush('courses/rayons').key;
-      rayonsObj[id] = nom;
+      const ref = colRayons.doc();
+      nomVersId[nom] = ref.id;
+      batch.set(ref, { nom });
     });
-    dbSet('courses/rayons', rayonsObj).then(()=>{
-      // reconstruire une map nom->id pour lier les produits
-      const nomVersId = {};
-      Object.entries(rayonsObj).forEach(([id,nom])=> nomVersId[nom]=id);
-      const produitsObj = {};
-      PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
-        const id = dbPush('courses/produits').key;
-        produitsObj[id] = {
-          nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
-          aAcheter:false, compteur:0
-        };
+    PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
+      const ref = colProduits.doc();
+      batch.set(ref, {
+        nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
+        aAcheter:false, achete:false, compteur:0
       });
-      dbSet('courses/produits', produitsObj);
     });
+    batch.commit();
   });
 }
 
@@ -544,14 +543,18 @@ function demarrer(){
   authListen(user=>{
     if(user){
       lancerSeedSiVide();
-      dbOn('courses/produits', snap=>{
-        state.produits = snap.val() || {};
+      colProduits.onSnapshot(snap=>{
+        const obj = {};
+        snap.forEach(doc=>{ obj[doc.id] = doc.data(); });
+        state.produits = obj;
         render();
-      });
-      dbOn('courses/rayons', snap=>{
-        state.rayons = snap.val() || {};
+      }, err=> console.error("Erreur lecture produits :", err));
+      colRayons.onSnapshot(snap=>{
+        const obj = {};
+        snap.forEach(doc=>{ obj[doc.id] = doc.data().nom; });
+        state.rayons = obj;
         render();
-      });
+      }, err=> console.error("Erreur lecture rayons :", err));
       document.getElementById('splash').style.display='none';
       document.getElementById('ecran-login').style.display='none';
       if(state.profil){
@@ -628,31 +631,30 @@ function toggleAcheter(id){
   if(nouveauStatut){
     updates.compteur = (p.compteur||0) + 1;
   }
-  dbUpdate('courses/produits/'+id, updates);
+  colProduits.doc(id).update(updates);
   vibrer(12);
 }
 
 function toggleAcheteCourse(id){
   const p = state.produits[id];
   if(!p) return;
-  dbUpdate('courses/produits/'+id, { achete: !p.achete });
+  colProduits.doc(id).update({ achete: !p.achete });
   vibrer(15);
 }
 
 function terminerCourse(){
   const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
   if(aEffacer.length===0) return;
-  const updates = {};
+  const batch = db.batch();
   aEffacer.forEach(([id])=>{
-    updates['courses/produits/'+id+'/aAcheter'] = false;
-    updates['courses/produits/'+id+'/achete'] = false;
+    batch.update(colProduits.doc(id), { aAcheter:false, achete:false });
   });
-  db.ref().update(updates);
+  batch.commit();
   vibrer(20);
 }
 
 function updateQuantite(id, val){
-  dbUpdate('courses/produits/'+id, { quantite: val });
+  colProduits.doc(id).update({ quantite: val });
 }
 
 /* ============================================================
@@ -772,14 +774,13 @@ document.getElementById('btn-valider-ajout').addEventListener('click', async ()=
   if(rayonId==='__nouveau__'){
     const nomRayon = document.getElementById('input-nouveau-rayon').value.trim();
     if(!nomRayon){ return; }
-    const ref = dbPush('courses/rayons');
-    await dbSet('courses/rayons/'+ref.key, nomRayon);
-    rayonId = ref.key;
+    const ref = colRayons.doc();
+    await ref.set({ nom: nomRayon });
+    rayonId = ref.id;
   }
 
-  const ref = dbPush('courses/produits');
-  await dbSet('courses/produits/'+ref.key, {
-    nom, quantite, rayonId, aAcheter:true, compteur:1
+  await colProduits.add({
+    nom, quantite, rayonId, aAcheter:true, achete:false, compteur:1
   });
   overlayAjout.classList.remove('visible');
   vibrer(15);
@@ -812,7 +813,7 @@ document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> over
 overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
 document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
   const rayonId = document.getElementById('select-rayon-existant').value;
-  dbUpdate('courses/produits/'+produitEnEdition, { rayonId });
+  colProduits.doc(produitEnEdition).update({ rayonId });
   overlayRayon.classList.remove('visible');
 });
 
