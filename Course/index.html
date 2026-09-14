@@ -610,6 +610,7 @@ document.querySelectorAll('.onglet-btn').forEach(btn=>{
     document.getElementById('vue-course').style.display = state.onglet==='course' ? 'block':'none';
     document.getElementById('titre-onglet').textContent = state.onglet==='saisie' ? 'Saisie' : 'Course';
     document.getElementById('btn-ouvrir-ajout').style.display = state.onglet==='saisie' ? 'block':'none';
+    document.getElementById('btn-course-terminee').style.display = state.onglet==='course' ? 'block':'none';
     if(state.onglet==='course') renderCourse();
     vibrer(8);
   });
