@@ -82,9 +82,9 @@ Deux nœuds racine :
 - **Budgets de provisions (annuel)** : création/suppression des objectifs mot-clé + montant
 - **Garde-robe (thèmes)** : sélecteur visuel des 11 thèmes (voir ci-dessous)
 - **Sauvegarde automatique** : bouton d'envoi manuel d'un export JSON par email via un webhook Google Apps Script. Le texte affiché ("le dimanche à minuit, un email est envoyé automatiquement") suppose un déclencheur automatique côté script Google — **non vérifiable depuis ce fichier**, à confirmer côté Apps Script si besoin
-- **Corbeille** : affiche les 5 derniers éléments supprimés. ⚠️ Les boutons **"Restaurer"** et **"Vider la corbeille"** appellent des fonctions (`restaurerCorbeille`, `viderCorbeille`) qui **n'existent pas dans le code** → ils ne fonctionnent pas actuellement
+- **Corbeille** : affiche les 5 derniers éléments supprimés. Bouton **"Restaurer"** : remet la ligne dans le mois **actuellement affiché** (le mois d'origine n'est pas mémorisé dans la corbeille, donc la restauration se fait toujours vers le mois actif, pas nécessairement celui d'où la ligne venait). Bouton **"Vider la corbeille"** : suppression définitive après confirmation
 - **Restauration manuelle** : import d'un fichier `.json` qui écrase toutes les données actuelles (avec confirmation)
-- Numéro de version affiché en bas de page (actuellement **2.9.5** — "Correctif Calculatrice Drag")
+- Numéro de version affiché en bas de page (actuellement **2.9.6** — "Correctif Corbeille : restauration/vidage")
 
 ## Thèmes (11 au total)
 
@@ -112,6 +112,10 @@ Note : le `<body>` du fichier source a `class="theme-glass"` codé en dur — c'
 
 ## Bugs connus / éléments à finir
 
-- `restaurerCorbeille()` et `viderCorbeille()` : fonctions manquantes, boutons correspondants non fonctionnels
 - `#comparaison-n1` : badge de comparaison au mois N-1 présent dans le markup, jamais implémenté côté JS
 - Répartition des charges fixes toujours divisée par 2 en dur (pas adapté si un jour ce n'est plus un couple à deux)
+- La restauration depuis la corbeille ne remet pas la ligne dans son mois d'origine (non mémorisé) mais dans le mois actif au moment du clic — comportement volontaire du correctif, pas un bug, mais à garder en tête
+
+## Historique des correctifs
+
+- **v2.9.6** : ajout des fonctions `restaurerCorbeille()` et `viderCorbeille()`, absentes du code jusque-là malgré des boutons déjà présents dans l'interface (repérées par audit du 14/09/2026)
