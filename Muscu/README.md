@@ -1,28 +1,29 @@
 # Duo Training
 
-Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair. ~5 800 lignes, ~285 Ko (dont ~17 Ko d'icône encodée en base64).
+Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 100 lignes, ~293 Ko (dont ~17 Ko d'icône encodée en base64).
 
 ## Où vit le projet
 
 | | |
 |---|---|
-| Dépôt | `github.com/corentindebritocanica-cloud/MUSCU-DUO` (anciennement `PLANNING-CAB-LISA`) |
-| App déployée | `corentindebritocanica-cloud.github.io/MUSCU-DUO/` |
-| Code (lecture directe) | `https://raw.githubusercontent.com/corentindebritocanica-cloud/MUSCU-DUO/refs/heads/main/index.html` |
-| Ce fichier (lecture directe) | `https://raw.githubusercontent.com/corentindebritocanica-cloud/MUSCU-DUO/refs/heads/main/README.md` |
+| Dépôt | `github.com/corentindebritocanica-cloud/PORTAIL-DUO` (anciennement `MUSCU-DUO`, puis avant ça `PLANNING-CAB-LISA`) |
+| Sous-dossier de l'app | `/Muscu/` — le même repo héberge aussi `/Budget/` et `/Course/`, derrière un portail de lancement commun (`/` à la racine) |
+| App déployée | `corentindebritocanica-cloud.github.io/PORTAIL-DUO/Muscu/` |
+| Code (lecture directe) | `https://raw.githubusercontent.com/corentindebritocanica-cloud/PORTAIL-DUO/refs/heads/main/Muscu/index.html` |
+| Ce fichier (lecture directe) | `https://raw.githubusercontent.com/corentindebritocanica-cloud/PORTAIL-DUO/refs/heads/main/Muscu/README.md` |
 
-Le fichier s'appelle `index.html` dans le dépôt (contrainte GitHub Pages), et `muscu-duo.html` dans les échanges. C'est le même fichier.
+Le fichier s'appelle `index.html` dans le dépôt (contrainte GitHub Pages), et `muscu-duo.html` dans les échanges. C'est le même fichier. Les anciens dépôts (`MUSCU-DUO`, et avant lui `PLANNING-CAB-LISA`) sont obsolètes — ne plus s'y référer.
 
 ## Méthode de travail avec Claude
 
-À chaque session : coller les deux liens bruts ci-dessus, décrire les modifications voulues, récupérer le fichier complet en retour, le commiter.
+**Avant toute nouvelle demande de modification ou question, Claude demande d'abord** s'il faut (1) lire le fichier via le lien RAW ci-dessus, (2) repartir du dernier HTML déjà présent dans la discussion, ou (3) simplement répondre/expliquer sans toucher au code. Cette règle remplace l'ancien réflexe de relecture automatique à chaque tour.
 
 Points à connaître, tous vérifiés :
 
 - **Seul `raw.githubusercontent.com` est lisible.** Le lien « Raw » de `github.com` et la page `/branches` sont bloqués aux robots. La page `/blob/` du fichier s'arrête à la ligne 1000 et peut servir un rendu en cache périmé — ne pas s'y fier.
 - **La lecture porte sur ce qui est poussé**, jamais sur les modifications locales non commitées.
 - **Le fichier complet est rendu, pas un correctif** : appliquer un diff à la main dans un fichier de cette taille sur téléphone est le meilleur moyen d'introduire une erreur.
-- **Regrouper les demandes.** Chaque session commence par relire le fichier en entier ; cinq modifications d'un coup coûtent bien moins que cinq conversations.
+- **Regrouper les demandes** dans une même session reste plus efficace que d'ouvrir cinq discussions pour cinq petites modifications.
 - **Les suites de tests ne survivent pas d'une session à l'autre.** Elles sont réécrites au besoin, en couvrant la zone touchée — d'où l'importance de la section « Tests » plus bas.
 - ⚠️ **Un fichier de travail peut déjà contenir des changements non demandés dans le tour en cours.** Plusieurs fois pendant ce projet, la reprise d'une demande a révélé qu'une fonctionnalité entière (parfois bien conçue, parfois incomplète ou buguée) existait déjà dans le fichier sans avoir été annoncée. Toujours **auditer avant de coder par-dessus** : grep les noms de fonctions probables, lire ce qui existe, tester, puis compléter ou corriger plutôt que réécrire à l'aveugle.
 
@@ -63,7 +64,14 @@ Points à connaître, tous vérifiés :
 - **Rayons**, cinq crans + pilule : `--r-xs` 4px (jauges), `--r-sm` 10px (champs), `--r-md` 14px (boutons), `--r-lg` 18px (cartes), `--r-xl` 22px (modales), `--r-pill`. **La taille encode la hiérarchie.**
 - **Ombres** : `--shadow-sm`, `--shadow`, `--shadow-lg`. Rien d'autre.
 - **Durées** : `--t-fast` .14s, `--t-mid` .22s.
-- Identité : `--corentin` `#4c8dfb`, `--lisa` `#f2599e`, `--done` `#12b981`, `--danger` `#ef4444`. `--accent` suit le profil actif.
+- Identité : `--corentin` `#1f8fff`, `--lisa` `#ff3d7e`, `--done` `#12b981`, `--danger` `#ef4444`. `--accent` suit le profil actif. Couleurs plus saturées que la version d'origine (`#4c8dfb` / `#f2599e`), issues de la refonte visuelle « Ardoise & craie ».
+
+### Identité « Ardoise & craie »
+Choisie après présentation de 3 pistes (bleu technique/blueprint, ardoise & craie, carnet à grille). Éléments distinctifs :
+- Police **Bebas Neue** (Google Fonts CDN) réservée aux titres/gros chiffres : titres de menu, titre de séance, titre de connexion, valeur cumulée à vie, titre du splash. Le texte courant et les champs de formulaire restent sur la pile système, pour éviter les régressions Safari iOS déjà rencontrées avec des polices custom sur les inputs.
+- Texture fine de poussière de craie sur le fond, en thème sombre uniquement.
+- Badge de record personnel : traitement en pointillés, légèrement incliné.
+- ⚠️ Un essai de barre d'onglets persistante en bas d'écran (Accueil/Entraînement/Progression/Coach), pour remplacer le menu principal plat, a été testé puis **rejeté** après visualisation en conditions réelles. Le menu principal est resté à ses 5 boutons d'origine (Entraînement, Build Training, Coach, Réglages, Suivi Progression) — ne pas réintroduire cette barre sans qu'on le redemande.
 
 ## Icône d'application
 
@@ -107,7 +115,7 @@ Points d'implémentation :
 - ⚠️ **Les abonnements `onSnapshot` sont regroupés dans `subscribeAll()` et ne démarrent qu'après `onAuthStateChanged`.** S'abonner avant la connexion provoquerait un `permission-denied` sur chaque écoute.
 - **Le mode hors-ligne survit** : Firebase conserve la session localement, donc après une première connexion l'app fonctionne en salle sans réseau.
 - **Champs d'une archive** : `id, dateLabel, timeLabel, createdAt, profile, sessionId, sessionLabel, sessionTitle, exportText, sessionNote, tonnage, exerciseNames, rawSets, variants` — plus `coachFeedback` et `coachProfile` après un bilan. ⚠️ `variants` a été ajouté tardivement : sans lui, un poids archivé ne disait pas s'il était par main. Les archives antérieures ne l'ont pas.
-- **Collections** : `archives`, `customSessions`, `coachChat`, et `settings` (documents `coach` et `threads` — voir ci-dessous). La corbeille (`deletedAt`), le catalogue d'exercices (dérivé), les surcharges de séances fixes et le suivi corporel n'ont demandé aucune collection supplémentaire.
+- **Collections** : `archives`, `customSessions`, `coachChat`, et `settings` (document `coach` uniquement — les conversations du coach vivent dans son champ `threads`, pas dans un document séparé, voir ci-dessous). La corbeille (`deletedAt`), le catalogue d'exercices (dérivé), les surcharges de séances fixes et le suivi corporel n'ont demandé aucune collection supplémentaire.
 - Règles à publier (console → Firestore → Règles) :
 
 ```
@@ -210,8 +218,9 @@ Deux zones distinctes : `.exercise-headwrap` (fond teinté — nom, cible, histo
 
 ### Historique et records
 - `getLastPerformance(profile, nom)` alimente les **placeholders gris** de chaque série et la ligne « Dernière fois : … ». Le placeholder n'est **jamais** une valeur : champ vide = vide dans l'export et dans le tonnage.
-- `getPersonalRecord(profile, nom)` affiche le record et déclenche le badge vert dès qu'une saisie le dépasse. Calculé **sur les archives uniquement**.
+- `getPersonalRecord(profile, nom)` affiche le record et déclenche le badge vert dès qu'une saisie le dépasse. Calculé **sur les archives uniquement**, au sens du **volume** (poids × reps de la meilleure série, `bestSetByVolume`) — voir « Onglet Entraînement » plus bas.
 - Les archives en corbeille sont exclues des deux. Les échauffements aussi (clés `_warm`, jamais lues par ces fonctions). Les circuits sont épargnés (pas de poids).
+- ⚠️ **Bug corrigé** : pour un exercice en mode de charge « par main » (haltères / un bras à la fois), la courbe de progression ne doublait pas le poids comme le fait le tonnage — elle affichait le poids d'une seule main. Corrigé en appliquant le même facteur (`loadModeInfo().factor`) à la lecture ; effet rétroactif sur toutes les archives où le mode avait été enregistré.
 
 ### Clés de données
 - **Notes et variantes indexées par nom d'exercice** (`exerciseKey()` → `name:<nom>`), pas par position. `readByExercise()` lit le nouveau format avec repli sur l'ancienne clé numérique.
@@ -250,7 +259,7 @@ Suivi Progression
 ### Onglet Entraînement
 - **Cumul** en tête (`getLifetimeStats`) : tonnage total et nombre de séances, corbeille exclue.
 - **Sélection** : un `<select>` natif (`renderProgressExerciseList`). Deux `optgroup` : « Tonnage par séance (N) » puis « Exercices (N) ». Option d'amorce « Choisis un exercice… » tant que rien n'est sélectionné. ⚠️ `font-size:16px` impératif sur `.progress-select`, sinon Safari zoome.
-- **Une seule métrique : le poids max.** Volume et reps max ont existé puis ont été retirés.
+- **Métrique : le volume (poids × reps) de la meilleure série**, pas le poids max seul. Après comparaison entre poids max, 1RM estimé (formule d'Epley, jugée peu fiable au-delà de 12-15 reps) et volume, le volume a été retenu — 40 kg × 8 représente plus de charge totale que 45 kg × 5, ce qu'un simple poids max ne reflète pas. Changement appliqué de façon rétroactive (recalculé à la volée depuis `weight`/`reps` stockés) à trois endroits : le badge de record pendant la séance, cette courbe de progression, et le résumé du coach IA. ⚠️ Un commentaire resté dans le code (vers `getArchivedSessions`) mentionne encore l'ancienne règle « une seule métrique : le poids max » — code obsolète à corriger un jour, ne pas s'y fier.
 - **Tonnage : une entrée par séance**, jamais un tonnage global. Clé `__tonnage__:<sessionId>` (`PROGRESS_TONNAGE_PREFIX`, `isTonnageKey()`, `tonnageSessionId()`). `getArchivedSessions()` liste les séances réellement archivées et retient le libellé de l'archive la plus récente.
 - **Période** (`progressPeriod`) : 1 / 3 / 6 mois, ou tout.
 - **Écart** (`getProgressDelta`) : gain absolu, pourcentage et contexte, vert / rouge / gris. Rien ne s'affiche sous deux points.
@@ -267,12 +276,12 @@ Sept mensurations en plus du poids : **Pec/Poitrine, Cuisse, Tour de fesse, Tour
 - **Sélection à tracer** (`renderBodySelect`) : un `<select>` qui ne propose que les champs réellement renseignés pour ce profil, avec `bodyProgressSelection` séparé de `progressSelection` (l'onglet Entraînement) — changer d'onglet ne perturbe pas l'autre.
 - **Période dédiée** (`bodyProgressPeriod`, `setBodyProgressPeriod`) : indépendante de celle de l'onglet Entraînement.
 - Le tracé (`renderBodyProgressChart`) réutilise `buildChartSvg`/`buildDeltaHtml`/`getProgressPoints`/`progressMetricInfo`, avec une clé `__body__:<champ>` (`bodyProgressKey`, `isBodyProgressKey`) pour distinguer une mensuration d'un exercice ou d'un tonnage sans risque de collision.
-- **Historique** (`renderBodyList`) : les mesures récentes avec suppression (`deleteBodyEntry`).
+- **Historique** (`renderBodyList`) : les mesures récentes, avec **modification** (✏️, `editBodyEntry` pré-remplit le formulaire, `cancelEditBodyEntry` annule ; `editingBodyAt` retient l'entrée en cours d'édition ; si la date est changée pendant l'édition, l'ancienne et la nouvelle entrée sont toutes deux prises en compte pour éviter un doublon) et suppression (`deleteBodyEntry`).
 - Stocké dans `settings/coach.body[profil]`, un tableau d'entrées — voir l'avertissement sur `settings/coach` plus haut avant d'y toucher.
 
 ## Réglages
 
-Écran minimal : affichage du compte connecté et bouton de déconnexion. **Le poids de corps et les mensurations n'y vivent plus** — ils ont d'abord été conçus ici, avant d'être jugés plus à leur place dans Suivi Progression (voir ci-dessus), qui est l'endroit naturel pour un *suivi* dans le temps. Un réglage pour activer la colonne RPE y a aussi existé brièvement, avant que le RPE ne devienne actif en permanence.
+Compte connecté, bouton de déconnexion, et un **sélecteur de profil Corentin/Lisa explicite** (`renderSettingsProfileToggle`, bascule segmentée appelant `setProfile(id)` et `applyThemeColor()`, rendu depuis `goToSettingsView()`). Ajouté pour corriger un bug où le chat du coach affichait la mauvaise identité sur un appareil donné — le profil actif dépend maintenant d'un choix explicite ici, pas d'une déduction implicite. **Le poids de corps et les mensurations n'y vivent plus** — ils ont d'abord été conçus ici, avant d'être jugés plus à leur place dans Suivi Progression (voir ci-dessus), qui est l'endroit naturel pour un *suivi* dans le temps. Un réglage pour activer la colonne RPE y a aussi existé brièvement, avant que le RPE ne devienne actif en permanence.
 
 ## Coach (IA)
 
@@ -298,6 +307,7 @@ Définies en base (`settings/coach.threads`), donc créables et supprimables san
 - `suivi` et `questions` ne sont **pas supprimables** : les messages écrits avant cette fonctionnalité n'ont pas de champ `thread` et y sont rattachés par défaut (`messageThread`).
 - Supprimer une conversation efface aussi ses messages, sous confirmation.
 - L'ouverture et le changement de fil défilent en bas (`scrollChatToBottom`).
+- **Indicateur d'attente** : barre de progression indéterminée animée avec texte de statut évolutif pendant qu'une réponse arrive. `COACH_REQUEST_TIMEOUT_MS` (45 s) via `AbortController` : au-delà, la requête est abandonnée plutôt que de bloquer indéfiniment. Un écouteur `visibilitychange` débloque immédiatement l'interface au retour sur l'app après une mise en arrière-plan iOS (l'app peut avoir été suspendue pendant l'attente).
 - ⚠️ Voir l'avertissement sur `settings/coach` plus haut : c'est le même document qui a déjà perdu ses conversations une fois, en production, faute de fusion à l'écriture.
 
 ### Clés API et modèles
@@ -377,9 +387,9 @@ Les suites ne sont pas versionnées, elles vivent dans l'environnement d'exécut
 | Build Training | hub (liste + création), édition, retour contextuel, absence de crayon sur Entraînement |
 | Navigation | menu (5 entrées), profils, glissement, retour |
 | Progression — Entraînement | menu déroulant, tonnage par séance, période, écart, étiquettes, absence de doublon avec l'onglet Corps |
-| Progression — Corps | 7 champs, libellé selon profil, date choisie, **fusion sur une même date**, clés historiques, sélection et période indépendantes, historique, suppression |
-| Réglages | écran minimal (compte + déconnexion), rien d'autre |
-| Historique | dernier poids en placeholder, record personnel, cumul |
+| Progression — Corps | 7 champs, libellé selon profil, date choisie, **fusion sur une même date**, clés historiques, sélection et période indépendantes, historique, **modification d'une entrée existante**, suppression |
+| Réglages | compte + déconnexion, **sélecteur de profil Corentin/Lisa** |
+| Historique | dernier poids en placeholder, record personnel **(volume, pas poids max)**, cumul |
 | Chargement | minutage du splash, disparition, filet de sécurité |
 | Design | jetons (aucune valeur en dur), structure des cartes, alignement |
 | Retours d'état | toasts empilables, validation, 100 %, squelettes |
@@ -420,7 +430,7 @@ Poids/reps/séries, mensurations, notes libres, dates. Firestore exige désormai
 
 ## Pour la suite
 
-Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, écran de chargement, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent.
+Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, écran de chargement, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent, migration du dépôt vers `PORTAIL-DUO/Muscu/` derrière un portail commun avec Budget et Course, refonte identité visuelle « Ardoise & craie » (palette, Bebas Neue, texture craie), records et courbe de progression passés en volume (poids × reps) avec correction rétroactive du doublement par main, édition des mensurations déjà enregistrées, sélecteur de profil explicite dans Réglages (fix identité coach sur appareil partagé), indicateur d'attente avec timeout sur le chat coach.
 
 Abandonné en connaissance de cause :
 - **Types de série** (travail / dégressive / échec, cycle au clic) — ajoutés puis retirés : jugés inutiles à l'usage une fois testés en conditions réelles.
