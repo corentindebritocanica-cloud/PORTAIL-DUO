@@ -1,6 +1,6 @@
 # Duo Training
 
-Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 100 lignes, ~293 Ko (dont ~17 Ko d'icône encodée en base64).
+Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 000 lignes, ~290 Ko (dont ~17 Ko d'icône encodée en base64).
 
 ## Où vit le projet
 
@@ -39,7 +39,7 @@ Points à connaître, tous vérifiés :
 ## Architecture de navigation
 
 ```
-[écran de connexion] → [splash 2,5 s] → view-menu (Menu principal, 5 entrées)
+[écran de connexion] → view-menu (Menu principal, 5 entrées)
 ├── Entraînement      → view-profile → view-session → view-exercises
 │                                            └────── → view-archives ⇄ corbeille
 ├── Build Training    → view-builder (hub → formulaire)
@@ -48,9 +48,9 @@ Points à connaître, tous vérifiés :
 └── Réglages          → view-settings (compte, déconnexion)
 ```
 
-**Retour par glissement.** Un balayage vers la droite déclenche le **bouton retour de l'écran actif** (`goBackFromActiveView`) plutôt qu'une table de destinations : le geste ne peut donc pas diverger du tap, y compris pour le rappel d'archivage. Neutralisé sur les champs, les boutons, les listes déroulantes, les barres segmentées et la zone de rédaction, ainsi que pendant le splash, la connexion et toute modale ouverte. Exige un geste franchement horizontal (`SWIPE_MIN_X`, `SWIPE_MAX_Y`, `SWIPE_MAX_MS`), sinon un défilement oblique déclencherait un retour.
+**Retour par glissement.** Un balayage vers la droite déclenche le **bouton retour de l'écran actif** (`goBackFromActiveView`) plutôt qu'une table de destinations : le geste ne peut donc pas diverger du tap, y compris pour le rappel d'archivage. Neutralisé sur les champs, les boutons, les listes déroulantes, les barres segmentées et la zone de rédaction, ainsi que pendant la connexion et toute modale ouverte. Exige un geste franchement horizontal (`SWIPE_MIN_X`, `SWIPE_MAX_Y`, `SWIPE_MAX_MS`), sinon un défilement oblique déclencherait un retour.
 
-`showView(viewId, direction)` gère l'affichage, le glissement et appelle systématiquement `adjustBottomSpacing()`. Un **écran de chargement** de 2,5 s précède le menu.
+`showView(viewId, direction)` gère l'affichage, le glissement et appelle systématiquement `adjustBottomSpacing()`. L'écran de chargement (splash de 2,5 s) a été retiré : l'app affiche directement l'écran de connexion ou le menu principal selon l'état d'authentification.
 
 **Tous les écrans alignent leur contenu en haut**, via `.view-inner` — seul `view-exercises` a une structure différente (header collant + `main` + barre du bas).
 
@@ -68,26 +68,20 @@ Points à connaître, tous vérifiés :
 
 ### Identité « Ardoise & craie »
 Choisie après présentation de 3 pistes (bleu technique/blueprint, ardoise & craie, carnet à grille). Éléments distinctifs :
-- Police **Bebas Neue** (Google Fonts CDN) réservée aux titres/gros chiffres : titres de menu, titre de séance, titre de connexion, valeur cumulée à vie, titre du splash. Le texte courant et les champs de formulaire restent sur la pile système, pour éviter les régressions Safari iOS déjà rencontrées avec des polices custom sur les inputs.
+- Police **Bebas Neue** (Google Fonts CDN) réservée aux titres/gros chiffres : titres de menu, titre de séance, titre de connexion, valeur cumulée à vie. Le texte courant et les champs de formulaire restent sur la pile système, pour éviter les régressions Safari iOS déjà rencontrées avec des polices custom sur les inputs.
 - Texture fine de poussière de craie sur le fond, en thème sombre uniquement.
 - Badge de record personnel : traitement en pointillés, légèrement incliné.
 - ⚠️ Un essai de barre d'onglets persistante en bas d'écran (Accueil/Entraînement/Progression/Coach), pour remplacer le menu principal plat, a été testé puis **rejeté** après visualisation en conditions réelles. Le menu principal est resté à ses 5 boutons d'origine (Entraînement, Build Training, Coach, Réglages, Suivi Progression) — ne pas réintroduire cette barre sans qu'on le redemande.
 
 ## Icône d'application
 
-Générée d'après l'écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) et **encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
+Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
 
 Avec `apple-mobile-web-app-capable`, « Ajouter à l'écran d'accueil » ouvre l'app en plein écran, sans la barre Safari.
 
 Deux pièges :
 - iOS met les icônes d'accueil **en cache très agressivement** : pour voir un changement, supprimer le raccourci et le recréer.
 - Si iOS refusait le base64, déposer `icon.png` à côté de `index.html` et remplacer les deux `href="data:image/png;base64,…"` par `href="icon.png"`. L'icône source est reproductible : script PIL + numpy, dégradé radial calculé pixel par pixel, centre du motif vérifié au demi-pixel.
-
-## Écran de chargement
-
-2,5 s puis fondu de 0,46 s. Barre de musculation qui se dessine, disques bleu et rose qui glissent, jauge qui se remplit, trois messages de statut successifs (800 ms chacun).
-
-Deux garde-fous à ne pas retirer : le script est **isolé dans sa propre balise `<script>`** placée juste après son markup (si le script principal plantait, l'écran s'effacerait quand même), et une animation CSS de secours l'efface à 5 s **même si le JS ne s'exécute pas du tout**.
 
 ## Programme fixe (SESSIONS) et surcharges
 
@@ -390,7 +384,6 @@ Les suites ne sont pas versionnées, elles vivent dans l'environnement d'exécut
 | Progression — Corps | 7 champs, libellé selon profil, date choisie, **fusion sur une même date**, clés historiques, sélection et période indépendantes, historique, **modification d'une entrée existante**, suppression |
 | Réglages | compte + déconnexion, **sélecteur de profil Corentin/Lisa** |
 | Historique | dernier poids en placeholder, record personnel **(volume, pas poids max)**, cumul |
-| Chargement | minutage du splash, disparition, filet de sécurité |
 | Design | jetons (aucune valeur en dur), structure des cartes, alignement |
 | Retours d'état | toasts empilables, validation, 100 %, squelettes |
 | Connexion | écran, erreurs, abonnements différés après auth |
@@ -430,7 +423,7 @@ Poids/reps/séries, mensurations, notes libres, dates. Firestore exige désormai
 
 ## Pour la suite
 
-Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, écran de chargement, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent, migration du dépôt vers `PORTAIL-DUO/Muscu/` derrière un portail commun avec Budget et Course, refonte identité visuelle « Ardoise & craie » (palette, Bebas Neue, texture craie), records et courbe de progression passés en volume (poids × reps) avec correction rétroactive du doublement par main, édition des mensurations déjà enregistrées, sélecteur de profil explicite dans Réglages (fix identité coach sur appareil partagé), indicateur d'attente avec timeout sur le chat coach.
+Traité (liste non exhaustive, dans l'ordre approximatif) : refonte UI/UX, architecture en écrans, notes, cardio enrichi et optionnel, undo, archives Firebase, corbeille, Build Training puis sa restructuration en hub, catalogue d'exercices, mode de charge (remplaçant les variantes matériel), circuits en case libre, séances fixes modifiables par surcharge, note de séance, menu principal à 5 entrées, icône d'application, retour par glissement, graphique de progression, Suivi Progression réorganisé en deux onglets (Entraînement / Poids & mensurations), tonnage par séance, jetons de design, animations et retours d'état, authentification Firebase, coach IA (bilans + fil de discussion à conversations multiples, mémoire trois couches, auto-réparation des modèles, gestion des clés `AQ.`/`AIza`), poids de corps et mensurations complètes avec suivi daté, correction de la perte de données `settings/coach` et mécanisme de récupération, séries d'échauffement additives, RPE permanent, migration du dépôt vers `PORTAIL-DUO/Muscu/` derrière un portail commun avec Budget et Course, refonte identité visuelle « Ardoise & craie » (palette, Bebas Neue, texture craie), records et courbe de progression passés en volume (poids × reps) avec correction rétroactive du doublement par main, édition des mensurations déjà enregistrées, sélecteur de profil explicite dans Réglages (fix identité coach sur appareil partagé), indicateur d'attente avec timeout sur le chat coach.
 
 Abandonné en connaissance de cause :
 - **Types de série** (travail / dégressive / échec, cycle au clic) — ajoutés puis retirés : jugés inutiles à l'usage une fois testés en conditions réelles.
@@ -439,6 +432,7 @@ Abandonné en connaissance de cause :
 - **Tonnage toutes séances confondues** — retiré au profit d'une entrée par séance : la courbe globale mélangeait des séances incomparables.
 - **Mensurations listées dans le menu déroulant de l'onglet Entraînement** — déplacées dans leur propre onglet « Poids & mensurations » pour éviter qu'une même donnée soit sélectionnable à deux endroits.
 - **Poids statique dans les réglages du coach** — remplacé par la lecture du suivi corporel daté, pour n'avoir qu'une seule source de vérité.
+- **Écran de chargement (splash 2,5 s)** — retiré : l'app affiche désormais directement l'écran de connexion ou le menu principal. Markup, script isolé, animations (barre qui se dessine, disques qui glissent, jauge, filet de sécurité CSS) et classes CSS dédiées supprimés ; le petit intitulé « Duo Training » de l'écran de connexion, qui réutilisait le style `.splash-sub`, vit maintenant dans sa propre classe `.login-eyebrow`.
 
 Pistes évoquées, non faites :
 - **Fusion de deux noms d'exercice déjà archivés.** Le catalogue protège les futures saisies, mais deux orthographes déjà en archive restent deux courbes.
