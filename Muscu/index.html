@@ -1155,6 +1155,13 @@
       <p class="setting-desc">Génère un export complet et brut de toutes les données (archives des deux profils, corbeille, séances personnalisées, conversations et mensurations). Sert de point de sauvegarde avant une migration du catalogue d'exercices — copie le texte et transmets-le tel quel.</p>
       <button class="coach-btn ghost-wide" onclick="exportFullDataJSON()">📤 Exporter toutes les données</button>
     </div>
+
+    <div class="progress-section">
+      <span class="section-label">Import (migration)</span>
+      <p class="setting-desc">Colle ici un JSON préparé pour réimport (issu d'une migration du catalogue). Écrase par id les archives et séances personnalisées déjà présentes, sans toucher aux conversations du coach ni à la clé API.</p>
+      <textarea id="import-text" class="note-input" style="min-height:90px" placeholder="Colle le JSON migré ici…"></textarea>
+      <button class="coach-btn ghost-wide" onclick="askImportFullDataJSON()">📥 Importer ces données</button>
+    </div>
   </div>
 </div>
 
@@ -1712,22 +1719,6 @@ const ICON_LEGS = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><
 const ICON_UPPER = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="4.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><circle cx="19.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M6.7 12h10.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12v0M15 12v0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>`;
 const ICON_CUSTOM = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5a3 3 0 0 0-4.2 3.6L4 13.4V17h3.6l6.3-6.3a3 3 0 0 0 3.6-4.2l-2.1 2.1-1.8-1.8 2.1-2.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
-/* Options de variante proposées pour les exercices du haut du corps (haltères / poulie) */
-const UPPER_BODY_OPTIONS = ["Haltères", "Poulie unilatéral", "Poulie 2 mains"];
-
-/* ---------- MODE DE CHARGE ----------
-   Le matériel n'est pas le bon critère : seule compte la question « y a-t-il une
-   charge dans chaque main, ou une seule charge partagée ? ».
-
-   Deux haltères de 22,5 kg × 10 → chaque répétition déplace 45 kg → 450 kg.
-   Une poulie à 22,5 kg, 10 à droite puis 10 à gauche → 20 répétitions à
-   22,5 kg → 450 kg. Simultané ou alterné, le total est le même : ce qui double,
-   c'est la présence de deux charges, pas l'ordre d'exécution.
-
-   Une barre, une machine ou une poulie tenue à deux mains n'ont qu'une charge,
-   déjà totale : elles comptent telles quelles. */
-/* `hint` dit littéralement quoi taper dans chaque case, avec un exemple chiffré :
-   une formulation abstraite laissait planer un doute sur « poids d'un côté ». */
 /* Les types de série (travail / dégressive / échec) ont été retirés : jugés
    inutiles à l'usage. Seules les séries d'échauffement, qui s'AJOUTENT en amont
    sans consommer l'une des séries prévues, sont conservées ci-dessous. */
@@ -1783,40 +1774,79 @@ function buildRpeSelect(currentValue, onPick){
   return sel;
 }
 
-const LOAD_MODES = [
-  { id:'total', label:'Barre / machine', sub:'charge totale', factor:1,
-    hint:'Poids : la charge affichée sur la barre ou la machine. Reps : le nombre de répétitions. Exemple : 100 kg × 8 reps → 800 kg comptés.' },
-  { id:'dumbbell', label:'Haltères', sub:'poids par main', factor:2,
-    hint:"Poids : celui d'UN seul haltère. Reps : le nombre de répétitions (les deux bras travaillent ensemble). Exemple : 22,5 kg × 10 reps → 450 kg comptés, les deux haltères étant additionnés." },
-  { id:'single', label:'Un bras à la fois', sub:'poids par main', factor:2,
-    hint:'Poids : la charge affichée. Reps : le nombre de répétitions faites par UN bras. Exemple : 22,5 kg × 10 reps de chaque côté → 450 kg comptés.' }
-];
+/* ---------- ÉQUIPEMENT (Ardoise & craie — refonte 14/09/26) ----------
+   Deux listes séparées, volontairement indépendantes :
 
-/* Les anciennes valeurs (« Haltères », « Poulie 2 mains »…) portaient sur le
-   MATÉRIEL et n'avaient aucun effet sur le tonnage. Les traduire vers un mode
-   doublerait rétroactivement des séances saisies sous une autre règle, et ferait
-   apparaître un mode sélectionné alors qu'on n'a rien choisi dans ce modèle-ci.
-   Elles sont donc ignorées : seuls les identifiants du nouveau modèle comptent. */
-function normalizeLoadMode(value){
-  if(!value) return null;
-  return LOAD_MODES.some(m => m.id === value) ? value : null;
+   LISTE A — mécanique de calcul, fermée à deux valeurs. Le seul critère qui
+   compte : y a-t-il une charge dans chaque main (facteur ×2), ou une seule
+   charge déjà totale (facteur ×1) ?
+     Deux haltères de 22,5 kg × 10 → chaque répétition déplace 45 kg → 450 kg.
+     Une poulie à 22,5 kg, 10 à droite puis 10 à gauche → 20 répétitions à
+     22,5 kg → 450 kg. Simultané ou alterné, le total est le même : ce qui
+     double, c'est la présence de deux charges, pas l'ordre d'exécution.
+
+   LISTE B — vocabulaire équipement, ouverte. Chaque entrée pointe vers l'une
+   des deux valeurs de Liste A et porte sa PROPRE phrase d'aide, même quand le
+   facteur est identique à une autre entrée : « la charge totale (barre +
+   disques) » et « la charge totale affichée sur la poulie » ne se confondent
+   pas, même si toutes deux valent ×1. Ajouter un équipement = ajouter une
+   entrée ici avec son facteur — zéro risque de casser le calcul ailleurs. */
+const EQUIPMENT_METHODS = {
+  barre:   { id:'barre',   label:'Barre',              factor:1,
+    hint:'Poids : la charge totale (barre + disques). Reps : le nombre de répétitions.' },
+  haltere: { id:'haltere', label:'Haltères',           factor:2,
+    hint:"Poids : celui d'UN SEUL haltère. Reps : le nombre de répétitions (les deux bras travaillent ensemble). Exemple : 22,5 kg × 10 reps → 450 kg comptés, les deux haltères étant additionnés." },
+  machine: { id:'machine', label:'Machine',            factor:1,
+    hint:'Poids : la charge totale affichée sur la machine.' },
+  poulie2: { id:'poulie2', label:'Poulie 2 mains',     factor:1,
+    hint:'Poids : la charge totale affichée sur la poulie.' },
+  poulie1: { id:'poulie1', label:'Poulie unilatérale', factor:2,
+    hint:'Poids : la charge affichée, faite par UN SEUL bras. Reps : le nombre de répétitions par bras. Exemple : 22,5 kg × 10 reps de chaque côté → 450 kg comptés.' }
+};
+/* Ordre d'affichage stable (menu Build Training, etc.) */
+const EQUIPMENT_METHOD_IDS = ['barre', 'haltere', 'machine', 'poulie2', 'poulie1'];
+function equipmentInfo(id){ return EQUIPMENT_METHODS[id] || null; }
+
+/* Identifiant de méthode actif pour CET exercice, dans CETTE séance en cours :
+   - `ex.equipment` absent/vide → aucune méthode déclarée, ×1 par défaut (cas
+     des exercices à machine/barre fixe, qui n'ont pas besoin de sélecteur).
+   - une seule entrée → méthode fixe, pas de sélecteur affiché non plus.
+   - plusieurs entrées → sélecteur affiché ; sans choix explicite de
+     l'utilisateur, la PREMIÈRE entrée fait foi (c'est la méthode réellement
+     pratiquée par défaut). Contrairement à l'ancien modèle « aucune
+     présélection », qui a fait sous-compter en silence le tonnage d'un
+     exercice toujours fait aux haltères mais jamais explicitement sélectionné
+     (incident du 14/09/26 sur le Développé militaire assis) : quand une seule
+     méthode est plausible en pratique, le calcul ne doit pas dépendre d'un tap
+     que personne ne pense à faire. */
+function getExerciseEquipmentId(ex, exIdx, data){
+  const list = (ex && ex.equipment) || [];
+  if(list.length === 0) return null;
+  if(list.length === 1) return list[0];
+  const stored = readByExercise(data.variants, ex, exIdx);
+  return list.includes(stored) ? stored : list[0];
+}
+function equipmentFactor(ex, exIdx, data){
+  const id = getExerciseEquipmentId(ex, exIdx, data);
+  const info = id ? equipmentInfo(id) : null;
+  return info ? info.factor : 1;
 }
 
-/* Aucune présélection : on arrive sur un exercice vierge, poids et répétitions
-   pris tels quels. Le mode ne sert qu'à signaler un cas particulier, et rend
-   alors le tonnage plus juste. `null` = rien de choisi. */
-function getLoadMode(ex, exIdx, data){
-  return normalizeLoadMode(readByExercise(data.variants, ex, exIdx));
-}
-function loadModeInfo(id){
-  return LOAD_MODES.find(m => m.id === id) || LOAD_MODES[0];
-}
-function isPerHandVariant(mode){
-  return loadModeInfo(normalizeLoadMode(mode) || mode).factor === 2;
-}
-function variantMultiplier(mode){
-  const id = normalizeLoadMode(mode);
-  return id ? loadModeInfo(id).factor : 1;
+/* Même logique que ci-dessus, mais pour un exercice déjà archivé : on ne
+   dispose plus de l'objet `ex` d'origine, seulement de son nom. On retrouve
+   sa liste de méthodes plausibles via le catalogue courant (séances fixes
+   puis personnalisées) — si l'exercice n'y figure plus, on retombe sur ×1,
+   comme le faisait déjà l'ancien modèle pour un cas inconnu. */
+function equipmentListForExerciseName(name){
+  for(const s of SESSIONS){
+    const found = (s.exercises || []).find(e => e.name === name);
+    if(found && found.equipment && found.equipment.length) return found.equipment;
+  }
+  for(const s of (window.customSessionsCache || [])){
+    const found = (s.exercises || []).find(e => e.name === name);
+    if(found && found.equipment && found.equipment.length) return found.equipment;
+  }
+  return null;
 }
 
 /* Séances numérotées (indépendantes du jour de la semaine, pour s'adapter à un emploi du temps mobile) */
@@ -1827,10 +1857,10 @@ const SESSIONS = [
     title: "Bas du Corps (Quads & Fessiers)",
     cardio: { name: "Tapis incliné Zone 2", targetMinutes: 30 },
     exercises: [
-      { name:"Squat (Barre au rack)", sets:4, target:{corentin:"8-10 reps (Lourd)", lisa:"10-12 reps (Contrôlé)"} },
-      { name:"Fentes arrière à la barre (Au rack)", sets:3, target:{corentin:"10 reps/jambe", lisa:"12 reps/jambe"} },
-      { name:"Leg Extension (Machine)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"} },
-      { name:"Leg Curl (Machine)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"} }
+      { name:"Squat", sets:4, target:{corentin:"8-10 reps (Lourd)", lisa:"10-12 reps (Contrôlé)"}, equipment:['barre'] },
+      { name:"Fentes arrière", sets:3, target:{corentin:"10 reps/jambe", lisa:"12 reps/jambe"}, equipment:['barre'] },
+      { name:"Leg Extension", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"}, equipment:['machine'] },
+      { name:"Leg Curl", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"}, equipment:['machine'] }
     ]
   },
   {
@@ -1839,9 +1869,9 @@ const SESSIONS = [
     title: "Haut du Corps & Abdos",
     cardio: { name: "Tapis incliné Zone 2", targetMinutes: 30 },
     exercises: [
-      { name:"Tirage poitrine vertical (Lat Pulldown)", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
-      { name:"Développé couché / incliné (Haltères)", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
-      { name:"Élévations latérales (Haltères)", sets:4, target:{corentin:"12-15 reps", lisa:"12-15 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
+      { name:"Tirage vertical", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['poulie2','poulie1'] },
+      { name:"Développé incliné", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['haltere','barre'] },
+      { name:"Élévations latérales", sets:4, target:{corentin:"12-15 reps", lisa:"12-15 reps"}, equipment:['haltere','poulie1','machine'] },
       { name:"Circuit Abdos (Relevés de jambes 12-15r + Gainage 45s)", sets:3, target:{corentin:"3 tours", lisa:"3 tours"}, logType:"circuit" }
     ]
   },
@@ -1851,10 +1881,10 @@ const SESSIONS = [
     title: "Bas du Corps (Fessiers & Ischios)",
     cardio: { name: "Tapis incliné Zone 2", targetMinutes: 30 },
     exercises: [
-      { name:"Hip Thrust (Barre ou machine)", sets:4, target:{corentin:"8-10 reps (Lourd)", lisa:"10-12 reps (Pause 1-2s haut)"} },
-      { name:"Soulevé de terre jambes tendues / RDL", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"} },
-      { name:"Presse à cuisses (Pieds hauts & écartés)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"} },
-      { name:"Abducteurs à la machine", sets:3, target:{corentin:"15 reps", lisa:"15-20 reps (Pause 1s)"} }
+      { name:"Hip Thrust", sets:4, target:{corentin:"8-10 reps (Lourd)", lisa:"10-12 reps (Pause 1-2s haut)"}, equipment:['barre','machine'] },
+      { name:"Soulevé de terre / RDL", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['barre'] },
+      { name:"Presse à cuisses (Pieds hauts & écartés)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"}, equipment:['machine'] },
+      { name:"Abducteurs", sets:3, target:{corentin:"15 reps", lisa:"15-20 reps (Pause 1s)"}, equipment:['machine'] }
     ]
   },
   {
@@ -1863,9 +1893,9 @@ const SESSIONS = [
     title: "Haut du Corps & Abdos",
     cardio: null,
     exercises: [
-      { name:"Rowing poulie basse (Tirage horizontal)", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
-      { name:"Développé militaire assis (Haltères)", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
-      { name:"Face Pulls (Poulie haute avec corde)", sets:3, target:{corentin:"12-15 reps", lisa:"12-15 reps"}, equipmentOptions: UPPER_BODY_OPTIONS },
+      { name:"Tirage horizontal", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['poulie2','poulie1'] },
+      { name:"Développé militaire assis", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['haltere','machine'] },
+      { name:"Face Pulls", sets:3, target:{corentin:"12-15 reps", lisa:"12-15 reps"}, equipment:['poulie2'] },
       { name:"Circuit Abdos (Crunchs 15-20r + Portefeuille 12-15r)", sets:3, target:{corentin:"3 tours", lisa:"3 tours"}, logType:"circuit" }
     ]
   }
@@ -2300,9 +2330,7 @@ function renderSessionList(){
 function computeSessionTonnage(dayProgram, data){
   let tonnage = 0;
   dayProgram.exercises.forEach((ex, exIdx) => {
-    /* Sans mode choisi, la charge saisie est prise telle quelle. */
-    const mode = getLoadMode(ex, exIdx, data);
-    const factor = mode ? loadModeInfo(mode).factor : 1;
+    const factor = equipmentFactor(ex, exIdx, data);
     for(let s = 1; s <= ex.sets; s++){
       const setData = data.sets[`ex${exIdx}_set${s}`];
       if(ex.logType !== 'circuit' && setData){
@@ -2479,11 +2507,10 @@ function render(){
     function refreshRecordBadge(){
       if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
       const d = loadDayData(currentSessionId, currentProfile);
-      /* Le mode de charge en cours de saisie compte aussi dans la comparaison :
+      /* La méthode en cours de saisie compte aussi dans la comparaison :
          un exercice passé aux haltères aujourd'hui double son volume, comme le
          reste de l'app. */
-      const liveMode = getLoadMode(ex, exIdx, d);
-      const liveFactor = liveMode ? loadModeInfo(liveMode).factor : 1;
+      const liveFactor = equipmentFactor(ex, exIdx, d);
       let bestVol = 0, bestWeight = 0, bestReps = 0;
       for(let n = 1; n <= ex.sets; n++){
         const cur = d.sets['ex' + exIdx + '_set' + n];
@@ -2507,28 +2534,32 @@ function render(){
     refreshRecordBadge();
     refreshCardState();
 
-    /* Le mode de charge est proposé sur TOUS les exercices chargés : un squat
-       peut se faire aux haltères, un tirage à un bras. Chaque bouton porte sa
-       conséquence en toutes lettres — « poids par main » ou « charge totale » —
-       plutôt qu'un facteur ×2 illisible. */
-    if(!isCircuitEx){
+    /* Le sélecteur de méthode ne s'affiche QUE si l'exercice a plusieurs
+       méthodes plausibles (Liste B, voir plus haut) : un Squat ou une Leg
+       Extension n'ont qu'une méthode, pas de bouton à leur imposer. Quand il y
+       en a plusieurs, la première de la liste fait foi tant que rien n'a été
+       tapé explicitement (voir getExerciseEquipmentId) — elle apparaît donc
+       déjà « selected » à l'ouverture. */
+    const equipmentList = (ex.equipment || []);
+    if(!isCircuitEx && equipmentList.length > 1){
       const variantKey = exerciseKey(ex, exIdx);
-      const currentMode = getLoadMode(ex, exIdx, data);
+      const currentEquip = getExerciseEquipmentId(ex, exIdx, data);
 
       const variantRow = document.createElement('div');
       variantRow.className = 'variant-row';
-      LOAD_MODES.forEach(mode => {
+      equipmentList.forEach(id => {
+        const info = equipmentInfo(id);
+        if(!info) return;
         const optBtn = document.createElement('button');
-        optBtn.className = 'variant-btn' + (currentMode === mode.id ? ' selected' : '');
-        optBtn.innerHTML = `<span class="variant-name">${escapeHtml(mode.label)}</span>`
-          + `<span class="variant-sub">${escapeHtml(mode.sub)}</span>`;
+        optBtn.className = 'variant-btn' + (currentEquip === id ? ' selected' : '');
+        optBtn.innerHTML = `<span class="variant-name">${escapeHtml(info.label)}</span>`
+          + `<span class="variant-sub">${info.factor === 2 ? 'poids par main' : 'charge totale'}</span>`;
         optBtn.onclick = () => {
           pushUndoSnapshot();
           const d = loadDayData(currentSessionId, currentProfile);
           d.variants = d.variants || {};
           if(exIdx in d.variants) delete d.variants[exIdx]; /* migration ancienne clé */
-          /* re-toucher le mode actif le désactive : on revient à l'état vierge */
-          d.variants[variantKey] = (currentMode === mode.id) ? '' : mode.id;
+          d.variants[variantKey] = id;
           saveDayData(currentSessionId, currentProfile, d);
           render();
         };
@@ -2536,10 +2567,8 @@ function render(){
       });
       body.appendChild(variantRow);
 
-      /* L'explication n'apparaît qu'une fois un mode choisi : sur un exercice
-         vierge, elle n'aurait rien à préciser. */
-      if(currentMode){
-        const info = loadModeInfo(currentMode);
+      const info = equipmentInfo(currentEquip);
+      if(info){
         const variantHint = document.createElement('div');
         variantHint.className = 'variant-hint' + (info.factor === 2 ? ' doubled' : '');
         variantHint.textContent = info.hint;
@@ -2551,8 +2580,7 @@ function render(){
 
     const gridHeader = document.createElement('div');
     gridHeader.className = isCircuit ? 'set-grid-header circuit' : 'set-grid-header';
-    const headMode = isCircuit ? null : getLoadMode(ex, exIdx, data);
-    const perHand = !!headMode && loadModeInfo(headMode).factor === 2;
+    const perHand = !isCircuit && equipmentFactor(ex, exIdx, data) === 2;
     const showRpe = !isCircuit && rpeEnabled();
     gridHeader.className = 'set-grid-header' + (isCircuit ? ' circuit' : '') + (showRpe ? ' with-rpe' : '');
     gridHeader.innerHTML = isCircuit
@@ -3031,10 +3059,10 @@ function buildExportText(){
 
   dayProgram.exercises.forEach((ex, exIdx) => {
     txt += `\n${ex.name}\n`;
-    const loadMode = ex.logType !== 'circuit' ? getLoadMode(ex, exIdx, data) : null;
-    if(loadMode){
-      const info = loadModeInfo(loadMode);
-      txt += `Charge : ${info.label} (${info.sub})\n`;
+    if(ex.logType !== 'circuit' && (ex.equipment || []).length > 1){
+      const equipId = getExerciseEquipmentId(ex, exIdx, data);
+      const info = equipmentInfo(equipId);
+      if(info) txt += `Charge : ${info.label} (${info.factor === 2 ? 'poids par main' : 'charge totale'})\n`;
     }
     txt += `Cible : ${ex.target[currentProfile]}\n`;
     if(ex.logType !== 'circuit'){
@@ -3329,13 +3357,24 @@ function setVolume(weight, reps, factor){
   return weight * reps * (factor || 1);
 }
 
-/* Facteur de charge d'un exercice donné dans une archive donnée (le mode a pu
-   changer d'une séance à l'autre, on ne suppose donc rien de global). */
+/* Facteur de charge d'un exercice donné dans une archive donnée (la méthode a
+   pu changer d'une séance à l'autre, on ne suppose donc rien de global). On ne
+   dispose plus de l'objet exercice d'origine, seulement de son nom : sa liste
+   de méthodes plausibles est retrouvée via le catalogue courant. Un nom
+   absent du catalogue (exercice supprimé depuis) retombe sur ×1, comme le
+   faisait déjà l'ancien modèle pour un cas inconnu. */
 function archiveLoadFactor(archive, exerciseName){
   const exIdx = (archive.exerciseNames || []).indexOf(exerciseName);
   if(exIdx === -1) return 1;
-  const mode = normalizeLoadMode(readByExercise(archive.variants, { name: exerciseName }, exIdx));
-  return mode ? loadModeInfo(mode).factor : 1;
+  const stored = readByExercise(archive.variants, { name: exerciseName }, exIdx);
+  const list = equipmentListForExerciseName(exerciseName);
+  if(!list || list.length === 0){
+    const info = equipmentInfo(stored);
+    return info ? info.factor : 1;
+  }
+  const id = list.includes(stored) ? stored : list[0];
+  const info = equipmentInfo(id);
+  return info ? info.factor : 1;
 }
 
 /* Meilleure série d'un exercice dans une archive, au sens du volume — pas du
@@ -4688,6 +4727,76 @@ function exportFullDataJSON(){
   document.getElementById('export-modal').classList.add('open');
 }
 
+/* ---------- IMPORT BRUT COMPLET (symétrique de exportFullDataJSON) ----------
+   Écrit par id (upsert) : une archive dont l'id existe déjà en Firestore est
+   remplacée par la version migrée, une archive à un nouvel id s'ajoute. Ne
+   supprime rien par déduction — seuls les ids listés explicitement dans
+   `customSessionsToDelete` sont effacés, jamais une absence silencieuse.
+   `settings/coach` est fusionné (Object.assign), jamais réécrit en entier :
+   seul le champ `body` est éventuellement mis à jour, threads/apiKey/model
+   intacts (voir l'avertissement sur ce document plus haut dans le fichier). */
+function askImportFullDataJSON(){
+  const raw = document.getElementById('import-text').value.trim();
+  if(raw === ''){
+    showToast('Colle d\u2019abord le JSON à importer');
+    return;
+  }
+  let payload;
+  try{
+    payload = JSON.parse(raw);
+  }catch(e){
+    showToast('JSON invalide — vérifie que le collage est complet');
+    return;
+  }
+  const archiveCount = ['corentin','lisa'].reduce((n, p) =>
+    n + ((payload.archives && payload.archives[p]) || []).length
+      + ((payload.archivesTrash && payload.archivesTrash[p]) || []).length, 0);
+  const sessionCount = (payload.customSessions || []).length;
+  const deleteCount = (payload.customSessionsToDelete || []).length;
+  showConfirm(
+    `Importer ${archiveCount} archive(s), ${sessionCount} séance(s) personnalisée(s)` +
+    (deleteCount ? `, supprimer ${deleteCount} surcharge(s)` : '') +
+    ' ? Les ids déjà existants seront écrasés.',
+    () => importFullDataJSON(payload)
+  );
+}
+function importFullDataJSON(payload){
+  if(!window.__fb){
+    showToast('Connexion au cloud en cours, réessaie dans un instant');
+    return;
+  }
+  const { db, doc, setDoc, deleteDoc } = window.__fb;
+  const writes = [];
+
+  ['corentin', 'lisa'].forEach(profile => {
+    ((payload.archives && payload.archives[profile]) || []).forEach(arc => {
+      writes.push(setDoc(doc(db, 'archives', arc.id), arc));
+    });
+    ((payload.archivesTrash && payload.archivesTrash[profile]) || []).forEach(arc => {
+      writes.push(setDoc(doc(db, 'archives', arc.id), arc));
+    });
+  });
+
+  (payload.customSessions || []).forEach(cs => {
+    writes.push(setDoc(doc(db, 'customSessions', cs.id), cs));
+  });
+
+  (payload.customSessionsToDelete || []).forEach(id => {
+    writes.push(deleteDoc(doc(db, 'customSessions', id)));
+  });
+
+  if(payload.coachSettings && payload.coachSettings.body){
+    writes.push(setDoc(doc(db, 'settings', 'coach'), Object.assign({}, coachSettings(), { body: payload.coachSettings.body })));
+  }
+
+  /* Écritures offline-first : ne pas attendre leur résolution pour informer —
+     hors ligne, la promesse resterait pendante indéfiniment alors que
+     l'écriture est déjà en cache et se synchronisera au retour du réseau. */
+  writes.forEach(p => p.catch(err => console.error('Échec d\u2019une écriture d\u2019import', err)));
+  showToast(`Import envoyé — ${writes.length} écriture(s), synchronisation en cours`);
+  document.getElementById('import-text').value = '';
+}
+
 /* ---------- GRAPHIQUE DE PROGRESSION ---------- */
 /* ---------- ÉCRAN PROGRESSION ----------
    Trois réglages indépendants : la série suivie (un exercice, ou le tonnage de la
@@ -5560,7 +5669,7 @@ let builderDraft = { name: '', cardio: false, exercises: [] };
 let editingSessionId = null;
 
 function blankBuilderExercise(){
-  return { name:'', sets:3, repsCorentin:'', repsLisa:'', isCircuit:false, hasEquipmentOptions:false };
+  return { name:'', sets:3, repsCorentin:'', repsLisa:'', isCircuit:false, equipment:[] };
 }
 
 function resetBuilderDraft(){
@@ -5583,7 +5692,7 @@ function loadBuilderDraftFromSession(session){
       repsCorentin: (ex.target && ex.target.corentin) || '',
       repsLisa: (ex.target && ex.target.lisa) || '',
       isCircuit: ex.logType === 'circuit',
-      hasEquipmentOptions: !!ex.equipmentOptions
+      equipment: (ex.equipment || []).slice()
     }))
   };
   if(builderDraft.exercises.length === 0) builderDraft.exercises.push(blankBuilderExercise());
@@ -5795,17 +5904,39 @@ function renderBuilderForm(){
     circuitLabel.appendChild(document.createTextNode(' Exercice type circuit (sans poids)'));
     optionsRow.appendChild(circuitLabel);
 
-    const equipLabel = document.createElement('label');
-    equipLabel.className = 'builder-checkbox-label';
-    const equipCheckbox = document.createElement('input');
-    equipCheckbox.type = 'checkbox';
-    equipCheckbox.checked = ex.hasEquipmentOptions;
-    equipCheckbox.onchange = () => { builderDraft.exercises[idx].hasEquipmentOptions = equipCheckbox.checked; };
-    equipLabel.appendChild(equipCheckbox);
-    equipLabel.appendChild(document.createTextNode(' Proposer variante Haltères / Poulie'));
-    optionsRow.appendChild(equipLabel);
-
     card.appendChild(optionsRow);
+
+    /* Méthodes possibles pour cet exercice (Liste B). Coché = plausible pour
+       cet exercice ; la première case cochée, dans l'ordre du catalogue,
+       fait office de méthode par défaut (voir getExerciseEquipmentId). Une
+       seule case cochée = pas de sélecteur affiché à l'usage, méthode fixe.
+       Aucune case cochée = ×1 par défaut (exercice à charge déjà totale). */
+    if(!ex.isCircuit){
+      const equipWrap = document.createElement('div');
+      equipWrap.className = 'builder-field';
+      equipWrap.innerHTML = `<span class="builder-label">Méthode(s) possibles</span>`;
+      const equipOptionsRow = document.createElement('div');
+      equipOptionsRow.className = 'builder-options-row';
+      EQUIPMENT_METHOD_IDS.forEach(id => {
+        const info = equipmentInfo(id);
+        const label = document.createElement('label');
+        label.className = 'builder-checkbox-label';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = (ex.equipment || []).includes(id);
+        checkbox.onchange = () => {
+          const current = builderDraft.exercises[idx].equipment || [];
+          builderDraft.exercises[idx].equipment = checkbox.checked
+            ? EQUIPMENT_METHOD_IDS.filter(m => current.includes(m) || m === id)
+            : current.filter(m => m !== id);
+        };
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(' ' + info.label));
+        equipOptionsRow.appendChild(label);
+      });
+      equipWrap.appendChild(equipOptionsRow);
+      card.appendChild(equipWrap);
+    }
     container.appendChild(card);
   });
 }
@@ -5863,7 +5994,7 @@ function saveCustomSession(){
         }
       };
       if(ex.isCircuit) built.logType = 'circuit';
-      if(ex.hasEquipmentOptions) built.equipmentOptions = UPPER_BODY_OPTIONS;
+      if(!ex.isCircuit && ex.equipment && ex.equipment.length) built.equipment = ex.equipment.slice();
       return built;
     });
 
