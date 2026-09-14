@@ -435,7 +435,7 @@
             </div>
 
             <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
-                Version 2.9.5 (Correctif Calculatrice Drag)
+                Version 2.9.6 (Correctif Corbeille : restauration/vidage)
             </div>
         </div>
 
@@ -950,6 +950,32 @@
 
             const ts = document.getElementById('theme-selector');
             ts.innerHTML = THEMES.map(t => `<div class="color-circle ${localStorage.getItem(LS_THEME) === t.id ? 'active' : ''}" style="background:${t.color}" data-set-theme="${t.id}"></div>`).join('');
+        };
+
+        // --- Corbeille : restauration et vidage (remet l'élément dans le mois actif, faute de mois d'origine mémorisé) ---
+        const restaurerCorbeille = (index) => {
+            const item = state.corbeille[index];
+            if (!item) return;
+            const mois = getMoisActif();
+            if (!mois) { alert("Sélectionnez d'abord un mois pour y restaurer cette ligne."); return; }
+
+            const { typeOriginal, ...itemPropre } = item;
+            if (!Array.isArray(mois[typeOriginal])) mois[typeOriginal] = [];
+            mois[typeOriginal].unshift(itemPropre);
+
+            state.corbeille.splice(index, 1);
+            sauvegarderDonnees();
+            sauvegarderConfig(true);
+            rafraichirTouteLInterface();
+        };
+
+        const viderCorbeille = () => {
+            if (!state.corbeille.length) return;
+            if (confirm("Vider définitivement la corbeille ?")) {
+                state.corbeille = [];
+                sauvegarderConfig();
+                rendreAdmin();
+            }
         };
 
         // --- Gestionnaires d'événements (BULLES FLOTTANTES CORRIGÉES) ---
