@@ -473,17 +473,74 @@
   .body-form{ display:flex; flex-direction:column; gap:9px; }
   .body-form-actions{ display:flex; flex-direction:column; gap:8px; }
   .ghost-wide{ border-color:var(--border); color:var(--text-dim); }
-  .body-list{ display:flex; flex-direction:column; gap:6px; }
-  .body-row{
-    display:flex; align-items:center; gap:10px; font-size:13px;
-    background:var(--card-2); border:1px solid var(--border);
-    border-radius:var(--r-sm); padding:9px 12px;
+
+  /* ---------- MENSURATIONS — REFONTE (14/09/26) ---------- */
+  /* Cases de saisie : grille 2 colonnes, poids et date en pleine largeur,
+     mises en avant (bordure accent) puisque ce sont les deux champs qu'on
+     renseigne à chaque mesure. L'unité inscrite DANS le champ (plutôt que
+     seulement dans le libellé au-dessus) évite d'avoir à relever les yeux
+     pour se rappeler si on est en kg ou en cm. */
+  .body-input-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .body-input-card{
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:10px 12px; display:flex; flex-direction:column; gap:5px; min-width:0;
   }
-  .body-row .d{ color:var(--text-dim); flex:0 0 76px; font-size:12px; }
-  .body-row .v{ flex:1; font-weight:700; }
-  .body-row button{
-    background:none; border:none; color:var(--text-dim); font-size:14px; padding:0 2px;
+  .body-input-card.wide{ grid-column:1 / -1; }
+  .body-input-card.primary{ border-color:var(--accent); background:var(--tint); }
+  .body-input-card label{
+    font-size:10.5px; font-weight:800; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.4px;
   }
+  .body-input-field{ position:relative; display:flex; align-items:center; }
+  .body-input-field input{
+    width:100%; padding:9px 38px 9px 10px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .body-input-field input:focus{ outline:none; border-color:var(--accent); }
+  .body-input-field input[type=date]{ padding:9px 10px; }
+  .body-input-unit{
+    position:absolute; right:11px; font-size:11.5px; color:var(--text-dim);
+    font-weight:700; pointer-events:none;
+  }
+
+  /* Légende / bascule du graphique d'ensemble : chaque puce est à la fois la
+     légende d'une couleur et le bouton pour l'inclure ou non dans le tracé.
+     Tout activé par défaut (voir bodyVisibleFields). */
+  .body-legend-row{ display:flex; flex-wrap:wrap; gap:7px; }
+  .body-legend-chip{
+    display:flex; align-items:center; gap:6px; padding:6px 11px;
+    border-radius:var(--r-pill); border:1.5px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:12px; font-weight:700;
+    font-family:inherit; opacity:.55; transition: opacity .15s ease, border-color .15s ease;
+  }
+  .body-legend-chip.active{ opacity:1; border-color:var(--legend-color, var(--accent)); color:var(--text); }
+  .body-legend-dot{
+    width:9px; height:9px; border-radius:50%; background:var(--legend-color, var(--accent)); flex:0 0 auto;
+  }
+
+  /* Historique : une carte par date, les mesures en puces plutôt qu'une seule
+     ligne de texte concaténé — beaucoup plus scannable dès qu'il y a plus de
+     deux ou trois champs renseignés le même jour. */
+  .body-list{ display:flex; flex-direction:column; gap:10px; }
+  .body-history-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:12px 14px; display:flex; flex-direction:column; gap:9px; box-shadow: var(--shadow-sm);
+  }
+  .body-history-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .body-history-date{ font-size:13.5px; font-weight:800; }
+  .body-history-actions{ display:flex; gap:6px; flex:0 0 auto; }
+  .body-history-actions button{
+    width:30px; height:30px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:13px; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .body-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .body-chip{
+    display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+    padding:5px 10px 5px 8px; border-radius:var(--r-pill); background:var(--tint); color:var(--text);
+  }
+  .body-chip .body-legend-dot{ width:7px; height:7px; }
+
 
   /* Fil de discussion du coach */
   .coach-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
@@ -1040,6 +1097,17 @@
     .chart-dot{ animation:none; opacity:1; transform:scale(1); }
     .chart-dot-glow{ animation:none; opacity:.35; }
   }
+
+  /* Graphique d'ensemble des mensurations : plusieurs courbes superposées,
+     une apparition en fondu par série (pas de dessin progressif ligne par
+     ligne façon buildChartSvg — avec jusqu'à huit courbes en même temps, ce
+     serait plus confus que lisible). */
+  .body-overview-line{ opacity:0; animation: bodyLineIn .5s ease-out forwards; }
+  .body-overview-dot{ opacity:0; animation: bodyLineIn .4s ease-out forwards; }
+  @keyframes bodyLineIn{ to{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .body-overview-line, .body-overview-dot{ animation:none; opacity:1; }
+  }
   .archive-empty{
     text-align:center; color:var(--text-dim); font-size:14px; padding:30px 10px;
   }
@@ -1326,35 +1394,69 @@
       <div class="progress-section">
         <span class="section-label" id="body-form-label">Nouvelle mesure</span>
         <div class="body-form">
-          <div class="builder-field">
-            <label class="mini-label">Date de la mesure</label>
-            <input type="date" id="body-date" class="builder-input">
-          </div>
-          <div class="builder-field">
-            <label class="mini-label">Poids (kg)</label>
-            <input type="text" inputmode="decimal" id="body-weight" class="builder-input" placeholder="79">
-          </div>
-          <div class="builder-reps-row">
-            <div class="builder-field"><label class="mini-label" id="body-label-pec">Pec (cm)</label>
-              <input type="text" inputmode="decimal" id="body-pec" class="builder-input" placeholder="100"></div>
-            <div class="builder-field"><label class="mini-label">Cuisse (cm)</label>
-              <input type="text" inputmode="decimal" id="body-cuisse" class="builder-input" placeholder="58"></div>
-          </div>
-          <div class="builder-reps-row">
-            <div class="builder-field"><label class="mini-label">Tour de fesse (cm)</label>
-              <input type="text" inputmode="decimal" id="body-fessier" class="builder-input" placeholder="100"></div>
-            <div class="builder-field"><label class="mini-label">Tour de hanche (cm)</label>
-              <input type="text" inputmode="decimal" id="body-hanche" class="builder-input" placeholder="95"></div>
-          </div>
-          <div class="builder-reps-row">
-            <div class="builder-field"><label class="mini-label">Tour de taille (cm)</label>
-              <input type="text" inputmode="decimal" id="body-taille" class="builder-input" placeholder="80"></div>
-            <div class="builder-field"><label class="mini-label">Bras (cm)</label>
-              <input type="text" inputmode="decimal" id="body-bras" class="builder-input" placeholder="38"></div>
-          </div>
-          <div class="builder-field">
-            <label class="mini-label">Tour d'épaule (cm)</label>
-            <input type="text" inputmode="decimal" id="body-epaule" class="builder-input" placeholder="115">
+          <div class="body-input-grid">
+            <div class="body-input-card wide primary">
+              <label>Date de la mesure</label>
+              <div class="body-input-field">
+                <input type="date" id="body-date" class="builder-input">
+              </div>
+            </div>
+            <div class="body-input-card wide primary">
+              <label>Poids</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-weight" placeholder="79">
+                <span class="body-input-unit">kg</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label id="body-label-pec">Pec</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-pec" placeholder="100">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label>Cuisse</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-cuisse" placeholder="58">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label>Tour de fesse</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-fessier" placeholder="100">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label>Tour de hanche</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-hanche" placeholder="95">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label>Tour de taille</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-taille" placeholder="80">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card">
+              <label>Bras</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-bras" placeholder="38">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
+            <div class="body-input-card wide">
+              <label>Tour d'épaule</label>
+              <div class="body-input-field">
+                <input type="text" inputmode="decimal" id="body-epaule" placeholder="115">
+                <span class="body-input-unit">cm</span>
+              </div>
+            </div>
           </div>
           <div class="body-form-actions">
             <button class="coach-btn" id="body-save-btn" onclick="saveBodyEntry()">Enregistrer cette mesure</button>
@@ -1364,11 +1466,18 @@
       </div>
 
       <div class="progress-section">
-        <span class="section-label">Que veux-tu suivre ?</span>
-        <div class="progress-exercise-list" id="body-select-wrap"></div>
+        <span class="section-label">Évolution</span>
+        <div class="body-legend-row" id="body-legend-row"></div>
+        <div id="body-overview-chart-wrap"></div>
       </div>
 
       <div class="progress-controls" id="body-controls"></div>
+
+      <div class="progress-section">
+        <span class="section-label">Détail d'une mesure</span>
+        <div class="progress-exercise-list" id="body-select-wrap"></div>
+      </div>
+
       <div id="body-chart-wrap"></div>
 
       <div class="progress-section">
@@ -2115,6 +2224,7 @@ function setProgressProfile(profile){
   progressProfile = profile;
   progressSelection = null; /* les exercices diffèrent d'un profil à l'autre */
   bodyProgressSelection = null; /* les mesures d'un profil ne concernent pas l'autre */
+  bodyVisibleFields = null; /* retombe sur "toutes" pour les mesures du nouveau profil */
   cancelEditBodyEntry(); /* une édition en cours concerne l'ancien profil, pas le nouveau */
   renderProgressView();
 }
@@ -2171,6 +2281,7 @@ function goToProgressView(){
   progressProfile = currentProfile;
   progressSelection = null;
   bodyProgressSelection = null;
+  bodyVisibleFields = null;
   cancelEditBodyEntry();
   setProgressTab('training');
   renderProgressView();
@@ -3962,6 +4073,14 @@ const BODY_FIELDS = [
   { id:'epaule',  key:'epaule',  unit:'cm', label:() => "Tour d'épaule" }
 ];
 const BODY_LEGACY_KEYS = { taille:'waist', bras:'arm', cuisse:'thigh' };
+/* Une couleur fixe par type de mesure, pour le graphique d'ensemble et les
+   puces d'historique — la même partout, pour qu'un coup d'œil à une puce dans
+   l'historique suffise à retrouver sa courbe dans le graphique au-dessus. */
+const BODY_FIELD_COLORS = {
+  weight:'#1f8fff', pec:'#ff3d7e', cuisse:'#f5a623', fessier:'#12b981',
+  hanche:'#a855f7', taille:'#eab308', bras:'#22d3ee', epaule:'#fb7185'
+};
+function bodyFieldColor(id){ return BODY_FIELD_COLORS[id] || 'var(--accent)'; }
 function bodyFieldInfo(id){ return BODY_FIELDS.find(f => f.id === id) || BODY_FIELDS[0]; }
 function bodyFieldLabel(id, profile){ return bodyFieldInfo(id).label(profile); }
 function bodyEntryValue(entry, id){
@@ -3976,10 +4095,17 @@ function bodyEntryValue(entry, id){
    la courbe de poids qu'on regardait juste avant. */
 let bodyProgressSelection = null;
 let bodyProgressPeriod = 'all';
+/* Mesures affichées dans le graphique d'ensemble. `null` = pas encore choisi
+   explicitement -> toutes les mesures disponibles sont affichées par défaut
+   (calculé dynamiquement dans renderBodyOverviewChart, pas figé ici : si une
+   nouvelle mesure est ajoutée, elle apparaît directement, sans configuration
+   à revoir). Devient un Set concret dès qu'on touche une puce de légende. */
+let bodyVisibleFields = null;
 
 function setBodyProgressPeriod(id){
   bodyProgressPeriod = id;
   renderBodyControls();
+  renderBodyOverviewChart();
   if(bodyProgressSelection) renderBodyProgressChart(bodyProgressSelection);
 }
 
@@ -3992,13 +4118,14 @@ let editingBodyAt = null;
 
 function renderBodyPanel(){
   const pecLabel = document.getElementById('body-label-pec');
-  if(pecLabel) pecLabel.textContent = bodyFieldLabel('pec', progressProfile) + ' (cm)';
+  if(pecLabel) pecLabel.textContent = bodyFieldLabel('pec', progressProfile);
   const dateInput = document.getElementById('body-date');
   /* Toujours proposer aujourd'hui par défaut, mais la date reste modifiable :
      c'est ce qui permet d'ajouter une mesure prise un autre jour. */
   if(dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
 
   renderBodyList();
+  renderBodyOverviewChart();
   renderBodySelect();
   renderBodyControls();
   const chartWrap = document.getElementById('body-chart-wrap');
@@ -4198,6 +4325,10 @@ function cancelEditBodyEntry(){
   });
 }
 
+/* Historique : une carte par date plutôt qu'une ligne de texte concaténé —
+   les mesures du jour apparaissent en puces colorées (mêmes couleurs que la
+   légende du graphique d'ensemble, voir BODY_FIELD_COLORS), scannable même
+   quand plusieurs champs sont renseignés le même jour. */
 function renderBodyList(){
   const list = document.getElementById('body-list');
   if(!list) return;
@@ -4205,32 +4336,51 @@ function renderBodyList(){
   const entries = bodyEntries();
   if(entries.length === 0){
     const p = document.createElement('p');
-    p.className = 'setting-desc';
+    p.className = 'archive-empty';
     p.textContent = 'Aucune mesure enregistrée. Le coach utilise le poids de corps pour estimer la dépense calorique.';
     list.appendChild(p);
     return;
   }
   entries.slice(0, 12).forEach(e => {
-    const row = document.createElement('div');
-    row.className = 'body-row';
-    const parts = [];
-    if(e.weight) parts.push(e.weight + ' kg');
-    BODY_FIELDS.slice(1).forEach(f => {
-      const v = bodyEntryValue(e, f.id);
-      if(v) parts.push(bodyFieldLabel(f.id, progressProfile).toLowerCase() + ' ' + v);
-    });
-    row.innerHTML = `<span class="d">${escapeHtml(e.dateLabel || '')}</span><span class="v">${escapeHtml(parts.join(' · '))}</span>`;
+    const card = document.createElement('div');
+    card.className = 'body-history-card';
+
+    const head = document.createElement('div');
+    head.className = 'body-history-head';
+    const date = document.createElement('span');
+    date.className = 'body-history-date';
+    date.textContent = e.dateLabel || '';
+    head.appendChild(date);
+
+    const actions = document.createElement('div');
+    actions.className = 'body-history-actions';
     const edit = document.createElement('button');
     edit.textContent = '✏️';
     edit.title = 'Modifier cette mesure';
     edit.onclick = () => editBodyEntry(e.at);
-    row.appendChild(edit);
+    actions.appendChild(edit);
     const del = document.createElement('button');
     del.textContent = '🗑️';
     del.title = 'Supprimer cette mesure';
     del.onclick = () => deleteBodyEntry(e.at);
-    row.appendChild(del);
-    list.appendChild(row);
+    actions.appendChild(del);
+    head.appendChild(actions);
+    card.appendChild(head);
+
+    const chipRow = document.createElement('div');
+    chipRow.className = 'body-chip-row';
+    BODY_FIELDS.forEach(f => {
+      const v = bodyEntryValue(e, f.id);
+      if(!v) return;
+      const chip = document.createElement('span');
+      chip.className = 'body-chip';
+      chip.style.setProperty('--legend-color', bodyFieldColor(f.id));
+      chip.innerHTML = `<span class="body-legend-dot"></span>${escapeHtml(bodyFieldLabel(f.id, progressProfile))} : ${escapeHtml(v)} ${escapeHtml(f.unit)}`;
+      chipRow.appendChild(chip);
+    });
+    card.appendChild(chipRow);
+
+    list.appendChild(card);
   });
 }
 
@@ -5251,6 +5401,28 @@ function renderProgressChart(selection){
   wrap.innerHTML = html;
 }
 
+/* Courbe lissée partagée : une bézier quadratique par segment, dont le point de
+   contrôle est l'extrémité de départ et le point d'arrivée le milieu du
+   segment suivant. Utilisée par buildChartSvg (une série) et
+   buildBodyOverviewSvg (plusieurs séries superposées) — une seule version
+   pour ne pas les faire diverger. */
+function smoothPath(cs){
+  if(cs.length === 1) return `M ${cs[0].x.toFixed(1)},${cs[0].y.toFixed(1)}`;
+  let d = `M ${cs[0].x.toFixed(1)},${cs[0].y.toFixed(1)}`;
+  for(let i = 0; i < cs.length - 1; i++){
+    const c0 = cs[i], c1 = cs[i + 1];
+    const midX = (c0.x + c1.x) / 2, midY = (c0.y + c1.y) / 2;
+    if(i === 0){
+      d += ` L ${midX.toFixed(1)},${midY.toFixed(1)}`;
+    } else {
+      d += ` Q ${c0.x.toFixed(1)},${c0.y.toFixed(1)} ${midX.toFixed(1)},${midY.toFixed(1)}`;
+    }
+  }
+  const last = cs[cs.length - 1];
+  d += ` T ${last.x.toFixed(1)},${last.y.toFixed(1)}`;
+  return d;
+}
+
 /* Tracé partagé : une ligne, ses points, la valeur et la date de chacun.
    Extrait de l'écran Progression pour servir aussi aux mensurations, plutôt que
    d'en dupliquer une seconde version qui divergerait. */
@@ -5272,27 +5444,6 @@ function buildChartSvg(points){
     const ratio = flat ? 0.5 : (p.value - minV) / range;
     return { x: x, y: height - padding - ratio * (height - padding * 2), point: p };
   });
-
-  /* Courbe lissée : une bézier quadratique par segment, dont le point de
-     contrôle est l'extrémité de départ et le point d'arrivée le milieu du
-     segment suivant. Rendu bien plus lisible qu'une ligne brisée sur une
-     courbe de progression, sans la complexité d'un Catmull-Rom complet. */
-  function smoothPath(cs){
-    if(cs.length === 1) return `M ${cs[0].x.toFixed(1)},${cs[0].y.toFixed(1)}`;
-    let d = `M ${cs[0].x.toFixed(1)},${cs[0].y.toFixed(1)}`;
-    for(let i = 0; i < cs.length - 1; i++){
-      const c0 = cs[i], c1 = cs[i + 1];
-      const midX = (c0.x + c1.x) / 2, midY = (c0.y + c1.y) / 2;
-      if(i === 0){
-        d += ` L ${midX.toFixed(1)},${midY.toFixed(1)}`;
-      } else {
-        d += ` Q ${c0.x.toFixed(1)},${c0.y.toFixed(1)} ${midX.toFixed(1)},${midY.toFixed(1)}`;
-      }
-    }
-    const last = cs[cs.length - 1];
-    d += ` T ${last.x.toFixed(1)},${last.y.toFixed(1)}`;
-    return d;
-  }
 
   const linePath = coords.length > 1 ? smoothPath(coords)
     : `M ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)} L ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)}`;
@@ -5359,6 +5510,128 @@ function buildDeltaHtml(points, unit, periodLabel){
     </div>
   `;
 }
+
+/* ---------- GRAPHIQUE D'ENSEMBLE DES MENSURATIONS (14/09/26) ----------
+   Une seule courbe par type de mesure, toutes superposées sur un même
+   graphique. Le poids se compte en kg, un tour de bras en cm : les mélanger
+   sur une échelle commune n'aurait aucun sens (le poids écraserait tout).
+   Chaque série est donc normalisée sur SA PROPRE plage min/max — seule
+   l'allure (monte / descend / stagne) se compare d'une courbe à l'autre, pas
+   les valeurs absolues, qui restent lisibles via l'étiquette de chaque point
+   et l'historique juste en dessous. L'axe des dates, lui, est commun et
+   proportionnel au temps réel écoulé (pas un simple index par point comme
+   buildChartSvg) : des mesures prises à des dates irrégulières doivent
+   s'aligner correctement les unes par rapport aux autres. */
+function buildBodyOverviewSvg(seriesList){
+  const width = 320, height = 190, padding = 30;
+  const allTimes = seriesList.flatMap(s => s.points.map(p => p.at));
+  if(allTimes.length === 0) return '';
+  const minT = Math.min(...allTimes), maxT = Math.max(...allTimes);
+  const rangeT = (maxT - minT) || 1;
+  const xFor = t => allTimes.length > 1 && (maxT > minT)
+    ? padding + ((t - minT) / rangeT) * (width - padding * 2)
+    : width / 2;
+
+  let lines = '', dots = '';
+  seriesList.forEach((s, si) => {
+    const vals = s.points.map(p => p.value);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const rangeV = (maxV - minV) || 1;
+    const coords = s.points
+      .slice().sort((a, b) => a.at - b.at)
+      .map(p => ({
+        x: xFor(p.at),
+        y: height - padding - ((p.value - minV) / rangeV) * (height - padding * 2),
+        point: p
+      }));
+    const path = coords.length > 1 ? smoothPath(coords)
+      : `M ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)} L ${coords[0].x.toFixed(1)},${coords[0].y.toFixed(1)}`;
+    const delay = (si * 0.08).toFixed(2);
+    lines += `<path class="body-overview-line" d="${path}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" style="animation-delay:${delay}s"/>`;
+    coords.forEach(c => {
+      dots += `<circle class="body-overview-dot" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--card)" stroke-width="1.2" style="animation-delay:${delay}s"/>`;
+    });
+  });
+
+  /* Dates repères en bas : première, dernière, et quelques intermédiaires
+     réparties dans le temps plutôt que par index de point. */
+  const tickCount = Math.min(4, allTimes.length);
+  const uniqueTimes = Array.from(new Set(allTimes)).sort((a, b) => a - b);
+  const tickTimes = tickCount <= 1 ? uniqueTimes : uniqueTimes.filter((_, i) =>
+    i === 0 || i === uniqueTimes.length - 1 || i % Math.ceil(uniqueTimes.length / (tickCount - 1)) === 0
+  );
+  const dateLabels = tickTimes.map(t => {
+    const x = xFor(t);
+    const label = new Date(t).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+    return `<text class="progress-point-label" x="${x.toFixed(1)}" y="${height - 8}" text-anchor="middle">${escapeHtml(label)}</text>`;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">
+      ${lines}
+      ${dots}
+      ${dateLabels}
+    </svg>
+  `;
+}
+
+/* Légende à bascule + graphique. Chaque puce reflète et contrôle
+   l'appartenance de sa mesure à `bodyVisibleFields`. Tant que l'utilisateur
+   n'a touché aucune puce (`bodyVisibleFields === null`), tout ce qui a des
+   données est affiché — c'est le "par défaut : toutes" demandé. */
+function renderBodyOverviewChart(){
+  const legendWrap = document.getElementById('body-legend-row');
+  const chartWrap = document.getElementById('body-overview-chart-wrap');
+  if(!legendWrap || !chartWrap) return;
+
+  const entries = bodyEntries(progressProfile);
+  const available = BODY_FIELDS.filter(f => entries.some(e => bodyEntryValue(e, f.id)));
+
+  if(available.length === 0){
+    legendWrap.innerHTML = '';
+    chartWrap.innerHTML = `<p class="archive-empty">Ajoute une première mesure ci-dessus pour voir son évolution ici.</p>`;
+    return;
+  }
+
+  const visible = bodyVisibleFields || new Set(available.map(f => f.id));
+
+  legendWrap.innerHTML = '';
+  available.forEach(f => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'body-legend-chip' + (visible.has(f.id) ? ' active' : '');
+    chip.style.setProperty('--legend-color', bodyFieldColor(f.id));
+    chip.innerHTML = `<span class="body-legend-dot"></span>${escapeHtml(bodyFieldLabel(f.id, progressProfile))}`;
+    chip.onclick = () => {
+      const next = new Set(bodyVisibleFields || new Set(available.map(x => x.id)));
+      if(next.has(f.id)) next.delete(f.id); else next.add(f.id);
+      bodyVisibleFields = next;
+      renderBodyOverviewChart();
+    };
+    legendWrap.appendChild(chip);
+  });
+
+  const archives = filterByProgressPeriod(entries.slice().reverse(), e => e.at, bodyProgressPeriod);
+  const seriesList = available
+    .filter(f => visible.has(f.id))
+    .map(f => ({
+      id: f.id,
+      label: bodyFieldLabel(f.id, progressProfile),
+      color: bodyFieldColor(f.id),
+      points: archives
+        .map(e => ({ at: e.at, value: parseNum(bodyEntryValue(e, f.id)), dateLabel: e.dateLabel }))
+        .filter(p => !isNaN(p.value))
+    }))
+    .filter(s => s.points.length > 0);
+
+  if(seriesList.length === 0){
+    chartWrap.innerHTML = `<p class="archive-empty">Rien à afficher${bodyVisibleFields ? ' pour la sélection actuelle' : ''} sur cette période.</p>`;
+    return;
+  }
+
+  chartWrap.innerHTML = `<div class="progress-chart-card">${buildBodyOverviewSvg(seriesList)}</div>`;
+}
+
 
 /* ==========================================================================
    CONSEILLER (bilan IA)
