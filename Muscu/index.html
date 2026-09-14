@@ -4791,8 +4791,15 @@ function importFullDataJSON(payload){
 
   /* Écritures offline-first : ne pas attendre leur résolution pour informer —
      hors ligne, la promesse resterait pendante indéfiniment alors que
-     l'écriture est déjà en cache et se synchronisera au retour du réseau. */
-  writes.forEach(p => p.catch(err => console.error('Échec d\u2019une écriture d\u2019import', err)));
+     l'écriture est déjà en cache et se synchronisera au retour du réseau.
+     Un échec réel (permission refusée, session expirée...) doit néanmoins
+     être VISIBLE : le simple console.error est invisible sur iPhone. */
+  let failCount = 0;
+  writes.forEach(p => p.catch(err => {
+    failCount++;
+    console.error('Échec d\u2019une écriture d\u2019import', err);
+    showToast('⚠️ Échec d\u2019écriture (' + failCount + ') : ' + (err && err.code ? err.code : 'vérifie ta connexion'));
+  }));
   showToast(`Import envoyé — ${writes.length} écriture(s), synchronisation en cours`);
   document.getElementById('import-text').value = '';
 }
