@@ -1149,6 +1149,12 @@
       <p class="setting-desc" id="settings-account"></p>
       <button class="coach-btn ghost-wide" onclick="doSignOut()">Se déconnecter</button>
     </div>
+
+    <div class="progress-section">
+      <span class="section-label">Sauvegarde</span>
+      <p class="setting-desc">Génère un export complet et brut de toutes les données (archives des deux profils, corbeille, séances personnalisées, conversations et mensurations). Sert de point de sauvegarde avant une migration du catalogue d'exercices — copie le texte et transmets-le tel quel.</p>
+      <button class="coach-btn ghost-wide" onclick="exportFullDataJSON()">📤 Exporter toutes les données</button>
+    </div>
   </div>
 </div>
 
@@ -4643,6 +4649,42 @@ function exportAllArchives(){
   });
   document.getElementById('export-text').value = txt;
   document.getElementById('motivation-line').textContent = `Export complet — ${archives.length} séance(s)`;
+  document.getElementById('export-modal').classList.add('open');
+}
+
+/* ---------- EXPORT BRUT COMPLET (JSON, préparation migration catalogue) ----------
+   Distinct de exportAllArchives() : celui-ci sert un usage humain (lecture),
+   celui-ci est fait pour être recollé tel quel et retraité automatiquement.
+   Réutilise la modale d'export existante (textarea + Copier) plutôt qu'un
+   téléchargement de fichier : pas de pattern de téléchargement Blob dans cette
+   app, et le comportement de `<a download>` est peu fiable sur iOS Safari,
+   alors que copier/coller depuis une textarea est déjà éprouvé ici.
+   Clé API et modèle du coach volontairement exclus : inutiles à la migration,
+   pas de raison de les faire circuler dans un texte copié-collé. */
+function exportFullDataJSON(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    archives: {
+      corentin: getArchivesList('corentin'),
+      lisa: getArchivesList('lisa')
+    },
+    archivesTrash: {
+      corentin: getTrashList('corentin'),
+      lisa: getTrashList('lisa')
+    },
+    customSessions: window.customSessionsCache || [],
+    coachSettings: {
+      threads: coachSettings().threads || [],
+      body: coachSettings().body || {}
+    }
+  };
+  const json = JSON.stringify(payload, null, 2);
+  document.getElementById('coach-block').innerHTML = '';
+  document.getElementById('export-text').value = json;
+  const totalArchives = payload.archives.corentin.length + payload.archives.lisa.length;
+  document.getElementById('motivation-line').textContent =
+    `Export brut complet — ${totalArchives} séance(s) archivée(s), ${payload.customSessions.length} séance(s) personnalisée(s)`;
   document.getElementById('export-modal').classList.add('open');
 }
 
