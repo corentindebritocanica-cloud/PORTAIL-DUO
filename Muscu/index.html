@@ -4818,6 +4818,31 @@ function tonnageKey(sessionId){ return PROGRESS_TONNAGE_PREFIX + sessionId; }
 function isTonnageKey(key){ return typeof key === 'string' && key.indexOf(PROGRESS_TONNAGE_PREFIX) === 0; }
 function tonnageSessionId(key){ return String(key).slice(PROGRESS_TONNAGE_PREFIX.length); }
 
+/* ---------- SUIVI PAR MÉTHODE (14/09/26) ----------
+   Un exercice à plusieurs méthodes (Développé incliné, Hip Thrust, etc. — voir
+   `equipment` dans SESSIONS) mélange sinon des performances qui ne se
+   comparent pas : 45 kg à la machine et 22,5 kg par haltère n'ont pas le même
+   sens. La sélection « toutes méthodes confondues » (le nom d'exercice seul)
+   reste possible, mais une clé composée permet de ne suivre qu'une méthode.
+   Séparateur `||` : aucun nom d'exercice n'en contient dans ce catalogue. */
+const PROGRESS_METHOD_PREFIX = '__method__:';
+function methodProgressKey(exerciseName, methodId){ return PROGRESS_METHOD_PREFIX + exerciseName + '||' + methodId; }
+function isMethodProgressKey(key){ return typeof key === 'string' && key.indexOf(PROGRESS_METHOD_PREFIX) === 0; }
+function methodProgressExerciseName(key){ return String(key).slice(PROGRESS_METHOD_PREFIX.length).split('||')[0]; }
+function methodProgressMethodId(key){ return String(key).slice(PROGRESS_METHOD_PREFIX.length).split('||')[1]; }
+
+/* Méthode réellement utilisée pour cet exercice dans cette archive (même repli
+   que archiveLoadFactor : premier de la liste si rien de stocké/valide, null si
+   l'exercice n'a qu'une méthode fixe — la distinction n'a alors pas de sens). */
+function archiveExerciseMethodId(archive, exerciseName){
+  const exIdx = (archive.exerciseNames || []).indexOf(exerciseName);
+  if(exIdx === -1) return null;
+  const list = equipmentListForExerciseName(exerciseName);
+  if(!list || list.length < 2) return null;
+  const stored = readByExercise(archive.variants, { name: exerciseName }, exIdx);
+  return list.includes(stored) ? stored : list[0];
+}
+
 /* Séances distinctes présentes dans les archives d'un profil, du plus récemment
    pratiqué au plus ancien. Le libellé retenu est celui de l'archive la plus
    récente : une séance personnalisée renommée garde son nom actuel. */
@@ -4860,6 +4885,50 @@ function renderProgressControls(){
   wrap.innerHTML = '';
   if(progressSelection === null){ wrap.style.display = 'none'; return; }
   wrap.style.display = 'flex';
+
+  /* Méthode : uniquement pour un exercice (pas tonnage/mensuration) qui a
+     plusieurs méthodes plausibles dans le catalogue. Apparaît AVANT la
+     période, puisque changer de méthode revient à changer de courbe. */
+  const exerciseName = isMethodProgressKey(progressSelection)
+    ? methodProgressExerciseName(progressSelection)
+    : (!isTonnageKey(progressSelection) && !isBodyProgressKey(progressSelection) ? progressSelection : null);
+  const methodList = exerciseName ? equipmentListForExerciseName(exerciseName) : null;
+
+  if(exerciseName && methodList && methodList.length > 1){
+    const methodLabel = document.createElement('span');
+    methodLabel.className = 'section-label';
+    methodLabel.textContent = 'Méthode';
+    wrap.appendChild(methodLabel);
+
+    const methodRow = document.createElement('div');
+    methodRow.className = 'segmented';
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'segmented-btn' + (progressSelection === exerciseName ? ' selected' : '');
+    allBtn.textContent = 'Toutes';
+    allBtn.onclick = () => {
+      progressSelection = exerciseName;
+      renderProgressControls();
+      renderProgressChart(progressSelection);
+    };
+    methodRow.appendChild(allBtn);
+
+    methodList.forEach(id => {
+      const info = equipmentInfo(id);
+      if(!info) return;
+      const key = methodProgressKey(exerciseName, id);
+      const b = document.createElement('button');
+      b.className = 'segmented-btn' + (progressSelection === key ? ' selected' : '');
+      b.textContent = info.label;
+      b.onclick = () => {
+        progressSelection = key;
+        renderProgressControls();
+        renderProgressChart(progressSelection);
+      };
+      methodRow.appendChild(b);
+    });
+    wrap.appendChild(methodRow);
+  }
 
   const label = document.createElement('span');
   label.className = 'section-label';
@@ -4966,7 +5035,13 @@ function renderProgressExerciseList(){
   select.appendChild(groupEx);
 
   if(progressSelection !== null){
-    select.value = progressSelection;
+    /* Une sélection par méthode (`__method__:...`) n'a pas d'option propre dans
+       ce menu — seul l'exercice de base y figure. Le menu doit quand même
+       refléter quel exercice est actif, sinon il retomberait visuellement sur
+       l'amorce alors qu'une courbe est bien affichée. */
+    select.value = isMethodProgressKey(progressSelection)
+      ? methodProgressExerciseName(progressSelection)
+      : progressSelection;
     select.classList.add('chosen');
   }
 
@@ -5014,12 +5089,21 @@ function getProgressPoints(profile, selection){
   const points = [];
 
   const wantedSession = isTonnageKey(selection) ? tonnageSessionId(selection) : null;
+  const isMethodSel = isMethodProgressKey(selection);
+  const methodExerciseName = isMethodSel ? methodProgressExerciseName(selection) : null;
+  const methodId = isMethodSel ? methodProgressMethodId(selection) : null;
 
   archives.forEach(arc => {
     let value = null;
     if(wantedSession !== null){
       /* seules les occurrences de CETTE séance entrent dans la courbe */
       if(arc.sessionId === wantedSession && arc.tonnage > 0) value = arc.tonnage;
+    } else if(isMethodSel){
+      /* seules les séances où CETTE méthode a été utilisée pour cet exercice */
+      if(archiveExerciseMethodId(arc, methodExerciseName) === methodId){
+        const best = bestSetByVolume(arc, methodExerciseName);
+        if(best) value = best.volume;
+      }
     } else {
       /* Le seul poids masque la difficulté réelle : 45 kg × 8 n'est pas
          forcément mieux que 40 kg × 12. Le point tracé est donc le volume
@@ -5054,6 +5138,11 @@ function progressMetricInfo(selection){
       .find(x => x.id === tonnageSessionId(selection));
     const name = sess ? `${sess.label}${sess.title ? ' — ' + sess.title : ''}` : 'Séance';
     return { unit:'kg', title:'tonnage à chaque répétition de cette séance', label:name };
+  }
+  if(isMethodProgressKey(selection)){
+    const name = methodProgressExerciseName(selection);
+    const info = equipmentInfo(methodProgressMethodId(selection));
+    return { unit:'kg×reps', title:'volume de la meilleure série (poids × reps), cette méthode uniquement', label: `${name} — ${info ? info.label : ''}` };
   }
   return { unit:'kg×reps', title:'volume de la meilleure série (poids × reps)', label:selection };
 }
