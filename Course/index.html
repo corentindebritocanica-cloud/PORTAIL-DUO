@@ -138,6 +138,12 @@
     padding:10px 8px; font-size:16px; text-align:center; background:var(--surface-soft); color:var(--ink);
   }
   .quantite-input:focus{outline:2px solid var(--corentin); border-color:var(--corentin);}
+  .btn-crayon{
+    flex-shrink:0; width:32px; height:32px; border:none; border-radius:50%;
+    background:transparent; color:var(--ink-soft); font-size:15px;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .btn-crayon:active{background:var(--surface-soft);}
 
 
   .empty-state{
@@ -305,7 +311,7 @@
 <!-- Modale ajout produit -->
 <div class="overlay" id="overlay-ajout">
   <div class="modale">
-    <h3>Ajouter un produit</h3>
+    <h3 id="titre-modale-ajout">Ajouter un produit</h3>
     <div class="champ">
       <label>Nom du produit</label>
       <input type="text" id="input-nom-produit" placeholder="Ex : Yaourts nature">
@@ -721,6 +727,7 @@ function renderSaisie(){
       </div>
       <input class="quantite-input" placeholder="Qté" value="${escapeAttr(p.quantite||'')}"
         onchange="updateQuantite('${id}', this.value)">
+      <button class="btn-crayon" onclick="ouvrirModaleEdition('${id}')" aria-label="Modifier le produit">✏️</button>
     </div>`;
   }).join('');
 }
@@ -769,11 +776,17 @@ function escapeHtml(str){
 function escapeAttr(str){ return escapeHtml(str); }
 
 /* ============================================================
-   MODALE : AJOUTER UN PRODUIT
+   MODALE : AJOUTER / MODIFIER UN PRODUIT
    ============================================================ */
 const overlayAjout = document.getElementById('overlay-ajout');
+const titreModaleAjout = document.getElementById('titre-modale-ajout');
+const btnValiderAjout = document.getElementById('btn-valider-ajout');
+let idEnEditionAjout = null; // null = mode création, sinon id du produit en cours de modification
 
 document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{
+  idEnEditionAjout = null;
+  titreModaleAjout.textContent = 'Ajouter un produit';
+  btnValiderAjout.textContent = 'Ajouter';
   document.getElementById('input-nom-produit').value='';
   document.getElementById('input-quantite-produit').value='';
   document.getElementById('input-nouveau-rayon').value='';
@@ -781,6 +794,21 @@ document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{
   remplirSelectRayons('select-rayon-produit', true);
   overlayAjout.classList.add('visible');
 });
+
+function ouvrirModaleEdition(id){
+  const p = state.produits[id];
+  if(!p) return;
+  idEnEditionAjout = id;
+  titreModaleAjout.textContent = 'Modifier le produit';
+  btnValiderAjout.textContent = 'Enregistrer';
+  document.getElementById('input-nom-produit').value = p.nom || '';
+  document.getElementById('input-quantite-produit').value = p.quantite || '';
+  document.getElementById('input-nouveau-rayon').value = '';
+  document.getElementById('champ-nouveau-rayon').style.display='none';
+  remplirSelectRayons('select-rayon-produit', true, p.rayonId);
+  overlayAjout.classList.add('visible');
+}
+
 document.getElementById('btn-annuler-ajout').addEventListener('click', ()=> overlayAjout.classList.remove('visible'));
 overlayAjout.addEventListener('click', e=>{ if(e.target===overlayAjout) overlayAjout.classList.remove('visible'); });
 
@@ -788,7 +816,7 @@ document.getElementById('select-rayon-produit').addEventListener('change', e=>{
   document.getElementById('champ-nouveau-rayon').style.display = e.target.value==='__nouveau__' ? 'block':'none';
 });
 
-document.getElementById('btn-valider-ajout').addEventListener('click', async ()=>{
+btnValiderAjout.addEventListener('click', async ()=>{
   const nom = document.getElementById('input-nom-produit').value.trim();
   const quantite = document.getElementById('input-quantite-produit').value.trim();
   if(!nom){ return; }
@@ -802,9 +830,13 @@ document.getElementById('btn-valider-ajout').addEventListener('click', async ()=
     rayonId = ref.id;
   }
 
-  await colProduits.add({
-    nom, quantite, rayonId, aAcheter:true, achete:false, compteur:1
-  });
+  if(idEnEditionAjout){
+    await colProduits.doc(idEnEditionAjout).update({ nom, quantite, rayonId });
+  }else{
+    await colProduits.add({
+      nom, quantite, rayonId, aAcheter:true, achete:false, compteur:1
+    });
+  }
   overlayAjout.classList.remove('visible');
   vibrer(15);
 });
