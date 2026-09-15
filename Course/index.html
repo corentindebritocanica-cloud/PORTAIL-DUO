@@ -98,6 +98,12 @@
     border:none; outline:none; background:transparent; flex:1; font-size:16px; color:var(--ink);
   }
   .searchbar input::placeholder{color:var(--ink-soft);}
+  .btn-effacer-recherche{
+    flex-shrink:0; width:30px; height:30px; border:none; border-radius:50%;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:15px;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .btn-effacer-recherche:active{background:var(--line);}
 
   /* --- Listes produits --- */
   .liste{padding: 6px 18px 100px;}
@@ -109,29 +115,30 @@
   .carte-produit{
     display:flex; align-items:center; gap:12px;
     background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
-    padding:12px 14px; margin-bottom:8px;
+    padding:13px 14px; margin-bottom:10px;
   }
   .checkbox{
-    width:26px; height:26px; border-radius:8px; border:2px solid var(--line);
+    width:32px; height:32px; border-radius:9px; border:2px solid var(--line);
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
     transition:background .15s, border-color .15s;
   }
   .checkbox.checked{background:var(--corentin); border-color:var(--corentin);}
   .checkbox.checked.mode-course{background:var(--lisa); border-color:var(--lisa);}
-  .checkbox svg{width:16px; height:16px; display:none;}
+  .checkbox svg{width:18px; height:18px; display:none;}
   .checkbox.checked svg{display:block;}
 
-  .infos-produit{flex:1; min-width:0;}
+  .infos-produit{flex:1; min-width:0; padding:4px 0;}
   .nom-produit{font-size:16px; font-weight:600; line-height:1.25;}
   .nom-produit.achete{color:var(--ink-soft); text-decoration:line-through;}
   .rayon-tag{
     font-size:12px; color:var(--ink-soft); margin-top:2px;
   }
   .quantite-input{
-    width:82px; flex-shrink:0; border:1px solid var(--line); border-radius:var(--radius-sm);
-    padding:8px 10px; font-size:15px; text-align:center; background:var(--surface-soft); color:var(--ink);
+    width:74px; flex-shrink:0; border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:10px 8px; font-size:16px; text-align:center; background:var(--surface-soft); color:var(--ink);
   }
   .quantite-input:focus{outline:2px solid var(--corentin); border-color:var(--corentin);}
+
 
   .empty-state{
     text-align:center; padding:60px 30px; color:var(--ink-soft);
@@ -268,6 +275,7 @@
       <div class="searchbar">
         <span>🔍</span>
         <input type="text" id="recherche-saisie" placeholder="Chercher un produit…">
+        <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" style="display:none;" aria-label="Effacer la recherche">✕</button>
       </div>
       <div class="liste" id="liste-saisie"></div>
     </div>
@@ -616,10 +624,24 @@ document.querySelectorAll('.onglet-btn').forEach(btn=>{
   });
 });
 
-document.getElementById('recherche-saisie').addEventListener('input', e=>{
+const inputRecherche = document.getElementById('recherche-saisie');
+const btnEffacerRecherche = document.getElementById('btn-effacer-recherche');
+
+inputRecherche.addEventListener('input', e=>{
   state.recherche = e.target.value.trim().toLowerCase();
+  btnEffacerRecherche.style.display = e.target.value ? 'flex' : 'none';
   renderSaisie();
 });
+
+btnEffacerRecherche.addEventListener('click', ()=>{
+  inputRecherche.value = '';
+  state.recherche = '';
+  btnEffacerRecherche.style.display = 'none';
+  renderSaisie();
+  inputRecherche.focus();
+  vibrer(8);
+});
+
 
 /* ============================================================
    ACTIONS PRODUITS
