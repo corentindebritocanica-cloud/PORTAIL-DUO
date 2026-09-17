@@ -111,7 +111,11 @@ Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplac
 - **Toggle de profil dans Réglages** : partage la classe générique `.segmented-btn` avec les onglets/périodes de Suivi Progression. Le passage de cette classe au rouge de marque avait fait perdre la couleur d'identité (bleu/rose) à ce toggle précis, alors que c'est justement l'endroit où elle a un sens réel. Ajouté des classes `.segmented-btn.corentin`/`.lisa` posées uniquement sur ce toggle (`renderSettingsProfileToggle()`), avec leurs propres couleurs — le reste du composant partagé (onglets, période) reste en rouge de marque.
 - **Bouton "Séance terminée"** : passé de `rgba(var(--brand-rgb), 0.28)` (translucide, qui donnait un rendu marron terne sur fond sombre à l'écran) à `var(--brand)` plein, avec la lueur `--brand-glow` — comme `.bb-finish` dans la maquette.
 
-Point encore incertain, à confirmer avec une capture : la bulle de réponse du coach semble ne montrer aucun fond de carte visible sur la capture fournie, ce qui différerait de `.chat-msg.coach{background:var(--card); border:1px solid var(--border);}`. Pas encore corrigé faute de certitude sur la cause.
+Point encore incertain, à confirmer avec une capture : la bulle de réponse du coach semble ne montrer aucun fond de carte visible sur la capture fournie, ce qui différerait de `.chat-msg.coach{background:var(--card); border:1px solid var(--border);}`. Pas encore corrigé faute de certitude sur la cause. **Confirmé sans suite (17/09/26)** : juste un effet de la capture, rien à corriger.
+
+**Nouvelle vague de captures (17/09/26, même jour)** : deux écarts concrets identifiés et corrigés.
+- **Icône "Bas du corps"** (`ICON_LEGS`) : jusque-là un dessin de "jambe de pantalon" (deux formes verticales), jugé pas clair ("les logos ne sont pas les bons") comparé à la maquette. Remplacée par le même barbell que `ICON_UPPER`, tourné à 90° — cohérent avec le langage graphique déjà en place (menu, réglages) plutôt qu'une icône inédite.
+- **Graphique de progression** (`buildChartSvg`) : la maquette a trois lignes de repère horizontales et met en évidence le point le plus récent (rempli, liseré or, légèrement plus gros) pendant que les autres points restent creux (fond `--card`, contour rouge). Le graphique réel n'avait ni l'un ni l'autre — tous les points étaient des disques rouges pleins identiques, sans ligne de repère. Ajouté les deux.
 
 ## Icône d'application
 
