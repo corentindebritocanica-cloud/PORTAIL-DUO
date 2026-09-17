@@ -102,6 +102,10 @@ Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplac
 - `--border`/`--border-strong` (contour de **toutes** les cartes/boutons) : bleu-gris à l'origine → blanc neutre, comme dans la maquette. Enlève le liseré froid systématique.
 - **Bebas Neue étendue** aux noms d'exercice (`.exercise-name`), noms de séance (`.s-label`), titres d'archive (`.archive-title`) et noms de séance dans le hub Build Training (`.builder-hub-name`) — jusque-là en police système malgré la maquette, qui les affiche tous en capitales condensées. `.s-tag` ("modifiée") garde explicitement la police système pour rester lisible à sa petite taille.
 
+**Correction de fidélité à la maquette (17/09/26, même jour, suite à un nouveau retour "je ne le retrouve pas")** : en comparant ligne à ligne le CSS de la maquette avec le code réel, une vraie erreur est ressortie — l'extension de Bebas Neue faite juste avant (noms d'exercice, de séance, d'archive, de hub) ne correspondait PAS à la maquette : celle-ci réserve Bebas Neue aux titres d'écran (menu, séance, profil) et garde les noms d'éléments de liste en police système grasse. Revenu en arrière sur ces 4 éléments. Deux vrais écarts corrigés dans la foulée :
+- **Badge de record** (`.pr-badge`) : la maquette utilise une pastille propre (fond `--card-2`, liseré or fin, pas de pointillés ni de rotation) — pas le motif "marqué à la craie" de l'ancienne identité, qui a été retiré ici.
+- **Bouton "Séance terminée"** (`.btn-export`) : passé en Bebas Neue majuscules, comme `.bb-finish` dans la maquette — jusque-là en police système malgré son rôle de bouton d'action principal.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
