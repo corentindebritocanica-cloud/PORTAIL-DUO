@@ -84,6 +84,11 @@ Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplac
   - Badge de record personnel (`.pr-badge`) : vert (`--done`) → or (`--gold`). Le vert reste réservé à « série validée / séance complète » (coche, jauge) ; un nouveau record est désormais un événement visuellement distinct, pas une variante de la validation.
 - Sauvegarde faite avant coup : `Muscu/backups/index-2026-09-17-avant-fonte-craie.html` et `README-2026-09-17-avant-fonte-craie.md`, dans ce même dépôt.
 
+**Extension (17/09/26, même jour)** : le rouge de marque a été étendu à tous les boutons d'action et indicateurs qui ne dépendent pas de quel profil consulte l'écran — la ligne de partage retenue :
+- **Passent en `--brand`** (rouge) : jauge de progression pendant une séance (dégradé rouge → or), cible d'un exercice (`.exercise-target`), sélection du mode de charge (barre/haltères/un bras), bulle utilisateur et bouton d'envoi du chat coach, barre "le coach écrit", boutons du bilan coach, ligne de motivation de la modale d'export, bouton "Archiver" de fin de séance, bouton "Enregistrer la séance" et "+ Créer une nouvelle séance" du Build Training.
+- **Passent en `--gold`** : le mini-badge d'historique `.hist-record` et l'étiquette `.s-tag` ("modifiée") — cohérence avec `.pr-badge`, déjà en or.
+- **Restent en `--accent`** (bleu Corentin / rose Lisa selon le profil actif) : tout l'écran Suivi Progression (courbe, valeur cumulée, sélecteurs, mensurations) et l'écran de choix de séance — ces écrans affichent spécifiquement les données ou le contexte d'un profil, la teinte y reste une information utile, pas une décoration.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
