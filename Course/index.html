@@ -876,6 +876,17 @@ document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
    BOOT
    ============================================================ */
 demarrer();
+
+/* ============================================================
+   SERVICE WORKER (PWA hors-ligne — cache-first sur le shell
+   statique index.html/manifest.json/icone.png uniquement ;
+   Firestore/Auth ne sont jamais interceptés, cf. sw.js)
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
