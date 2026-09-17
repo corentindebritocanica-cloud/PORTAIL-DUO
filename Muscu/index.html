@@ -1201,6 +1201,10 @@
      passe par des courbes de Bézier quadratiques plutôt que des segments
      droits — plus lisible qu'un zigzag sur peu de points, sans complexité
      d'une vraie interpolation Catmull-Rom. */
+  /* Lignes de repère horizontales (17/09/26, comme dans la maquette) : trois
+     traits fins et discrets pour donner une échelle visuelle au graphique,
+     absents jusque-là. */
+  .chart-grid-row{ stroke:var(--border); stroke-width:1; }
   .chart-area{ opacity:0; animation: chartAreaIn .6s ease-out .15s forwards; }
   .chart-line{
     filter: drop-shadow(0 0 5px rgba(var(--brand-rgb), 0.45));
@@ -2013,8 +2017,14 @@ function vibrate(){
 
 /* ---------- DONNEES DU PROGRAMME ---------- */
 /* Icônes de groupe musculaire (SVG inline, dessinées pour l'app) */
-const ICON_LEGS = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 3h3v9l-1.5 9h-3l1-9-1-9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 3h3v9l1 9h-3l-1.5-9V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 const ICON_UPPER = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="4.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><circle cx="19.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M6.7 12h10.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12v0M15 12v0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>`;
+/* Barbell vertical (17/09/26) : remplace l'ancienne icône "jambes de
+   pantalon", jugée peu lisible face à la maquette ("les logos ne sont pas
+   les bons"). Repris du même dessin que ICON_UPPER, tourné à 90° — même
+   barre, mais à la verticale pour évoquer un mouvement de squat plutôt que
+   de développé couché. Cohérent avec le langage graphique déjà utilisé
+   ailleurs (menu, réglages) plutôt qu'une nouvelle icône inédite. */
+const ICON_LEGS = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><g transform="rotate(90 12 12)"><circle cx="4.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><circle cx="19.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M6.7 12h10.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12v0M15 12v0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></g></svg>`;
 const ICON_CUSTOM = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5a3 3 0 0 0-4.2 3.6L4 13.4V17h3.6l6.3-6.3a3 3 0 0 0 3.6-4.2l-2.1 2.1-1.8-1.8 2.1-2.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
 /* Les types de série (travail / dégressive / échec) ont été retirés : jugés
@@ -5676,10 +5686,13 @@ function buildChartSvg(points){
     ? `${linePath} L ${coords[coords.length - 1].x.toFixed(1)},${baseline} L ${coords[0].x.toFixed(1)},${baseline} Z`
     : '';
 
-  const dots = coords.map((c, i) => `
+  const dots = coords.map((c, i) => {
+    const isLast = i === coords.length - 1 && coords.length > 1;
+    return `
     <circle class="chart-dot-glow" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="9" fill="var(--brand)" style="animation-delay:${(0.55 + i * 0.06).toFixed(2)}s"/>
-    <circle class="chart-dot" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="4" fill="var(--brand)" stroke="var(--card)" stroke-width="1.5" style="animation-delay:${(0.6 + i * 0.06).toFixed(2)}s"/>
-  `).join('');
+    <circle class="chart-dot${isLast ? ' chart-dot-last' : ''}" cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${isLast ? 5 : 4}" fill="${isLast ? 'var(--brand)' : 'var(--card)'}" stroke="${isLast ? 'var(--gold)' : 'var(--brand)'}" stroke-width="${isLast ? 2.6 : 2}" style="animation-delay:${(0.6 + i * 0.06).toFixed(2)}s"/>
+  `;
+  }).join('');
 
   /* Au-delà de 8 points, les étiquettes se chevauchent : on n'en garde qu'une sur
      N, en conservant toujours la première et la dernière. */
@@ -5711,6 +5724,9 @@ function buildChartSvg(points){
           <stop offset="100%" stop-color="var(--brand)" stop-opacity="0"/>
         </linearGradient>
       </defs>
+      <line class="chart-grid-row" x1="${padding - 8}" y1="${padding}" x2="${width - padding + 8}" y2="${padding}"/>
+      <line class="chart-grid-row" x1="${padding - 8}" y1="${(height) / 2}" x2="${width - padding + 8}" y2="${(height) / 2}"/>
+      <line class="chart-grid-row" x1="${padding - 8}" y1="${baseline}" x2="${width - padding + 8}" y2="${baseline}"/>
       ${areaPath ? `<path class="chart-area" d="${areaPath}" fill="url(#${gid})" stroke="none"/>` : ''}
       <path class="chart-line" d="${linePath}" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
