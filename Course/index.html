@@ -7,7 +7,7 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2F6F4E">
+<meta name="theme-color" content="#0d1014">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Courses">
@@ -23,76 +23,118 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
+  /* ==========================================================================
+     JETONS DE DESIGN — repris du design "Fonte & Craie" de l'app Muscu
+     (Duo Training) pour une identité visuelle cohérente entre les deux apps
+     du portail. Ardoise sombre par défaut + bascule thème clair, Bebas Neue
+     pour les titres/affichages, bleu Corentin / rose Lisa comme identité.
+     Aucune valeur codée en dur en dehors de ce bloc.
+     ========================================================================== */
   :root{
-    --bg:#F2F4F7;
-    --surface:#FFFFFF;
-    --surface-soft:#E9ECF1;
-    --ink:#1F2530;
-    --ink-soft:#767E8C;
-    --line:#DCE1E8;
+    --bg:#0d1014;
+    --surface:#161b22;
+    --surface-soft:#1e2530;
+    --line:rgba(255,255,255,0.09);
+    --line-strong:rgba(255,255,255,0.17);
+    --ink:#e9eff6;
+    --ink-soft:#8a97a8;
+
     --corentin:#1f8fff;
-    --corentin-soft:#E3F0FF;
+    --corentin-rgb:31,143,255;
+    --corentin-dark:#1a5fc4;
+    --corentin-soft:rgba(31,143,255,0.13);
     --lisa:#ff3d7e;
-    --lisa-soft:#FFE4EC;
-    --error:#D64545;
-    --radius-lg:20px;
+    --lisa-rgb:255,61,126;
+    --lisa-dark:#c4225f;
+    --lisa-soft:rgba(255,61,126,0.13);
+    --done:#12b981;
+    --error:#ef4444;
+
+    --radius-lg:22px;
     --radius-md:14px;
     --radius-sm:10px;
+
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --glass-modal: rgba(22,27,34,0.95);
+    --t-fast:.14s;
+    --t-mid:.22s;
+    --sheen: rgba(255,255,255,0.55);
+    --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#161B22;
-      --surface:#1F252E;
-      --surface-soft:#272E38;
-      --ink:#F3F5F7;
-      --ink-soft:#8B93A0;
-      --line:#2E3540;
-      --corentin:#4FA6FF;
-      --corentin-soft:#1D2E42;
-      --lisa:#FF6B98;
-      --lisa-soft:#3A2130;
-      --error:#E26666;
-    }
-    html, body{
-      background-image:
-        radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-        radial-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
-      background-size: 3px 3px, 5px 5px;
-      background-position: 0 0, 2px 2px;
-    }
+  html.light-mode{
+    --bg:#eef1f5;
+    --surface:#ffffff;
+    --surface-soft:#e7ecf2;
+    --line:rgba(23,38,56,0.11);
+    --line-strong:rgba(23,38,56,0.20);
+    --ink:#131a23;
+    --ink-soft:#5f6c7c;
+    --corentin-soft:rgba(31,143,255,0.10);
+    --lisa-soft:rgba(255,61,126,0.10);
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --glass-modal: rgba(255,255,255,0.95);
+    --sheen: rgba(255,255,255,0.70);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;height:100%;background-color:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    overscroll-behavior-y:none;}
+    overscroll-behavior-y:none;
+    transition: background-color .25s ease, color .25s ease;}
+  /* Poussière de craie très discrète sur le fond sombre, façon ardoise —
+     reprise à l'identique de Muscu, désactivée en thème clair. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,238,.5), transparent),
+      radial-gradient(1px 1px at 78% 9%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 32% 64%, rgba(238,240,238,.35), transparent),
+      radial-gradient(1px 1px at 91% 47%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 58% 82%, rgba(238,240,238,.3), transparent),
+      radial-gradient(1px 1px at 6% 88%, rgba(238,240,238,.35), transparent);
+    background-repeat:no-repeat;
+  }
+  html.light-mode body::before{ display:none; }
   input,select,textarea,button{font-family:inherit;}
-  .display{font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.5px;}
+  .display{font-family:var(--f-display); font-weight:400; letter-spacing:.02em; text-transform:uppercase;}
 
-  #app{display:none; flex-direction:column; height:100vh; height:100dvh;}
+  #app{display:none; flex-direction:column; height:100vh; height:100dvh; position:relative; z-index:1;}
   #app.visible{display:flex;}
 
+  /* --- Bascule de thème (identique à Muscu) --- */
+  .theme-toggle{
+    position:fixed; top:calc(12px + var(--safe-top)); right:14px; z-index:60;
+    width:36px; height:36px; border-radius:50%;
+    background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; box-shadow: var(--shadow-sm);
+  }
+
   header.topbar{
-    padding: calc(14px + var(--safe-top)) 18px 14px;
+    padding: calc(14px + var(--safe-top)) 56px 14px 18px;
     background:var(--surface);
     border-bottom:1px solid var(--line);
     display:flex; align-items:center; justify-content:space-between;
     flex-shrink:0;
   }
-  header.topbar h1{margin:0; font-size:26px; color:var(--corentin);}
+  header.topbar h1{margin:0; font-size:27px; color:var(--corentin);}
   .profil-badge{
-    font-size:13px; color:var(--ink-soft); background:var(--surface-soft);
-    padding:6px 12px; border-radius:20px; border:1px solid var(--line);
+    font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    color:var(--ink-soft); background:var(--surface-soft);
+    padding:6px 12px; border-radius:999px; border:1px solid var(--line);
   }
 
-  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px;}
+  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px; position:relative; z-index:1;}
 
   /* --- Barre de recherche (Saisie) --- */
   .searchbar{
     margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
     background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
-    padding:10px 14px;
+    padding:10px 14px; box-shadow: var(--shadow-sm);
   }
   .searchbar input{
     border:none; outline:none; background:transparent; flex:1; font-size:16px; color:var(--ink);
@@ -103,27 +145,29 @@
     background:var(--surface-soft); color:var(--ink-soft); font-size:15px;
     display:flex; align-items:center; justify-content:center; padding:0;
   }
-  .btn-effacer-recherche:active{background:var(--line);}
+  .btn-effacer-recherche:active{background:var(--line-strong);}
 
   /* --- Listes produits --- */
   .liste{padding: 6px 18px 100px;}
   .section-rayon{margin-top:22px;}
   .section-rayon:first-child{margin-top:10px;}
   .section-rayon h2{
-    font-size:19px; margin: 0 0 8px 2px; color:var(--lisa);
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em;
+    font-size:20px; font-weight:400; margin: 0 0 8px 2px; color:var(--lisa);
   }
   .carte-produit{
     display:flex; align-items:center; gap:12px;
     background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
-    padding:13px 14px; margin-bottom:10px;
+    padding:13px 14px; margin-bottom:10px; box-shadow: var(--shadow-sm);
+    transition: border-color var(--t-fast) ease;
   }
   .checkbox{
-    width:32px; height:32px; border-radius:9px; border:2px solid var(--line);
+    width:32px; height:32px; border-radius:9px; border:2px solid var(--line-strong);
     flex-shrink:0; display:flex; align-items:center; justify-content:center;
-    transition:background .15s, border-color .15s;
+    transition:background var(--t-fast), border-color var(--t-fast);
   }
-  .checkbox.checked{background:var(--corentin); border-color:var(--corentin);}
-  .checkbox.checked.mode-course{background:var(--lisa); border-color:var(--lisa);}
+  .checkbox.checked{background:var(--corentin); border-color:var(--corentin); box-shadow:0 4px 12px var(--corentin-soft);}
+  .checkbox.checked.mode-course{background:var(--lisa); border-color:var(--lisa); box-shadow:0 4px 12px var(--lisa-soft);}
   .checkbox svg{width:18px; height:18px; display:none;}
   .checkbox.checked svg{display:block;}
 
@@ -149,25 +193,31 @@
   .empty-state{
     text-align:center; padding:60px 30px; color:var(--ink-soft);
   }
-  .empty-state .display{font-size:24px; color:var(--ink); margin-bottom:6px;}
+  .empty-state .display{font-size:25px; color:var(--ink); margin-bottom:6px;}
 
   /* --- Section "acheté" (Course) --- */
-  .section-achete{margin-top:26px; padding-top:14px; border-top:1px dashed var(--line);}
-  .section-achete h2{font-size:17px; margin:0 0 8px 2px; color:var(--ink-soft);}
+  .section-achete{margin-top:26px; padding-top:14px; border-top:1px dashed var(--line-strong);}
+  .section-achete h2{
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em;
+    font-size:18px; font-weight:400; margin:0 0 8px 2px; color:var(--ink-soft);
+  }
   .carte-produit.achete-carte{opacity:.6;}
 
   .btn-course-terminee{
     position:fixed; left:18px; right:18px; bottom: calc(88px + var(--safe-bottom));
-    padding:15px; border:none; border-radius:var(--radius-md); background:var(--lisa);
-    color:#fff; font-size:16px; font-weight:600; box-shadow:0 6px 16px rgba(0,0,0,.22); z-index:19;
+    padding:15px; border:none; border-radius:var(--radius-md);
+    background:linear-gradient(135deg, var(--lisa), var(--lisa-dark));
+    color:#fff; font-size:16px; font-weight:700; letter-spacing:.01em;
+    box-shadow:0 10px 26px rgba(var(--lisa-rgb),.35), var(--shadow-sm); z-index:19;
   }
 
   /* --- Barre d'ajout produit (Saisie) --- */
   .fab-ajouter{
     position:fixed; right:18px; bottom: calc(88px + var(--safe-bottom));
-    width:56px; height:56px; border-radius:50%; background:var(--corentin);
+    width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg, var(--corentin), var(--corentin-dark));
     color:#fff; border:none; font-size:30px; line-height:56px; text-align:center;
-    box-shadow:0 6px 16px rgba(0,0,0,.22); z-index:20;
+    box-shadow:0 10px 26px rgba(var(--corentin-rgb),.35), var(--shadow-sm); z-index:20;
   }
 
   /* --- Tab bar --- */
@@ -178,7 +228,8 @@
   nav.tabbar button{
     flex:1; border:none; background:transparent; padding:12px 0 10px;
     display:flex; flex-direction:column; align-items:center; gap:3px;
-    color:var(--ink-soft); font-size:12px;
+    color:var(--ink-soft); font-size:12px; font-weight:600;
+    transition: color var(--t-fast) ease;
   }
   nav.tabbar button .tab-icon{font-size:22px;}
   nav.tabbar button.actif{color:var(--corentin);}
@@ -193,60 +244,77 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     height:100vh; height:100dvh; gap:26px; padding: 0 30px;
     padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+    position:relative; z-index:1;
   }
-  #ecran-profil .display{font-size:34px; color:var(--corentin);}
+  #ecran-profil .display{font-size:36px; color:var(--corentin);}
   #ecran-profil p{color:var(--ink-soft); text-align:center; margin:0;}
   .choix-profil{display:flex; gap:16px; width:100%; max-width:340px;}
   .btn-profil{
     flex:1; padding:22px 10px; border-radius:var(--radius-lg); border:1px solid var(--line);
-    background:var(--surface); font-size:17px; font-weight:600; color:var(--ink);
+    background:var(--surface); font-size:17px; font-weight:700; color:var(--ink);
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em;
+    box-shadow: var(--shadow-sm); transition: transform var(--t-fast) ease, border-color var(--t-fast) ease;
   }
-  .btn-profil:active{background:var(--surface-soft);}
+  .btn-profil:active{background:var(--surface-soft); transform:scale(0.97);}
+  .btn-profil[data-profil="Corentin"]{border-color:rgba(var(--corentin-rgb),.35);}
+  .btn-profil[data-profil="Lisa"]{border-color:rgba(var(--lisa-rgb),.35);}
 
   /* --- Modales --- */
   .overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.4); display:none;
+    position:fixed; inset:0; background:rgba(0,0,0,.55); display:none;
     align-items:flex-end; z-index:50;
   }
   .overlay.visible{display:flex;}
   .modale{
-    background:var(--surface); width:100%; border-radius:22px 22px 0 0;
+    background:var(--glass-modal);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    width:100%; border-radius:var(--radius-lg) var(--radius-lg) 0 0;
     padding: 22px 20px calc(26px + var(--safe-bottom));
-    max-height:80vh; overflow-y:auto;
+    max-height:80vh; overflow-y:auto; border-top:1px solid var(--line);
+    box-shadow: var(--shadow);
   }
-  .modale h3{margin:0 0 16px; font-size:20px;}
+  .modale h3{margin:0 0 16px; font-size:19px; font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em; font-weight:400;}
   .champ{margin-bottom:14px;}
   .champ label{display:block; font-size:13px; color:var(--ink-soft); margin-bottom:6px;}
   .champ input, .champ select{
     width:100%; padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--line);
     background:var(--surface-soft); font-size:16px; color:var(--ink);
   }
+  .champ input:focus, .champ select:focus{outline:none; border-color:var(--corentin);}
   .modale-actions{display:flex; gap:10px; margin-top:6px;}
-  .btn{flex:1; padding:14px; border-radius:var(--radius-md); border:none; font-size:16px; font-weight:600;}
-  .btn-primaire{background:var(--corentin); color:#fff;}
-  .btn-secondaire{background:var(--surface-soft); color:var(--ink);}
+  .btn{flex:1; padding:14px; border-radius:var(--radius-md); border:none; font-size:16px; font-weight:700;}
+  .btn-primaire{background:var(--corentin); color:#fff; box-shadow:0 8px 20px rgba(var(--corentin-rgb),.30);}
+  .btn-secondaire{background:var(--surface-soft); color:var(--ink); border:1px solid var(--line);}
 
   #splash{
     position:fixed; inset:0; background:var(--bg); z-index:100;
     display:flex; align-items:center; justify-content:center;
   }
-  #splash .display{font-size:30px; color:var(--corentin);}
+  #splash .display{font-size:32px; color:var(--corentin);}
 
   #ecran-login{
     display:none; flex-direction:column; align-items:center; justify-content:center;
     height:100vh; height:100dvh; gap:22px; padding: 0 30px;
     padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+    position:relative; z-index:1;
+    background:
+      radial-gradient(circle at 50% 35%, rgba(var(--corentin-rgb),.16), transparent 60%),
+      var(--bg);
   }
-  #ecran-login .display{font-size:34px; color:var(--corentin);}
+  #ecran-login .display{font-size:36px; color:var(--corentin);}
   .form-login{width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px;}
   .form-login input{
     width:100%; padding:14px 16px; border-radius:var(--radius-md); border:1px solid var(--line);
     background:var(--surface); font-size:16px; color:var(--ink);
   }
+  .form-login input:focus{outline:none; border-color:var(--corentin);}
   .erreur-login{color:var(--error); font-size:13px; text-align:center; min-height:16px;}
 </style>
 </head>
 <body>
+
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Changer de thème">🌙</button>
 
 <div id="splash"><div class="display">Courses L&amp;C</div></div>
 
@@ -871,6 +939,22 @@ document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
   colProduits.doc(produitEnEdition).update({ rayonId });
   overlayRayon.classList.remove('visible');
 });
+
+/* ============================================================
+   THÈME CLAIR / SOMBRE (visuel uniquement, aucune donnée)
+   ============================================================ */
+function applyTheme(theme){
+  document.documentElement.classList.toggle('light-mode', theme === 'light');
+  const btn = document.getElementById('theme-toggle');
+  if(btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+}
+function toggleTheme(){
+  const current = localStorage.getItem('courses_theme') || 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('courses_theme', next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem('courses_theme') || 'dark');
 
 /* ============================================================
    BOOT
