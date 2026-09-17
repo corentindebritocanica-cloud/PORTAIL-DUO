@@ -6879,5 +6879,18 @@ render();
 adjustBottomSpacing();
 setTimeout(adjustBottomSpacing, 300); // sécurité si les polices/safe-area se stabilisent après le premier rendu
 </script>
+<script>
+  /* Service worker (17/09/26) : shell hors-ligne, voir sw.js pour le détail.
+     Chemin ET scope volontairement relatifs ('sw.js', './') plutôt
+     qu'absolus ('/Muscu/sw.js') — ça marche pareil que ce soit servi à la
+     racine d'un domaine perso ou sous /PORTAIL-DUO/Muscu/ sur une page
+     GitHub Pages de projet, sans rien à ajuster ici si le chemin change. */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { scope: './' })
+        .catch((err) => console.warn('[sw] enregistrement échoué :', err));
+    });
+  }
+</script>
 </body>
 </html>
