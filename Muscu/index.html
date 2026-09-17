@@ -39,14 +39,19 @@
     --bg:#0d1014;
     --card:#161b22;
     --card-2:#1e2530;
-    --border:rgba(146,170,199,0.14);
-    --border-strong:rgba(146,170,199,0.24);
+    /* Bordures neutres (17/09/26) : auparavant teintées bleu-gris, ce qui
+       donnait un liseré froid à chaque carte de l'app et éloignait le rendu
+       de la maquette Fonte & Craie, plus proche du blanc neutre sur noir. */
+    --border:rgba(255,255,255,0.09);
+    --border-strong:rgba(255,255,255,0.17);
 
-    /* Voile clair posé sur les fonds (icônes, états sélectionnés).
-       Défini ici parce qu'il doit s'inverser en thème clair : un blanc en dur
-       devenait invisible sur fond blanc. */
-    --tint:rgba(190,214,240,0.06);
-    --tint-strong:rgba(190,214,240,0.11);
+    /* Voile posé sur les fonds (icônes, états sélectionnés). Teinté rouge de
+       marque (17/09/26, identité Fonte & Craie) — avant cette date, un voile
+       neutre bleuté qui s'inversait en thème clair ; désormais accordé à
+       --brand pour que les fonds d'icônes et les en-têtes de carte reprennent
+       la couleur de marque partout, comme dans la maquette. */
+    --tint:rgba(255,45,61,0.07);
+    --tint-strong:rgba(255,45,61,0.13);
 
     /* Texte */
     --text:#e9eff6;
@@ -106,8 +111,8 @@
     --card-2:#e7ecf2;
     --border:rgba(23,38,56,0.11);
     --border-strong:rgba(23,38,56,0.20);
-    --tint:rgba(23,38,56,0.045);
-    --tint-strong:rgba(23,38,56,0.085);
+    --tint:rgba(224,28,44,0.06);
+    --tint-strong:rgba(224,28,44,0.10);
     --text:#131a23;
     --text-dim:#5f6c7c;
     --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
@@ -314,7 +319,10 @@
     background: var(--tint); color: var(--brand);
   }
   .session-btn .session-text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
-  .session-btn .s-label{font-size:16.5px; font-weight:800;}
+  .session-btn .s-label{
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.01em;
+    font-size:19px; font-weight:400;
+  }
   .session-btn .s-subtitle{font-size:13px; color:var(--text-dim); font-weight:500;}
   .session-btn.selected{
     border-color:var(--brand);
@@ -322,7 +330,7 @@
   .session-btn.selected .session-icon{ background:var(--tint-strong); }
   .custom-session-row{ cursor:pointer; }
   .s-tag{
-    font-size:10px; font-weight:800; letter-spacing:0.4px; text-transform:uppercase;
+    font-family:var(--f-body); font-size:10px; font-weight:800; letter-spacing:0.4px; text-transform:uppercase;
     /* Or plutôt qu'accent (17/09/26) : "modifiée" est un fait objectif sur la
        séance, pas une info liée au profil qui la consulte. */
     color:var(--gold); background:rgba(255,184,0,0.14);
@@ -421,7 +429,13 @@
     padding:13px 16px 15px 16px; display:flex; flex-direction:column; gap:10px;
   }
   .exercise-head{ display:flex; flex-direction:column; gap:3px; }
-  .exercise-name{ font-size:16.5px; font-weight:750; line-height:1.25; }
+  .exercise-name{
+    /* Bebas Neue (17/09/26) : les noms d'exercice reviennent à chaque carte,
+       c'est l'un des repères visuels les plus visibles de la maquette Fonte &
+       Craie — pas seulement une question de couleur. */
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.01em;
+    font-size:19px; font-weight:400; line-height:1.15;
+  }
   .exercise-target{ font-size:13px; font-weight:600; color:var(--brand); }
 
   /* 005 / 006 : contexte historique de l'exercice */
@@ -699,7 +713,10 @@
     box-shadow: var(--shadow-sm);
   }
   .builder-hub-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .builder-hub-name{ font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .builder-hub-name{
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.01em;
+    font-size:17px; font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .builder-hub-sub{ font-size:12px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .builder-hub-row button{
     flex:0 0 auto; background:none; border:1px solid var(--border); border-radius:var(--r-sm);
@@ -1215,7 +1232,10 @@
   }
   .archive-info{ display:flex; flex-direction:column; gap:3px; min-width:0; }
   .archive-date{ font-size:12px; color:var(--text-dim); font-weight:600; }
-  .archive-title{ font-size:14.5px; font-weight:700; }
+  .archive-title{
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.01em;
+    font-size:17px; font-weight:400;
+  }
   .archive-actions{ display:flex; gap:8px; flex:0 0 auto; }
   .archive-view-btn{
     padding:9px 14px; border-radius:var(--r-sm); border:1px solid var(--border);
