@@ -97,6 +97,11 @@ Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplac
 - **Icônes de mode de charge** (`EQUIPMENT_ICONS`) : chaque bouton barre/haltères/machine/poulie affiche désormais un petit pictogramme en plus du texte, en `currentColor` (gris au repos, rouge de marque une fois sélectionné) — purement décoratif, aucun effet sur le calcul du tonnage.
 - Volontairement **non ajouté** : l'écran de chargement (splash) de la maquette, puisque l'écran de chargement réel a été retiré de l'app avant cette session (voir note plus haut) — le réintroduire serait une décision séparée, pas une simple reprise de couleur.
 
+**Correction de fond (17/09/26, même jour, suite à un retour "ça ne ressemble pas au concept")** : les passes précédentes changeaient des couleurs ponctuelles mais laissaient deux jetons transversaux sur leurs valeurs d'origine, ce qui donnait un rendu encore bleu-gris (« Ardoise ») malgré tout le reste :
+- `--tint`/`--tint-strong` (voile posé sur les fonds d'icônes, en-têtes de carte d'exercice, états sélectionnés) : bleuté à l'origine → teinté rouge de marque. Ce jeton est utilisé à plus de 10 endroits (icônes du menu, icône de séance, en-tête de chaque carte d'exercice…), donc ce changement à lui seul rougit une grande partie de l'app d'un coup.
+- `--border`/`--border-strong` (contour de **toutes** les cartes/boutons) : bleu-gris à l'origine → blanc neutre, comme dans la maquette. Enlève le liseré froid systématique.
+- **Bebas Neue étendue** aux noms d'exercice (`.exercise-name`), noms de séance (`.s-label`), titres d'archive (`.archive-title`) et noms de séance dans le hub Build Training (`.builder-hub-name`) — jusque-là en police système malgré la maquette, qui les affiche tous en capitales condensées. `.s-tag` ("modifiée") garde explicitement la police système pour rester lisible à sa petite taille.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
