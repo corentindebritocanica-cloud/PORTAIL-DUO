@@ -117,6 +117,23 @@ Point encore incertain, à confirmer avec une capture : la bulle de réponse du 
 - **Icône "Bas du corps"** (`ICON_LEGS`) : jusque-là un dessin de "jambe de pantalon" (deux formes verticales), jugé pas clair ("les logos ne sont pas les bons") comparé à la maquette. Remplacée par le même barbell que `ICON_UPPER`, tourné à 90° — cohérent avec le langage graphique déjà en place (menu, réglages) plutôt qu'une icône inédite.
 - **Graphique de progression** (`buildChartSvg`) : la maquette a trois lignes de repère horizontales et met en évidence le point le plus récent (rempli, liseré or, légèrement plus gros) pendant que les autres points restent creux (fond `--card`, contour rouge). Le graphique réel n'avait ni l'un ni l'autre — tous les points étaient des disques rouges pleins identiques, sans ligne de repère. Ajouté les deux.
 
+### Retrait du rouge de marque « Fonte & Craie » (18/09/26, sur demande explicite)
+
+Le rouge de marque introduit par toute la séquence « Fonte & Craie » ci-dessus (`--brand`, `--brand-dark`, `--brand-glow`, `--brand-rgb`) a été **entièrement retiré**. L'app entière suit désormais `--accent` (bleu Corentin / rose Lisa selon `currentProfile`, bleu par défaut avant tout choix de profil) partout où `--brand` était utilisé — y compris l'écran de connexion, le bouton « Entraînement » du menu, la jauge de progression, le mode de charge, le fil du coach, les boutons de fin de séance, Build Training, et l'onglet Suivi Progression.
+
+- `--tint`/`--tint-strong` (voile des icônes et en-têtes de carte) suivent maintenant `--accent-rgb` au lieu d'un rouge fixe : `rgba(var(--accent-rgb), 0.07)`, calculé automatiquement puisque les variables CSS personnalisées se recalculent en cascade quand `--accent-rgb` change en JS — pas besoin de re-render manuel de `--tint` lui-même.
+- **Nouveaux jetons** `--corentin-dark` (`#1a5fc4`) et `--lisa-dark` (`#c4225f`), promus depuis des valeurs jusque-là codées en dur dans les dégradés de `.big-choice-btn.corentin/.lisa .choice-icon`. `--accent-dark` et `--accent-glow` (`rgba(var(--accent-rgb), 0.30)`, `0.22` en thème clair) remplacent `--brand-dark`/`--brand-glow`, avec une valeur par défaut au niveau `:root` (bleu Corentin) pour rester valides avant même le premier appel JS.
+- `applyThemeColor()` pilote désormais `--accent-dark` en plus de `--accent`/`--accent-rgb`. `renderProgressView()` fait de même **localement sur `#view-progress`**, indépendamment du profil actif (`progressProfile`, pas `currentProfile`) — sans ça, un `--brand`→`--accent` dans un élément de cet écran (ex. `.body-input-card.primary`) aurait suivi le mauvais profil.
+- Fond de la carte « hero » du menu (`#1a0d10`, rouge-brun codé en dur, anomalie au regard de la règle « toute couleur passe par un jeton ») → `linear-gradient(140deg, var(--card-2), var(--card) 55%)`, neutre.
+- **`--gold` n'est pas concerné** : le badge de record (`.pr-badge`) et l'étiquette « modifiée » (`.s-tag`) restent en or, seul le rouge a été demandé en remplacement.
+- Tous les commentaires qui décrivaient l'usage du rouge (`.app-title-brand`, jauge de séance, icônes d'équipement, lueur de connexion, bouton « Séance terminée », toggle de profil dans Réglages…) ont été mis à jour pour refléter `--accent`.
+
+### Carte « hero » du menu : compteur du haut remplacé (18/09/26)
+
+Le compteur « Série en cours » (jours consécutifs d'entraînement, `computeTrainingStreak()`) a été retiré à la demande de Corentin et remplacé par le **nombre total de séances faites, en moyenne par personne** : `Math.round((sessions Corentin + sessions Lisa) / 2)`, réutilisant les `sessions` déjà renvoyés par `getLifetimeStats()` (aucun nouveau calcul). Le badge 🔥, spécifique à la série de jours, a été retiré avec lui (markup et règle CSS `.menu-hero-flame`). `computeTrainingStreak()` a été supprimée (code mort, plus aucun appelant).
+
+Les deux puces du bas (tonnage Corentin / Lisa) n'ont **pas été modifiées** : elles affichaient déjà `getLifetimeStats(profile).tonnage`, soit le tonnage cumulé sur **toutes** les archives actives du profil, sans filtre de date — c'est-à-dire déjà « le tonnage total depuis le début », ce qui correspondait à la demande sans qu'aucun changement de code ne soit nécessaire.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
