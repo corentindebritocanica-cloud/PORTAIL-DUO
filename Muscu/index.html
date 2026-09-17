@@ -206,7 +206,7 @@
     padding:26px 20px; border-radius:var(--r-lg); border:1px solid var(--border);
     background:var(--card); color:var(--text); font-size:19px; font-weight:800;
     display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:14px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm); position:relative;
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
   }
   .big-choice-btn:active{ transform: scale(0.98); }
@@ -234,6 +234,43 @@
     box-shadow: 0 10px 26px var(--brand-glow), var(--shadow-sm);
   }
   .big-choice-btn.primary .choice-icon{ background:rgba(255,255,255,0.18); }
+  /* Repères visuels ajoutés le 17/09/26 : libellé qui prend toute la place
+     restante (pour pousser le chevron à droite) et chevron discret indiquant
+     que chaque bouton ouvre un écran suivant. */
+  .choice-label{ flex:1; text-align:left; }
+  .choice-chev{ color:var(--text-dimmer); font-size:20px; flex:0 0 auto; }
+  .big-choice-btn.primary .choice-chev{ color:rgba(255,255,255,0.7); }
+  .badge-tag{
+    position:absolute; top:12px; right:16px; background:var(--gold); color:#241a00;
+    font-size:9.5px; font-weight:800; padding:3px 8px; border-radius:999px; text-transform:uppercase;
+  }
+  /* Carte "hero" du menu principal : tonnage cumulé des deux profils, pour
+     comparer d'un coup d'œil sans ouvrir Suivi Progression. */
+  .menu-hero{
+    background:linear-gradient(140deg,#1a0d10,var(--card) 55%);
+    border:1px solid var(--border); border-radius:var(--r-lg); padding:16px;
+    margin-bottom:16px; position:relative; overflow:hidden;
+  }
+  .menu-hero::before{
+    content:''; position:absolute; inset:0; opacity:.05; pointer-events:none;
+    background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 14px);
+  }
+  .menu-hero::after{
+    content:''; position:absolute; right:-30px; top:-30px; width:150px; height:150px;
+    background:radial-gradient(circle, var(--brand-glow), transparent 70%);
+  }
+  .menu-hero-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-dim);
+    font-weight:800; position:relative;
+  }
+  .menu-hero-row{ display:flex; gap:8px; margin-top:10px; position:relative; }
+  .menu-hero-chip{
+    flex:1; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-sm);
+    padding:10px 11px; display:flex; align-items:center; gap:8px;
+  }
+  .menu-hero-chip .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .menu-hero-chip .who{ font-size:11.5px; font-weight:700; color:var(--text-dim); }
+  .menu-hero-chip .val{ font-family:var(--f-display); font-size:19px; }
   .big-choice-btn.build{
     border-style:dashed; font-size:16px; opacity:0.9;
   }
@@ -416,6 +453,7 @@
                 background var(--t-fast) ease, transform var(--t-fast) ease;
   }
   .variant-btn:active{ transform:scale(.96); }
+  .variant-icon{ display:flex; align-items:center; justify-content:center; color:inherit; }
   .variant-name{ font-size:12.5px; font-weight:700; line-height:1.2; }
   .variant-sub{ font-size:10px; font-weight:600; opacity:.8; line-height:1.2; }
   .variant-hint{
@@ -1249,25 +1287,49 @@
   <div class="view-inner">
     <p class="app-title">Duo Training</p>
     <h1 class="big-question">Menu principal</h1>
+
+    <!-- Carte "hero" (17/09/26, identité Fonte & Craie) : reprend getLifetimeStats(),
+         déjà utilisée dans Suivi Progression, pour comparer le tonnage cumulé des
+         deux profils d'un coup d'œil en arrivant sur le menu. -->
+    <div class="menu-hero" id="menu-hero">
+      <div class="menu-hero-label">Tonnage cumulé</div>
+      <div class="menu-hero-row">
+        <div class="menu-hero-chip">
+          <span class="dot" style="background:var(--corentin);"></span>
+          <div><div class="who">Corentin</div><div class="val" id="menu-hero-corentin">–</div></div>
+        </div>
+        <div class="menu-hero-chip">
+          <span class="dot" style="background:var(--lisa);"></span>
+          <div><div class="who">Lisa</div><div class="val" id="menu-hero-lisa">–</div></div>
+        </div>
+      </div>
+    </div>
+
     <button class="big-choice-btn primary" onclick="goToProfileView('fwd')">
+      <span class="badge-tag">🔥 Aujourd'hui</span>
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="4.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.8"/><circle cx="19.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M6.7 12h10.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 12v0M15 12v0" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span>
-      Entraînement
+      <span class="choice-label">Entraînement</span>
+      <span class="choice-chev">›</span>
     </button>
     <button class="big-choice-btn" onclick="goToBuilderView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M14.5 3.5a3 3 0 0 0-4.2 3.6L4 13.4V17h3.6l6.3-6.3a3 3 0 0 0 3.6-4.2l-2.1 2.1-1.8-1.8 2.1-2.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
-      Build Training
+      <span class="choice-label">Build Training</span>
+      <span class="choice-chev">›</span>
     </button>
     <button class="big-choice-btn" onclick="goToCoachView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 12a8 8 0 1 0-3.2 6.4L20 19.5l-1-3.1A7.9 7.9 0 0 0 20 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 11h6M9 14.5h3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-      Coach
+      <span class="choice-label">Coach</span>
+      <span class="choice-chev">›</span>
     </button>
     <button class="big-choice-btn" onclick="goToSettingsView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M17.9 6.1l-1.4 1.4M7.5 16.5l-1.4 1.4M17.9 17.9l-1.4-1.4M7.5 7.5L6.1 6.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-      Réglages
+      <span class="choice-label">Réglages</span>
+      <span class="choice-chev">›</span>
     </button>
     <button class="big-choice-btn" onclick="goToProgressView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 19V5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 15.5l3.5-4 3 2.5 4.5-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      Suivi Progression
+      <span class="choice-label">Suivi Progression</span>
+      <span class="choice-chev">›</span>
     </button>
   </div>
 </div>
@@ -1984,6 +2046,16 @@ const EQUIPMENT_METHODS = {
   poulie1: { id:'poulie1', label:'Poulie unilatérale', factor:2,
     hint:'Poids : la charge affichée, faite par UN SEUL bras. Reps : le nombre de répétitions par bras. Exemple : 22,5 kg × 10 reps de chaque côté → 450 kg comptés.' }
 };
+/* Petites icônes de mode de charge (17/09/26, identité Fonte & Craie) : purement
+   décoratives, en `currentColor` pour suivre la couleur du bouton (gris au
+   repos, rouge de marque une fois sélectionné) — aucun impact sur le calcul. */
+const EQUIPMENT_ICONS = {
+  barre:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="10.5" width="18" height="3" rx="1.5" fill="currentColor"/></svg>',
+  haltere: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="7" cy="12" r="5" fill="currentColor"/><circle cx="17" cy="12" r="5" fill="currentColor"/></svg>',
+  machine: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor" opacity="0.85"/></svg>',
+  poulie2: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>',
+  poulie1: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6" fill="currentColor"/><circle cx="18" cy="12" r="3" fill="currentColor" opacity="0.4"/></svg>'
+};
 /* Ordre d'affichage stable (menu Build Training, etc.) */
 const EQUIPMENT_METHOD_IDS = ['barre', 'haltere', 'machine', 'poulie2', 'poulie1'];
 function equipmentInfo(id){ return EQUIPMENT_METHODS[id] || null; }
@@ -2237,7 +2309,20 @@ function selectSession(sessionId){
 }
 
 function goToMenuView(){
+  renderMenuHero();
   showView('view-menu', 'back');
+}
+
+/* Carte "hero" du menu (17/09/26) : réutilise getLifetimeStats(), déjà
+   utilisée par Suivi Progression, pour les deux profils à la fois. */
+function renderMenuHero(){
+  const elC = document.getElementById('menu-hero-corentin');
+  const elL = document.getElementById('menu-hero-lisa');
+  if(!elC || !elL) return;
+  const statsC = getLifetimeStats('corentin');
+  const statsL = getLifetimeStats('lisa');
+  elC.textContent = statsC.tonnage.toLocaleString('fr-FR') + ' kg';
+  elL.textContent = statsL.tonnage.toLocaleString('fr-FR') + ' kg';
 }
 
 function goToProfileView(direction){
@@ -2735,7 +2820,8 @@ function render(){
         if(!info) return;
         const optBtn = document.createElement('button');
         optBtn.className = 'variant-btn' + (currentEquip === id ? ' selected' : '');
-        optBtn.innerHTML = `<span class="variant-name">${escapeHtml(info.label)}</span>`
+        optBtn.innerHTML = `<span class="variant-icon">${EQUIPMENT_ICONS[id] || ''}</span>`
+          + `<span class="variant-name">${escapeHtml(info.label)}</span>`
           + `<span class="variant-sub">${info.factor === 2 ? 'poids par main' : 'charge totale'}</span>`;
         optBtn.onclick = () => {
           pushUndoSnapshot();
@@ -6100,6 +6186,7 @@ function emptyTrash(){
 window.addEventListener('archives-updated', () => {
   const activeView = document.querySelector('.view.active');
   if(!activeView) return;
+  if(activeView.id === 'view-menu') renderMenuHero();
   if(activeView.id === 'view-session') renderSessionList();
   if(activeView.id === 'view-archives') renderArchivesList();
   if(activeView.id === 'view-progress'){
