@@ -104,26 +104,66 @@ Esthétique "plaque industrielle" sombre avec vis en coin et liseré laiton.
   l'animation.
 - Apparition du panneau au chargement via une animation `rise` (fade + translateY),
   désactivée si `prefers-reduced-motion: reduce`.
-- Aucune logique JS au-delà de la navigation (pas de Firebase, pas d'auth, pas de
-  state) — cohérent avec le footer : *"Portail Duo · pas de compte, pas de cloud"*.
+- Aucune logique JS au-delà de la navigation et de l'enregistrement du service
+  worker (pas de Firebase, pas d'auth, pas de state) — cohérent avec le footer :
+  *"Portail Duo · pas de compte, pas de cloud"*.
 
-## 6. Historique — barre de statut iOS (résolu)
+## 6. Disponibilité hors-ligne (service worker)
 
-Un correctif avait été demandé et validé dans une discussion précédente pour
-supprimer l'effet de flou de la barre de statut iOS en plein écran, mais l'audit du
-14/09/2026 avait constaté que le code live n'avait pas cette modification
-(`content="black-translucent"` toujours présent).
+**Problème identifié le 17/09/2026** : contrairement aux 3 sous-apps (Muscu,
+Budget, Course), qui gèrent chacune leur propre cache offline, le portail
+lui-même n'avait aucun service worker : sans réseau, `index.html` ne pouvait pas
+se charger, donc impossible d'accéder au menu (et par ricochet aux 3 apps).
 
-**Corrigé le 14/09/2026** : le fichier `index.html` a été remis à jour avec
+**Corrigé le 17/09/2026** : ajout d'un service worker minimal (`sw.js`) qui met
+en cache le "shell" du portail au premier chargement en ligne :
+
+```
+./
+./index.html
+./manifest.json
+./icone-192.png
+./icone-512.png
+./icone-512-maskable.png
+```
+
+Stratégie cache-first pour ces fichiers, avec repli sur `index.html` en cas
+d'échec réseau. Le service worker ignore explicitement toute requête vers
+`/Muscu/`, `/Budget/`, `/Course/` ou une origine externe (Firebase, etc.) — il ne
+gère que le shell du portail, jamais les sous-apps qui restent autonomes pour
+leur propre cache.
+
+Enregistrement dans `index.html` :
+
+```js
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+```
+
+Nom du cache : `portail-duo-shell-v1` (les anciennes versions de cache sont
+supprimées automatiquement à l'activation d'une nouvelle version du service
+worker).
+
+## 7. Historique — barre de statut iOS (résolu et poussé)
+
+Un correctif avait été demandé pour supprimer l'effet de flou de la barre de
+statut iOS en plein écran, mais l'audit du 14/09/2026 avait constaté que le code
+live n'avait pas la modification (`content="black-translucent"` toujours
+présent).
+
+**Poussé le 17/09/2026**, en même temps que le service worker :
 
 ```html
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 ```
 
-→ **À faire côté Corentin** : pousser ce fichier `index.html` mis à jour sur la
-branche `main` du repo `PORTAIL-DUO` pour que le correctif soit effectif en ligne.
+Vérifié en ligne via l'API GitHub (contenu réel du fichier sur `main`) — le
+correctif est bien effectif.
 
-## 7. Règle de travail avec l'assistant IA (Claude)
+## 8. Règle de travail avec l'assistant IA (Claude)
 
 Avant toute modification ou question sur ce projet, demander à Corentin comment
 procéder :
@@ -132,5 +172,5 @@ procéder :
 3. Ou répondre uniquement sans regarder le code.
 
 ---
-*Dernière vérification du code live : 14/09/2026, via fetch du lien RAW GitHub et
-curl sur les sous-dossiers / manifest / icônes.*
+*Dernière vérification du code live : 17/09/2026, via l'API GitHub (contenu réel
+sur `main`, sans cache CDN) pour `index.html` et `sw.js`.*
