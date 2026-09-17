@@ -73,6 +73,17 @@ Choisie après présentation de 3 pistes (bleu technique/blueprint, ardoise & cr
 - Badge de record personnel : traitement en pointillés, légèrement incliné.
 - ⚠️ Un essai de barre d'onglets persistante en bas d'écran (Accueil/Entraînement/Progression/Coach), pour remplacer le menu principal plat, a été testé puis **rejeté** après visualisation en conditions réelles. Le menu principal est resté à ses 5 boutons d'origine (Entraînement, Build Training, Coach, Réglages, Suivi Progression) — ne pas réintroduire cette barre sans qu'on le redemande.
 
+### Couche « Fonte & Craie » (17/09/26)
+Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplacer — après exploration de plusieurs maquettes (dont une inspirée du design Winamax), le choix retenu garde le rouge/or comme touche de marque ponctuelle plutôt que comme habillage global.
+
+- Nouveaux jetons : `--brand` (rouge), `--brand-dark`, `--brand-glow`, `--gold`. Définis en thème sombre **et** clair (rouge légèrement assombri en clair pour le contraste).
+- **Principe strict : `--brand`/`--gold` n'apparaissent que là où aucune couleur de profil n'a de sens.** `--accent` (bleu Corentin / rose Lisa selon le profil actif) reste inchangé partout ailleurs — c'est le même arbitrage que celui déjà tranché dans « Accent personnalisable » (voir Abandonné, plus bas) : le bleu et le rose ne sont pas décoratifs.
+- Trois applications concrètes :
+  - Bouton de connexion et lueur de fond de l'écran de connexion : `var(--corentin)` → `var(--brand)` (avant le choix d'un profil, une couleur de profil n'a pas de sens ici).
+  - Bouton « Entraînement » du menu principal (`.big-choice-btn.primary`, classe ajoutée uniquement sur ce bouton) : dégradé rouge, pour distinguer visuellement l'action la plus utilisée des 4 autres.
+  - Badge de record personnel (`.pr-badge`) : vert (`--done`) → or (`--gold`). Le vert reste réservé à « série validée / séance complète » (coche, jauge) ; un nouveau record est désormais un événement visuellement distinct, pas une variante de la validation.
+- Sauvegarde faite avant coup : `Muscu/backups/index-2026-09-17-avant-fonte-craie.html` et `README-2026-09-17-avant-fonte-craie.md`, dans ce même dépôt.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
