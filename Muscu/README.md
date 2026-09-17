@@ -106,6 +106,13 @@ Ajoutée par-dessus l'identité « Ardoise & craie » ci-dessus, sans la remplac
 - **Badge de record** (`.pr-badge`) : la maquette utilise une pastille propre (fond `--card-2`, liseré or fin, pas de pointillés ni de rotation) — pas le motif "marqué à la craie" de l'ancienne identité, qui a été retiré ici.
 - **Bouton "Séance terminée"** (`.btn-export`) : passé en Bebas Neue majuscules, comme `.bb-finish` dans la maquette — jusque-là en police système malgré son rôle de bouton d'action principal.
 
+**Corrections à partir de captures d'écran réelles (17/09/26, même jour)** : comparaison directe maquette / vraie app, avec captures fournies par Corentin — nettement plus fiable que deviner sur le seul CSS. Trois écarts confirmés et corrigés :
+- **Écran "Qui s'entraîne ?"** : les icônes Corentin/Lisa restaient neutres (jamais bleues/roses) car leur couleur dépendait de `.big-choice-btn.corentin.selected`, une classe que `selectProfile()` ne pose en réalité jamais (il change d'écran immédiatement après le tap). Ajouté une coloration inconditionnelle `.big-choice-btn.corentin .choice-icon` / `.lisa .choice-icon`, sans dépendre de `.selected`.
+- **Toggle de profil dans Réglages** : partage la classe générique `.segmented-btn` avec les onglets/périodes de Suivi Progression. Le passage de cette classe au rouge de marque avait fait perdre la couleur d'identité (bleu/rose) à ce toggle précis, alors que c'est justement l'endroit où elle a un sens réel. Ajouté des classes `.segmented-btn.corentin`/`.lisa` posées uniquement sur ce toggle (`renderSettingsProfileToggle()`), avec leurs propres couleurs — le reste du composant partagé (onglets, période) reste en rouge de marque.
+- **Bouton "Séance terminée"** : passé de `rgba(var(--brand-rgb), 0.28)` (translucide, qui donnait un rendu marron terne sur fond sombre à l'écran) à `var(--brand)` plein, avec la lueur `--brand-glow` — comme `.bb-finish` dans la maquette.
+
+Point encore incertain, à confirmer avec une capture : la bulle de réponse du coach semble ne montrer aucun fond de carte visible sur la capture fournie, ce qui différerait de `.chat-msg.coach{background:var(--card); border:1px solid var(--border);}`. Pas encore corrigé faute de certitude sur la cause.
+
 ## Icône d'application
 
 Générée d'après l'ancien écran de chargement (fond charcoal, dégradé radial bleu à gauche / rose à droite, haltère centré) — écran aujourd'hui retiré, mais l'icône en garde le style. **Encodée en base64 dans le HTML** pour tenir la contrainte du fichier unique.
