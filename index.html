@@ -178,6 +178,38 @@
     .plate{ animation:none; opacity:1; transform:none; }
     .door{ transition:none; }
   }
+
+  .cache-reset{
+    appearance:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    width:100%;
+    margin-top:14px;
+    padding:9px 10px;
+    background:none;
+    border:none;
+    color:var(--ink-dim);
+    font-family:inherit;
+    font-size:11px;
+    letter-spacing:0.02em;
+    opacity:0.5;
+    cursor:pointer;
+    transition: opacity .15s ease;
+  }
+  .cache-reset svg{
+    width:12px;height:12px;
+    flex:none;
+    transition: transform .5s ease;
+  }
+  .cache-reset:active{ opacity:1; }
+  .cache-reset.busy svg{ animation: spin .8s linear infinite; }
+  .cache-reset:disabled{ opacity:0.35; cursor:default; }
+
+  @keyframes spin{
+    to{ transform: rotate(360deg); }
+  }
 </style>
 </head>
 <body>
@@ -236,6 +268,11 @@
     </nav>
 
     <footer>Portail Duo · pas de compte, pas de cloud</footer>
+
+    <button class="cache-reset" id="cache-reset" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span id="cache-reset-label">Vider le cache</span>
+    </button>
   </main>
 
 <script>
@@ -251,6 +288,42 @@
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
+  }
+
+  // Vidage manuel du cache (service worker + Cache Storage) et
+  // redémarrage forcé de l'app pour recharger la dernière version
+  // publiée sur GitHub. Utile car le cache iOS/Safari ne se vide pas
+  // toujours tout seul après une mise à jour distante.
+  const cacheResetBtn = document.getElementById('cache-reset');
+  const cacheResetLabel = document.getElementById('cache-reset-label');
+
+  async function clearCacheAndRestart() {
+    if (!cacheResetBtn || cacheResetBtn.disabled) return;
+    cacheResetBtn.disabled = true;
+    cacheResetBtn.classList.add('busy');
+    cacheResetLabel.textContent = 'Nettoyage…';
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (e) {
+      console.warn('Vidage du cache incomplet :', e);
+    } finally {
+      cacheResetLabel.textContent = 'Redémarrage…';
+      // Query string unique pour forcer le navigateur/iOS à récupérer
+      // index.html en réseau plutôt que depuis une éventuelle copie locale.
+      window.location.replace('./index.html?_reset=' + Date.now());
+    }
+  }
+
+  if (cacheResetBtn) {
+    cacheResetBtn.addEventListener('click', clearCacheAndRestart);
   }
 </script>
 

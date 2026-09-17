@@ -163,7 +163,30 @@ présent).
 Vérifié en ligne via l'API GitHub (contenu réel du fichier sur `main`) — le
 correctif est bien effectif.
 
-## 8. Règle de travail avec l'assistant IA (Claude)
+## 8. Bouton "Vider le cache" (ajouté le 18/09/2026)
+
+**Problème identifié** : après une mise à jour poussée sur GitHub (portail ou
+sous-apps), le cache côté iPhone (Safari / mode standalone) ne se vide pas tout
+seul — Corentin continuait de voir une ancienne version tant qu'il ne
+supprimait pas l'app de l'écran d'accueil et ne la réinstallait pas.
+
+**Solution** : un bouton discret sous le footer ("Vider le cache", icône ⟳)
+qui, au clic :
+1. désenregistre tous les service workers actifs sur la page
+   (`navigator.serviceWorker.getRegistrations()` + `unregister()`),
+2. supprime toutes les entrées du Cache Storage (`caches.keys()` +
+   `caches.delete()`), y compris le cache `portail-duo-shell-v1` posé par
+   `sw.js`,
+3. force un rechargement réseau de `index.html` via
+   `location.replace('./index.html?_reset=' + Date.now())` — le paramètre
+   `_reset` unique empêche le navigateur de resservir une copie locale.
+
+Le bouton passe par les états "Nettoyage…" puis "Redémarrage…" et se
+désactive pendant l'opération. Il ne touche qu'au cache du portail
+lui-même — pas à celui des sous-apps (Muscu/Budget/Course), qui gèrent leur
+propre stockage indépendamment.
+
+## 9. Règle de travail avec l'assistant IA (Claude)
 
 Avant toute modification ou question sur ce projet, demander à Corentin comment
 procéder :
@@ -172,5 +195,6 @@ procéder :
 3. Ou répondre uniquement sans regarder le code.
 
 ---
-*Dernière vérification du code live : 17/09/2026, via l'API GitHub (contenu réel
-sur `main`, sans cache CDN) pour `index.html` et `sw.js`.*
+*Dernière vérification du code live : 18/09/2026, via `git clone` direct du dépôt
+(donc sans aucun cache CDN/raw.githubusercontent.com) pour `index.html`,
+`README.md` et `sw.js`.*
