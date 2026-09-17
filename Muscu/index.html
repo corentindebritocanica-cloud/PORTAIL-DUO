@@ -193,6 +193,10 @@
     font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
     color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
   }
+  /* "Duo Training" en toutes lettres (menu, profil) : seul repère de marque
+     avant même le titre d'écran, donc en rouge — les autres usages de
+     .app-title (nom du profil pendant une séance, etc.) restent neutres. */
+  .app-title-brand{ color:var(--brand); }
   .big-question{
     font-family:var(--f-display); text-transform:uppercase;
     font-size:29px; font-weight:850; letter-spacing:.01em; margin:4px 2px 16px 2px;
@@ -237,7 +241,15 @@
   /* Repères visuels ajoutés le 17/09/26 : libellé qui prend toute la place
      restante (pour pousser le chevron à droite) et chevron discret indiquant
      que chaque bouton ouvre un écran suivant. */
-  .choice-label{ flex:1; text-align:left; }
+  /* 17/09/26 : la maquette "Fonte & Craie" utilise la police d'affichage
+     (Bebas Neue, majuscules) pour les libellés du menu principal, pas
+     seulement pour les titres d'écran — c'est ce qui manquait le plus pour
+     que le menu ressemble vraiment au concept plutôt qu'à une simple liste
+     recolorée. */
+  .choice-label{
+    flex:1; text-align:left; font-family:var(--f-display); text-transform:uppercase;
+    letter-spacing:.02em; font-size:19px; font-weight:400;
+  }
   .choice-chev{ color:var(--text-dimmer); font-size:20px; flex:0 0 auto; }
   .big-choice-btn.primary .choice-chev{ color:rgba(255,255,255,0.7); }
   .badge-tag{
@@ -262,6 +274,13 @@
   .menu-hero-label{
     font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-dim);
     font-weight:800; position:relative;
+  }
+  .menu-hero-top{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; }
+  .menu-hero-streak{ font-family:var(--f-display); font-size:34px; line-height:1.1; margin-top:2px; }
+  .menu-hero-streak small{ font-size:14px; font-weight:600; color:var(--text-dim); font-family:var(--f-body); }
+  .menu-hero-flame{
+    font-size:13px; font-weight:800; background:var(--brand); color:#fff;
+    padding:6px 10px; border-radius:999px; display:flex; align-items:center; gap:4px;
   }
   .menu-hero-row{ display:flex; gap:8px; margin-top:10px; position:relative; }
   .menu-hero-chip{
@@ -1285,14 +1304,20 @@
 <!-- ÉCRAN 0 : MENU PRINCIPAL -->
 <div class="view active" id="view-menu">
   <div class="view-inner">
-    <p class="app-title">Duo Training</p>
+    <p class="app-title app-title-brand">Duo Training</p>
     <h1 class="big-question">Menu principal</h1>
 
     <!-- Carte "hero" (17/09/26, identité Fonte & Craie) : reprend getLifetimeStats(),
          déjà utilisée dans Suivi Progression, pour comparer le tonnage cumulé des
          deux profils d'un coup d'œil en arrivant sur le menu. -->
     <div class="menu-hero" id="menu-hero">
-      <div class="menu-hero-label">Tonnage cumulé</div>
+      <div class="menu-hero-top">
+        <div>
+          <div class="menu-hero-label">Série en cours</div>
+          <div class="menu-hero-streak" id="menu-hero-streak">– <small>jours</small></div>
+        </div>
+        <span class="menu-hero-flame" id="menu-hero-flame" style="display:none;">🔥</span>
+      </div>
       <div class="menu-hero-row">
         <div class="menu-hero-chip">
           <span class="dot" style="background:var(--corentin);"></span>
@@ -1392,7 +1417,7 @@
 <div class="view" id="view-profile">
   <div class="view-inner">
     <button class="back-btn" onclick="goToMenuView()">← Menu</button>
-    <p class="app-title">Duo Training</p>
+    <p class="app-title app-title-brand">Duo Training</p>
     <h1 class="big-question">Qui s'entraîne ?</h1>
     <button class="big-choice-btn corentin" onclick="selectProfile('corentin')">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6.4 7-6.4s7 2.8 7 6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
@@ -2314,7 +2339,37 @@ function goToMenuView(){
 }
 
 /* Carte "hero" du menu (17/09/26) : réutilise getLifetimeStats(), déjà
-   utilisée par Suivi Progression, pour les deux profils à la fois. */
+   utilisée par Suivi Progression, pour les deux profils à la fois, et calcule
+   une série de jours consécutifs (tous profils confondus) à partir des dates
+   d'archives déjà en cache — lecture seule, aucune nouvelle donnée stockée. */
+function computeTrainingStreak(){
+  const dates = new Set();
+  ['corentin', 'lisa'].forEach(p => {
+    const list = (window.archivesCache && window.archivesCache[p]) || [];
+    list.forEach(a => {
+      if(a.createdAt) dates.add(new Date(a.createdAt).toISOString().slice(0, 10));
+    });
+  });
+  if(dates.size === 0) return 0;
+  const sorted = Array.from(dates).sort().reverse();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00');
+  const mostRecent = new Date(sorted[0] + 'T00:00:00');
+  /* Série considérée "en cours" seulement si la dernière séance date d'hier
+     ou d'aujourd'hui — sinon elle est rompue, on n'affiche pas un chiffre
+     périmé comme si de rien n'était. */
+  if(Math.round((today - mostRecent) / oneDay) > 1) return 0;
+  let streak = 1;
+  let cursor = mostRecent;
+  for(let i = 1; i < sorted.length; i++){
+    const d = new Date(sorted[i] + 'T00:00:00');
+    const gap = Math.round((cursor - d) / oneDay);
+    if(gap === 1){ streak++; cursor = d; }
+    else if(gap > 1) break;
+  }
+  return streak;
+}
+
 function renderMenuHero(){
   const elC = document.getElementById('menu-hero-corentin');
   const elL = document.getElementById('menu-hero-lisa');
@@ -2323,6 +2378,12 @@ function renderMenuHero(){
   const statsL = getLifetimeStats('lisa');
   elC.textContent = statsC.tonnage.toLocaleString('fr-FR') + ' kg';
   elL.textContent = statsL.tonnage.toLocaleString('fr-FR') + ' kg';
+
+  const streak = computeTrainingStreak();
+  const streakEl = document.getElementById('menu-hero-streak');
+  const flameEl = document.getElementById('menu-hero-flame');
+  if(streakEl) streakEl.innerHTML = streak + ' <small>jour' + (streak > 1 ? 's' : '') + '</small>';
+  if(flameEl) flameEl.style.display = streak > 0 ? 'flex' : 'none';
 }
 
 function goToProfileView(direction){
