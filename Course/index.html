@@ -85,6 +85,13 @@
     font-size:13px; color:var(--ink-soft); background:var(--surface-soft);
     padding:6px 12px; border-radius:20px; border:1px solid var(--line);
   }
+  .topbar-right{display:flex; align-items:center; gap:8px;}
+  .btn-reload-topbar{
+    flex-shrink:0; width:32px; height:32px; border-radius:50%; border:none;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:16px;
+    display:flex; align-items:center; justify-content:center; padding:0; line-height:1;
+  }
+  .btn-reload-topbar:active{background:var(--line);}
 
   main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px;}
 
@@ -257,7 +264,10 @@
 <div id="app">
   <header class="topbar">
     <h1 class="display" id="titre-onglet">Saisie</h1>
-    <span class="profil-badge" id="badge-profil"></span>
+    <div class="topbar-right">
+      <button type="button" class="btn-reload-topbar" onclick="window.location.reload(true)" title="Forcer le rechargement" aria-label="Forcer le rechargement">⟳</button>
+      <span class="profil-badge" id="badge-profil"></span>
+    </div>
   </header>
 
   <main>
