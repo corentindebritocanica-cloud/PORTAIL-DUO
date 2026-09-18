@@ -18,3 +18,8 @@
 - Le nœud `budgetVoyagesLC` (ancienne fonctionnalité Vacances, déjà inutilisée par l'app) n'a pas été migré ; il reste uniquement dans la RTDB et dans la sauvegarde JSON archivée.
 - Règles de sécurité Firestore mises en place : lecture/écriture réservées aux utilisateurs authentifiés (`request.auth != null`), sur le même principe que les règles RTDB précédentes.
 - Corrections associées : la suppression d'un mois supprime désormais réellement le document Firestore correspondant ; le bouton "Annuler" (undo) après suppression d'une ligne sauvegarde le bon mois même si l'utilisateur a changé d'onglet entre-temps ; la restauration manuelle par fichier .json remplace proprement toute la collection (ajouts, mises à jour et suppressions des mois absents du fichier importé) au lieu de ne sauvegarder que le mois actif.
+
+### v3.0.1 — Correctif structure DOM + ouverture auto des cartes (2026-09-18)
+- Correctif critique : une balise `<div id="repartition-m" ...>` introduite en v2.9.7 avait perdu son chevron fermant (`>`). Cette erreur de frappe corrompait silencieusement toute la structure du DOM en dessous : les cartes Charges, Dépenses, Épargne et Provisions se retrouvaient hors du conteneur `mois-content-wrapper` censé porter l'écouteur de clic pour les suppressions. Conséquence : les croix rouges de suppression ne répondaient plus, sur aucune ligne, dans aucune carte.
+- Diagnostic confirmé par un test automatisé (jsdom) reproduisant le rendu réel de l'app et l'ancêtre DOM du bouton de suppression, avant et après correction.
+- Changement : cliquer sur "+ Nouvelle charge / dépense / provision" ou "+ Épargner" alors que la carte correspondante est repliée la déplie désormais automatiquement, pour que la ligne ajoutée soit immédiatement visible.
