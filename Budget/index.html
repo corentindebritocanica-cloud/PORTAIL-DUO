@@ -1285,8 +1285,10 @@
 
             // Vider corbeille
             if (e.target.id === 'btn-vider-corbeille') { viderCorbeille(); return; }
+        });
 
-            // Accordéon corbeille
+        // Accordéon (toutes les cartes, toutes les vues) — écouteur global délégué
+        document.body.addEventListener('click', (e) => {
             const header = e.target.closest('.card-header[data-target]');
             if (header) toggleSection(header.dataset.target, header);
         });
