@@ -110,8 +110,10 @@ entièrement retirée.
   rayon 18px) avec icône ronde à dégradé coloré (`.choice-icon`) + libellé Bebas Neue
   + description + chevron — repris du composant du même nom dans Muscu.
 - `theme-color` (meta) = `#0d1014`, aligné sur le nouveau `--bg`.
-- Pas de bascule clair/sombre (`light-mode`) contrairement à Muscu — non demandée,
-  le Portail reste en thème sombre unique. À ajouter si besoin.
+- **Bascule clair/sombre ajoutée (18/09/2026)** : bouton `theme-toggle` (cercle
+  🌙/☀️ en haut à droite, `env(safe-area-inset-top)` pris en compte), classe
+  `html.light-mode` avec les mêmes valeurs que Muscu/Course, préférence mémorisée
+  dans `localStorage` (`portail-theme`).
 
 ## 5. Comportement / fonctionnalités du portail
 
@@ -247,3 +249,20 @@ propre à son SDK/ses versions.
 
 ---
 *Dernière vérification du code live : 18/09/2026, via fetch du lien RAW GitHub.*
+
+## 10. Historique — Alignement charte UX/UI (18/09/2026)
+
+Audit puis mise en conformité avec `/UX_UI_CHARTER.md` (référence : app Muscu) :
+- `apple-mobile-web-app-status-bar-style` corrigé de `black` vers `black-translucent`
+  (cohérence avec Muscu et Course).
+- Ajout de `overscroll-behavior:none` sur `html,body` (évite tout rebond de
+  défilement indésirable).
+- Complément des jetons de design manquants pour cohérence future : `--r-xs`
+  (4px), `--r-xl` (22px), `--shadow-lg`, `--t-fast`/`--t-mid` — non utilisés
+  aujourd'hui sur cette page (pas de modale sur le Portail), mais prêts si un
+  futur écran (ex. confirmation avant navigation) en a besoin.
+- **Mode clair ajouté** (voir section 4) — le Portail était jusque-là la seule
+  des 4 pages sans bascule clair/sombre.
+- Le `manifest.json` du Portail était déjà conforme (theme_color aligné, icône
+  `maskable` en plus — meilleur que Muscu/Course sur ce point, à généraliser
+  aux deux autres apps si l'occasion se présente).
