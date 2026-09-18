@@ -11,14 +11,25 @@
    service worker ne peut mécaniquement jamais intercepter le portail,
    /Budget/ ou /Course/, même copié tel quel ailleurs par erreur.
 
-   Ce qui EST mis en cache : uniquement le shell statique — cette page et,
-   s'ils existent, les fichiers d'icône externes référencés dans son <head>.
-   Au 17/09/26, apple-touch-icon.png et icon-512.png sont référencés dans
-   index.html mais absents du dépôt (404) — cache.add() est fait fichier par
-   fichier (pas cache.addAll(), qui échoue en bloc au premier 404) pour que
-   l'absence de ces deux fichiers n'empêche jamais la mise en cache
-   d'index.html. Le jour où ils seront ajoutés au dépôt, ils commenceront à
-   se mettre en cache automatiquement, sans toucher à ce fichier.
+   Ce qui EST mis en cache : le shell statique — cette page, les fichiers
+   d'icône externes référencés dans son <head> (s'ils existent), ET le SDK
+   Firebase modulaire chargé depuis gstatic.com (voir FIREBASE_FILES plus
+   bas, ajouté le 18/09/2026). Au 17/09/26, apple-touch-icon.png et
+   icon-512.png sont référencés dans index.html mais absents du dépôt
+   (404) — cache.add() est fait fichier par fichier (pas cache.addAll(),
+   qui échoue en bloc au premier 404) pour que l'absence de ces deux
+   fichiers n'empêche jamais la mise en cache d'index.html. Le jour où ils
+   seront ajoutés au dépôt, ils commenceront à se mettre en cache
+   automatiquement, sans toucher à ce fichier.
+
+   Pourquoi le SDK Firebase est désormais mis en cache (18/09/2026) : Muscu
+   le charge via des `import` ES statiques dans un `<script type="module">`
+   (voir index.html) — si ces imports échouent hors-ligne (fichiers absents
+   du cache HTTP par défaut de Safari, que iOS peut vider), le module entier
+   ne s'exécute PAS DU TOUT (pas d'exécution partielle en JS : un import qui
+   échoue fait échouer tout le module), donc aucune fonctionnalité de l'app
+   ne démarre. Correctif suite à un signalement du même symptôme sur Course
+   (voir son README et celui du Portail, section 8).
 
    Ce qui N'est PAS mis en cache et ne doit jamais l'être : Firestore
    (firestore.googleapis.com), l'API Gemini (generativelanguage.googleapis.com),
@@ -27,13 +38,22 @@
    lister nommément. Firestore gère déjà sa propre persistance hors-ligne ;
    ce service worker n'a pas à s'en mêler. */
 
-const CACHE_NAME = 'muscu-shell-v1';
+const CACHE_NAME = 'muscu-shell-v2';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Budget inclus), et un
 // filtre `!== CACHE_NAME` les supprimait tous par erreur (bug corrigé le
 // 18/09/2026 — voir README, section Historique).
 const CACHE_PREFIX = 'muscu-shell-';
+
+// SDK Firebase modulaire chargé depuis gstatic.com (une autre origine) :
+// versions figées (12.18.0) — mettre à jour cette liste si jamais la
+// version change dans index.html.
+const FIREBASE_FILES = [
+  'https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js',
+  'https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js'
+];
 
 /* Recalculé à chaque usage plutôt que mis en cache une fois pour toutes :
    self.registration.scope est disponible aussi bien dans install/activate
@@ -52,7 +72,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.allSettled(
-        shellUrls().map((url) =>
+        [...shellUrls(), ...FIREBASE_FILES].map((url) =>
           cache.add(url).catch((err) => {
             console.warn('[sw] pas mis en cache (probablement un 404) :', url, err);
           })
@@ -82,8 +102,26 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  /* Jamais une autre origine : Firestore, l'API Gemini et les polices
-     Google sont ainsi ignorées sans avoir à les nommer. */
+  /* SDK Firebase (autre origine, gstatic.com) : cache-first, en dehors de
+     toute logique de scope/origine — voir FIREBASE_FILES ci-dessus. */
+  if (FIREBASE_FILES.includes(req.url)) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  /* Jamais une autre origine pour le reste : Firestore, l'API Gemini et
+     les polices Google sont ainsi ignorées sans avoir à les nommer. */
   if(url.origin !== self.location.origin) return;
 
   const scopePath = new URL(self.registration.scope).pathname;
