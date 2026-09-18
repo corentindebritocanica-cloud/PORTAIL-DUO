@@ -528,6 +528,8 @@ problème).
 - Bottom-bar recouvrant le dernier exercice → `adjustBottomSpacing()`, appliquée uniquement sur `view-exercises`.
 - Bouton undo recouvert par le badge de sync et le bouton de thème → `.header-row` a un `padding-right:86px`.
 - Éviter de tuiler un `repeating-linear-gradient` avec un `background-size` qui ne correspond pas à sa période.
+- **`.theme-toggle` et `.sync-badge` en `top:14px`/`16px` fixe (corrigé le 18/09/2026)** — sur iPhone à encoche/Dynamic Island, ces deux boutons fixes en haut à droite pouvaient se retrouver trop proches de la zone système selon l'orientation. Ajout de `env(safe-area-inset-top, 0px)` dans leur `top`. Repéré lors de l'audit de l'app Course contre `UX_UI_CHARTER.md`, où cette précaution existait déjà.
+- **Rebond de défilement iOS (`overscroll-behavior`) absent (corrigé le 18/09/2026)** — seul `-webkit-overflow-scrolling:touch` était présent ; ajout de `overscroll-behavior:none` sur `html,body` pour éviter tout rebond/pull-to-refresh indésirable en haut ou bas d'une liste lors d'un swipe appuyé. Même origine : bonne pratique déjà en place dans Course.
 
 ## Tests
 
