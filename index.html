@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Portail Duo">
 <meta name="theme-color" content="#0d1014">
 <title>Portail Duo</title>
@@ -38,19 +38,35 @@
     --green:#12b981;     /* Courses */
     --green-dark:#0d8f64;
 
+    --r-xs:4px;
     --r-sm:10px;
     --r-md:14px;
     --r-lg:18px;
+    --r-xl:22px;
     --r-pill:999px;
 
     --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
     --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
+
+    --t-fast:.14s;
+    --t-mid:.22s;
 
     --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+  /* Mode clair (charte UX/UI, memes valeurs que Muscu/Course) */
+  html.light-mode{
+    --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
+    --border:rgba(23,38,56,0.11); --border-strong:rgba(23,38,56,0.20);
+    --text:#131a23; --text-dim:#5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+  }
+  html.light-mode body::before{ display:none; }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{ margin:0; min-height:100%; }
+  html,body{ margin:0; min-height:100%; overscroll-behavior:none; }
   body{
     min-height:100vh;
     background:var(--bg);
@@ -139,9 +155,20 @@
   @media (prefers-reduced-motion: reduce){
     .big-choice-btn{ transition:none; }
   }
+
+  /* Bouton de bascule theme (charte UX/UI) */
+  .theme-toggle{
+    position:fixed; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; z-index:25;
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow: var(--shadow-sm);
+  }
 </style>
 </head>
 <body>
+
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Changer de theme">🌙</button>
 
   <main>
     <p class="app-title"><span class="app-title-brand">Portail Duo</span> · Corentin &amp; Lisa</p>
@@ -193,6 +220,25 @@
   </main>
 
 <script>
+  /* ============================================================
+     THEME CLAIR / SOMBRE (charte UX/UI)
+     ============================================================ */
+  (function(){
+    const root = document.documentElement;
+    const btn = document.getElementById('theme-toggle');
+    const stocke = localStorage.getItem('portail-theme');
+    function appliquer(theme){
+      root.classList.toggle('light-mode', theme === 'light');
+      btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    }
+    appliquer(stocke === 'light' ? 'light' : 'dark');
+    btn.addEventListener('click', ()=>{
+      const nouveauTheme = root.classList.contains('light-mode') ? 'dark' : 'light';
+      localStorage.setItem('portail-theme', nouveauTheme);
+      appliquer(nouveauTheme);
+    });
+  })();
+
   document.querySelectorAll('.big-choice-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = btn.getAttribute('data-url');
