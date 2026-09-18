@@ -20,7 +20,7 @@
 <!-- Firebase (compat SDK — obligatoire pour Safari iOS, pas d'import ES module) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <style>
   :root{
@@ -334,7 +334,6 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
   authDomain: "course-app-36e9d.firebaseapp.com",
-  databaseURL: "https://course-app-36e9d-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "course-app-36e9d",
   storageBucket: "course-app-36e9d.firebasestorage.app",
   messagingSenderId: "55041357024",
@@ -342,15 +341,22 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.database();
+const db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-/* Wrappers (évite les conflits de noms globaux, cf. Budget L&C) */
-function dbRef(path){ return db.ref(path); }
-function dbSet(path, val){ return dbRef(path).set(val); }
-function dbUpdate(path, val){ return dbRef(path).update(val); }
-function dbPush(path, val){ return dbRef(path).push(val); }
-function dbOn(path, cb){ dbRef(path).on('value', cb); }
+/* Wrappers Firestore (collections top-level "produits" et "rayons") */
+function colRef(nom){ return db.collection(nom); }
+function docRef(nom, id){ return db.collection(nom).doc(id); }
+function dbUpdateDoc(nom, id, val){ return docRef(nom, id).update(val); }
+function dbSetDoc(nom, id, val){ return docRef(nom, id).set(val); }
+function dbAddDoc(nom, val){ return colRef(nom).add(val); }
+function dbOnCollection(nom, cb){
+  colRef(nom).onSnapshot(snap=>{
+    const obj = {};
+    snap.forEach(doc=> obj[doc.id] = doc.data());
+    cb(obj);
+  });
+}
 function authListen(cb){ auth.onAuthStateChanged(cb); }
 
 function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
@@ -505,27 +511,23 @@ const PRODUITS_SEED = [
 ];
 
 function lancerSeedSiVide(){
-  dbRef('courses/rayons').once('value').then(snap=>{
-    if(snap.exists()) return; // déjà initialisé, on ne touche à rien
-    const rayonsObj = {};
+  colRef('rayons').limit(1).get().then(snap=>{
+    if(!snap.empty) return; // déjà initialisé, on ne touche à rien
+    const batch = db.batch();
+    const nomVersId = {};
     RAYONS_SEED.forEach(nom=>{
-      const id = dbPush('courses/rayons').key;
-      rayonsObj[id] = nom;
+      const ref = colRef('rayons').doc();
+      batch.set(ref, { nom });
+      nomVersId[nom] = ref.id;
     });
-    dbSet('courses/rayons', rayonsObj).then(()=>{
-      // reconstruire une map nom->id pour lier les produits
-      const nomVersId = {};
-      Object.entries(rayonsObj).forEach(([id,nom])=> nomVersId[nom]=id);
-      const produitsObj = {};
-      PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
-        const id = dbPush('courses/produits').key;
-        produitsObj[id] = {
-          nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
-          aAcheter:false, compteur:0
-        };
+    PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
+      const ref = colRef('produits').doc();
+      batch.set(ref, {
+        nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
+        aAcheter:false, compteur:0
       });
-      dbSet('courses/produits', produitsObj);
     });
+    batch.commit();
   });
 }
 
@@ -536,12 +538,14 @@ function demarrer(){
   authListen(user=>{
     if(user){
       lancerSeedSiVide();
-      dbOn('courses/produits', snap=>{
-        state.produits = snap.val() || {};
+      dbOnCollection('produits', obj=>{
+        state.produits = obj;
         render();
       });
-      dbOn('courses/rayons', snap=>{
-        state.rayons = snap.val() || {};
+      dbOnCollection('rayons', obj=>{
+        const rayonsNoms = {};
+        Object.entries(obj).forEach(([id,val])=> rayonsNoms[id] = val.nom);
+        state.rayons = rayonsNoms;
         render();
       });
       document.getElementById('ecran-login').style.display='none';
@@ -618,31 +622,30 @@ function toggleAcheter(id){
   if(nouveauStatut){
     updates.compteur = (p.compteur||0) + 1;
   }
-  dbUpdate('courses/produits/'+id, updates);
+  dbUpdateDoc('produits', id, updates);
   vibrer(12);
 }
 
 function toggleAcheteCourse(id){
   const p = state.produits[id];
   if(!p) return;
-  dbUpdate('courses/produits/'+id, { achete: !p.achete });
+  dbUpdateDoc('produits', id, { achete: !p.achete });
   vibrer(15);
 }
 
 function terminerCourse(){
   const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
   if(aEffacer.length===0) return;
-  const updates = {};
+  const batch = db.batch();
   aEffacer.forEach(([id])=>{
-    updates['courses/produits/'+id+'/aAcheter'] = false;
-    updates['courses/produits/'+id+'/achete'] = false;
+    batch.update(docRef('produits', id), { aAcheter:false, achete:false });
   });
-  db.ref().update(updates);
+  batch.commit();
   vibrer(20);
 }
 
 function updateQuantite(id, val){
-  dbUpdate('courses/produits/'+id, { quantite: val });
+  dbUpdateDoc('produits', id, { quantite: val });
 }
 
 /* ============================================================
@@ -717,7 +720,7 @@ function renderCourse(){
       <h2 class="display">${escapeHtml(rayonNom)}</h2>
       ${produitsRayon.map(([id,p])=>`
         <div class="carte-produit">
-          <div class="checkbox mode-course" onclick="marquerAchete('${id}')">${iconeCheck()}</div>
+          <div class="checkbox mode-course" onclick="toggleAcheteCourse('${id}')">${iconeCheck()}</div>
           <div class="infos-produit">
             <div class="nom-produit">${escapeHtml(p.nom)}</div>
             ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
@@ -762,13 +765,11 @@ document.getElementById('btn-valider-ajout').addEventListener('click', async ()=
   if(rayonId==='__nouveau__'){
     const nomRayon = document.getElementById('input-nouveau-rayon').value.trim();
     if(!nomRayon){ return; }
-    const ref = dbPush('courses/rayons');
-    await dbSet('courses/rayons/'+ref.key, nomRayon);
-    rayonId = ref.key;
+    const ref = await dbAddDoc('rayons', { nom: nomRayon });
+    rayonId = ref.id;
   }
 
-  const ref = dbPush('courses/produits');
-  await dbSet('courses/produits/'+ref.key, {
+  await dbAddDoc('produits', {
     nom, quantite, rayonId, aAcheter:true, compteur:1
   });
   overlayAjout.classList.remove('visible');
@@ -777,7 +778,7 @@ document.getElementById('btn-valider-ajout').addEventListener('click', async ()=
 
 function remplirSelectRayons(selectId, avecOptionNouveau, rayonSelectionne){
   const sel = document.getElementById(selectId);
-  const rayonsTries = Object.entries(state.rayons).sort((a,b)=>a[1].localeCompare(b[1]));
+  const rayonsTries = Object.entries(state.rayons).sort((a,b)=>(a[1]||'').localeCompare(b[1]||''));
   let html = rayonsTries.map(([id,nom])=>`<option value="${id}">${escapeHtml(nom)}</option>`).join('');
   if(avecOptionNouveau){
     html += `<option value="__nouveau__">+ Nouveau rayon…</option>`;
@@ -802,7 +803,7 @@ document.getElementById('btn-annuler-rayon').addEventListener('click', ()=> over
 overlayRayon.addEventListener('click', e=>{ if(e.target===overlayRayon) overlayRayon.classList.remove('visible'); });
 document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
   const rayonId = document.getElementById('select-rayon-existant').value;
-  dbUpdate('courses/produits/'+produitEnEdition, { rayonId });
+  dbUpdateDoc('produits', produitEnEdition, { rayonId });
   overlayRayon.classList.remove('visible');
 });
 
