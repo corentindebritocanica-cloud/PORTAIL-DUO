@@ -202,16 +202,33 @@
   });
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {
+    // Confirmation ajoutée le 18/09/2026 : ce bouton est destructif pour le
+    // hors-ligne du Portail (il faudra le recharger en ligne une fois pour
+    // qu'il redevienne disponible sans réseau) — mieux vaut valider le clic.
+    const ok = window.confirm('Vider le cache du Portail et recharger ?\n\nLe Portail ne sera plus disponible hors-ligne tant qu\'il n\'aura pas été rouvert au moins une fois avec une connexion.');
+    if (!ok) return;
+
     const btn = e.currentTarget;
     btn.classList.add('spin');
     try {
+      // Correctif 18/09/2026 : caches.keys() et getRegistrations() renvoient
+      // TOUT ce qui existe sur le domaine, pas seulement ce qui appartient au
+      // Portail. Sans filtre, ce bouton supprimait aussi le cache et le
+      // Service Worker de Course/Muscu/Budget — corrigé en limitant chaque
+      // suppression à ce qui appartient réellement au Portail.
       if ('caches' in window) {
+        const CACHE_PREFIX = 'portail-duo-shell-';
         const names = await caches.keys();
-        await Promise.all(names.map(n => caches.delete(n)));
+        await Promise.all(
+          names.filter(n => n.startsWith(CACHE_PREFIX)).map(n => caches.delete(n))
+        );
       }
       if ('serviceWorker' in navigator) {
+        const scopePortail = new URL('./', window.location.href).href;
         const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister()));
+        await Promise.all(
+          regs.filter(r => r.scope === scopePortail).map(r => r.unregister())
+        );
       }
     } catch (err) {
       // silencieux : on recharge quand même
