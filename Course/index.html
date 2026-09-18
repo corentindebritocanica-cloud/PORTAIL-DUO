@@ -374,8 +374,33 @@ function updateDebugPanel(){
   if(!el) return;
   const d = window.__debugCache;
   const fmt = (o) => o.count===null ? '?' : `${o.count} (${o.fromCache===null?'?':o.fromCache?'CACHE':'SERVEUR'})`;
-  el.textContent = `persistance: ${d.persistence}${d.erreur ? ' — '+d.erreur : ''} | produits: ${fmt(d.produits)} | rayons: ${fmt(d.rayons)} | navigator.onLine: ${navigator.onLine}`;
+  el.textContent = `persistance: ${d.persistence}${d.erreur ? ' — '+d.erreur : ''} | produits: ${fmt(d.produits)} | rayons: ${fmt(d.rayons)} | onLine: ${navigator.onLine} | cacheFirebase: ${d.cacheFirebase || '…'}`;
 }
+
+// Vérification directe (indépendante du succès/échec de l'import) : ces
+// fichiers sont-ils réellement présents dans le Cache Storage du
+// navigateur, tout de suite, avant même de tenter de les charger ?
+// caches.match() (sur l'objet global CacheStorage, pas un Cache précis)
+// cherche dans TOUS les caches de l'origine, donc pas besoin de connaître
+// le nom exact du cache courant du sw.js (qui peut changer de version).
+(function verifierCacheFirebase(){
+  if(!('caches' in window)){
+    window.__debugCache.cacheFirebase = 'API caches indisponible';
+    updateDebugPanel();
+    return;
+  }
+  const urls = [
+    'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
+  ];
+  Promise.all(urls.map((u) => caches.match(u).then((r) => (r ? 'OK' : 'X')).catch(() => '?')))
+    .then((resultats) => {
+      window.__debugCache.cacheFirebase = urls.map((u, i) => u.split('/').pop().replace('firebase-','').replace('.js','') + ':' + resultats[i]).join(' ');
+      updateDebugPanel();
+    });
+})();
 
 // Cache Firestore persistant (remplace enablePersistence, déprécié) : import dynamique
 // pour rester compatible avec le SDK compat (pas de passage en type="module", qui casserait
