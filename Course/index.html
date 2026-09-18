@@ -659,7 +659,16 @@ function lancerSeedSiVide(){
 function demarrer(){
   authListen(user=>{
     if(user){
-      lancerSeedSiVide();
+      // lancerSeedSiVide() DÉSACTIVÉE le 18/09/2026 : la vérification
+      // "la base est-elle vide ?" s'est révélée fragile sur un client
+      // fraîchement réinitialisé (ex: après vidage des données Safari),
+      // y compris EN LIGNE — causant 3 réinjections accidentelles du
+      // catalogue de départ le même jour (voir README, section
+      // Historique). Le catalogue existe désormais réellement en base
+      // (131 produits, 13 rayons) : cette sécurité n'a plus d'utilité et
+      // son risque dépasse largement son bénéfice. Fonction conservée
+      // plus bas mais rendue inatteignable, au cas où on voudrait un jour
+      // la ré-activer avec une logique plus sûre.
       dbOnCollection('produits', obj=>{
         state.produits = obj;
         render();
