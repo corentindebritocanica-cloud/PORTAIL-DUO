@@ -24,3 +24,4 @@ Au premier chargement avec une base vide, l'app importe automatiquement un catal
 
 ## Historique des modifications
 - Suppression de l'écran de chargement (splash screen) affiché entre le lancement de l'app et la réponse de Firebase Auth.
+- Correctif : un produit dont le champ `nom` est manquant/vide dans la base faisait planter le tri (`localeCompare` sur `undefined`) dans `renderSaisie` et `renderCourse`, ce qui figeait l'affichage de la liste (le compteur restait juste mais le contenu ne se mettait plus à jour). Le tri tolère désormais un nom absent.
