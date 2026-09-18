@@ -136,6 +136,23 @@ entièrement retirée.
      contrôle Safari visible).
 - **Footer retiré le 18/09/2026** : la phrase *"Portail Duo · pas de compte, pas de
   cloud"* qui figurait sous les cartes a été supprimée à la demande de Corentin.
+- **Ouverture hors ligne activée le 18/09/2026** : un fichier `sw.js` (Service
+  Worker) existait déjà à la racine du dépôt — mettant en cache le shell
+  (`index.html`, `manifest.json`, les 3 icônes) — mais n'avait **jamais été
+  enregistré** depuis `index.html`, donc jamais réellement actif. Ajout de :
+  ```js
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { scope: './' })
+        .catch((err) => console.warn('[sw] enregistrement échoué :', err));
+    });
+  }
+  ```
+  Le Portail s'ouvre désormais même sans réseau, une fois visité au moins une
+  fois en ligne. Fait dans le cadre d'une harmonisation offline sur les 4 apps
+  du dépôt (voir aussi `Muscu/README.md`, `Course/README.md`, `Budget/README.md`
+  — Budget n'avait ni Service Worker ni persistance Firestore, tous deux ajoutés
+  ce même jour).
 - Aucune autre logique JS au-delà de la navigation (pas de Firebase, pas d'auth, pas
   de state persistant).
 
