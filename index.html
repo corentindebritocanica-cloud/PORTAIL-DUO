@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#05060c">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eee6d3">
 <title>Portail Duo</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
@@ -13,88 +13,67 @@
 <link rel="apple-touch-icon" href="icone-192.png">
 <style>
   :root{
-    --void: #05060c;
-    --void-2: #0b0e1c;
-    --star: #f4efe0;
-    --star-dim: rgba(244,239,224,0.4);
-    --gold: #d9b273;
-    --gold-dim: #8a7148;
-    --blue: #63c8ff;
-    --green: #71e3a4;
-    --comet: #ff9a5c;
+    --sand: #f1ead8;
+    --sand-2: #e4dabf;
+    --ink: #3c362b;
+    --ink-dim: rgba(60,54,43,0.5);
+    --stone-blue: #64767e;
+    --stone-gold: #b3854a;
+    --stone-green: #6d8a5b;
+    --water: #6fa3bf;
   }
 
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-  html,body{ height:100%; margin:0; overflow:hidden; background:var(--void); }
+  html,body{ height:100%; margin:0; overflow:hidden; background:var(--sand); }
   body{
     font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-    color: var(--star);
+    color:var(--ink);
     -webkit-font-smoothing:antialiased;
   }
 
-  .sky{
+  .garden{
     position:fixed; inset:0;
     overflow:hidden;
-    touch-action:none;
-    background: radial-gradient(140% 90% at 50% 120%, var(--void-2) 0%, var(--void) 60%);
+    background: radial-gradient(120% 85% at 50% 8%, var(--sand) 0%, var(--sand-2) 100%);
   }
 
-  .stars{ position:absolute; inset:-10% -50% -10% -50%; pointer-events:none; }
-  .stars i{
+  .rake{ position:absolute; inset:0; width:100%; height:100%; }
+  .rake-line{ stroke:var(--ink); stroke-opacity:.1; stroke-width:1; fill:none; }
+  .ring{ stroke:var(--ink); stroke-opacity:.16; fill:none; stroke-width:1; }
+
+  .stone{
     position:absolute;
-    width:2px; height:2px;
-    background:var(--star);
+    display:flex; flex-direction:column; align-items:center;
+    transform:translate(-50%,-50%);
+    cursor:pointer;
+  }
+  .stone .rock{
+    background: radial-gradient(120% 120% at 30% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 45%),
+                linear-gradient(155deg, var(--c-light), var(--c-dark));
+    border-radius: 58% 42% 55% 45% / 45% 55% 45% 55%;
+    box-shadow: 0 10px 18px -8px rgba(30,26,18,.35), 0 2px 3px rgba(30,26,18,.2);
+    transition: transform .28s ease, filter .28s ease;
+  }
+  .stone::after{
+    content:"";
+    position:absolute;
+    left:50%; bottom:-8px;
+    width:78%; height:14px;
+    transform:translateX(-50%);
+    background:radial-gradient(closest-side, rgba(40,34,22,.22), transparent 75%);
     border-radius:50%;
-    animation: twinkle 4.5s ease-in-out infinite;
+    z-index:-1;
   }
-  @keyframes twinkle{ 0%,100%{ opacity:.15 } 50%{ opacity:.9 } }
-
-  .rail-scale{ position:absolute; inset:0; }
-  .rail{
-    position:absolute; top:0; left:0;
-    height:100%; width:300vw;
-    display:flex;
-    will-change:transform;
+  .stone.tapped .rock{ transform:scale(.88); filter:brightness(1.18); }
+  .stone .label{ margin-top:14px; text-align:center; transition:opacity .3s ease; }
+  .stone .label .name{
+    display:block; font-size:14px; letter-spacing:.28em;
+    font-variant:small-caps; color:var(--ink);
   }
-
-  .slot{
-    width:100vw; height:100%;
-    display:flex; align-items:center; justify-content:center; flex-direction:column;
-    opacity:.28;
-    transform:scale(.86);
-    filter:saturate(.35) brightness(.65);
-    transition:opacity .5s ease, transform .5s ease, filter .5s ease;
-    pointer-events:none;
+  .stone .label .desc{
+    display:block; margin-top:5px; font-size:11px; font-style:italic; color:var(--ink-dim);
   }
-  .slot.active{ opacity:1; transform:scale(1); filter:none; pointer-events:auto; }
-
-  .slot.warping-slot .constellation{
-    transition: transform .62s cubic-bezier(.3,0,1,1), opacity .5s ease .1s;
-  }
-  .slot.warping-slot .constellation{ transform:scale(2.6); }
-  .slot.warping-slot .label{ opacity:0; transition:opacity .25s ease; }
-  .slot.warping-slot .hub{ animation: hubBurst .62s ease forwards; }
-  @keyframes hubBurst{ to{ r:44; opacity:0; } }
-
-  .constellation{ width:min(72vw,320px); overflow:visible; }
-  .constellation line{ stroke:var(--c); stroke-width:1; opacity:.55; }
-  .constellation circle.pt{ fill:var(--star); }
-  .constellation circle.hub{
-    fill:var(--c);
-    filter: drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 14px var(--c));
-    animation: pulseHub 2.6s ease-in-out infinite;
-  }
-  @keyframes pulseHub{ 0%,100%{ r:6 } 50%{ r:7.4 } }
-  .hub-hit{ fill:transparent; pointer-events:all; cursor:pointer; }
-
-  .label{ margin-top:24px; text-align:center; }
-  .label .name{
-    display:block; font-size:15px; letter-spacing:.32em;
-    font-variant:small-caps; color:var(--c);
-  }
-  .label .desc{
-    display:block; margin-top:7px; font-size:12px; font-style:italic; color:var(--star-dim);
-  }
+  .stone.tapped .label{ opacity:0; }
 
   .plaque{
     position:fixed;
@@ -102,130 +81,116 @@
     left:22px;
     pointer-events:none;
   }
-  .plaque .t1{ display:block; font-size:11px; letter-spacing:.4em; font-variant:small-caps; color:var(--gold); opacity:.85; }
-  .plaque .t2{ display:block; margin-top:3px; font-size:10px; font-style:italic; color:var(--star-dim); }
+  .plaque .t1{ display:block; font-size:11px; letter-spacing:.4em; font-variant:small-caps; color:var(--ink); opacity:.7; }
+  .plaque .t2{ display:block; margin-top:3px; font-size:10px; font-style:italic; color:var(--ink-dim); }
 
-  .dots{
-    position:fixed;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
-    left:0; right:0;
-    display:flex; justify-content:center; gap:10px;
-    pointer-events:none;
-  }
-  .dot{
-    width:6px; height:6px; border-radius:50%;
-    background:var(--star-dim);
-    pointer-events:all; cursor:pointer;
-    transition:background .3s ease, transform .3s ease;
-  }
-  .dot.active{ background:var(--star); transform:scale(1.3); }
-
-  .comet-zone{
+  .basin-zone{
     position:fixed;
     right:20px;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 52px);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
     display:flex; flex-direction:column; align-items:flex-end; gap:6px;
   }
-  .comet{
-    width:44px; height:44px;
+  .basin{
+    width:52px; height:40px;
     position:relative;
-    animation:drift 5s ease-in-out infinite;
-    touch-action:none;
     cursor:pointer;
+    touch-action:none;
   }
-  .comet svg{ width:100%; height:100%; overflow:visible; }
-  .comet .core{ fill:var(--comet); filter:drop-shadow(0 0 5px var(--comet)); }
-  .comet .tail{ stroke:var(--comet); stroke-width:1.4; }
-  @keyframes drift{ 0%,100%{ transform:translate(0,0) } 50%{ transform:translate(-4px,-6px) } }
-  .comet.charging{ animation:none; }
-  .comet.charging .core{ filter:drop-shadow(0 0 5px var(--comet)) drop-shadow(0 0 16px var(--comet)); }
-  .comet.launch{
-    animation:none;
-    transition: transform .5s cubic-bezier(.4,0,1,1), opacity .5s ease;
-    transform: translate(-140vw,-90vh) scale(.4);
-    opacity:0;
+  .basin svg{ width:100%; height:100%; overflow:visible; }
+  .basin .bowl{ fill:none; stroke:var(--ink); stroke-opacity:.55; stroke-width:1.4; }
+  .basin .water{ fill:var(--water); opacity:.55; }
+  .basin .drop{
+    fill:var(--water);
+    transform-origin:center;
+    animation: dropFall 3.2s ease-in infinite;
   }
-  .comet-caption{ font-size:9.5px; font-style:italic; letter-spacing:.03em; color:var(--star-dim); opacity:.65; }
+  @keyframes dropFall{
+    0%{ transform:translateY(-6px); opacity:0; }
+    12%{ opacity:1; }
+    40%{ transform:translateY(10px); opacity:0; }
+    100%{ transform:translateY(10px); opacity:0; }
+  }
+  .basin.charging .water{ opacity:.9; }
+  .basin-caption{ font-size:9.5px; font-style:italic; letter-spacing:.03em; color:var(--ink-dim); opacity:.7; }
 
-  .flash{
+  .ripple{
     position:fixed; inset:0;
     pointer-events:none;
-    background: radial-gradient(circle at 50% 50%, var(--c,#fff) 0%, transparent 60%);
+    background: radial-gradient(circle at var(--ox,50%) var(--oy,50%), var(--c,#fff) 0%, transparent 55%);
+    opacity:0;
+    transform:scale(.15);
+    transform-origin: var(--ox,50%) var(--oy,50%);
+  }
+  .garden.rippling .ripple{ animation: rippleGrow .78s ease forwards; }
+  @keyframes rippleGrow{
+    0%{ opacity:0; transform:scale(.15); }
+    35%{ opacity:.5; }
+    100%{ opacity:.95; transform:scale(2.8); }
+  }
+
+  .basin-ripple{
+    position:fixed; inset:0;
+    pointer-events:none;
+    background: radial-gradient(circle at var(--bx,88%) var(--by,88%), var(--sand) 0%, transparent 60%);
     opacity:0;
   }
-  .sky.warping .rail-scale{
-    transition: transform .62s cubic-bezier(.4,0,1,1), filter .62s ease;
-    transform: scale(1.6);
-    filter: blur(7px) brightness(1.7);
+  .garden.washing .basin-ripple{ animation: washGrow .9s ease forwards; }
+  @keyframes washGrow{
+    0%{ opacity:0; }
+    100%{ opacity:1; }
   }
-  .sky.warping .flash{ animation: flashIn .62s ease forwards; }
-  @keyframes flashIn{ 0%{ opacity:0 } 55%{ opacity:.92 } 100%{ opacity:1 } }
 
   @media (prefers-reduced-motion: reduce){
-    .comet{ animation:none; }
-    .slot{ transition:none; }
-    .stars i{ animation:none; opacity:.5; }
+    .basin .drop{ animation:none; opacity:.6; }
+    .stone .rock, .stone .label{ transition:none; }
   }
 </style>
 </head>
 <body>
 
-  <div class="sky" id="sky">
-    <div class="stars" id="stars"></div>
+  <div class="garden" id="garden">
 
-    <div class="rail-scale">
-      <div class="rail" id="rail">
+    <svg class="rake" preserveAspectRatio="none" viewBox="0 0 400 800">
+      <defs>
+        <pattern id="rakePattern" width="46" height="14" patternUnits="userSpaceOnUse">
+          <path class="rake-line" d="M-5 7 Q6 1 17 7 T39 7 T61 7"/>
+        </pattern>
+      </defs>
+      <rect width="400" height="800" fill="url(#rakePattern)"/>
+      <circle class="ring" cx="112" cy="496" r="66"/>
+      <circle class="ring" cx="112" cy="496" r="86"/>
+      <circle class="ring" cx="272" cy="304" r="58"/>
+      <circle class="ring" cx="272" cy="304" r="76"/>
+      <circle class="ring" cx="180" cy="656" r="72"/>
+      <circle class="ring" cx="180" cy="656" r="94"/>
+    </svg>
 
-        <div class="slot active" data-url="./Muscu/" data-color="#63c8ff">
-          <svg class="constellation" style="--c:var(--blue)" viewBox="0 0 220 160">
-            <line x1="30" y1="82" x2="190" y2="82"/>
-            <circle class="pt" cx="70" cy="82" r="2.2"/>
-            <circle class="pt" cx="130" cy="82" r="2.2"/>
-            <circle class="pt" cx="30" cy="82" r="5"/>
-            <circle class="hub" cx="190" cy="82" r="6"/>
-            <circle class="hub-hit" cx="190" cy="82" r="32" role="link" aria-label="Ouvrir Musculation"/>
-          </svg>
-          <div class="label">
-            <span class="name">Musculation</span>
-            <span class="desc">Séances, progressions &amp; coach IA</span>
-          </div>
-        </div>
-
-        <div class="slot" data-url="./Budget/" data-color="#d9b273">
-          <svg class="constellation" style="--c:var(--gold)" viewBox="0 0 220 160">
-            <line x1="40" y1="132" x2="108" y2="90"/>
-            <line x1="108" y1="90" x2="176" y2="34"/>
-            <circle class="pt" cx="40" cy="132" r="4"/>
-            <circle class="pt" cx="108" cy="90" r="3"/>
-            <circle class="hub" cx="176" cy="34" r="6"/>
-            <circle class="hub-hit" cx="176" cy="34" r="32" role="link" aria-label="Ouvrir Budget"/>
-          </svg>
-          <div class="label">
-            <span class="name">Budget</span>
-            <span class="desc">Charges, dépenses &amp; provisions</span>
-          </div>
-        </div>
-
-        <div class="slot" data-url="./Course/" data-color="#71e3a4">
-          <svg class="constellation" style="--c:var(--green)" viewBox="0 0 220 160">
-            <line x1="46" y1="60" x2="110" y2="128"/>
-            <line x1="110" y1="128" x2="174" y2="60"/>
-            <line x1="110" y1="128" x2="110" y2="46"/>
-            <circle class="pt" cx="46" cy="60" r="3.5"/>
-            <circle class="pt" cx="174" cy="60" r="3.5"/>
-            <circle class="hub" cx="110" cy="46" r="6"/>
-            <circle class="hub-hit" cx="110" cy="46" r="32" role="link" aria-label="Ouvrir Courses"/>
-          </svg>
-          <div class="label">
-            <span class="name">Courses</span>
-            <span class="desc">Saisie &amp; liste au supermarché</span>
-          </div>
-        </div>
-
+    <div class="stone" id="stone-muscu" data-url="./Muscu/" data-color="#64767e" style="left:28%; top:62%;">
+      <div class="rock" style="width:78px; height:60px; --c-light:#8b9aa1; --c-dark:#4d5c63;"></div>
+      <div class="label">
+        <span class="name">Musculation</span>
+        <span class="desc">Séances, progressions &amp; coach IA</span>
       </div>
     </div>
 
-    <div class="flash" id="flash"></div>
+    <div class="stone" id="stone-budget" data-url="./Budget/" data-color="#b3854a" style="left:68%; top:38%;">
+      <div class="rock" style="width:64px; height:50px; --c-light:#d3ac74; --c-dark:#8c6535;"></div>
+      <div class="label">
+        <span class="name">Budget</span>
+        <span class="desc">Charges, dépenses &amp; provisions</span>
+      </div>
+    </div>
+
+    <div class="stone" id="stone-course" data-url="./Course/" data-color="#6d8a5b" style="left:47%; top:83%;">
+      <div class="rock" style="width:92px; height:70px; --c-light:#8fac7c; --c-dark:#4c6440;"></div>
+      <div class="label">
+        <span class="name">Courses</span>
+        <span class="desc">Saisie &amp; liste au supermarché</span>
+      </div>
+    </div>
+
+    <div class="ripple" id="ripple"></div>
+    <div class="basin-ripple" id="basinRipple"></div>
   </div>
 
   <div class="plaque">
@@ -233,138 +198,48 @@
     <span class="t2">Corentin &amp; Lisa</span>
   </div>
 
-  <div class="dots" id="dots">
-    <span class="dot active"></span>
-    <span class="dot"></span>
-    <span class="dot"></span>
-  </div>
-
-  <div class="comet-zone">
-    <div class="comet" id="comet" role="button" tabindex="0" aria-label="Vider le cache et redémarrer">
-      <svg viewBox="0 0 60 60">
-        <path class="tail" d="M46 14 L14 46" fill="none" stroke-linecap="round" opacity="0.55"/>
-        <path class="tail" d="M50 22 L22 50" fill="none" stroke-linecap="round" opacity="0.3"/>
-        <circle class="core" cx="46" cy="14" r="6"/>
+  <div class="basin-zone">
+    <div class="basin" id="basin" role="button" tabindex="0" aria-label="Vider le cache et redémarrer">
+      <svg viewBox="0 0 52 40">
+        <path class="bowl" d="M6 18 Q26 30 46 18"/>
+        <path class="bowl" d="M4 18 L48 18"/>
+        <ellipse class="water" cx="26" cy="19" rx="19" ry="4.5"/>
+        <circle class="drop" cx="26" cy="4" r="2.4"/>
       </svg>
     </div>
-    <span class="comet-caption">comète · glisser ou maintenir</span>
+    <span class="basin-caption">bassin · maintenir pour rafraîchir</span>
   </div>
 
 <script>
 (function(){
-  const sky = document.getElementById('sky');
-  const rail = document.getElementById('rail');
-  const slots = Array.from(rail.querySelectorAll('.slot'));
-  const dots = Array.from(document.querySelectorAll('.dot'));
-  const flash = document.getElementById('flash');
+  const garden = document.getElementById('garden');
+  const ripple = document.getElementById('ripple');
+  const stones = Array.from(document.querySelectorAll('.stone'));
 
-  let slotWidth = window.innerWidth;
-  let currentIndex = 0;
-  let offset = 0;
-  let dragging = false;
-  let moved = false;
-  let dragStartX = 0;
-  let dragStartOffset = 0;
-  let lastX = 0, lastT = 0, velocity = 0;
-  let activePointerId = null;
-
-  function setActive(index, animate){
-    currentIndex = Math.max(0, Math.min(slots.length - 1, index));
-    offset = -currentIndex * slotWidth;
-    rail.style.transition = animate ? 'transform .48s cubic-bezier(.2,.7,.3,1)' : 'none';
-    rail.style.transform = 'translateX(' + offset + 'px)';
-    slots.forEach((s, i) => s.classList.toggle('active', i === currentIndex));
-    dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
-  }
-
-  function onResize(){
-    slotWidth = window.innerWidth;
-    setActive(currentIndex, false);
-  }
-  window.addEventListener('resize', onResize);
-
-  sky.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('.comet')) return;
-    dragging = true; moved = false;
-    activePointerId = e.pointerId;
-    try { sky.setPointerCapture(activePointerId); } catch(_) {}
-    dragStartX = e.clientX;
-    dragStartOffset = offset;
-    lastX = e.clientX; lastT = performance.now(); velocity = 0;
-    rail.style.transition = 'none';
-  });
-
-  sky.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - dragStartX;
-    if (Math.abs(dx) > 6) moved = true;
-    let raw = dragStartOffset + dx;
-    const min = -(slots.length - 1) * slotWidth;
-    if (raw > 0) raw = raw * 0.35;
-    if (raw < min) raw = min + (raw - min) * 0.35;
-    rail.style.transform = 'translateX(' + raw + 'px)';
-    const now = performance.now();
-    const dt = now - lastT;
-    if (dt > 0) velocity = (e.clientX - lastX) / dt;
-    lastX = e.clientX; lastT = now;
-  });
-
-  function endDrag(e, cancelled){
-    if (!dragging) return;
-    dragging = false;
-    if (activePointerId !== null) { try { sky.releasePointerCapture(activePointerId); } catch(_) {} }
-
-    if (!moved && !cancelled){
-      const hub = e.target.closest('.hub-hit');
-      if (hub){
-        const slotEl = hub.closest('.slot');
-        if (slotEl && slotEl.classList.contains('active')){
-          launch(slotEl);
-          return;
-        }
+  stones.forEach((stone) => {
+    stone.addEventListener('click', () => launch(stone));
+    stone.setAttribute('role', 'link');
+    stone.setAttribute('tabindex', '0');
+    stone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        launch(stone);
       }
-    }
+    });
+  });
 
-    const dx = (typeof e.clientX === 'number' ? e.clientX : lastX) - dragStartX;
-    let target = currentIndex;
-    if (Math.abs(dx) > slotWidth * 0.18 || Math.abs(velocity) > 0.5){
-      if (dx < 0 || velocity < -0.5) target = currentIndex + 1;
-      else if (dx > 0 || velocity > 0.5) target = currentIndex - 1;
-    }
-    setActive(target, true);
+  function launch(stone){
+    if (garden.classList.contains('rippling')) return;
+    const rect = stone.getBoundingClientRect();
+    const ox = ((rect.left + rect.width / 2) / window.innerWidth * 100).toFixed(2) + '%';
+    const oy = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(2) + '%';
+    ripple.style.setProperty('--ox', ox);
+    ripple.style.setProperty('--oy', oy);
+    ripple.style.setProperty('--c', stone.dataset.color);
+    stone.classList.add('tapped');
+    garden.classList.add('rippling');
+    setTimeout(() => { window.location.href = stone.dataset.url; }, 760);
   }
-
-  sky.addEventListener('pointerup', (e) => endDrag(e, false));
-  sky.addEventListener('pointercancel', (e) => endDrag(e, true));
-
-  function launch(slotEl){
-    const url = slotEl.dataset.url;
-    const color = slotEl.dataset.color || '#ffffff';
-    flash.style.setProperty('--c', color);
-    slotEl.classList.add('warping-slot');
-    sky.classList.add('warping');
-    setTimeout(() => { window.location.href = url; }, 640);
-  }
-
-  dots.forEach((d, i) => d.addEventListener('click', () => setActive(i, true)));
-
-  setActive(0, false);
-
-  // Génération du champ d'étoiles de fond
-  const starsLayer = document.getElementById('stars');
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < 90; i++){
-    const s = document.createElement('i');
-    s.style.left = (Math.random() * 200 - 50).toFixed(1) + '%';
-    s.style.top = (Math.random() * 120 - 10).toFixed(1) + '%';
-    const size = (Math.random() * 1.6 + 0.6).toFixed(2);
-    s.style.width = size + 'px';
-    s.style.height = size + 'px';
-    s.style.animationDelay = (Math.random() * 4.5).toFixed(2) + 's';
-    s.style.opacity = (Math.random() * 0.6 + 0.2).toFixed(2);
-    frag.appendChild(s);
-  }
-  starsLayer.appendChild(frag);
 
   // Service worker du shell (inchangé)
   if ('serviceWorker' in navigator) {
@@ -373,9 +248,11 @@
     });
   }
 
-  // Comète — vidage de cache + redémarrage (glisser ou maintenir)
-  const comet = document.getElementById('comet');
-  let cStartX = 0, cStartY = 0, cStartT = 0, cHoldTimer = null, cTriggered = false, cPointerId = null;
+  // Bassin — vidage de cache + redémarrage (maintenir le doigt)
+  const basin = document.getElementById('basin');
+  const basinRipple = document.getElementById('basinRipple');
+  let holdTimer = null;
+  let triggered = false;
 
   async function clearCacheAndRestart(){
     try {
@@ -392,49 +269,39 @@
     } finally {
       setTimeout(() => {
         window.location.replace('./index.html?_reset=' + Date.now());
-      }, 420);
+      }, 480);
     }
   }
 
-  function triggerCacheReset(){
-    if (cTriggered) return;
-    cTriggered = true;
-    comet.classList.remove('charging');
-    comet.classList.add('launch');
+  function triggerReset(){
+    if (triggered) return;
+    triggered = true;
+    const rect = basin.getBoundingClientRect();
+    const bx = ((rect.left + rect.width / 2) / window.innerWidth * 100).toFixed(2) + '%';
+    const by = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(2) + '%';
+    basinRipple.style.setProperty('--bx', bx);
+    basinRipple.style.setProperty('--by', by);
+    basin.classList.add('charging');
+    garden.classList.add('washing');
     clearCacheAndRestart();
   }
 
-  comet.addEventListener('pointerdown', (e) => {
+  basin.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
-    cTriggered = false;
-    cPointerId = e.pointerId;
-    try { comet.setPointerCapture(cPointerId); } catch(_) {}
-    cStartX = e.clientX; cStartY = e.clientY; cStartT = performance.now();
-    comet.classList.add('charging');
-    cHoldTimer = setTimeout(triggerCacheReset, 650);
+    triggered = false;
+    holdTimer = setTimeout(triggerReset, 600);
   });
-
-  comet.addEventListener('pointermove', (e) => {
-    if (cTriggered) return;
-    const dist = Math.hypot(e.clientX - cStartX, e.clientY - cStartY);
-    const dt = performance.now() - cStartT;
-    if (dist > 36 && dt < 450){
-      clearTimeout(cHoldTimer);
-      triggerCacheReset();
-    }
-  });
-
-  function cometRelease(e){
-    if (e) e.stopPropagation();
-    clearTimeout(cHoldTimer);
-    if (!cTriggered) comet.classList.remove('charging');
+  function releaseBasin(){
+    clearTimeout(holdTimer);
+    if (!triggered) basin.classList.remove('charging');
   }
-  comet.addEventListener('pointerup', cometRelease);
-  comet.addEventListener('pointercancel', cometRelease);
-  comet.addEventListener('keydown', (e) => {
+  basin.addEventListener('pointerup', releaseBasin);
+  basin.addEventListener('pointercancel', releaseBasin);
+  basin.addEventListener('pointerleave', releaseBasin);
+  basin.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' '){
       e.preventDefault();
-      triggerCacheReset();
+      triggerReset();
     }
   });
 })();

@@ -79,64 +79,58 @@ Les icônes sont de vrais fichiers PNG (192, 512, 512 maskable) — la première
 version du portail utilisait des SVG en data-URI, remplacés depuis pour un support
 iOS/Android fiable une fois hébergé.
 
-## 4. Design / identité visuelle — "Carte céleste" (refonte du 18/09/2026)
+## 4. Design / identité visuelle — "Jardin zen" (refonte du 18/09/2026)
 
-Le portail a été entièrement repensé le 18/09/2026 à la demande de Corentin :
-sortir radicalement des standards UI (pas de navbar, pas de sidebar, pas de
-grille de cards à ombre, pas de hero centré, pas de palette "SaaS"). Ancienne
-version ("plaque industrielle", vis + liseré laiton + 3 boutons empilés)
-conservée dans l'historique Git mais remplacée sur `main`.
+Deuxième refonte du 18/09/2026 : Corentin n'a pas retenu "Carte céleste"
+(1ère refonte, conservée dans l'historique Git) et a demandé, après une
+liste de 10 nouvelles directions, que soit retirée toute "mécanique de
+sélection" (rotation, alignement, glisser-viser) — les 3 apps doivent être
+visibles et tapables directement, sans étape intermédiaire.
 
-**Métaphore retenue** : une carte du ciel nocturne. Chaque app est une
-constellation dessinée en SVG (points reliés par des traits), positionnée
-sur une bande 3 fois plus large que l'écran (`300vw`) qu'on fait glisser
-horizontalement — on "tourne" la voûte céleste pour faire face à
-l'application voulue plutôt que de naviguer dans un menu.
+**Métaphore retenue** : un jardin sec japonais (karesansui) vu du dessus.
+Les 3 apps sont 3 pierres posées en composition asymétrique (jamais alignées
+ni en grille) sur un lit de gravier ratissé (motif SVG en vaguelettes,
+faible contraste). Taper une pierre directement propage une onde colorée
+(dégradé radial centré sur la pierre) qui recouvre l'écran avant la
+redirection — pas de geste d'orientation préalable.
 
 | Variable CSS | Valeur | Usage |
 |---|---|---|
-| `--void` / `--void-2` | `#05060c` / `#0b0e1c` | Fond (voûte céleste) |
-| `--star` / `--star-dim` | `#f4efe0` / `rgba(244,239,224,.4)` | Points/texte |
-| `--gold` | `#d9b273` | Plaque d'identité ("Portail Duo") |
-| `--blue` | `#63c8ff` | Constellation Musculation |
-| `--gold` (Budget) | `#d9b273` | Constellation Budget |
-| `--green` | `#71e3a4` | Constellation Courses |
-| `--comet` | `#ff9a5c` | Comète (vidage de cache) |
+| `--sand` / `--sand-2` | `#f1ead8` / `#e4dabf` | Fond (gravier, lumière du jour) |
+| `--ink` / `--ink-dim` | `#3c362b` / `rgba(60,54,43,.5)` | Texte, traits ratissés |
+| `--stone-blue` | `#64767e` | Pierre Musculation (ardoise) |
+| `--stone-gold` | `#b3854a` | Pierre Budget (ocre) |
+| `--stone-green` | `#6d8a5b` | Pierre Courses (mousse) |
+| `--water` | `#6fa3bf` | Bassin (vidage de cache) |
 
-Typographie : pile de polices serif système (`ui-serif, "Iowan Old Style",
-"Palatino Linotype", Palatino, Georgia, ...`), pas de Google Fonts — cohérent
-avec la contrainte "aucune dépendance externe" du projet (et donc compatible
-avec le cache hors-ligne du service worker, qui ne gère que des fichiers du
-repo). Les noms de constellations sont en petites capitales espacées (façon
-légende d'atlas), jamais en gras/sans-serif "SaaS".
+Rupture volontaire avec les 2 designs précédents (sombres, nocturnes) : ici
+fond clair et lumineux, ambiance diurne — évite que "sortir des standards"
+ne devienne systématiquement synonyme de "thème sombre". Palette
+volontairement désaturée (tons pierre/terre/mousse) plutôt que les couleurs
+vives bleu/or/vert des versions précédentes, pour rester cohérente avec le
+matériau (pierre, gravier) plutôt qu'avec un code couleur applicatif.
 
-`theme-color` (meta) mis à jour à `#05060c` pour matcher le nouveau fond.
-⚠️ Le `manifest.json` (background_color `#101113` / theme_color `#17181b`,
-utilisés par l'écran de démarrage iOS) n'a pas été modifié dans cette passe —
-resté proche du noir donc peu visible au lancement, mais à harmoniser avec
-`#05060c` dans un prochain commit si Corentin le souhaite.
+`apple-mobile-web-app-status-bar-style` repassé à `default` (texte de la
+barre de statut sombre sur fond clair) et `theme-color` à `#eee6d3` — les
+deux anciens réglages ("black") étaient pensés pour un fond sombre et
+casseraient la lisibilité ici.
 
 ## 5. Navigation / interactions
 
-- **Glisser horizontalement** n'importe où sur l'écran fait pivoter la
-  voûte : chaque constellation occupe un "créneau" plein écran (`.slot`),
-  avec un effet de rubber-band aux extrémités et un magnétisme (snap) vers
-  le créneau le plus proche au relâchement (distance ou vélocité du geste).
-  Les constellations non actives sont désaturées et réduites (`scale(.86)`,
-  `saturate(.35)`) pour bien signaler laquelle est "en visée".
-- **Taper l'étoile la plus brillante** (le "hub" de la constellation active)
-  déclenche un **warp** : la constellation grossit et son étoile centrale
-  explose en un halo, toute la voûte zoome et se floute, un flash coloré
-  (couleur propre à l'app) recouvre l'écran, puis redirection vers le
-  sous-dossier — après 640 ms, le temps que l'animation se joue.
-- **Petits points en bas d'écran** : rappel discret de la position dans la
-  voûte (constellation active en surbrillance), aussi cliquables pour un
-  saut direct — seule concession à un pattern "carousel" classique, mais
-  stylée en étoiles et non en puces génériques.
+- **Les 3 pierres sont visibles et tapables en permanence**, sans étape
+  d'alignement ou de sélection préalable — contrainte explicitement demandée
+  par Corentin après les propositions de refonte n°2.
+- **Taper une pierre** déclenche une onde radiale (dégradé circulaire,
+  couleur propre à la pierre) centrée sur son point d'impact réel à l'écran
+  (calculé via `getBoundingClientRect`), qui grandit et s'intensifie
+  pendant 760 ms avant la redirection — pas de flash dur ni de zoom brutal,
+  rythme volontairement plus lent/calme que la version "Carte céleste"
+  (cohérent avec l'ambiance zen).
+- Les anneaux ratissés en pointillés autour de chaque pierre sont
+  purement décoratifs (ambiance jardin sec), jamais interactifs.
 - **Plaque d'identité** en haut à gauche ("Portail Duo — Corentin & Lisa"),
-  fixe et non interactive : fait office de titre sans jouer le rôle d'un
-  hero (pas centré, pas de CTA, purement une légende de carte).
-- Aucune logique JS au-delà de la navigation, du geste de la comète et de
+  fixe et non interactive : légende de jardin plutôt que hero.
+- Aucune logique JS au-delà de la navigation, du geste du bassin et de
   l'enregistrement du service worker (toujours pas de Firebase, pas d'auth,
   pas de state serveur).
 
@@ -195,72 +189,67 @@ présent).
 Vérifié en ligne via l'API GitHub (contenu réel du fichier sur `main`) — le
 correctif est bien effectif.
 
-## 8. Vidage du cache — la comète (refonte du 18/09/2026)
+## 8. Vidage du cache — le bassin (refonte "Jardin zen" du 18/09/2026)
 
 **Problème identifié** : après une mise à jour poussée sur GitHub (portail ou
 sous-apps), le cache côté iPhone (Safari / mode standalone) ne se vide pas tout
-seul — Corentin continuait de voir une ancienne version tant qu'il ne
-supprimait pas l'app de l'écran d'accueil et ne la réinstallait pas. Un bouton
-classique "Vider le cache" avait été ajouté le 18/09/2026 dans l'ancienne
-version (plaque industrielle) ; il a été remplacé le même jour par un geste
-intégré au concept "Carte céleste".
+seul. Un bouton classique avait été ajouté le 18/09/2026 (version "plaque
+industrielle"), puis remplacé par une comète à lancer (version "Carte
+céleste"), puis par le mécanisme actuel dans la version "Jardin zen".
 
-**Mécanisme actuel** : une comète dérive doucement en bas à droite de l'écran.
-Deux gestes déclenchent la même action :
-1. **Maintenir le doigt dessus** ~650 ms (elle "charge" — son halo s'intensifie),
-2. **La faire glisser** rapidement (> 36 px en moins de 450 ms) — comme si on
-   la lançait.
-
-Dans les deux cas :
+**Mécanisme actuel** : un petit bassin d'eau (tsukubai stylisé) en bas à
+droite, avec une goutte qui tombe en boucle (animation d'ambiance). Maintenir
+le doigt dessus ~600 ms déclenche :
 1. désenregistrement de tous les service workers actifs
    (`navigator.serviceWorker.getRegistrations()` + `unregister()`),
 2. suppression de toutes les entrées du Cache Storage (`caches.keys()` +
    `caches.delete()`), y compris `portail-duo-shell-v1` posé par `sw.js`,
-3. la comète file hors de l'écran (`translate` + fondu), puis rechargement
-   forcé de `index.html` via `location.replace('./index.html?_reset=' +
-   Date.now())` — le paramètre `_reset` unique empêche de resservir une copie
-   locale.
+3. une onde claire (couleur du sable) part du bassin et recouvre tout le
+   jardin, puis rechargement forcé de `index.html` via
+   `location.replace('./index.html?_reset=' + Date.now())` — le paramètre
+   `_reset` unique empêche de resservir une copie locale.
 
-Accessible aussi au clavier (élément focusable, `Entrée`/`Espace` déclenche le
-même geste) pour ne pas dépendre uniquement du tactile. Une légende discrète
-("comète · glisser ou maintenir") reste affichée en permanence à côté, pour
-que le geste ne soit pas totalement caché sans indice.
+Accessible aussi au clavier (élément focusable, `Entrée`/`Espace` déclenche
+le même geste). Légende discrète en permanence à côté ("bassin · maintenir
+pour rafraîchir").
 
 ## 9. Historique — démarche de refonte design (18/09/2026)
 
 Corentin a demandé une refonte "radicale" sortant des standards UI habituels
-(pas de navbar/sidebar/cards à ombre/hero centré/palette SaaS). 8 concepts ont
-été proposés avant codage :
+(pas de navbar/sidebar/cards à ombre/hero centré/palette SaaS).
 
-1. Coffret électrique (disjoncteurs à bascule)
-2. Établi-plan (cyanotype, zoom spatial)
-3. Carnet de bord (pages qui se tournent)
-4. Platine vinyle (rotation, bras de lecture)
-5. Hublots de sous-marin (buée à essuyer, sas)
-6. **Carte céleste (retenu)** — constellations, navigation orbitale, warp
-7. Distributeur automatique rétro (touches à ressort)
-8. Origami en éventail (pliage/dépliage 3D)
+**1ère vague (8 concepts)** : coffret électrique, établi-plan cyanotype,
+carnet de bord, platine vinyle, hublots de sous-marin, **carte céleste**,
+distributeur automatique rétro, origami en éventail. "Carte céleste" a été
+choisie et implémentée (navigation orbitale par glissement + tap pour
+lancer), puis finalement écartée par Corentin ("j'aime pas trop au final").
 
-**Pourquoi "Carte céleste" tient la contrainte "non-générique"** :
-- Navigation par glissement horizontal + snap est un pattern de carrousel
-  connu, mais ici il sert une métaphore cohérente (tourner la voûte céleste)
-  et non un slideshow de promo — seule concession assumée : les points de
-  pagination en bas, sobrement stylés en étoiles plutôt qu'en puces
-  Bootstrap.
-- Le seul élément qui aurait pu ressembler à un "bouton" générique — le
-  vidage de cache — a été transformé en geste (comète à maintenir/lancer)
-  plutôt qu'un `<button>` avec un fond et une bordure.
-- Palette et typographie (bleu nuit profond, or gravé, serif système en
-  petites capitales) rompent volontairement avec le duo blanc/dégradé
-  bleu-violet + Inter/Poppins des interfaces SaaS.
-- Les transitions (warp, halo qui explose, flash coloré, comète qui charge
-  puis s'envole) sont la mécanique de navigation elle-même, pas des
-  animations ajoutées après coup sur des boutons statiques.
+**2ème vague (10 concepts)**, demandée explicitement : horloge astronomique,
+jardin zen, sismographe, lanternes nocturnes, table d'orientation, fonds
+marins bioluminescents, cabinet de curiosités, partition qui défile,
+terrarium, casiers à clés d'hôtel. Corentin a ensuite demandé de retirer
+**toute mécanique de sélection** (rotation, alignement, glisser-viser) des
+10 concepts : les 3 apps devaient rester visibles et tapables directement.
+**"Jardin zen" (retenu)** a été reformulé en ce sens et implémenté.
 
-**Limite connue** : la navigation entre constellations n'est pas
-accessible au clavier (seul le geste de la comète l'est) — acceptable pour
-un usage privé à deux sur mobile, mais à noter si le portail devait un jour
-s'ouvrir à d'autres usages/appareils.
+**Pourquoi "Jardin zen" tient la contrainte "non-générique"** :
+- Composition asymétrique à 3 éléments de tailles différentes (pas de
+  grille, pas d'alignement) — rompt directement avec le pattern de cards
+  identiques en rangée.
+- La sélection est un tap direct sur un élément narratif (une pierre dans
+  son décor), pas un bouton avec fond/bordure — le seul retour visuel est
+  une onde qui part du point de contact réel.
+- Palette diurne désaturée (sable, ardoise, ocre, mousse) délibérément
+  choisie pour trancher avec les deux premières refontes (sombres,
+  nocturnes) et éviter que "non-générique" ne devienne un simple réflexe
+  "thème sombre".
+- Le vidage de cache (bassin + goutte d'eau) reste un geste (maintenir),
+  pas un `<button>` classique, et partage la mécanique visuelle des ondes
+  utilisée pour la navigation — cohérence entre les deux usages.
+
+**Limite connue** : les micro-interactions (onde, goutte) demandent un
+minimum d'animation JS ; testé avec `prefers-reduced-motion` mais pas sur
+device réel — à vérifier par Corentin.
 
 ## 10. Règle de travail avec l'assistant IA (Claude)
 
@@ -273,4 +262,5 @@ procéder :
 ---
 *Dernière vérification du code live : 18/09/2026, via `git clone` direct du dépôt
 (donc sans aucun cache CDN/raw.githubusercontent.com) pour `index.html`,
-`README.md` et `sw.js`. Refonte "Carte céleste" poussée le 18/09/2026.*
+`README.md` et `sw.js`. Refonte "Jardin zen" (2e refonte du jour, après
+"Carte céleste") poussée le 18/09/2026.*
