@@ -821,6 +821,17 @@ document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
    BOOT
    ============================================================ */
 demarrer();
+
+/* Service worker (18/09/26) : le fichier sw.js existait déjà dans ce
+   dossier mais n'avait jamais été enregistré depuis cette page — corrigé
+   ici. Chemin ET scope volontairement relatifs ('sw.js', './') plutôt
+   qu'absolus, comme dans /Muscu/ et désormais la racine et /Budget/. */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' })
+      .catch((err) => console.warn('[sw] enregistrement échoué :', err));
+  });
+}
 </script>
 </body>
 </html>
