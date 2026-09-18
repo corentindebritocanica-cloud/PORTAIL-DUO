@@ -98,6 +98,12 @@
     border:none; outline:none; background:transparent; flex:1; font-size:16px; color:var(--ink);
   }
   .searchbar input::placeholder{color:var(--ink-soft);}
+  .btn-effacer-recherche{
+    flex-shrink:0; width:26px; height:26px; border-radius:50%; border:none;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:14px;
+    display:none; align-items:center; justify-content:center; padding:0; line-height:1;
+  }
+  .btn-effacer-recherche:active{background:var(--line);}
 
   /* --- Listes produits --- */
   .liste{padding: 6px 18px 100px;}
@@ -260,6 +266,7 @@
       <div class="searchbar">
         <span>🔍</span>
         <input type="text" id="recherche-saisie" placeholder="Chercher un produit…">
+        <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" style="display:none;" aria-label="Effacer la recherche">✕</button>
       </div>
       <div class="liste" id="liste-saisie"></div>
     </div>
@@ -616,9 +623,21 @@ document.querySelectorAll('.onglet-btn').forEach(btn=>{
   });
 });
 
-document.getElementById('recherche-saisie').addEventListener('input', e=>{
+const inputRecherche = document.getElementById('recherche-saisie');
+const btnEffacerRecherche = document.getElementById('btn-effacer-recherche');
+
+inputRecherche.addEventListener('input', e=>{
   state.recherche = e.target.value.trim().toLowerCase();
+  btnEffacerRecherche.style.display = e.target.value ? 'flex' : 'none';
   renderSaisie();
+});
+
+btnEffacerRecherche.addEventListener('click', ()=>{
+  inputRecherche.value = '';
+  state.recherche = '';
+  btnEffacerRecherche.style.display = 'none';
+  renderSaisie();
+  inputRecherche.focus();
 });
 
 /* ============================================================
@@ -674,7 +693,7 @@ function renderSaisie(){
   const cont = document.getElementById('liste-saisie');
   let items = Object.entries(state.produits);
   if(state.recherche){
-    items = items.filter(([id,p])=> p.nom.toLowerCase().includes(state.recherche));
+    items = items.filter(([id,p])=> (p.nom||'').toLowerCase().includes(state.recherche));
   }
   // Tri : compteur décroissant, puis alphabétique
   items.sort((a,b)=>{
