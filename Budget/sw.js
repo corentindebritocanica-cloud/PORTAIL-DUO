@@ -1,14 +1,14 @@
 // Service Worker — Budget L&C
 // Rôle : mettre en cache le "shell" statique de CETTE app (index.html,
-// manifest.json, icone.PNG) pour qu'elle puisse s'ouvrir hors-ligne.
-// Stratégie cache-first pour ces fichiers UNIQUEMENT.
-// Ne touche jamais à Firestore/Auth (persistance offline gérée séparément
-// via enablePersistence), ni aux SDK Firebase / Sortable.js / canvas-confetti
-// chargés en CDN, ni à aucune requête en dehors de ce dossier (la racine du
-// portail, /Muscu/, /Course/ ne sont jamais interceptés par ce service
-// worker).
+// manifest.json, icone.PNG) ET les scripts externes bloquants chargés en
+// CDN (SDK Firebase, Sortable.js, canvas-confetti), pour qu'elle puisse
+// s'ouvrir hors-ligne. Stratégie cache-first pour ces fichiers UNIQUEMENT.
+// Ne touche jamais à Firestore/Auth eux-mêmes (persistance offline gérée
+// séparément via persistentLocalCache), ni à aucune requête en dehors de
+// ce dossier (la racine du portail, /Muscu/, /Course/ ne sont jamais
+// interceptés par ce service worker).
 
-const CACHE_NAME = 'budget-lc-shell-v1';
+const CACHE_NAME = 'budget-lc-shell-v2';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Muscu inclus), et un
@@ -25,13 +25,33 @@ const SHELL_FILES = [
   './icone.PNG'
 ];
 
+// Scripts externes chargés en CDN (autres origines) : ces fichiers ne sont
+// PAS interceptés par le test d'origine plus bas (fetch), donc sans les
+// nommer ici, ils dépendent uniquement du cache HTTP par défaut de Safari
+// — que iOS peut vider. Ajouté le 18/09/2026 après un signalement (sur
+// Course, même mécanisme) d'ouverture hors-ligne restant bloquée sur
+// l'écran de fond : les <script> du <head> sont tous synchrones (pas de
+// defer/async), donc bloquants pour tout le reste de la page tant qu'ils
+// n'ont pas répondu — sans eux en cache, la page entière reste gelée en
+// attendant leur échec réseau. Versions figées : mettre à jour cette liste
+// si jamais une version change dans index.html.
+const EXTERNAL_FILES = [
+  'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js'
+];
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       // Chaque fichier est mis en cache indépendamment : si l'un échoue,
       // les autres sont quand même conservés, et l'installation n'échoue pas.
       Promise.all(
-        SHELL_FILES.map((url) =>
+        [...SHELL_FILES, ...EXTERNAL_FILES].map((url) =>
           cache.add(url).catch((err) => console.warn('Précache impossible :', url, err))
         )
       )
@@ -50,9 +70,27 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Jamais d'interception hors de cette origine (donc jamais Firestore,
-  // Auth, SDK Firebase/Sortable/confetti en CDN : tout part normalement
-  // sur le réseau, sans passer par ce service worker).
+  // Scripts externes (Sortable, confetti, SDK Firebase) : cache-first, en
+  // dehors de toute logique de scope/origine — voir EXTERNAL_FILES ci-dessus.
+  if (EXTERNAL_FILES.includes(event.request.url)) {
+    event.respondWith(
+      caches.match(event.request).then((reponseCache) => {
+        if (reponseCache) return reponseCache;
+        return fetch(event.request).then((reponseReseau) => {
+          if (reponseReseau && reponseReseau.status === 200) {
+            const copie = reponseReseau.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copie));
+          }
+          return reponseReseau;
+        });
+      })
+    );
+    return;
+  }
+
+  // Jamais d'interception hors de cette origine pour le reste (Firestore,
+  // Auth : tout part normalement sur le réseau, sans passer par ce
+  // service worker).
   if (url.origin !== self.location.origin) return;
 
   // Jamais d'interception hors du dossier de CE service worker
