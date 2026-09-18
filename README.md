@@ -79,10 +79,9 @@ Les icônes sont de vrais fichiers PNG (192, 512, 512 maskable) — la première
 version du portail utilisait des SVG en data-URI, remplacés depuis pour un support
 iOS/Android fiable une fois hébergé.
 
-⚠️ **Écart constaté le 18/09/2026** : `theme_color` du manifest (`#17181b`) et le
-`<meta name="theme-color">` du HTML (`#0d1014`, aligné sur `--bg` du nouveau thème)
-ne correspondent plus depuis la refonte design (section 4). Le manifest n'a pas été
-retouché — à harmoniser si Corentin le souhaite.
+**Corrigé le 18/09/2026** : `background_color` et `theme_color` du manifest sont
+désormais alignés sur `#0d1014` (le `--bg` du thème Ardoise & Craie), cohérents avec
+le `<meta name="theme-color">` du HTML.
 
 ## 4. Design / palette
 
@@ -136,22 +135,24 @@ entièrement retirée.
   de state persistant) — cohérent avec le footer : *"Portail Duo · pas de compte,
   pas de cloud"*.
 
-## 6. Historique — barre de statut iOS (non résolu malgré note précédente)
+## 6. Historique — barre de statut iOS (résolu le 18/09/2026)
 
 Un correctif avait été demandé et validé dans une discussion précédente pour
 supprimer l'effet de flou de la barre de statut iOS en plein écran
-(`content="black"` au lieu de `"black-translucent"`), mais **ce correctif n'a en
-réalité jamais été poussé** : le fichier live avait toujours
+(`content="black"` au lieu de `"black-translucent"`), mais il n'avait en réalité
+jamais été réellement poussé : le fichier live avait toujours
 `content="black-translucent"` lors des vérifications des 14/09 et 18/09/2026,
 malgré une note antérieure du README affirmant le contraire.
 
-→ **À faire côté Corentin** (ou à la demande, côté assistant) : appliquer réellement
+**Corrigé pour de bon le 18/09/2026** : `index.html` a désormais bien
 
 ```html
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 ```
 
-sur `index.html` à la racine pour que le correctif soit enfin effectif en ligne.
+— vérifié directement sur le contenu réel du fichier via l'API GitHub (le cache
+CDN de `raw.githubusercontent.com` peut mettre quelques minutes à se rafraîchir,
+voir note en fin de document).
 
 ## 7. Règle de travail avec l'assistant IA (Claude)
 
