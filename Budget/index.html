@@ -299,8 +299,8 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header" data-target="repartition-m"><h3>📊 Répartition</h3></div>
-                    <div id="repartition-m" class="section-content">
+                    <div class="card-header collapsed" data-target="repartition-m"><h3>📊 Répartition</h3></div>
+                    <div id="repartition-m" class="section-content collapsed"
                         <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--danger);" id="bar-charges-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--secondary);" id="bar-depenses-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>✈️ Épargne</span><span id="pct-epargne-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--info);" id="bar-epargne-m"></div></div></div>
@@ -310,26 +310,26 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header" data-target="conteneur-charges"><h3>🏠 Charges (Revolut) (<span id="total-charges">0</span> €)</h3></div>
-                    <div id="conteneur-charges" class="section-content"></div>
+                    <div class="card-header collapsed" data-target="conteneur-charges"><h3>🏠 Charges (Revolut) (<span id="total-charges">0</span> €)</h3></div>
+                    <div id="conteneur-charges" class="section-content collapsed"></div>
                     <button class="btn-action bg-primary" data-add="charges">+ Nouvelle charge</button>
                 </div>
 
                 <div class="card">
-                    <div class="card-header" data-target="conteneur-depenses"><h3 id="titre-depenses">🛒 Dépenses (0 €)</h3></div>
-                    <div id="conteneur-depenses" class="section-content"></div>
+                    <div class="card-header collapsed" data-target="conteneur-depenses"><h3 id="titre-depenses">🛒 Dépenses (0 €)</h3></div>
+                    <div id="conteneur-depenses" class="section-content collapsed"></div>
                     <button class="btn-action bg-primary" data-add="depenses">+ Nouvelle dépense</button>
                 </div>
 
                 <div class="card">
-                    <div class="card-header" data-target="conteneur-epargne"><h3>✈️ Projets / Épargne (<span id="total-epargne">0</span> €)</h3></div>
-                    <div id="conteneur-epargne" class="section-content"></div>
+                    <div class="card-header collapsed" data-target="conteneur-epargne"><h3>✈️ Projets / Épargne (<span id="total-epargne">0</span> €)</h3></div>
+                    <div id="conteneur-epargne" class="section-content collapsed"></div>
                     <button class="btn-action bg-primary" data-add="epargne" data-special="epargne">+ Épargner</button>
                 </div>
                 
                 <div class="card">
-                    <div class="card-header" data-target="conteneur-provisions"><h3>🛡️ Provisions (<span id="total-provisions">0</span> €)</h3></div>
-                    <div id="conteneur-provisions" class="section-content"></div>
+                    <div class="card-header collapsed" data-target="conteneur-provisions"><h3>🛡️ Provisions (<span id="total-provisions">0</span> €)</h3></div>
+                    <div id="conteneur-provisions" class="section-content collapsed"></div>
                     <button class="btn-action bg-primary" data-add="provisions">+ Nouvelle provision</button>
                 </div>
             </div>
@@ -435,7 +435,7 @@
             </div>
 
             <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
-                Version 2.9.6 (Correctif Corbeille : restauration/vidage)
+                Version 2.9.7 (Cartes repliées par défaut)
             </div>
         </div>
 
