@@ -457,21 +457,28 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const db   = firebase.firestore();
-        db.enablePersistence({synchronizeTabs:true}).catch(err=>{
-          if(err.code==='failed-precondition'){
-            console.warn('Persistance Firestore désactivée : plusieurs onglets ouverts.');
-          }else if(err.code==='unimplemented'){
-            console.warn('Persistance Firestore non supportée par ce navigateur.');
-          }else{
-            console.warn('Erreur activation persistance Firestore :', err);
+        let db, auth;
+        // Cache Firestore persistant (remplace enablePersistence, déprécié) : import dynamique
+        // pour rester compatible avec le SDK compat (pas de passage en type="module").
+        // Tant que dbReady n'est pas résolue, db/auth restent undefined — voir plus bas
+        // où le tout premier authListen(...) attend cette promesse avant de démarrer l'app.
+        const dbReady = (async () => {
+          try {
+            const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } =
+              await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+            initializeFirestore(firebase.app(), {
+              localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+            });
+          } catch (err) {
+            console.warn('Cache Firestore persistant indisponible, repli sur le cache mémoire :', err);
           }
-        });
-        const auth = firebase.auth();
+          db = firebase.firestore();
+          auth = firebase.auth();
 
-        // Persistance LOCAL : reste connecté entre les ouvertures de l'app (survit à la fermeture de Safari/PWA)
-        // Limite connue Safari iOS : l'ITP peut purger ce stockage après plusieurs jours d'inactivité — comportement du navigateur, pas un bug corrigeable côté code.
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+          // Persistance LOCAL : reste connecté entre les ouvertures de l'app (survit à la fermeture de Safari/PWA)
+          // Limite connue Safari iOS : l'ITP peut purger ce stockage après plusieurs jours d'inactivité — comportement du navigateur, pas un bug corrigeable côté code.
+          auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+        })();
 
         // Wrappers Firestore — 1 document par mois dans la collection "mois", config dans "config/global"
         const clean       = (obj)        => JSON.parse(JSON.stringify(obj)); // retire toute valeur undefined (refusée par Firestore)
@@ -1209,8 +1216,8 @@
         
         if (localStorage.getItem(LS_THEME)) applyTheme(localStorage.getItem(LS_THEME));
 
-        // 11. Auth Listener
-        authListen((user) => {
+        // 11. Auth Listener (attend que Firestore/Auth soient initialisés avec le cache persistant)
+        dbReady.then(() => authListen((user) => {
             if (user) {
                 document.getElementById('login-screen').classList.add('hidden');
                 attacherEcouteurs();
@@ -1219,7 +1226,7 @@
                 if (unsubMois) { unsubMois(); unsubMois = null; }
                 if (unsubConfig) { unsubConfig(); unsubConfig = null; }
             }
-        });
+        }));
 
         // Nouveau mois manuel
         document.getElementById('btn-creer-mois').onclick = () => {
