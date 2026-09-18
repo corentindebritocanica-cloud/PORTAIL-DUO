@@ -11,7 +11,7 @@ Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS v
 
 ## Fonctionnement — 3 onglets
 
-**Liste** : tous les produits connus, groupés par rayon (triés alphabétiquement). Chaque ligne a :
+**Liste** : tous les produits connus, **triés par popularité** (nombre de fois où le produit a été effectivement acheté, du plus au moins acheté ; à égalité, ordre alphabétique) — pas de regroupement par rayon ici, le rayon est juste affiché en sous-titre sous le nom du produit. Chaque ligne a :
 - une case à cocher à gauche : coche "à acheter" (fait apparaître le produit dans l'onglet Course)
 - le nom du produit
 - un petit carré éditable à droite pour la quantité ou une info libre (ex: "2", "grande taille")
@@ -25,7 +25,7 @@ Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton 
 
 ## Base de données : Cloud Firestore
 Projet `course-app-36e9d`, deux collections de premier niveau :
-- `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool)
+- `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool), `compteur` (nombre, incrémenté de 1 à chaque "Course terminée" — sert au tri par popularité de l'onglet Liste)
 - `rayons/{id}` — champ `nom`
 
 Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme).
@@ -54,3 +54,5 @@ Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règle
 - **18/09/2026 — Reset complet** : extraction et dédoublonnage de la liste (13 rayons, 131 produits, 10 marqués "à acheter" — état réel préservé), sauvegarde fournie à Corentin, vidage complet de Firestore, suppression de tous les fichiers de l'app.
 - **18/09/2026 — Reconstruction** : nouvelle app à 3 onglets (Liste / Course / Réglages avec thèmes par profil), architecture simplifiée décrite ci-dessus, catalogue ré-importé une seule fois côté serveur, authentification anonyme activée sur le projet.
 - **Correctif (18/09/2026)** : le bouton "Course terminée" et le bouton **+** (FAB) étaient positionnés en `position:fixed` avec un décalage fixe (`bottom: 18px`/`86px`), sans tenir compte de la hauteur réelle de la barre d'onglets — ils passaient donc en partie sous elle. Ajout d'une variable `--tabbar-height` (58px), utilisée à la fois pour la hauteur minimale réelle de `nav.tabbar` et pour calculer la position de ces deux boutons juste au-dessus.
+- **Nettoyage (18/09/2026)** : le téléphone de Lisa avait gardé en cache l'ancienne version de Course (d'avant le reset complet), dont l'ancienne fonction de réinjection automatique s'est redéclenchée une fois à son insu, dupliquant à nouveau rayons et produits. Nettoyage effectué avec la même méthode que lors du reset (conservation du plus ancien par nom, fusion des états `aAcheter`/`achete` réels dès qu'au moins une copie les avait, correction des `rayonId` orphelins). Base revérifiée propre : 13 rayons, 131 produits. Aucun risque de récidive côté code : la nouvelle version n'a plus aucune logique de réinjection, mais tout appareil gardant l'ancienne version en cache reste une source de risque tant qu'il n'a pas vidé ses données de site Safari.
+- **Ajout (18/09/2026) : tri par popularité dans l'onglet Liste** — remplace le regroupement par rayon par un tri décroissant sur le nouveau champ `compteur` (alphabétique à égalité), le rayon restant affiché en sous-titre sur chaque ligne. `compteur` est incrémenté de 1 (`firebase.firestore.FieldValue.increment(1)`) pour chaque produit remis à zéro par le bouton "Course terminée". L'onglet Course, lui, garde son regroupement par rayon inchangé.
