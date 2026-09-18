@@ -79,33 +79,51 @@ Les icônes sont de vrais fichiers PNG (192, 512, 512 maskable) — la première
 version du portail utilisait des SVG en data-URI, remplacés depuis pour un support
 iOS/Android fiable une fois hébergé.
 
-## 4. Design / palette (vérifiée dans le CSS live)
+⚠️ **Écart constaté le 18/09/2026** : `theme_color` du manifest (`#17181b`) et le
+`<meta name="theme-color">` du HTML (`#0d1014`, aligné sur `--bg` du nouveau thème)
+ne correspondent plus depuis la refonte design (section 4). Le manifest n'a pas été
+retouché — à harmoniser si Corentin le souhaite.
 
-Esthétique "plaque industrielle" sombre avec vis en coin et liseré laiton.
+## 4. Design / palette
+
+**Refonte du 18/09/2026 : thème "Ardoise & Craie", repris à l'identique des jetons
+de design de Muscu**, pour une cohérence visuelle entre le Portail et les 3 apps.
+L'ancienne esthétique "plaque industrielle" (vis en coin, liseré laiton) a été
+entièrement retirée.
 
 | Variable CSS | Valeur | Usage |
 |---|---|---|
-| `--bg` | `#101113` | Fond de page |
-| `--panel` / `--panel-edge` | `#201f22` / `#2b2a2e` | Plaque centrale |
-| `--brass` / `--brass-dim` | `#c9a35c` / `#8a7346` | Liseré, footer, vis |
-| `--ink` / `--ink-dim` | `#eae6db` / `#8b877e` | Texte principal / secondaire |
-| `--blue` | `#1f8fff` | Bouton Musculation |
-| `--gold` | `#e0a940` | Bouton Budget |
-| `--green` | `#4caf6d` | Bouton Courses |
+| `--bg` | `#0d1014` | Fond de page (charbon) |
+| `--card` / `--card-2` | `#161b22` / `#1e2530` | Fond des cartes |
+| `--border` / `--border-strong` | `rgba(255,255,255,0.09)` / `0.17` | Liserés des cartes |
+| `--text` / `--text-dim` | `#e9eff6` / `#8a97a8` | Texte principal / secondaire |
+| `--blue` / `--blue-dark` | `#1f8fff` / `#1a5fc4` | Icône & carte Musculation |
+| `--gold` / `--gold-dark` | `#ffb800` / `#c48e00` | Icône & carte Budget |
+| `--green` / `--green-dark` | `#12b981` / `#0d8f64` | Icône & carte Courses |
 
-`theme-color` (meta) = `#17181b`, cohérent avec le fond.
+- Police **Bebas Neue** (Google Fonts, chargée via `<link>`) réservée au grand titre
+  ("OÙ VA-T-ON ?") et au libellé de chaque carte, en majuscules — même usage que
+  dans Muscu, où elle sert aux titres d'écran et gros chiffres. Le reste du texte
+  reste en police système.
+- Texture de poussière de craie très discrète en fond (`body::before`, dégradés
+  radiaux), identique à celle de Muscu, façon tableau noir essuyé.
+- Chaque app est une carte `.big-choice-btn` (fond `--card`, bordure `--border`,
+  rayon 18px) avec icône ronde à dégradé coloré (`.choice-icon`) + libellé Bebas Neue
+  + description + chevron — repris du composant du même nom dans Muscu.
+- `theme-color` (meta) = `#0d1014`, aligné sur le nouveau `--bg`.
+- Pas de bascule clair/sombre (`light-mode`) contrairement à Muscu — non demandée,
+  le Portail reste en thème sombre unique. À ajouter si besoin.
 
 ## 5. Comportement / fonctionnalités du portail
 
-- 3 boutons ("doors") pleine largeur, un par app, avec icône ronde colorée + nom +
-  description courte + chevron.
+- 3 cartes pleine largeur, une par app, avec icône ronde à dégradé coloré + nom en
+  Bebas Neue + description courte + chevron (voir section 4).
 - Clic → léger effet d'enfoncement (scale 0.96) puis redirection (`window.location.href`)
   vers le sous-dossier correspondant, avec un délai de 120 ms pour laisser voir
   l'animation.
-- Apparition du panneau au chargement via une animation `rise` (fade + translateY),
-  désactivée si `prefers-reduced-motion: reduce`.
-- **Bouton de rechargement forcé** (icône ↻, cercle discret en haut à droite de la
-  plaque) — ajouté le 18/09/2026. Au clic :
+- **Bouton de rechargement forcé** (icône ↻, cercle fixe en haut à droite de
+  l'écran) — ajouté le 18/09/2026, repositionné en `position:fixed` lors de la
+  refonte design (auparavant ancré au coin de la plaque). Au clic :
   1. Vide le Cache Storage du navigateur (`caches.delete()` sur toutes les entrées),
   2. Désinscrit tout service worker éventuellement enregistré sur le scope,
   3. Recharge la page avec un paramètre anti-cache (`?_r=<timestamp>`) pour forcer
@@ -113,31 +131,27 @@ Esthétique "plaque industrielle" sombre avec vis en coin et liseré laiton.
      sur l'écran d'accueil iOS, où il n'y a ni geste "tirer pour rafraîchir" ni
      contrôle Safari visible).
   - ⚠️ Ce bouton avait déjà été ajouté lors d'une session précédente mais n'avait
-    jamais été documenté ici — corrigé avec cette mise à jour.
+    jamais été documenté ici — corrigé le 18/09/2026.
 - Aucune autre logique JS au-delà de la navigation (pas de Firebase, pas d'auth, pas
   de state persistant) — cohérent avec le footer : *"Portail Duo · pas de compte,
   pas de cloud"*.
 
-## 6. Historique — barre de statut iOS (résolu)
+## 6. Historique — barre de statut iOS (non résolu malgré note précédente)
 
 Un correctif avait été demandé et validé dans une discussion précédente pour
-supprimer l'effet de flou de la barre de statut iOS en plein écran, mais l'audit du
-14/09/2026 avait constaté que le code live n'avait pas cette modification
-(`content="black-translucent"` toujours présent).
+supprimer l'effet de flou de la barre de statut iOS en plein écran
+(`content="black"` au lieu de `"black-translucent"`), mais **ce correctif n'a en
+réalité jamais été poussé** : le fichier live avait toujours
+`content="black-translucent"` lors des vérifications des 14/09 et 18/09/2026,
+malgré une note antérieure du README affirmant le contraire.
 
-**Corrigé le 14/09/2026** : le fichier `index.html` a été remis à jour avec
+→ **À faire côté Corentin** (ou à la demande, côté assistant) : appliquer réellement
 
 ```html
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 ```
 
-→ **À faire côté Corentin** : pousser ce fichier `index.html` mis à jour sur la
-branche `main` du repo `PORTAIL-DUO` pour que le correctif soit effectif en ligne.
-
-⚠️ **Note du 18/09/2026** : au moment de la mise à jour du bouton de rechargement,
-le fichier live avait toujours `content="black-translucent"` — le correctif ci-dessus
-n'avait donc jamais été réellement poussé malgré ce qui était noté. À vérifier après
-ce nouveau commit.
+sur `index.html` à la racine pour que le correctif soit enfin effectif en ligne.
 
 ## 7. Règle de travail avec l'assistant IA (Claude)
 
