@@ -186,5 +186,38 @@ procéder :
 Chaque modification du `index.html` doit être accompagnée d'une mise à jour de ce
 README (section concernée + date).
 
+## 8. Historique — bug cross-app du cache/Service Worker (corrigé le 18/09/2026)
+
+**Contexte** : chacune des 4 apps du dépôt (Portail, Course, Muscu, Budget) a son
+propre `sw.js`, avec son propre `CACHE_NAME` (`portail-duo-shell-v1`,
+`courses-lc-shell-v1`, `muscu-shell-v1`, `budget-lc-shell-v1`).
+
+**Bug** : le `activate` handler de chaque `sw.js` faisait
+`caches.keys().filter(k => k !== CACHE_NAME).map(k => caches.delete(k))`.
+Or `caches.keys()` renvoie **tous les caches de tout le domaine**, pas
+seulement ceux de l'app en cours — donc ce filtre supprimait aussi le cache
+des 3 autres apps à chaque activation d'un Service Worker (ce qui arrive
+automatiquement, sans action de l'utilisateur, dès qu'iOS/Safari décide de
+réactiver un SW). Résultat concret : l'ouverture hors-ligne de Course (ou
+Muscu, ou Budget) pouvait cesser de fonctionner sans raison apparente, dès
+que le Portail (ou une autre app) réactivait son propre Service Worker.
+
+**Corrigé** : chaque `sw.js` a désormais un `CACHE_PREFIX` propre
+(`'portail-duo-shell-'`, `'courses-lc-shell-'`, `'muscu-shell-'`,
+`'budget-lc-shell-'`), et l'`activate` handler ne supprime plus que
+`keys.filter(k => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME)` — chaque
+app ne nettoie plus que ses propres anciennes versions de cache, jamais
+celles des autres.
+
+**Bug additionnel corrigé sur le même sujet** : le bouton "Vider le cache et
+recharger" du Portail (`id="hardReload"`) appelait `caches.keys()` (toutes
+les apps) et `navigator.serviceWorker.getRegistrations()` (tous les
+scopes) sans filtre, et supprimait/désinscrivait tout. Corrigé pour ne
+toucher que le cache et le Service Worker du Portail lui-même
+(`caches` filtrées par `CACHE_PREFIX`, `registrations` filtrées par
+`scope === new URL('./', location.href).href`), avec ajout d'une
+confirmation (`window.confirm(...)`) avant l'action, puisqu'elle reste
+destructive pour le hors-ligne du Portail seul.
+
 ---
 *Dernière vérification du code live : 18/09/2026, via fetch du lien RAW GitHub.*
