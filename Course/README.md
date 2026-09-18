@@ -1,78 +1,55 @@
 # Courses L&C
 
-Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS vanilla), hébergé sur GitHub Pages, synchronisé en temps réel via **Cloud Firestore**.
+Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS vanilla), hébergé sur GitHub Pages, synchronisé en temps réel via **Cloud Firestore**. Accessible via l'icône du Portail Duo sur iPhone (menu → Courses), avec ouverture hors-ligne.
+
+**Reconstruite intégralement le 18/09/2026** suite à des incidents répétés de duplication de données liés à l'ancienne architecture (voir tout en bas, section Historique, pour le contexte).
 
 ## Fichiers
-- `index.html` — l'application complète (le logo est encodé en base64 directement dans le fichier, pas besoin de `icone.png` séparé)
-- `manifest.json` — configuration PWA (icône en base64, nom, couleurs)
+- `index.html` — l'application complète (CSS et JS inline, un seul fichier)
+- `sw.js` — Service Worker : met en cache le shell (`index.html`, `manifest.json`) et le SDK Firebase (gstatic.com) pour l'ouverture hors-ligne
+- `manifest.json` — configuration PWA (icône en base64 intégrée, nom, couleurs)
 
-## Fonctionnement
-Deux onglets :
-- **Saisie** : tous les produits connus, triés par fréquence d'usage (les plus cochés remontent en haut). On coche ce qu'il faut acheter et on ajuste la quantité en texte libre. Le bouton **+** permet d'ajouter un nouveau produit (avec choix ou création de rayon).
-- **Course** : uniquement les produits cochés en Saisie, regroupés par rayon. On **coche** un produit ici quand il est réellement acheté (case remplie, nom barré, carte estompée) ; il reste affiché — rien ne le retire automatiquement de la liste "à acheter" côté Saisie. Le bouton **Course terminée** retire alors d'un coup tous les produits ainsi cochés. Un produit non trouvé en magasin (jamais coché ici) reste sur la liste jusqu'à l'achat effectif.
+## Fonctionnement — 3 onglets
 
-Il n'y a pas d'écran de chargement (splash screen) : au lancement, l'app attend directement la réponse de Firebase Auth avant d'afficher l'écran de connexion, de choix de profil ou l'app elle-même.
+**Liste** : tous les produits connus, groupés par rayon (triés alphabétiquement). Chaque ligne a :
+- une case à cocher à gauche : coche "à acheter" (fait apparaître le produit dans l'onglet Course)
+- le nom du produit
+- un petit carré éditable à droite pour la quantité ou une info libre (ex: "2", "grande taille")
+- un crayon (✎) pour modifier le nom et/ou le rayon du produit
+
+Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton **+** flottant en bas à droite ouvre le même formulaire que le crayon (nom + rayon, avec possibilité de créer un nouveau rayon à la volée) pour ajouter un produit.
+
+**Course** : uniquement les produits cochés "à acheter" en Liste, groupés par rayon. On coche ici un produit une fois réellement acheté (nom barré, carte estompée) — rien n'est retiré automatiquement. Le bouton **Course terminée** (actif seulement si au moins un produit est coché acheté) décoche d'un coup, dans les deux onglets, tous les produits ainsi cochés — sans jamais les supprimer de la Liste.
+
+**Réglages** : choix du profil (**Corentin** = thème bleu, **Lisa** = thème rose, appliqué immédiatement via une variable CSS `data-profil` sur `<html>`, mémorisé dans `localStorage`). Bouton **Recharger l'application** : vide uniquement le cache et le Service Worker de Course (jamais ceux du Portail/Muscu/Budget — voir Sécurité ci-dessous), avec confirmation avant l'action.
 
 ## Base de données : Cloud Firestore
-L'app lit et écrit dans deux collections Firestore de premier niveau (projet `course-app-36e9d`) :
-- `produits/{id}` — champs `nom`, `quantite`, `rayonId`, `aAcheter`, `compteur`, `achete`
+Projet `course-app-36e9d`, deux collections de premier niveau :
+- `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool)
 - `rayons/{id}` — champ `nom`
 
-Le code se synchronise en temps réel via `onSnapshot` sur ces deux collections. Toutes les écritures (cocher un produit, changer sa quantité, changer son rayon, en ajouter un, terminer une course) passent par de petits wrappers (`dbUpdateDoc`, `dbAddDoc`, `dbOnCollection`) définis en haut du `<script>`.
+Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme).
 
-**Historique** : l'app utilisait auparavant **Realtime Database** (chemin `courses/produits`, `courses/rayons`). Une migration vers Firestore a été effectuée le 18 septembre 2026 — voir "Historique des modifications" ci-dessous. Realtime Database n'est plus utilisée par le code et peut être ignorée (elle contient encore l'ancien jeu de données, non synchronisé avec Firestore).
+**Authentification : anonyme** (`signInAnonymously()`), activée sur le projet le 18/09/2026. Pas d'écran de connexion — le choix Corentin/Lisa dans Réglages est une simple préférence d'affichage locale (`localStorage`), pas un compte séparé : les deux profils partagent les mêmes données.
 
-## Mise en route (à faire une seule fois)
-1. Créer un projet Firebase (ou réutiliser un projet existant) sur https://console.firebase.google.com
-2. Activer **Cloud Firestore** (mode natif, avec des règles adaptées)
-3. Activer l'authentification **Email/Mot de passe** dans Firebase Auth (l'app utilise un écran de connexion email + mot de passe, pas l'auth anonyme)
-4. Copier la config du projet (clé API, projectId, etc.) dans le bloc `firebaseConfig` en haut du `<script>` de `index.html`
-5. Déployer sur GitHub Pages
+**Persistance hors-ligne Firestore** : `enablePersistence({synchronizeTabs:true})` (SDK compat classique — délibérément pas l'API modulaire `initializeFirestore`/`persistentLocalCache`, qui nécessitait un `import()` cross-origin dynamique s'étant révélé peu fiable pour la mise en cache par le Service Worker). En cas d'échec, repli silencieux sur le cache mémoire.
 
-Au premier chargement avec une base vide (collection `rayons` inexistante ou vide), l'app importe automatiquement un catalogue de départ (~130 produits classés par rayon) pour ne pas repartir de zéro.
+## Choix d'architecture (pourquoi, suite aux incidents du 18/09/2026)
+- **Aucune logique de "réinjection si la base est vide"** au démarrage de l'app. C'est le principal changement par rapport à l'ancienne version : une fonction de ce type s'est déclenchée à tort à plusieurs reprises (y compris après tentative de correctif), dupliquant le catalogue en base à chaque fois. Le catalogue de départ est importé **une seule fois, côté serveur**, via un script utilisant les identifiants Admin SDK — jamais par le code client.
+- **SDK Firebase 100% "compat"**, sans import ES modulaire dynamique cross-origin (source d'échecs de mise en cache difficiles à diagnostiquer).
+- **`sw.js`** met en cache le SDK Firebase (`gstatic.com`) en mode `no-cors` explicite pour la mise en cache (le mode `cors` par défaut de `cache.add()` peut échouer silencieusement selon le CDN).
+- **`CACHE_PREFIX = 'courses-lc-shell-'`** : l'`activate` du Service Worker ne nettoie que les caches commençant par ce préfixe, jamais tout `caches.keys()` sans filtre — pour ne jamais supprimer le cache des autres apps du Portail (Muscu, Budget, le Portail lui-même).
+- **Authentification anonyme** plutôt qu'email/mot de passe : élimine un écran de connexion et sa dépendance réseau au démarrage.
 
-## Historique des modifications
-- Suppression de l'écran de chargement (splash screen) affiché entre le lancement de l'app et la réponse de Firebase Auth.
-- Correctif : un produit dont le champ `nom` est manquant/vide dans la base faisait planter le tri (`localeCompare` sur `undefined`) dans `renderSaisie` et `renderCourse`, ce qui figeait l'affichage de la liste (le compteur restait juste mais le contenu ne se mettait plus à jour). Le tri tolère désormais un nom absent.
-- **Migration complète de Realtime Database vers Cloud Firestore** : l'app pointait sur Realtime Database alors qu'un jeu de données plus riche et à jour existait déjà dans Firestore (créé/alimenté en parallèle par ailleurs), causant une désynchronisation entre ce que voyait l'app et l'état réel des courses. Le code lit et écrit désormais exclusivement dans Firestore (collections `produits` et `rayons`). Les données Firestore existantes (128 produits, 50 marqués "à acheter") ont été conservées telles quelles comme état de départ.
-- Correctif : le bouton de coche dans l'onglet Course appelait une fonction inexistante (`marquerAchete`) au lieu de `toggleAcheteCourse`, ce qui provoquait une erreur silencieuse au clic. Corrigé au passage lors de la migration Firestore.
-- Correctif : le bouton "Course terminée" était codé en dur avec `display:none` et n'avait aucune logique pour le rendre visible — il n'a donc probablement jamais fonctionné. Il s'affiche désormais quand l'onglet Course est actif (même logique que le bouton `+` de l'onglet Saisie).
-- **Correctif (18/09/2026)** : dans l'onglet Course, cocher une ligne mettait bien à jour Firestore (`toggleAcheteCourse` fonctionnait) mais la case cochée restait affichée vide à l'écran — `renderCourse()` n'appliquait jamais la classe CSS `checked` en fonction de `p.achete` (contrairement à l'onglet Saisie, qui le fait pour `p.aAcheter`). Corrigé : la case, le nom du produit (barré) et la carte (opacité réduite) reflètent désormais l'état `achete` du produit, via les classes `checked`, `nom-produit.achete` et `carte-produit.achete-carte` déjà prévues dans le CSS mais jusque-là inutilisées.
-- **Audit complet (18/09/2026)** suite à des signalements répétés de bugs : trois problèmes trouvés et corrigés d'un coup —
-  1. Le bouton croix (`btn-effacer-recherche`) de la barre de recherche (onglet Saisie) avait disparu du CSS, du HTML *et* du JS à un moment non identifié précisément entre le 17/09 (présent) et le commit "suppression de l'écran de chargement" du 18/09 au matin (absent). Réintégré à l'identique (bouton `✕`, affichage conditionnel à la saisie, clic pour vider le champ et remettre le focus).
-  2. Le filtre de recherche (`renderSaisie`) faisait `p.nom.toLowerCase()` sans protection — un produit avec un champ `nom` vide/absent dans la base plantait silencieusement le filtre dès qu'on tapait dans la recherche (même symptôme que le bug de tri déjà corrigé plus haut, mais sur le filtre, pas le tri). Corrigé en `(p.nom||'').toLowerCase()`.
-  3. La description du fonctionnement de l'onglet Course dans ce README ne correspondait plus au code (elle décrivait un retrait immédiat de la liste au décochage, alors que le code fait un cochage qui reste affiché jusqu'au bouton "Course terminée"). Description corrigée ci-dessus.
-  Vérifications faites en plus, sans anomalie trouvée : tous les `getElementById` du JS correspondent à un `id` existant dans le HTML (pas de crash au chargement), toutes les balises HTML sont correctement fermées, le JavaScript est syntaxiquement valide.
+## Mise en route (si jamais à refaire ailleurs)
+1. Projet Firebase avec Cloud Firestore (mode natif) activé
+2. Activer l'authentification **Anonyme** dans Firebase Auth (Sign-in method)
+3. Règles Firestore : `allow read, write: if request.auth != null;`
+4. Copier la config du projet dans `firebaseConfig` en haut du `<script>` de `index.html`
+5. Importer un catalogue de départ directement en base (jamais via le code client)
+6. Déployer sur GitHub Pages
 
-## ⚠️ RESET COMPLET DE L'APP (18/09/2026)
-
-Après une longue session de diagnostic sur un problème d'ouverture
-hors-ligne, plusieurs correctifs successifs (Service Worker, cache
-Firebase, sécurisation de `lancerSeedSiVide`) n'ont pas suffi à stabiliser
-l'app, avec plusieurs incidents de duplication du catalogue en base
-(causés par `lancerSeedSiVide()` se déclenchant à tort, y compris après
-correctif, sur un client Firestore fraîchement réinitialisé). Décision de
-Corentin : **repartir de zéro** plutôt que de continuer à empiler des
-correctifs sur une base fragilisée.
-
-**Ce qui a été fait, dans l'ordre :**
-1. Extraction et dédoublonnage de la liste complète (13 rayons uniques,
-   131 produits uniques, 10 marqués "à acheter" — état réel préservé en
-   prenant, pour chaque nom en double, `aAcheter:true` dès qu'AU MOINS une
-   copie l'avait).
-2. Sauvegarde de cette liste propre + d'une sauvegarde brute complète
-   (avant nettoyage) fournies à Corentin en fichiers téléchargeables.
-3. **Vidage complet de Firestore** (projet `course-app-36e9d`) : les
-   555 documents des collections `rayons` et `produits` ont été
-   supprimés. Les deux collections sont maintenant vides.
-4. **Suppression de `Course/index.html`, `Course/sw.js` et
-   `Course/manifest.json`** du dépôt GitHub. Seuls `README.md` (ce
-   fichier) et `.gitkeep` subsistent dans le dossier `Course/`.
-
-**État actuel : l'app Course n'existe plus.** Ni fichiers, ni données.
-Le prochain travail sur cette app sera une reconstruction complète à
-partir de la liste de produits/rayons sauvegardée, avec une architecture
-Service Worker + Firestore repensée pour éviter les pièges rencontrés
-aujourd'hui (notamment : ne plus jamais faire de vérification "la base
-est-elle vide ?" au démarrage pour décider d'une réinjection automatique
-de données).
+## Historique
+- **18/09/2026 — Migration Realtime Database → Firestore**, puis plusieurs correctifs sur l'ouverture hors-ligne (Service Worker jamais enregistré, bug cross-app supprimant les caches des autres apps du Portail, SDK Firebase absent du cache, fonction de réinjection automatique se déclenchant à tort). Trois incidents de duplication du catalogue en base survenus le même jour malgré les correctifs successifs.
+- **18/09/2026 — Reset complet** : extraction et dédoublonnage de la liste (13 rayons, 131 produits, 10 marqués "à acheter" — état réel préservé), sauvegarde fournie à Corentin, vidage complet de Firestore, suppression de tous les fichiers de l'app.
+- **18/09/2026 — Reconstruction** : nouvelle app à 3 onglets (Liste / Course / Réglages avec thèmes par profil), architecture simplifiée décrite ci-dessus, catalogue ré-importé une seule fois côté serveur, authentification anonyme activée sur le projet.
