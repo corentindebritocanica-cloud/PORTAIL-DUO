@@ -466,6 +466,23 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 - `loadDayData()` normalise systématiquement (`blankDayData()` + `Object.assign`).
 - **Vibration** : code présent, sans effet sur Safari iOS.
 
+## Historique — bouton "Forcer le rechargement" dans Réglages (ajouté le 18/09/2026)
+
+Ajout d'un bouton dans l'écran Réglages, section "Application" (nouvelle
+section, juste après "Compte") : `onclick="window.location.reload(true)"`,
+à l'identique du bouton déjà existant dans Budget (section Réglages,
+"Forcer la mise à jour de l'application"). Objectif : donner à Corentin un
+moyen simple de forcer un rechargement après un push sur GitHub, cohérent
+entre les 3 apps (Course a reçu le même bouton, dans sa topbar).
+
+**Limite connue, assumée** : ce bouton fait un simple rechargement de page
+et ne vide pas le cache du Service Worker ni ne le désinscrit (contrairement
+au bouton du Portail, voir plus bas) — si le Service Worker sert le shell en
+cache-first, un rechargement seul peut ne pas récupérer un `index.html`
+fraîchement déployé. Choix délibéré de Corentin pour la simplicité et la
+cohérence avec le bouton déjà en place dans Budget, plutôt qu'un vrai
+vider-cache par app.
+
 ## Historique — bug cross-app du cache/Service Worker (corrigé le 18/09/2026)
 
 Suite à un signalement de problème d'ouverture hors-ligne sur **Course**
