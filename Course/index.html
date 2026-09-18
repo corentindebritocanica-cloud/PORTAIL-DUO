@@ -342,6 +342,15 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence({synchronizeTabs:true}).catch(err=>{
+  if(err.code==='failed-precondition'){
+    console.warn('Persistance Firestore désactivée : plusieurs onglets ouverts.');
+  }else if(err.code==='unimplemented'){
+    console.warn('Persistance Firestore non supportée par ce navigateur.');
+  }else{
+    console.warn('Erreur activation persistance Firestore :', err);
+  }
+});
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 /* Wrappers Firestore (collections top-level "produits" et "rayons") */
@@ -601,6 +610,7 @@ document.querySelectorAll('.onglet-btn').forEach(btn=>{
     document.getElementById('vue-course').style.display = state.onglet==='course' ? 'block':'none';
     document.getElementById('titre-onglet').textContent = state.onglet==='saisie' ? 'Saisie' : 'Course';
     document.getElementById('btn-ouvrir-ajout').style.display = state.onglet==='saisie' ? 'block':'none';
+    document.getElementById('btn-course-terminee').style.display = state.onglet==='course' ? 'block':'none';
     if(state.onglet==='course') renderCourse();
     vibrer(8);
   });
