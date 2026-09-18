@@ -4,6 +4,12 @@
 // (Muscu/, Budget/, Course/), qui gèrent leur propre cache indépendamment.
 
 const CACHE_NAME = 'portail-duo-shell-v1';
+// Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
+// CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
+// les caches de tout le domaine (Course, Muscu, Budget inclus), et un
+// filtre `!== CACHE_NAME` les supprimait tous par erreur (bug corrigé le
+// 18/09/2026 — voir README, section Historique).
+const CACHE_PREFIX = 'portail-duo-shell-';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -27,7 +33,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     )
