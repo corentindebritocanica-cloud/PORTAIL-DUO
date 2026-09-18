@@ -115,25 +115,29 @@ entièrement retirée.
 
 ## 5. Comportement / fonctionnalités du portail
 
+- **Mise en page (mise à jour le 18/09/2026)** : tout le contenu (titre + 3 cartes +
+  bouton de rechargement) est centré verticalement au milieu de l'écran (`body` en
+  `flex` avec `justify-content:center; align-items:center`), quelle que soit la
+  hauteur du viewport — plus de contenu plaqué en haut de page.
 - 3 cartes pleine largeur, une par app, avec icône ronde à dégradé coloré + nom en
   Bebas Neue + description courte + chevron (voir section 4).
 - Clic → léger effet d'enfoncement (scale 0.96) puis redirection (`window.location.href`)
   vers le sous-dossier correspondant, avec un délai de 120 ms pour laisser voir
   l'animation.
-- **Bouton de rechargement forcé** (icône ↻, cercle fixe en haut à droite de
-  l'écran) — ajouté le 18/09/2026, repositionné en `position:fixed` lors de la
-  refonte design (auparavant ancré au coin de la plaque). Au clic :
+- **Bouton de rechargement forcé** (icône ↻) — ajouté le 18/09/2026. **Déplacé le
+  18/09/2026** : n'est plus en `position:fixed` en haut à droite de l'écran, mais
+  dans le flux normal de la page, centré juste sous la carte Courses (`.reload-row`).
+  Au clic :
   1. Vide le Cache Storage du navigateur (`caches.delete()` sur toutes les entrées),
   2. Désinscrit tout service worker éventuellement enregistré sur le scope,
   3. Recharge la page avec un paramètre anti-cache (`?_r=<timestamp>`) pour forcer
      le rechargement des fichiers modifiés sur GitHub (utile en mode PWA standalone
      sur l'écran d'accueil iOS, où il n'y a ni geste "tirer pour rafraîchir" ni
      contrôle Safari visible).
-  - ⚠️ Ce bouton avait déjà été ajouté lors d'une session précédente mais n'avait
-    jamais été documenté ici — corrigé le 18/09/2026.
+- **Footer retiré le 18/09/2026** : la phrase *"Portail Duo · pas de compte, pas de
+  cloud"* qui figurait sous les cartes a été supprimée à la demande de Corentin.
 - Aucune autre logique JS au-delà de la navigation (pas de Firebase, pas d'auth, pas
-  de state persistant) — cohérent avec le footer : *"Portail Duo · pas de compte,
-  pas de cloud"*.
+  de state persistant).
 
 ## 6. Historique — barre de statut iOS (résolu le 18/09/2026)
 
