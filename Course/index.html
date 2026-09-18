@@ -14,6 +14,7 @@
     --bg:#0b0f14; --surface:#141a21; --surface-soft:#1b232c;
     --ink:#f2f5f7; --ink-soft:#9aa7b2; --line:#26303a;
     --radius-lg:20px; --radius-md:14px; --safe-top:env(safe-area-inset-top); --safe-bottom:env(safe-area-inset-bottom);
+    --tabbar-height:58px;
   }
   :root[data-profil="Lisa"]{
     --accent:#ef5da8; --accent-soft:#3a2030;
@@ -86,7 +87,7 @@
   .carte-produit.achete-carte{opacity:0.55;}
 
   .fab-ajouter{
-    position:fixed; right:20px; bottom:calc(86px + var(--safe-bottom));
+    position:fixed; right:20px; bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 16px);
     width:58px; height:58px; border-radius:50%; border:none;
     background:var(--accent); color:white; font-size:30px; font-weight:300;
     display:flex; align-items:center; justify-content:center;
@@ -99,7 +100,7 @@
 
   /* Onglet Course */
   .btn-course-terminee{
-    position:fixed; left:18px; right:18px; bottom:calc(18px + var(--safe-bottom));
+    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 14px);
     padding:16px; border:none; border-radius:var(--radius-md); background:var(--accent);
     color:white; font-size:16px; font-weight:700; z-index:20;
   }
@@ -124,7 +125,7 @@
   /* Barre d'onglets */
   nav.tabbar{
     display:flex; background:var(--surface); border-top:1px solid var(--line);
-    padding-bottom:var(--safe-bottom); flex-shrink:0;
+    padding-bottom:var(--safe-bottom); flex-shrink:0; min-height:var(--tabbar-height);
   }
   nav.tabbar button{
     flex:1; padding:10px 0 8px; border:none; background:none; color:var(--ink-soft);
@@ -179,7 +180,7 @@
     </section>
 
     <section class="vue" id="vue-course">
-      <div class="liste" id="liste-course" style="padding-top:16px;"></div>
+      <div class="liste" id="liste-course" style="padding-top:16px; padding-bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 90px);"></div>
       <button class="btn-course-terminee" id="btn-course-terminee">Course terminée</button>
     </section>
 
