@@ -466,6 +466,25 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 - `loadDayData()` normalise systématiquement (`blankDayData()` + `Object.assign`).
 - **Vibration** : code présent, sans effet sur Safari iOS.
 
+## Historique — bug cross-app du cache/Service Worker (corrigé le 18/09/2026)
+
+Suite à un signalement de problème d'ouverture hors-ligne sur **Course**
+(app sœur dans ce même dépôt), audit du `sw.js` des 4 apps du dépôt
+(Portail, Course, Muscu, Budget). Le `activate` handler de Muscu faisait
+`caches.keys().filter(n => n !== CACHE_NAME).map(n => caches.delete(n))` —
+or `caches.keys()` renvoie **tous les caches de tout le domaine**, pas
+seulement celui de Muscu, donc ce code supprimait aussi le cache du
+Portail, de Course et de Budget dès que le Service Worker de Muscu
+s'activait (et réciproquement, les 3 autres `sw.js` avaient exactement le
+même bug et supprimaient le cache de Muscu dès leur propre activation).
+Corrigé en ajoutant un `CACHE_PREFIX = 'muscu-shell-'` et en filtrant
+`names.filter(n => n.startsWith(CACHE_PREFIX) && n !== CACHE_NAME)` : Muscu
+ne nettoie désormais que ses propres anciennes versions de cache, jamais
+celles des autres apps. Même correctif appliqué aux 3 autres `sw.js` du
+dépôt (voir le README du Portail, section 8, pour le détail complet
+incluant le bouton "Vider le cache" du Portail qui avait le même
+problème).
+
 ## Bugs iOS déjà corrigés (ne pas régresser)
 
 - `height:100%` sur `html, body` plafonnait la page → `min-height`.
