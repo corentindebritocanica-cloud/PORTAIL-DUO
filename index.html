@@ -4,241 +4,295 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#0d1014">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#17181b">
 <title>Portail Duo</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icone-512.png">
 <link rel="apple-touch-icon" href="icone-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap">
 <style>
   :root{
-    /* Tokens repris tels quels de Muscu ("Ardoise & Craie") */
-    --bg:#0d1014;
-    --card:#161b22;
-    --card-2:#1e2530;
-    --border:rgba(255,255,255,0.09);
-    --border-strong:rgba(255,255,255,0.17);
-    --text:#e9eff6;
-    --text-dim:#8a97a8;
-    --corentin:#1f8fff;
-    --corentin-dark:#1a5fc4;
-    --lisa:#ff3d7e;
-    --lisa-dark:#c4225f;
-    --done:#12b981;
-    --gold:#ffb800;
-    --accent: var(--corentin);
-    --accent-rgb: 31,143,255;
-    --accent-glow: rgba(var(--accent-rgb), 0.30);
-    --r-sm:10px;
-    --r-md:14px;
-    --r-lg:18px;
-    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
-    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
-    --t-fast:.14s;
-    --t-mid:.22s;
-    --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+    --panel: #201f22;
+    --panel-edge: #2b2a2e;
+    --brass: #c9a35c;
+    --brass-dim: #8a7346;
+    --ink: #eae6db;
+    --ink-dim: #8b877e;
+    --blue: #1f8fff;
+    --gold: #e0a940;
+    --green: #4caf6d;
+    --bg: #101113;
   }
-  html.light-mode{
-    --bg:#eef1f5;
-    --card:#ffffff;
-    --card-2:#e7ecf2;
-    --border:rgba(23,38,56,0.11);
-    --border-strong:rgba(23,38,56,0.20);
-    --text:#131a23;
-    --text-dim:#5f6c7c;
-    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
-    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
-    --accent-glow: rgba(var(--accent-rgb), 0.22);
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 20px calc(32px + env(safe-area-inset-bottom));
+    background:
+      radial-gradient(120% 90% at 50% -10%, #1c1d20 0%, var(--bg) 60%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    overflow-x:hidden;
   }
 
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{
-    margin:0; padding:0; min-height:100%;
-    background:var(--bg); color:var(--text);
-    font-family:-apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
-    -webkit-font-smoothing:antialiased;
-    transition: background .25s ease, color .25s ease;
+  .plate{
+    width:100%;
+    max-width:400px;
+    background: linear-gradient(160deg, var(--panel-edge), var(--panel) 40%);
+    border-radius:22px;
+    padding:34px 26px 28px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      0 40px 80px -30px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(255,255,255,0.03);
+    position:relative;
+    opacity:0;
+    transform:translateY(14px);
+    animation: rise .6s cubic-bezier(.2,.7,.3,1) forwards;
   }
-  body{ min-height:100vh; position:relative; }
 
-  /* Poussière de craie, reprise à l'identique de Muscu — désactivée en clair */
-  body::before{
-    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
-    opacity:.5;
-    background-image:
-      radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,238,.5), transparent),
-      radial-gradient(1px 1px at 78% 9%, rgba(238,240,238,.4), transparent),
-      radial-gradient(1.5px 1.5px at 32% 64%, rgba(238,240,238,.35), transparent),
-      radial-gradient(1px 1px at 91% 47%, rgba(238,240,238,.4), transparent),
-      radial-gradient(1.5px 1.5px at 58% 82%, rgba(238,240,238,.3), transparent),
-      radial-gradient(1px 1px at 6% 88%, rgba(238,240,238,.35), transparent);
-    background-repeat:no-repeat;
+  .plate::before{
+    content:"";
+    position:absolute;
+    top:14px; left:14px; right:14px; bottom:14px;
+    border:1px solid rgba(201,163,92,0.18);
+    border-radius:14px;
+    pointer-events:none;
   }
-  html.light-mode body::before{ display:none; }
 
-  .theme-toggle, .cache-toggle{
-    position:fixed; top:14px; z-index:25;
-    width:38px; height:38px; border-radius:50%;
-    background:var(--card); border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px; box-shadow: var(--shadow-sm);
+  .screw{
+    position:absolute;
+    width:6px; height:6px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #d8d0bf, var(--brass-dim));
+  }
+  .screw.tl{top:9px;left:9px;} .screw.tr{top:9px;right:9px;}
+  .screw.bl{bottom:9px;left:9px;} .screw.br{bottom:9px;right:9px;}
+
+  .reload-btn{
+    position:absolute;
+    top:16px; right:16px;
+    width:32px; height:32px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: var(--ink-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
     cursor:pointer;
+    z-index:2;
+    transition: transform .5s cubic-bezier(.2,.7,.3,1), background .15s ease, color .15s ease;
   }
-  .theme-toggle{ right:14px; }
-  .cache-toggle{ right:60px; }
-  .cache-toggle.spinning{ animation: spin .6s linear infinite; }
-  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .reload-btn svg{width:15px;height:15px;}
+  .reload-btn:active{
+    background: rgba(255,255,255,0.09);
+    color: var(--ink);
+  }
+  .reload-btn.spin svg{ transform: rotate(360deg); transition: transform .5s cubic-bezier(.2,.7,.3,1); }
 
-  .view-inner{
-    position:relative; z-index:1;
-    max-width:460px; margin:0 auto;
-    padding:78px 18px 34px;
-    padding-top:calc(env(safe-area-inset-top,0px) + 78px);
-    display:flex; flex-direction:column; gap:14px;
+  header{
+    text-align:center;
+    margin-bottom:28px;
   }
+  .glyph{
+    width:52px;height:52px;
+    margin:0 auto 16px;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 0 0 2px rgba(201,163,92,0.4), 0 8px 18px -6px rgba(0,0,0,0.6);
+  }
+  .glyph svg{display:block;width:100%;height:100%;}
 
-  .app-title{
-    font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
-    color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
+  h1{
+    margin:0;
+    font-size:23px;
+    font-weight:600;
+    letter-spacing:0.01em;
   }
-  .app-title-brand{ color:var(--accent); }
-
-  .big-question{
-    font-family:var(--f-display); text-transform:uppercase;
-    font-size:29px; font-weight:850; letter-spacing:.01em; margin:4px 2px 20px 2px;
-  }
-
-  .big-choice-btn{
-    padding:26px 20px; border-radius:var(--r-lg); border:1px solid var(--border);
-    background:var(--card); color:var(--text); font-size:19px; font-weight:800;
-    display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:14px;
-    box-shadow: var(--shadow-sm); position:relative; text-decoration:none;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
-  }
-  .big-choice-btn:active{ transform: scale(0.98); }
-
-  .choice-icon{
-    width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);
-    display:flex; align-items:center; justify-content:center; font-size:22px;
-  }
-  .big-choice-btn.muscu .choice-icon{
-    background:linear-gradient(150deg, var(--corentin), var(--corentin-dark)); color:#fff;
-  }
-  .big-choice-btn.budget .choice-icon{
-    background:linear-gradient(150deg, var(--gold), #b8860b); color:#20160a;
-  }
-  .big-choice-btn.course .choice-icon{
-    background:linear-gradient(150deg, var(--done), #0d9468); color:#fff;
+  .sub{
+    margin:6px 0 0;
+    font-size:13px;
+    color:var(--ink-dim);
   }
 
-  .choice-label{ display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
-  .choice-name{ font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em; font-size:17px; }
-  .choice-desc{ font-size:12.5px; font-weight:500; color:var(--text-dim); }
-  .chevron{ font-size:20px; color:var(--text-dim); flex:0 0 auto; }
+  .doors{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
 
-  .footer-note{
-    text-align:center; font-size:11px; color:var(--text-dim); opacity:.75; margin-top:6px;
+  .door{
+    --c: var(--blue);
+    appearance:none;
+    border:none;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    width:100%;
+    padding:14px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:14px;
+    color:var(--ink);
+    font-family:inherit;
+    text-align:left;
+    cursor:pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .door:active{
+    transform: scale(0.97);
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  }
+
+  .bulb{
+    width:34px;height:34px;
+    flex:none;
+    border-radius:50%;
+    background: var(--c);
+    box-shadow:
+      0 0 0 3px rgba(255,255,255,0.05),
+      0 0 14px 2px color-mix(in srgb, var(--c) 55%, transparent);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .bulb svg{width:17px;height:17px;fill:#0f0f10;}
+
+  .label{flex:1;min-width:0;}
+  .name{
+    display:block;
+    font-size:16px;
+    font-weight:600;
+    line-height:1.25;
+  }
+  .desc{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-dim);
+    margin-top:1px;
+  }
+
+  .arrow{
+    flex:none;
+    color: var(--ink-dim);
+    font-size:16px;
+    transition: transform .15s ease;
+  }
+  .door:active .arrow{ transform: translateX(2px); }
+
+  footer{
+    text-align:center;
+    margin-top:24px;
+    font-size:11px;
+    color: var(--brass-dim);
+    letter-spacing:0.02em;
+  }
+
+  @keyframes rise{
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .plate{ animation:none; opacity:1; transform:none; }
+    .door{ transition:none; }
   }
 </style>
 </head>
 <body>
 
-  <button class="theme-toggle" id="theme-toggle" aria-label="Changer de thème">🌙</button>
-  <button class="cache-toggle" id="cache-btn" aria-label="Vider le cache et redémarrer">🔄</button>
+  <main class="plate">
+    <span class="screw tl"></span><span class="screw tr"></span>
+    <span class="screw bl"></span><span class="screw br"></span>
 
-  <div class="view-inner">
-    <p class="app-title"><span class="app-title-brand">Portail Duo</span> · Corentin &amp; Lisa</p>
-    <h1 class="big-question">Où va-t-on&nbsp;?</h1>
+    <button class="reload-btn" id="hardReload" title="Vider le cache et recharger" aria-label="Vider le cache et recharger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+        <polyline points="21 3 21 9 15 9"/>
+      </svg>
+    </button>
 
-    <a class="big-choice-btn muscu" href="./Muscu/">
-      <span class="choice-icon">🏋️</span>
-      <span class="choice-label">
-        <span class="choice-name">Musculation</span>
-        <span class="choice-desc">Séances, progressions &amp; coach IA</span>
-      </span>
-      <span class="chevron">›</span>
-    </a>
+    <header>
+      <div class="glyph">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" fill="#201f22"/>
+          <rect x="10" y="10" width="80" height="80" rx="10" fill="none" stroke="#c9a35c" stroke-width="3"/>
+          <rect x="16" y="16" width="21" height="68" rx="4" fill="#1f8fff"/>
+          <rect x="39.5" y="16" width="21" height="68" rx="4" fill="#e0a940"/>
+          <rect x="63" y="16" width="21" height="68" rx="4" fill="#4caf6d"/>
+        </svg>
+      </div>
+      <h1>Portail Duo</h1>
+      <p class="sub">Corentin &amp; Lisa — choisissez une porte</p>
+    </header>
 
-    <a class="big-choice-btn budget" href="./Budget/">
-      <span class="choice-icon">💶</span>
-      <span class="choice-label">
-        <span class="choice-name">Budget</span>
-        <span class="choice-desc">Charges, dépenses &amp; provisions</span>
-      </span>
-      <span class="chevron">›</span>
-    </a>
+    <nav class="doors">
+      <button class="door" style="--c:var(--blue)" data-url="./Muscu/">
+        <span class="bulb">
+          <svg viewBox="0 0 24 24" fill="#0f0f10"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="4" y="7" width="2" height="10" rx="1"/><rect x="6" y="10.5" width="12" height="3"/><rect x="18" y="7" width="2" height="10" rx="1"/><rect x="20" y="9" width="3" height="6" rx="1"/></svg>
+        </span>
+        <span class="label">
+          <span class="name">Musculation</span>
+          <span class="desc">Séances, progressions &amp; coach IA</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
 
-    <a class="big-choice-btn course" href="./Course/">
-      <span class="choice-icon">🛒</span>
-      <span class="choice-label">
-        <span class="choice-name">Courses</span>
-        <span class="choice-desc">Saisie &amp; liste au supermarché</span>
-      </span>
-      <span class="chevron">›</span>
-    </a>
+      <button class="door" style="--c:var(--gold)" data-url="./Budget/">
+        <span class="bulb">
+          <svg viewBox="0 0 24 24"><path d="M12 1a11 11 0 1 0 11 11A11 11 0 0 0 12 1Zm.9 16.1v1.4h-1.8v-1.4c-1.7-.3-3-1.3-3.1-3h1.8c.1.8.7 1.4 2 1.4 1.2 0 2-.6 2-1.5 0-.8-.6-1.3-2.2-1.7-2-.5-3.4-1.3-3.4-3.1 0-1.5 1.2-2.6 2.9-2.9V4.5h1.8v1.4c1.6.3 2.7 1.4 2.8 2.9h-1.8c-.1-.8-.6-1.4-1.7-1.4-1.1 0-1.8.5-1.8 1.3 0 .7.6 1.1 2.1 1.5 2.2.5 3.5 1.4 3.5 3.3 0 1.6-1.2 2.7-3.1 3Z"/></svg>
+        </span>
+        <span class="label">
+          <span class="name">Budget</span>
+          <span class="desc">Charges, dépenses &amp; provisions</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
 
-    <p class="footer-note">Portail Duo · pas de compte, pas de cloud</p>
-  </div>
+      <button class="door" style="--c:var(--green)" data-url="./Course/">
+        <span class="bulb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f10" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1" fill="#0f0f10" stroke="none"/><circle cx="20" cy="21" r="1" fill="#0f0f10" stroke="none"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </span>
+        <span class="label">
+          <span class="name">Courses</span>
+          <span class="desc">Saisie &amp; liste au supermarché</span>
+        </span>
+        <span class="arrow">›</span>
+      </button>
+    </nav>
+
+    <footer>Portail Duo · pas de compte, pas de cloud</footer>
+  </main>
 
 <script>
-(function(){
-  const THEME_KEY = 'duo_theme';
-
-  function getTheme(){
-    try { return localStorage.getItem(THEME_KEY) || 'dark'; }
-    catch (e) { return 'dark'; }
-  }
-  function applyTheme(theme){
-    document.documentElement.classList.toggle('light-mode', theme === 'light');
-    const btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
-  }
-  function toggleTheme(){
-    const next = getTheme() === 'light' ? 'dark' : 'light';
-    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
-    applyTheme(next);
-  }
-  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-  applyTheme(getTheme());
-
-  // Service worker du shell (inchangé)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+  document.querySelectorAll('.door').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      btn.style.transform = 'scale(0.96)';
+      setTimeout(() => { window.location.href = url; }, 120);
     });
-  }
+  });
 
-  // Vidage de cache + redémarrage (tap simple, comme le reste de l'app)
-  const cacheBtn = document.getElementById('cache-btn');
-  let busy = false;
-
-  async function clearCacheAndRestart(){
-    if (busy) return;
-    busy = true;
-    cacheBtn.classList.add('spinning');
+  document.getElementById('hardReload').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add('spin');
     try {
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+      }
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        await Promise.all(regs.map(r => r.unregister()));
       }
-      if (window.caches && caches.keys) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-    } catch (e) {
-      console.warn('Vidage du cache incomplet :', e);
-    } finally {
-      setTimeout(() => {
-        window.location.replace('./index.html?_reset=' + Date.now());
-      }, 380);
+    } catch (err) {
+      // silencieux : on recharge quand même
     }
-  }
-
-  cacheBtn.addEventListener('click', clearCacheAndRestart);
-})();
+    window.location.href = window.location.pathname + '?_r=' + Date.now();
+  });
 </script>
 
 </body>
