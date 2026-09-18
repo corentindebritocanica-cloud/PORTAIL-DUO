@@ -28,6 +28,12 @@
    ce service worker n'a pas à s'en mêler. */
 
 const CACHE_NAME = 'muscu-shell-v1';
+// Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
+// CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
+// les caches de tout le domaine (Portail, Course, Budget inclus), et un
+// filtre `!== CACHE_NAME` les supprimait tous par erreur (bug corrigé le
+// 18/09/2026 — voir README, section Historique).
+const CACHE_PREFIX = 'muscu-shell-';
 
 /* Recalculé à chaque usage plutôt que mis en cache une fois pour toutes :
    self.registration.scope est disponible aussi bien dans install/activate
@@ -60,7 +66,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((names) => Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+        names.filter((n) => n.startsWith(CACHE_PREFIX) && n !== CACHE_NAME).map((n) => caches.delete(n))
       ))
       .then(() => self.clients.claim())
   );
