@@ -483,6 +483,26 @@ fraîchement déployé. Choix délibéré de Corentin pour la simplicité et la
 cohérence avec le bouton déjà en place dans Budget, plutôt qu'un vrai
 vider-cache par app.
 
+## Historique — SDK Firebase absent du cache Service Worker (corrigé le 18/09/2026)
+
+Suite à une persistance du problème d'ouverture hors-ligne sur **Course**
+(app sœur) malgré le correctif du bug cross-app ci-dessous, diagnostic plus
+poussé sur suggestion de Corentin. Muscu charge Firebase via des `import`
+ES **statiques** dans un `<script type="module">` (`firebase-app.js`,
+`firebase-firestore.js`, `firebase-auth.js`, tous sur `gstatic.com`). Or le
+`fetch` handler du `sw.js` ignorait explicitement toute origine différente
+de la sienne, donc ces 3 fichiers n'étaient **jamais mis en cache par le
+Service Worker** — dépendant uniquement du cache HTTP par défaut de
+Safari, que iOS peut vider (notamment en mode standalone). Le risque est
+ici plus grave que sur Course/Budget (scripts `compat` classiques) : un
+`import` ES qui échoue fait échouer **tout le module** — aucune exécution
+partielle — donc si ces imports échouaient hors-ligne, aucune
+fonctionnalité de l'app ne démarrait, sans possibilité de dégradation
+progressive. Corrigé en ajoutant une liste `FIREBASE_FILES` au `sw.js`,
+avec une branche cache-first dédiée dans le `fetch` handler (avant le test
+d'origine). `CACHE_NAME` passé à `muscu-shell-v2` pour forcer la
+réinstallation du cache avec ces nouveaux fichiers.
+
 ## Historique — bug cross-app du cache/Service Worker (corrigé le 18/09/2026)
 
 Suite à un signalement de problème d'ouverture hors-ligne sur **Course**
