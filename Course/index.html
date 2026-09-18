@@ -358,6 +358,25 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 let auth, db;
+
+// --- DEBUG TEMPORAIRE (18/09/2026) : à retirer une fois le problème de
+// synchronisation hors-ligne diagnostiqué. Affiche en bas d'écran l'état
+// réel de la persistance Firestore et des données reçues, pour comprendre
+// pourquoi le cache local ne reflète pas l'état réel de la base côté
+// serveur en usage hors-ligne. ---
+window.__debugCache = {
+  persistence: 'init…', erreur: null,
+  produits: { count: null, fromCache: null },
+  rayons: { count: null, fromCache: null }
+};
+function updateDebugPanel(){
+  const el = document.getElementById('debug-panel');
+  if(!el) return;
+  const d = window.__debugCache;
+  const fmt = (o) => o.count===null ? '?' : `${o.count} (${o.fromCache===null?'?':o.fromCache?'CACHE':'SERVEUR'})`;
+  el.textContent = `persistance: ${d.persistence}${d.erreur ? ' — '+d.erreur : ''} | produits: ${fmt(d.produits)} | rayons: ${fmt(d.rayons)} | navigator.onLine: ${navigator.onLine}`;
+}
+
 // Cache Firestore persistant (remplace enablePersistence, déprécié) : import dynamique
 // pour rester compatible avec le SDK compat (pas de passage en type="module", qui casserait
 // les onclick="..." du HTML). Le tout premier authListen(...) attend dbReady plus bas.
@@ -368,9 +387,13 @@ const dbReady = (async () => {
     initializeFirestore(firebase.app(), {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
+    window.__debugCache.persistence = 'PERSISTANT OK';
   } catch (err) {
+    window.__debugCache.persistence = 'MEMOIRE (repli)';
+    window.__debugCache.erreur = String((err && err.message) || err);
     console.warn('Cache Firestore persistant indisponible, repli sur le cache mémoire :', err);
   }
+  updateDebugPanel();
   auth = firebase.auth();
   db = firebase.firestore();
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -386,10 +409,19 @@ function dbOnCollection(nom, cb){
   colRef(nom).onSnapshot(snap=>{
     const obj = {};
     snap.forEach(doc=> obj[doc.id] = doc.data());
+    if(window.__debugCache[nom]){
+      window.__debugCache[nom].count = Object.keys(obj).length;
+      window.__debugCache[nom].fromCache = snap.metadata.fromCache;
+      updateDebugPanel();
+    }
     cb(obj);
+  }, err=>{
+    window.__debugCache.erreur = 'onSnapshot ' + nom + ': ' + String((err && err.message) || err);
+    updateDebugPanel();
   });
 }
 function authListen(cb){ auth.onAuthStateChanged(cb); }
+
 
 function vibrer(ms){ if(navigator.vibrate) navigator.vibrate(ms || 12); }
 
@@ -901,5 +933,7 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- DEBUG TEMPORAIRE (18/09/2026) — à retirer une fois le problème diagnostiqué -->
+<div id="debug-panel" style="position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.85); color:#0f0; font-size:11px; font-family:monospace; padding:6px 10px; padding-bottom:calc(6px + env(safe-area-inset-bottom)); z-index:99999; word-break:break-word; line-height:1.4;"></div>
 </body>
 </html>
