@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#10a37f">
+<link rel="manifest" href="manifest.json">
+<title>Courses L&C</title>
+<style>
+  :root{
+    --accent:#2f6fed; --accent-soft:#1c2a44;
+    --bg:#0b0f14; --surface:#141a21; --surface-soft:#1b232c;
+    --ink:#f2f5f7; --ink-soft:#9aa7b2; --line:#26303a;
+    --radius-lg:20px; --radius-md:14px; --safe-top:env(safe-area-inset-top); --safe-bottom:env(safe-area-inset-bottom);
+  }
+  :root[data-profil="Lisa"]{
+    --accent:#ef5da8; --accent-soft:#3a2030;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;}
+  body{display:flex; flex-direction:column; height:100vh; height:100dvh;}
+  #app{display:flex; flex-direction:column; height:100%;}
+  header.topbar{
+    padding: calc(14px + var(--safe-top)) 18px 14px;
+    background:var(--surface); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  header.topbar h1{margin:0; font-size:24px; color:var(--accent);}
+  .profil-badge{
+    font-size:13px; color:var(--ink-soft); background:var(--surface-soft);
+    padding:6px 12px; border-radius:20px; border:1px solid var(--line);
+  }
+  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px; position:relative;}
+  section.vue{display:none;}
+  section.vue.actif{display:block;}
+
+  /* Barre de recherche */
+  .searchbar{
+    margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:10px 14px;
+  }
+  .searchbar input{flex:1; border:none; background:none; color:var(--ink); font-size:16px; outline:none;}
+  .searchbar input::placeholder{color:var(--ink-soft);}
+  .btn-effacer-recherche{
+    flex-shrink:0; width:26px; height:26px; border-radius:50%; border:none;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:14px;
+    display:none; align-items:center; justify-content:center; padding:0; line-height:1;
+  }
+  .btn-effacer-recherche:active{background:var(--line);}
+
+  .liste{padding: 6px 18px 100px;}
+  .section-rayon{margin-top:22px;}
+  .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); margin:0 0 8px 4px;}
+  .carte-produit{
+    display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .case{
+    flex-shrink:0; width:26px; height:26px; border-radius:8px; border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center; background:var(--surface-soft);
+  }
+  .case.checked{ background:var(--accent); border-color:var(--accent); }
+  .case svg{width:16px; height:16px; stroke:white; fill:none; stroke-width:3; display:none;}
+  .case.checked svg{display:block;}
+  .infos-produit{flex:1; min-width:0;}
+  .nom-produit{font-size:16px; font-weight:600; margin:0;}
+  .nom-produit.achete{ text-decoration:line-through; color:var(--ink-soft); }
+  .rayon-produit{font-size:12px; color:var(--ink-soft); margin:2px 0 0;}
+  .btn-crayon{
+    flex-shrink:0; width:36px; height:36px; border-radius:50%; border:none;
+    background:var(--surface-soft); color:var(--ink-soft); font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-crayon:active{background:var(--line);}
+  .qte-produit{
+    flex-shrink:0; width:64px; min-width:64px; height:36px; border-radius:10px;
+    border:1px solid var(--line); background:var(--surface-soft); color:var(--ink);
+    text-align:center; font-size:14px; padding:0 4px;
+  }
+  .carte-produit.achete-carte{opacity:0.55;}
+
+  .fab-ajouter{
+    position:fixed; right:20px; bottom:calc(86px + var(--safe-bottom));
+    width:58px; height:58px; border-radius:50%; border:none;
+    background:var(--accent); color:white; font-size:30px; font-weight:300;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px rgba(0,0,0,0.4); z-index:20;
+  }
+  .fab-ajouter:active{transform:scale(0.94);}
+
+  .vide{ text-align:center; padding:60px 30px; color:var(--ink-soft); }
+  .vide h2{color:var(--ink); font-size:20px; margin-bottom:8px;}
+
+  /* Onglet Course */
+  .btn-course-terminee{
+    position:fixed; left:18px; right:18px; bottom:calc(18px + var(--safe-bottom));
+    padding:16px; border:none; border-radius:var(--radius-md); background:var(--accent);
+    color:white; font-size:16px; font-weight:700; z-index:20;
+  }
+  .btn-course-terminee:disabled{opacity:0.35;}
+
+  /* Onglet Paramètres */
+  .params{padding:20px 18px 100px;}
+  .bloc-param{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:18px; margin-bottom:18px;}
+  .bloc-param h3{margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft);}
+  .choix-profil{display:flex; gap:10px;}
+  .btn-profil{
+    flex:1; padding:16px; border-radius:var(--radius-md); border:2px solid var(--line);
+    background:var(--surface-soft); color:var(--ink); font-size:16px; font-weight:600;
+  }
+  .btn-profil.actif{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .btn-large{
+    width:100%; padding:16px; border-radius:var(--radius-md); border:1px solid var(--line);
+    background:var(--surface-soft); color:var(--ink); font-size:16px; font-weight:600;
+  }
+  .btn-large:active{background:var(--line);}
+
+  /* Barre d'onglets */
+  nav.tabbar{
+    display:flex; background:var(--surface); border-top:1px solid var(--line);
+    padding-bottom:var(--safe-bottom); flex-shrink:0;
+  }
+  nav.tabbar button{
+    flex:1; padding:10px 0 8px; border:none; background:none; color:var(--ink-soft);
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px;
+  }
+  nav.tabbar button.actif{color:var(--accent);}
+  nav.tabbar button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2;}
+
+  /* Modale ajout/édition produit */
+  .modal-fond{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
+    display:flex; align-items:flex-end;
+  }
+  .modal-carte{
+    width:100%; background:var(--surface); border-radius:22px 22px 0 0;
+    padding:22px 20px calc(22px + var(--safe-bottom)); max-height:80vh; overflow-y:auto;
+  }
+  .modal-carte h2{margin:0 0 18px; font-size:19px;}
+  .champ{margin-bottom:16px;}
+  .champ label{display:block; font-size:13px; color:var(--ink-soft); margin-bottom:6px;}
+  .champ input, .champ select{
+    width:100%; padding:13px 14px; border-radius:var(--radius-md); border:1px solid var(--line);
+    background:var(--surface-soft); color:var(--ink); font-size:16px;
+  }
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+  .modal-actions button{flex:1; padding:14px; border-radius:var(--radius-md); border:none; font-size:16px; font-weight:700;}
+  .btn-annuler{background:var(--surface-soft); color:var(--ink);}
+  .btn-enregistrer{background:var(--accent); color:white;}
+  .btn-supprimer{background:none; color:#e5484d; border:none; width:100%; text-align:center; margin-top:6px; padding:10px; font-size:14px;}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div id="app" style="display:none;">
+  <header class="topbar">
+    <h1 id="titre-onglet">Liste</h1>
+    <span class="profil-badge" id="badge-profil"></span>
+  </header>
+
+  <main>
+    <section class="vue actif" id="vue-liste">
+      <div class="searchbar">
+        <span>&#128269;</span>
+        <input type="text" id="champ-recherche" placeholder="Chercher un produit...">
+        <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" aria-label="Effacer la recherche">&#10005;</button>
+      </div>
+      <div class="liste" id="liste-produits"></div>
+      <button class="fab-ajouter" id="btn-ouvrir-ajout" aria-label="Ajouter un produit">+</button>
+    </section>
+
+    <section class="vue" id="vue-course">
+      <div class="liste" id="liste-course" style="padding-top:16px;"></div>
+      <button class="btn-course-terminee" id="btn-course-terminee">Course terminée</button>
+    </section>
+
+    <section class="vue" id="vue-parametres">
+      <div class="params">
+        <div class="bloc-param">
+          <h3>Profil</h3>
+          <div class="choix-profil">
+            <button class="btn-profil" id="btn-profil-corentin" data-profil="Corentin">Corentin</button>
+            <button class="btn-profil" id="btn-profil-lisa" data-profil="Lisa">Lisa</button>
+          </div>
+        </div>
+        <div class="bloc-param">
+          <h3>Application</h3>
+          <button class="btn-large" id="btn-vider-cache">Recharger l'application (vider le cache)</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="actif" data-tab="liste">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Liste
+    </button>
+    <button data-tab="course">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Course
+    </button>
+    <button data-tab="parametres">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Réglages
+    </button>
+  </nav>
+</div>
+
+<div class="modal-fond" id="modal-produit" style="display:none;">
+  <div class="modal-carte">
+    <h2 id="modal-titre">Ajouter un produit</h2>
+    <div class="champ">
+      <label for="modal-nom">Nom du produit</label>
+      <input type="text" id="modal-nom" placeholder="Ex: Pommes">
+    </div>
+    <div class="champ">
+      <label for="modal-rayon">Rayon</label>
+      <select id="modal-rayon"></select>
+    </div>
+    <div class="champ" id="champ-nouveau-rayon" style="display:none;">
+      <label for="modal-nouveau-rayon">Nom du nouveau rayon</label>
+      <input type="text" id="modal-nouveau-rayon" placeholder="Ex: Surgelés">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-annuler" id="btn-modal-annuler">Annuler</button>
+      <button class="btn-enregistrer" id="btn-modal-enregistrer">Enregistrer</button>
+    </div>
+    <button class="btn-supprimer" id="btn-modal-supprimer" style="display:none;">Supprimer ce produit</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   FIREBASE — init + persistance
+   Choix délibérés suite aux incidents du 18/09/2026 :
+   - SDK 100% "compat" (pas de import() dynamique cross-origin, qui avait
+     échoué silencieusement à se mettre en cache) : firebase.firestore()
+     et son enablePersistence() classique suffisent, moins de pièces
+     mobiles = moins de risques.
+   - Authentification ANONYME (signInAnonymously) : pas d'écran de
+     connexion, le choix "Corentin/Lisa" dans Réglages n'est qu'une
+     préférence d'affichage/thème locale (localStorage), pas un compte.
+   - AUCUNE logique de "réinjection si vide" : le catalogue de départ est
+     importé une seule fois côté serveur (script d'import), jamais par
+     l'app elle-même.
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+  authDomain: "course-app-36e9d.firebaseapp.com",
+  projectId: "course-app-36e9d",
+  storageBucket: "course-app-36e9d.firebasestorage.app",
+  messagingSenderId: "55041357024",
+  appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
+};
+firebase.initializeApp(firebaseConfig);
+let auth, db;
+
+const dbReady = (async () => {
+  auth = firebase.auth();
+  db = firebase.firestore();
+  try {
+    await db.enablePersistence({ synchronizeTabs: true });
+  } catch (err) {
+    console.warn('Cache Firestore persistant indisponible, repli sur le cache mémoire :', err);
+  }
+  await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+})();
+
+function colRef(nom){ return db.collection(nom); }
+function docRef(nom, id){ return db.collection(nom).doc(id); }
+function dbUpdateDoc(nom, id, val){ return docRef(nom, id).update(val); }
+function dbSetDoc(nom, id, val){ return docRef(nom, id).set(val); }
+function dbAddDoc(nom, val){ return colRef(nom).add(val); }
+function dbDeleteDoc(nom, id){ return docRef(nom, id).delete(); }
+function dbOnCollection(nom, cb){
+  colRef(nom).onSnapshot(snap=>{
+    const obj = {};
+    snap.forEach(doc=> obj[doc.id] = doc.data());
+    cb(obj);
+  }, err=> console.warn('onSnapshot', nom, err));
+}
+function authListen(cb){ auth.onAuthStateChanged(cb); }
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+const state = {
+  produits: {},
+  rayons: {},
+  profil: localStorage.getItem('profil') || 'Corentin',
+  ongletActif: 'liste',
+  recherche: '',
+  editionId: null,   // id du produit en cours d'édition dans la modale (null = ajout)
+};
+
+/* ============================================================
+   THÈME / PROFIL
+   ============================================================ */
+function appliquerProfil(){
+  document.documentElement.setAttribute('data-profil', state.profil);
+  document.getElementById('badge-profil').textContent = state.profil;
+  document.getElementById('btn-profil-corentin').classList.toggle('actif', state.profil==='Corentin');
+  document.getElementById('btn-profil-lisa').classList.toggle('actif', state.profil==='Lisa');
+}
+// Appliqué tout de suite (avant même Firebase) pour éviter un flash du mauvais thème.
+appliquerProfil();
+
+document.getElementById('btn-profil-corentin').addEventListener('click', ()=>{
+  state.profil = 'Corentin'; localStorage.setItem('profil','Corentin'); appliquerProfil();
+});
+document.getElementById('btn-profil-lisa').addEventListener('click', ()=>{
+  state.profil = 'Lisa'; localStorage.setItem('profil','Lisa'); appliquerProfil();
+});
+
+/* ============================================================
+   NAVIGATION ENTRE ONGLETS
+   ============================================================ */
+const titres = { liste:'Liste', course:'Course', parametres:'Réglages' };
+document.querySelectorAll('nav.tabbar button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    state.ongletActif = btn.dataset.tab;
+    document.querySelectorAll('nav.tabbar button').forEach(b=> b.classList.toggle('actif', b===btn));
+    document.querySelectorAll('section.vue').forEach(s=> s.classList.toggle('actif', s.id==='vue-'+btn.dataset.tab));
+    document.getElementById('titre-onglet').textContent = titres[btn.dataset.tab];
+  });
+});
+
+/* ============================================================
+   RENDU — Liste
+   ============================================================ */
+function nomsRayonsTries(){
+  return Object.entries(state.rayons).sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+}
+
+function renderListe(){
+  const conteneur = document.getElementById('liste-produits');
+  const recherche = state.recherche.trim().toLowerCase();
+  const produitsParRayon = {};
+  Object.entries(state.produits).forEach(([id,p])=>{
+    if(recherche && !(p.nom||'').toLowerCase().includes(recherche)) return;
+    const rayonId = p.rayonId || '';
+    (produitsParRayon[rayonId] ||= []).push([id,p]);
+  });
+
+  if(Object.keys(produitsParRayon).length===0){
+    conteneur.innerHTML = `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
+    return;
+  }
+
+  let html = '';
+  nomsRayonsTries().forEach(([rayonId, rayon])=>{
+    const items = produitsParRayon[rayonId];
+    if(!items || items.length===0) return;
+    items.sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+    html += `<div class="section-rayon"><p class="titre-rayon">${escapeHtml(rayon.nom)}</p>`;
+    items.forEach(([id,p])=> html += carteProduitListe(id,p));
+    html += `</div>`;
+  });
+  // Produits sans rayon connu (rayonId orphelin) : à la fin, sans titre de section dédié.
+  if(produitsParRayon['']){
+    html += `<div class="section-rayon"><p class="titre-rayon">Sans rayon</p>`;
+    produitsParRayon[''].forEach(([id,p])=> html += carteProduitListe(id,p));
+    html += `</div>`;
+  }
+  conteneur.innerHTML = html || `<div class="vide"><h2>Rien trouvé</h2></div>`;
+}
+
+function carteProduitListe(id, p){
+  return `
+    <div class="carte-produit">
+      <button class="case ${p.aAcheter?'checked':''}" onclick="toggleAAcheter('${id}')" aria-label="À acheter">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <div class="infos-produit">
+        <p class="nom-produit">${escapeHtml(p.nom||'')}</p>
+      </div>
+      <input class="qte-produit" value="${escapeHtml(p.quantite||'')}" placeholder="Qté/info"
+        onchange="updateQuantite('${id}', this.value)">
+      <button class="btn-crayon" onclick="ouvrirModale('${id}')" aria-label="Modifier">&#9998;</button>
+    </div>`;
+}
+
+function toggleAAcheter(id){
+  const p = state.produits[id]; if(!p) return;
+  dbUpdateDoc('produits', id, { aAcheter: !p.aAcheter });
+}
+function updateQuantite(id, val){
+  dbUpdateDoc('produits', id, { quantite: val });
+}
+
+/* ============================================================
+   RENDU — Course
+   ============================================================ */
+function renderCourse(){
+  const conteneur = document.getElementById('liste-course');
+  const items = Object.entries(state.produits).filter(([id,p])=> p.aAcheter);
+  if(items.length===0){
+    conteneur.innerHTML = `<div class="vide"><h2>Rien à acheter</h2><p>Coche des produits dans l'onglet Liste pour les voir apparaître ici.</p></div>`;
+    document.getElementById('btn-course-terminee').disabled = true;
+    return;
+  }
+  const parRayon = {};
+  items.forEach(([id,p])=> (parRayon[p.rayonId||''] ||= []).push([id,p]));
+
+  let html = '';
+  nomsRayonsTries().forEach(([rayonId, rayon])=>{
+    const arr = parRayon[rayonId];
+    if(!arr || arr.length===0) return;
+    arr.sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+    html += `<div class="section-rayon"><p class="titre-rayon">${escapeHtml(rayon.nom)}</p>`;
+    arr.forEach(([id,p])=> html += carteProduitCourse(id,p));
+    html += `</div>`;
+  });
+  if(parRayon['']){
+    html += `<div class="section-rayon"><p class="titre-rayon">Sans rayon</p>`;
+    parRayon[''].forEach(([id,p])=> html += carteProduitCourse(id,p));
+    html += `</div>`;
+  }
+  conteneur.innerHTML = html;
+  document.getElementById('btn-course-terminee').disabled = !items.some(([id,p])=> p.achete);
+}
+
+function carteProduitCourse(id, p){
+  return `
+    <div class="carte-produit ${p.achete?'achete-carte':''}">
+      <button class="case ${p.achete?'checked':''}" onclick="toggleAchete('${id}')" aria-label="Acheté">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+      <div class="infos-produit">
+        <p class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom||'')}</p>
+        ${p.quantite ? `<p class="rayon-produit">${escapeHtml(p.quantite)}</p>` : ''}
+      </div>
+    </div>`;
+}
+
+function toggleAchete(id){
+  const p = state.produits[id]; if(!p) return;
+  dbUpdateDoc('produits', id, { achete: !p.achete });
+  document.getElementById('btn-course-terminee').disabled = false;
+}
+
+document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
+  const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
+  if(aEffacer.length===0) return;
+  const batch = db.batch();
+  aEffacer.forEach(([id])=> batch.update(docRef('produits', id), { aAcheter:false, achete:false }));
+  batch.commit();
+});
+
+/* ============================================================
+   RECHERCHE
+   ============================================================ */
+const champRecherche = document.getElementById('champ-recherche');
+const btnEffacerRecherche = document.getElementById('btn-effacer-recherche');
+champRecherche.addEventListener('input', ()=>{
+  state.recherche = champRecherche.value;
+  btnEffacerRecherche.style.display = state.recherche ? 'flex' : 'none';
+  renderListe();
+});
+btnEffacerRecherche.addEventListener('click', ()=>{
+  champRecherche.value=''; state.recherche=''; btnEffacerRecherche.style.display='none';
+  renderListe(); champRecherche.focus();
+});
+
+/* ============================================================
+   MODALE AJOUT / ÉDITION (le même formulaire pour les deux)
+   ============================================================ */
+const modal = document.getElementById('modal-produit');
+const selectRayon = document.getElementById('modal-rayon');
+const champNouveauRayon = document.getElementById('champ-nouveau-rayon');
+
+function peuplerSelectRayons(rayonIdSelectionne){
+  const options = nomsRayonsTries().map(([id,r])=>
+    `<option value="${id}" ${id===rayonIdSelectionne?'selected':''}>${escapeHtml(r.nom)}</option>`
+  ).join('');
+  selectRayon.innerHTML = options + `<option value="__nouveau__">+ Nouveau rayon…</option>`;
+}
+
+selectRayon.addEventListener('change', ()=>{
+  champNouveauRayon.style.display = selectRayon.value==='__nouveau__' ? 'block' : 'none';
+});
+
+function ouvrirModale(id){
+  state.editionId = id || null;
+  const p = id ? state.produits[id] : null;
+  document.getElementById('modal-titre').textContent = id ? 'Modifier le produit' : 'Ajouter un produit';
+  document.getElementById('modal-nom').value = p ? (p.nom||'') : '';
+  peuplerSelectRayons(p ? p.rayonId : '');
+  champNouveauRayon.style.display = 'none';
+  document.getElementById('modal-nouveau-rayon').value = '';
+  document.getElementById('btn-modal-supprimer').style.display = id ? 'block' : 'none';
+  modal.style.display = 'flex';
+  setTimeout(()=> document.getElementById('modal-nom').focus(), 50);
+}
+function fermerModale(){ modal.style.display = 'none'; state.editionId = null; }
+
+document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=> ouvrirModale(null));
+document.getElementById('btn-modal-annuler').addEventListener('click', fermerModale);
+modal.addEventListener('click', (e)=>{ if(e.target===modal) fermerModale(); });
+
+document.getElementById('btn-modal-enregistrer').addEventListener('click', async ()=>{
+  const nom = document.getElementById('modal-nom').value.trim();
+  if(!nom) return;
+  let rayonId = selectRayon.value;
+
+  if(rayonId==='__nouveau__'){
+    const nomRayon = document.getElementById('modal-nouveau-rayon').value.trim();
+    if(!nomRayon) return;
+    const ref = await dbAddDoc('rayons', { nom: nomRayon });
+    rayonId = ref.id;
+  }
+
+  if(state.editionId){
+    await dbUpdateDoc('produits', state.editionId, { nom, rayonId });
+  } else {
+    await dbAddDoc('produits', { nom, rayonId, quantite:'', aAcheter:false, achete:false });
+  }
+  fermerModale();
+});
+
+document.getElementById('btn-modal-supprimer').addEventListener('click', async ()=>{
+  if(!state.editionId) return;
+  if(!window.confirm('Supprimer définitivement ce produit ?')) return;
+  await dbDeleteDoc('produits', state.editionId);
+  fermerModale();
+});
+
+/* ============================================================
+   VIDER LE CACHE (Réglages) — scope strictement limité à Course,
+   avec confirmation (mêmes précautions que le bouton du Portail
+   corrigé le 18/09/2026 : jamais toucher aux caches/SW des autres apps).
+   ============================================================ */
+document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
+  const ok = window.confirm("Vider le cache de Courses et recharger ?\n\nL'app ne sera plus disponible hors-ligne tant qu'elle n'aura pas été rouverte au moins une fois avec une connexion.");
+  if(!ok) return;
+  try{
+    if('caches' in window){
+      const CACHE_PREFIX = 'courses-lc-shell-';
+      const names = await caches.keys();
+      await Promise.all(names.filter(n=> n.startsWith(CACHE_PREFIX)).map(n=> caches.delete(n)));
+    }
+    if('serviceWorker' in navigator){
+      const scopeCourse = new URL('./', window.location.href).href;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.filter(r=> r.scope===scopeCourse).map(r=> r.unregister()));
+    }
+  } catch(err){ /* silencieux : on recharge quand même */ }
+  window.location.href = window.location.pathname + '?_r=' + Date.now();
+});
+
+/* ============================================================
+   RENDU GLOBAL + DÉMARRAGE
+   ============================================================ */
+function render(){
+  renderListe();
+  renderCourse();
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function demarrer(){
+  authListen(user=>{
+    if(user){
+      dbOnCollection('produits', obj=>{ state.produits = obj; render(); });
+      dbOnCollection('rayons', obj=>{ state.rayons = obj; render(); });
+      document.getElementById('app').style.display = 'flex';
+    } else {
+      auth.signInAnonymously().catch(err=> console.error('Connexion anonyme impossible :', err));
+    }
+  });
+}
+dbReady.then(demarrer);
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(err=>{
+      console.warn('Service worker non enregistré :', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
