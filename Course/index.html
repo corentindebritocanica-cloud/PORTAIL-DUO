@@ -543,7 +543,18 @@ const PRODUITS_SEED = [
 ];
 
 function lancerSeedSiVide(){
-  colRef('rayons').limit(1).get().then(snap=>{
+  // Garde ajoutée le 18/09/2026 : hors-ligne, un .get() sans source explicite
+  // peut mal évaluer si `rayons` est "vide" pour CETTE requête précise
+  // (.limit(1)) même quand le cache contient déjà des données pour la
+  // collection complète (cache indexé par requête, pas par collection).
+  // Un faux "vide" ici réinjecte tout le catalogue de départ en écriture —
+  // mise en file d'attente localement et donc réellement envoyée en base
+  // dès le retour du réseau, dupliquant potentiellement tous les produits.
+  // Deux protections : ne jamais tenter cette vérification hors-ligne, et
+  // lire explicitement depuis le cache pour ne jamais dépendre d'un aller
+  // réseau qui échouerait silencieusement.
+  if(!navigator.onLine) return;
+  colRef('rayons').limit(1).get({ source: 'cache' }).then(snap=>{
     if(!snap.empty) return; // déjà initialisé, on ne touche à rien
     const batch = db.batch();
     const nomVersId = {};
@@ -560,6 +571,28 @@ function lancerSeedSiVide(){
       });
     });
     batch.commit();
+  }).catch(()=>{
+    // Rien en cache pour cette requête précise (ex: tout premier lancement
+    // jamais synchronisé) : on retente depuis le serveur, seulement si en
+    // ligne (déjà garanti par le if ci-dessus).
+    colRef('rayons').limit(1).get().then(snap=>{
+      if(!snap.empty) return;
+      const batch = db.batch();
+      const nomVersId = {};
+      RAYONS_SEED.forEach(nom=>{
+        const ref = colRef('rayons').doc();
+        batch.set(ref, { nom });
+        nomVersId[nom] = ref.id;
+      });
+      PRODUITS_SEED.forEach(([nom, rayonNom, quantite])=>{
+        const ref = colRef('produits').doc();
+        batch.set(ref, {
+          nom, quantite: quantite||"", rayonId: nomVersId[rayonNom] || "",
+          aAcheter:false, compteur:0
+        });
+      });
+      batch.commit();
+    }).catch(err=> console.warn('Vérification catalogue de départ impossible :', err));
   });
 }
 
