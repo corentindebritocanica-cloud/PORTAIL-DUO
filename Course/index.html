@@ -729,10 +729,10 @@ function renderCourse(){
     <div class="section-rayon">
       <h2 class="display">${escapeHtml(rayonNom)}</h2>
       ${produitsRayon.map(([id,p])=>`
-        <div class="carte-produit">
-          <div class="checkbox mode-course" onclick="toggleAcheteCourse('${id}')">${iconeCheck()}</div>
+        <div class="carte-produit ${p.achete?'achete-carte':''}">
+          <div class="checkbox mode-course ${p.achete?'checked':''}" onclick="toggleAcheteCourse('${id}')">${iconeCheck()}</div>
           <div class="infos-produit">
-            <div class="nom-produit">${escapeHtml(p.nom)}</div>
+            <div class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom)}</div>
             ${p.quantite ? `<div class="rayon-tag">${escapeHtml(p.quantite)}</div>` : ''}
           </div>
         </div>
