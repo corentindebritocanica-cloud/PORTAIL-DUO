@@ -667,7 +667,7 @@ function renderSaisie(){
   items.sort((a,b)=>{
     const diff = (b[1].compteur||0) - (a[1].compteur||0);
     if(diff!==0) return diff;
-    return a[1].nom.localeCompare(b[1].nom);
+    return (a[1].nom||'').localeCompare(b[1].nom||'');
   });
 
   if(items.length===0){
@@ -711,7 +711,7 @@ function renderCourse(){
   const rayonsTries = Object.keys(groupes).sort((a,b)=>a.localeCompare(b));
 
   cont.innerHTML = rayonsTries.map(rayonNom=>{
-    const produitsRayon = groupes[rayonNom].sort((a,b)=>a[1].nom.localeCompare(b[1].nom));
+    const produitsRayon = groupes[rayonNom].sort((a,b)=>(a[1].nom||'').localeCompare(b[1].nom||''));
     return `
     <div class="section-rayon">
       <h2 class="display">${escapeHtml(rayonNom)}</h2>
