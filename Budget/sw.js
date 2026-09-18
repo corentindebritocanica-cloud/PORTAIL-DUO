@@ -9,6 +9,12 @@
 // worker).
 
 const CACHE_NAME = 'budget-lc-shell-v1';
+// Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
+// CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
+// les caches de tout le domaine (Portail, Course, Muscu inclus), et un
+// filtre `!== CACHE_NAME` les supprimait tous par erreur (bug corrigé le
+// 18/09/2026 — voir README, section Historique).
+const CACHE_PREFIX = 'budget-lc-shell-';
 
 // Chemins relatifs à l'emplacement de ce script (/Budget/sw.js) : ils
 // restent valables quel que soit le sous-chemin d'hébergement GitHub Pages.
@@ -36,7 +42,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)))
     ).then(() => self.clients.claim())
   );
 });
