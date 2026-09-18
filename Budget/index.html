@@ -16,6 +16,7 @@
     <!-- Firebase compat — fonctionne sur tous les navigateurs dont Safari iOS -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
     <style>
@@ -435,7 +436,7 @@
             </div>
 
             <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
-                Version 2.9.7 (Cartes repliées par défaut)
+                Version 3.0.0 (Migration vers Firestore)
             </div>
         </div>
 
@@ -456,18 +457,20 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-        const db   = firebase.database();
+        const db   = firebase.firestore();
         const auth = firebase.auth();
 
         // Persistance LOCAL : reste connecté entre les ouvertures de l'app (survit à la fermeture de Safari/PWA)
         // Limite connue Safari iOS : l'ITP peut purger ce stockage après plusieurs jours d'inactivité — comportement du navigateur, pas un bug corrigeable côté code.
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
-        // Wrappers — noms différents pour éviter tout conflit avec l'API compat
-        const dbRef   = (path)           => db.ref(path);
-        const dbSet   = (ref, data)      => ref.set(data);
-        const dbOn    = (ref, cb)        => ref.on('value', cb);
-        const dbOff   = (ref)            => { try { ref.off('value'); } catch(e) {} };
+        // Wrappers Firestore — 1 document par mois dans la collection "mois", config dans "config/global"
+        const clean       = (obj)        => JSON.parse(JSON.stringify(obj)); // retire toute valeur undefined (refusée par Firestore)
+        const colMois     = ()           => db.collection('mois');
+        const refMois     = (id)         => db.collection('mois').doc(String(id));
+        const refConfig   = ()           => db.collection('config').doc('global');
+        let unsubMois   = null;
+        let unsubConfig = null;
         const authListen  = (cb)         => auth.onAuthStateChanged(cb);
         const authLogin   = (email, pass)=> auth.signInWithEmailAndPassword(email, pass);
         const authLogout  = ()           => auth.signOut();
@@ -596,11 +599,12 @@
 
         // --- Logique DB ---
         const attacherEcouteurs = () => {
-            dbOn(dbRef('budgetDataLC'), (snap) => {
-                if (snap.exists()) {
-                    let raw = snap.val();
-                    let data = (Array.isArray(raw) ? raw : Object.values(raw)).map(normaliserMois);
-                    
+            unsubMois = colMois().onSnapshot((snap) => {
+                let data = [];
+                snap.forEach(doc => data.push(doc.data()));
+                data = data.map(normaliserMois);
+
+                if (data.length) {
                     if (state.firstLoad) {
                         let cached = localStorage.getItem(LS_CACHE);
                         if (cached) {
@@ -611,43 +615,64 @@
                     }
 
                     state.donnees = trierMois(data);
-                    if (!state.moisActifId && data.length) state.moisActifId = data[data.length - 1].id;
+                    if (!state.moisActifId || !state.donnees.find(m => m.id === state.moisActifId)) {
+                        state.moisActifId = state.donnees[state.donnees.length - 1].id;
+                    }
                     localStorage.setItem(LS_CACHE, JSON.stringify(state.donnees));
                     rafraichirTouteLInterface();
                 } else {
                     if (state.firstLoad) {
-                        state.donnees = [normaliserMois({ id: genId(), nom: "Mars 2026", annee: 2026, revenus: 4500, revenus_add: 0 })];
-                        state.moisActifId = state.donnees[0].id;
-                        sauvegarderDonnees();
+                        const premier = normaliserMois({ id: genId(), nom: "Mars 2026", annee: 2026, revenus: 4500, revenus_add: 0 });
+                        state.donnees = [premier];
+                        state.moisActifId = premier.id;
+                        sauvegarderMois(premier);
                         state.firstLoad = false;
                         rafraichirTouteLInterface();
                     }
                 }
-            });
-            dbOn(dbRef('budgetConfigLC'), (snap) => {
-                if (snap.exists()) {
-                    const c = snap.val();
+            }, (err) => { console.error("Erreur écoute Firestore (mois) :", err); setSyncDot('offline'); });
+
+            unsubConfig = refConfig().onSnapshot((doc) => {
+                if (doc.exists) {
+                    const c = doc.data();
                     state.categories = c.categories || state.categories;
                     state.corbeille = c.corbeille || [];
                     state.objectifsProvisions = c.objectifsProvisions || [];
                     rafraichirTouteLInterface();
                 }
-            });
+            }, (err) => { console.error("Erreur écoute Firestore (config) :", err); setSyncDot('offline'); });
+        };
+
+        const sauvegarderMois = (mois) => {
+            setSyncDot('saving');
+            refMois(mois.id).set(clean(mois)).then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); });
         };
 
         const sauvegarderDonnees = () => {
+            const mois = getMoisActif();
+            if (!mois) return;
+            sauvegarderMois(mois);
+        };
+
+        // Remplace intégralement la collection "mois" (utilisé uniquement par la restauration .json)
+        const restaurerCollectionComplete = (nouvellesDonnees) => {
             setSyncDot('saving');
-            dbSet(dbRef('budgetDataLC'), state.donnees).then(() => setSyncDot('online'));
+            const anciensIds = new Set(state.donnees.map(m => String(m.id)));
+            const nouveauxIds = new Set(nouvellesDonnees.map(m => String(m.id)));
+            const batch = db.batch();
+            anciensIds.forEach(id => { if (!nouveauxIds.has(id)) batch.delete(refMois(id)); });
+            nouvellesDonnees.forEach(m => batch.set(refMois(m.id), clean(m)));
+            return batch.commit().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); throw e; });
         };
 
 
         const sauvegarderConfig = (silencieux = false) => {
             if(!silencieux) setSyncDot('saving');
-            dbSet(dbRef('budgetConfigLC'), {
+            refConfig().set(clean({
                 categories: state.categories,
                 corbeille: state.corbeille,
                 objectifsProvisions: state.objectifsProvisions
-            }).then(() => { if(!silencieux) setSyncDot('online'); });
+            })).then(() => { if(!silencieux) setSyncDot('online'); }).catch((e) => { console.error(e); setSyncDot('offline'); });
         };
 
         // --- Navigation et Vues ---
@@ -1046,9 +1071,11 @@
 
         document.getElementById('btn-del-month').onclick = () => {
             if (confirm("Supprimer ce mois définitivement ?")) {
-                state.donnees = state.donnees.filter(m => m.id !== state.moisActifId);
+                const idASupprimer = state.moisActifId;
+                state.donnees = state.donnees.filter(m => m.id !== idASupprimer);
                 state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length - 1].id : null;
-                sauvegarderDonnees();
+                setSyncDot('saving');
+                refMois(idASupprimer).delete().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); });
             }
         };
 
@@ -1173,7 +1200,8 @@
                 attacherEcouteurs();
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
-                dbOff(dbRef('budgetDataLC'));
+                if (unsubMois) { unsubMois(); unsubMois = null; }
+                if (unsubConfig) { unsubConfig(); unsubConfig = null; }
             }
         });
 
@@ -1219,11 +1247,14 @@
                 reader.onload = function(evt) {
                     try {
                         const imported = JSON.parse(evt.target.result);
-                        if(confirm("Écraser les données actuelles avec ce fichier ?")) { 
-                            state.donnees = trierMois(imported.map(normaliserMois)); 
-                            state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length-1].id : null; 
-                            sauvegarderDonnees(); alert("Restauration réussie !"); 
-                            changerVue('mensuelle');
+                        if(confirm("Écraser les données actuelles avec ce fichier ?")) {
+                            const nouvellesDonnees = trierMois(imported.map(normaliserMois));
+                            restaurerCollectionComplete(nouvellesDonnees).then(() => {
+                                state.donnees = nouvellesDonnees;
+                                state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length-1].id : null;
+                                alert("Restauration réussie !");
+                                changerVue('mensuelle');
+                            }).catch(() => alert("❌ Erreur lors de la restauration, rien n'a été modifié."));
                         }
                     } catch(err) { alert("Fichier invalide."); }
                 }; reader.readAsText(file);
@@ -1250,7 +1281,7 @@
                 mois[type].splice(index, 0, item);
                 state.suppressionEnAttente = null;
                 document.getElementById('toast').classList.remove('show');
-                sauvegarderDonnees(); rafraichirTouteLInterface();
+                sauvegarderMois(mois); rafraichirTouteLInterface();
             }
         };
 
