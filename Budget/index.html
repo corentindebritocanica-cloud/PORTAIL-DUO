@@ -458,6 +458,15 @@
 
         firebase.initializeApp(firebaseConfig);
         const db   = firebase.firestore();
+        db.enablePersistence({synchronizeTabs:true}).catch(err=>{
+          if(err.code==='failed-precondition'){
+            console.warn('Persistance Firestore désactivée : plusieurs onglets ouverts.');
+          }else if(err.code==='unimplemented'){
+            console.warn('Persistance Firestore non supportée par ce navigateur.');
+          }else{
+            console.warn('Erreur activation persistance Firestore :', err);
+          }
+        });
         const auth = firebase.auth();
 
         // Persistance LOCAL : reste connecté entre les ouvertures de l'app (survit à la fermeture de Safari/PWA)
@@ -1340,6 +1349,16 @@
             setSyncDot('online');
             document.getElementById('offline-popup').classList.add('hidden');
         });
+
+        // Service worker (18/09/26) : ouverture hors-ligne du shell de
+        // l'app, voir sw.js pour le détail. Chemin ET scope volontairement
+        // relatifs ('sw.js', './'), comme dans /Muscu/ et /Course/.
+        if('serviceWorker' in navigator){
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js', { scope: './' })
+                    .catch((err) => console.warn('[sw] enregistrement échoué :', err));
+            });
+        }
 
     </script>
 </body>
