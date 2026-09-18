@@ -347,18 +347,24 @@ const firebaseConfig = {
   appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-db.enablePersistence({synchronizeTabs:true}).catch(err=>{
-  if(err.code==='failed-precondition'){
-    console.warn('Persistance Firestore désactivée : plusieurs onglets ouverts.');
-  }else if(err.code==='unimplemented'){
-    console.warn('Persistance Firestore non supportée par ce navigateur.');
-  }else{
-    console.warn('Erreur activation persistance Firestore :', err);
+let auth, db;
+// Cache Firestore persistant (remplace enablePersistence, déprécié) : import dynamique
+// pour rester compatible avec le SDK compat (pas de passage en type="module", qui casserait
+// les onclick="..." du HTML). Le tout premier authListen(...) attend dbReady plus bas.
+const dbReady = (async () => {
+  try {
+    const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    initializeFirestore(firebase.app(), {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+  } catch (err) {
+    console.warn('Cache Firestore persistant indisponible, repli sur le cache mémoire :', err);
   }
-});
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+})();
 
 /* Wrappers Firestore (collections top-level "produits" et "rayons") */
 function colRef(nom){ return db.collection(nom); }
@@ -839,7 +845,7 @@ document.getElementById('btn-valider-rayon').addEventListener('click', ()=>{
 /* ============================================================
    BOOT
    ============================================================ */
-demarrer();
+dbReady.then(demarrer);
 
 /* Service worker (18/09/26) : le fichier sw.js existait déjà dans ce
    dossier mais n'avait jamais été enregistré depuis cette page — corrigé
