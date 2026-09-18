@@ -219,5 +219,31 @@ toucher que le cache et le Service Worker du Portail lui-même
 confirmation (`window.confirm(...)`) avant l'action, puisqu'elle reste
 destructive pour le hors-ligne du Portail seul.
 
+## 9. Historique — SDK Firebase absent du cache Service Worker (corrigé le 18/09/2026)
+
+Suite à la correction du bug cross-app (section 8), le problème d'ouverture
+hors-ligne persistait sur Course. Diagnostic plus poussé, sur suggestion de
+Corentin : dans Course, Budget et Muscu, le SDK Firebase (et, pour Budget,
+Sortable.js/canvas-confetti) est chargé depuis un CDN externe
+(`gstatic.com`, `cdn.jsdelivr.net`) via des balises `<script>` classiques
+(Course/Budget) ou des `import` ES statiques (Muscu) — dans les deux cas,
+un chargement **bloquant** : le navigateur ne peut pas afficher/exécuter le
+reste de la page tant que ces fichiers n'ont pas répondu. Or le `fetch`
+handler de chaque `sw.js` ignore explicitement toute origine différente de
+la sienne, donc ces fichiers externes n'étaient **jamais mis en cache par
+le Service Worker** — ils dépendaient uniquement du cache HTTP par défaut
+de Safari, que iOS peut vider (notamment en mode standalone). Hors-ligne,
+sans ce cache navigateur, la page restait bloquée en attendant l'échec
+réseau de ces scripts, même avec un shell (`index.html`) parfaitement mis
+en cache par ailleurs.
+
+**Corrigé dans les 3 apps concernées** (le Portail n'a pas ce problème,
+il ne charge aucun SDK externe) : ajout d'une liste explicite des fichiers
+externes bloquants à chaque `sw.js`, avec une branche cache-first dédiée
+dans le `fetch` handler, en dehors de toute logique de scope/origine.
+`CACHE_NAME` de chacun passé en v2 pour forcer la réinstallation du cache
+avec ces nouveaux fichiers. Voir le README de chaque app pour le détail
+propre à son SDK/ses versions.
+
 ---
 *Dernière vérification du code live : 18/09/2026, via fetch du lien RAW GitHub.*
