@@ -55,3 +55,36 @@ Au premier chargement avec une base vide (collection `rayons` inexistante ou vid
 - **Correctif critique (18/09/2026) : SDK Firebase absent du cache Service Worker** — suite à une persistance du problème d'ouverture hors-ligne malgré les 2 correctifs précédents (enregistrement du SW, puis bug cross-app), diagnostic plus poussé sur suggestion de Corentin. Les 3 `<script src="https://www.gstatic.com/...">` du `<head>` (SDK Firebase compat) sont des balises **classiques, sans `defer` ni `async`** : le navigateur bloque le traitement de toute la page tant qu'elles n'ont pas répondu. Or le `fetch` handler du `sw.js` ignore explicitement toute origine différente de la sienne (`if (url.origin !== self.location.origin) return;`), donc ces 3 scripts — hébergés sur `gstatic.com` — n'étaient **jamais mis en cache par le Service Worker**, et dépendaient uniquement du cache HTTP par défaut de Safari (que iOS peut vider, notamment en mode standalone). Hors-ligne, si ce cache navigateur ne les avait pas gardés, la page restait bloquée en attendant l'échec réseau de ces scripts — c'était très probablement la cause réelle du symptôme ("reste sur le fond d'écran, aucune donnée ne charge"), indépendamment du bug cross-app déjà corrigé. Corrigé en ajoutant une liste `FIREBASE_FILES` (les 3 scripts compat + `firebase-firestore.js`, utilisé par l'`import()` dynamique de la persistance) au `sw.js`, avec une branche cache-first dédiée dans le `fetch` handler, en dehors de toute logique de scope/origine. `CACHE_NAME` passé à `courses-lc-shell-v2` pour forcer la réinstallation du cache avec ces nouveaux fichiers. Même correctif appliqué à Budget (+ Sortable.js et canvas-confetti, également bloquants) et Muscu (SDK Firebase modulaire chargé via `import` ES — un import qui échoue y bloque l'exécution de tout le module, pas seulement du SDK).
 - **Correctif préventif (18/09/2026) : `lancerSeedSiVide()` sécurisée hors-ligne** — suite à un signalement de données manquantes en offline (onglet Course vide alors que ~50 produits étaient cochés "à acheter"), audit de `lancerSeedSiVide()` : elle fait un `colRef('rayons').limit(1).get()` **sans préciser de source**, appelé à chaque connexion réussie, avant même que les listeners `onSnapshot` de `produits`/`rayons` aient reçu leurs premières données. Risque identifié : hors-ligne, ce `.get()` peut mal évaluer si la collection est "vide" pour cette requête précise (`.limit(1)`, différente du listener de collection complète utilisé ailleurs) même quand le cache local contient déjà des données — un faux "vide" détecté déclenche une réinjection complète du catalogue de départ (~50 rayons, ~130 produits, tous `aAcheter:false`) via `batch.commit()`, une écriture qui serait mise en file d'attente localement et **réellement envoyée en base dès le retour du réseau**, dupliquant potentiellement tout le catalogue. Corrigé en ajoutant une garde `if(!navigator.onLine) return;` (aucune vérification tant qu'on n'est pas confirmé en ligne) et en lisant explicitement `{ source: 'cache' }` en premier lieu (avec repli sur une lecture serveur classique en cas d'échec du cache, uniquement si en ligne). N'explique pas nécessairement à lui seul le symptôme signalé (à confirmer), mais corrige un risque réel de corruption de données indépendamment de la cause exacte.
 - **Ajout d'un panneau de diagnostic temporaire (18/09/2026)** — suite à un signalement persistant : après resynchronisation en ligne confirmée (base serveur vérifiée directement via l'API REST Firestore : 128 produits, 50 correctement marqués `aAcheter:true`), l'app rouverte hors-ligne (fermeture complète + mode avion) affiche toujours tout décoché. Diagnostic serveur écartant une perte de données réelle ; le problème est donc local à l'appareil testé (cache Firestore jamais réellement peuplé en persistant, ou repli silencieux sur le cache mémoire). Ajout d'un bandeau visible en bas d'écran (`#debug-panel`, fond noir, texte vert, `position:fixed`) affichant en temps réel : le statut de `initializeFirestore` (`PERSISTANT OK` vs `MEMOIRE (repli)` avec le message d'erreur le cas échéant), le nombre de documents reçus par `onSnapshot` pour `produits`/`rayons` et si chaque snapshot vient du cache ou du serveur (`snap.metadata.fromCache`), ainsi que `navigator.onLine`. **Temporaire — à retirer une fois la cause identifiée.**
+
+## ⚠️ RESET COMPLET DE L'APP (18/09/2026)
+
+Après une longue session de diagnostic sur un problème d'ouverture
+hors-ligne, plusieurs correctifs successifs (Service Worker, cache
+Firebase, sécurisation de `lancerSeedSiVide`) n'ont pas suffi à stabiliser
+l'app, avec plusieurs incidents de duplication du catalogue en base
+(causés par `lancerSeedSiVide()` se déclenchant à tort, y compris après
+correctif, sur un client Firestore fraîchement réinitialisé). Décision de
+Corentin : **repartir de zéro** plutôt que de continuer à empiler des
+correctifs sur une base fragilisée.
+
+**Ce qui a été fait, dans l'ordre :**
+1. Extraction et dédoublonnage de la liste complète (13 rayons uniques,
+   131 produits uniques, 10 marqués "à acheter" — état réel préservé en
+   prenant, pour chaque nom en double, `aAcheter:true` dès qu'AU MOINS une
+   copie l'avait).
+2. Sauvegarde de cette liste propre + d'une sauvegarde brute complète
+   (avant nettoyage) fournies à Corentin en fichiers téléchargeables.
+3. **Vidage complet de Firestore** (projet `course-app-36e9d`) : les
+   555 documents des collections `rayons` et `produits` ont été
+   supprimés. Les deux collections sont maintenant vides.
+4. **Suppression de `Course/index.html`, `Course/sw.js` et
+   `Course/manifest.json`** du dépôt GitHub. Seuls `README.md` (ce
+   fichier) et `.gitkeep` subsistent dans le dossier `Course/`.
+
+**État actuel : l'app Course n'existe plus.** Ni fichiers, ni données.
+Le prochain travail sur cette app sera une reconstruction complète à
+partir de la liste de produits/rayons sauvegardée, avec une architecture
+Service Worker + Firestore repensée pour éviter les pièges rencontrés
+aujourd'hui (notamment : ne plus jamais faire de vérification "la base
+est-elle vide ?" au démarrage pour décider d'une réinjection automatique
+de données).
