@@ -21,7 +21,7 @@ Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton 
 
 **Course** : uniquement les produits cochés "à acheter" en Liste, groupés par rayon. On coche ici un produit une fois réellement acheté (nom barré, carte estompée) — rien n'est retiré automatiquement. Le bouton **Course terminée** (actif seulement si au moins un produit est coché acheté) décoche d'un coup, dans les deux onglets, tous les produits ainsi cochés — sans jamais les supprimer de la Liste.
 
-**Réglages** : choix du profil (**Corentin** = thème bleu, **Lisa** = thème rose, appliqué immédiatement via une variable CSS `data-profil` sur `<html>`, mémorisé dans `localStorage`). Bouton **Recharger l'application** : vide uniquement le cache et le Service Worker de Course (jamais ceux du Portail/Muscu/Budget — voir Sécurité ci-dessous), avec confirmation avant l'action.
+**Réglages** : choix du profil (**Corentin** = thème bleu, **Lisa** = thème rose, appliqué immédiatement via une variable CSS `data-profil` sur `<html>`, mémorisé dans `localStorage`). Bouton **Recharger l'application** : vide uniquement le cache et le Service Worker de Course (jamais ceux du Portail/Muscu/Budget — voir "Choix d'architecture" ci-dessous), avec confirmation avant l'action.
 
 ## Base de données : Cloud Firestore
 Projet `course-app-36e9d`, deux collections de premier niveau :
