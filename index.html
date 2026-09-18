@@ -5,261 +5,204 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#1c0709">
+<meta name="theme-color" content="#0d1014">
 <title>Portail Duo</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icone-512.png">
 <link rel="apple-touch-icon" href="icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap">
 <style>
   :root{
-    --wall-1: #2a0d12;
-    --wall-2: #14060a;
-    --curtain: #7a1620;
-    --curtain-dark: #4a0d14;
-    --gold: #c9a35c;
-    --paper: #efe6d2;
-    --paper-2: #e2d6b8;
-    --ink: #241b14;
-    --ink-dim: rgba(36,27,20,.62);
-    --c-muscu: #3b6ea5;
-    --c-budget: #a3781f;
-    --c-course: #3f7a4a;
+    /* Tokens repris tels quels de Muscu ("Ardoise & Craie") */
+    --bg:#0d1014;
+    --card:#161b22;
+    --card-2:#1e2530;
+    --border:rgba(255,255,255,0.09);
+    --border-strong:rgba(255,255,255,0.17);
+    --text:#e9eff6;
+    --text-dim:#8a97a8;
+    --corentin:#1f8fff;
+    --corentin-dark:#1a5fc4;
+    --lisa:#ff3d7e;
+    --lisa-dark:#c4225f;
+    --done:#12b981;
+    --gold:#ffb800;
+    --accent: var(--corentin);
+    --accent-rgb: 31,143,255;
+    --accent-glow: rgba(var(--accent-rgb), 0.30);
+    --r-sm:10px;
+    --r-md:14px;
+    --r-lg:18px;
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --t-fast:.14s;
+    --t-mid:.22s;
+    --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  html.light-mode{
+    --bg:#eef1f5;
+    --card:#ffffff;
+    --card-2:#e7ecf2;
+    --border:rgba(23,38,56,0.11);
+    --border-strong:rgba(23,38,56,0.20);
+    --text:#131a23;
+    --text-dim:#5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --accent-glow: rgba(var(--accent-rgb), 0.22);
   }
 
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-  html,body{ height:100%; margin:0; overflow:hidden; background:var(--wall-2); }
-  body{
-    font-family: ui-serif, Georgia, "Times New Roman", serif;
-    color:var(--paper);
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
     -webkit-font-smoothing:antialiased;
+    transition: background .25s ease, color .25s ease;
   }
+  body{ min-height:100vh; position:relative; }
 
-  .wall{
-    position:fixed; inset:0;
-    background: linear-gradient(to bottom, var(--wall-1) 0%, var(--wall-1) 58%, var(--wall-2) 100%);
-    overflow:hidden;
+  /* Poussière de craie, reprise à l'identique de Muscu — désactivée en clair */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:.5;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,238,.5), transparent),
+      radial-gradient(1px 1px at 78% 9%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 32% 64%, rgba(238,240,238,.35), transparent),
+      radial-gradient(1px 1px at 91% 47%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 58% 82%, rgba(238,240,238,.3), transparent),
+      radial-gradient(1px 1px at 6% 88%, rgba(238,240,238,.35), transparent);
+    background-repeat:no-repeat;
   }
+  html.light-mode body::before{ display:none; }
 
-  .valance{
-    position:fixed; top:0; left:0; right:0;
-    height:42px;
-    background: repeating-linear-gradient(90deg, var(--curtain) 0 18px, var(--curtain-dark) 18px 36px);
-    border-bottom:3px solid var(--gold);
-    box-shadow:0 6px 14px rgba(0,0,0,.45);
-    z-index:4;
-  }
-
-  .sconce{ position:fixed; pointer-events:none; border-radius:50%; filter:blur(2px); z-index:1; }
-  .sconce.a{ width:160px; height:220px; left:2%; top:16%;
-    background:radial-gradient(ellipse at center, rgba(255,190,120,.16), transparent 70%); }
-  .sconce.b{ width:180px; height:240px; right:0%; top:24%;
-    background:radial-gradient(ellipse at center, rgba(255,190,120,.13), transparent 70%); }
-
-  .plaque{
-    position:fixed;
-    top:calc(env(safe-area-inset-top,0px) + 56px);
-    left:22px;
-    z-index:3;
-    pointer-events:none;
-  }
-  .plaque .t1{ display:block; font-size:11px; letter-spacing:.4em; font-variant:small-caps; color:var(--gold); opacity:.9; }
-  .plaque .t2{ display:block; margin-top:3px; font-size:10px; font-style:italic; color:rgba(239,230,210,.55); }
-
-  .hall{
-    position:fixed; inset:0;
+  .theme-toggle, .cache-toggle{
+    position:fixed; top:14px; z-index:25;
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
-    gap:4.5vw; padding:0 4vw;
-    z-index:2;
-  }
-
-  .poster-frame{
-    position:relative;
+    font-size:16px; box-shadow: var(--shadow-sm);
     cursor:pointer;
-    transform:rotate(var(--rot,0deg));
-    transition: transform .25s ease;
   }
-  .poster-frame:active{ transform:rotate(var(--rot,0deg)) scale(.95); }
-  .poster-frame .glow{
-    position:absolute; inset:-20% -26%;
-    background: radial-gradient(closest-side, var(--c), transparent 72%);
-    opacity:.4;
-    filter:blur(8px);
-    z-index:-1;
-  }
-  .poster-frame .foot{
-    position:absolute; left:50%; bottom:-14px;
-    width:70%; height:14px;
-    transform:translateX(-50%);
-    background:radial-gradient(closest-side, rgba(0,0,0,.5), transparent 75%);
+  .theme-toggle{ right:14px; }
+  .cache-toggle{ right:60px; }
+  .cache-toggle.spinning{ animation: spin .6s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .view-inner{
+    position:relative; z-index:1;
+    max-width:460px; margin:0 auto;
+    padding:78px 18px 34px;
+    padding-top:calc(env(safe-area-inset-top,0px) + 78px);
+    display:flex; flex-direction:column; gap:14px;
   }
 
-  .poster{
-    width:clamp(92px, 28vw, 172px);
-    aspect-ratio:2 / 3;
-    background: linear-gradient(160deg, var(--paper), var(--paper-2));
-    border:2px solid var(--gold);
-    border-radius:2px;
-    padding:10px 8px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
-    box-shadow: 0 16px 26px -12px rgba(0,0,0,.6);
+  .app-title{
+    font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
   }
-  .poster .badge{
-    font-size:9px; letter-spacing:.14em; text-transform:uppercase;
-    background:var(--c); color:#fff;
-    padding:2px 8px; border-radius:2px; margin-bottom:9px;
-  }
-  .poster .title{
-    margin:0; font-weight:700; letter-spacing:.05em;
-    font-size:clamp(13px, 4.2vw, 17px);
-    line-height:1.08; color:var(--ink);
-  }
-  .poster .tagline{
-    margin:7px 0 0; font-size:9.5px; font-style:italic; color:var(--ink-dim);
-  }
-  .poster .ribbon{
-    margin-top:11px; font-size:8px; letter-spacing:.03em; color:var(--ink-dim);
-    border-top:1px solid rgba(36,27,20,.28); padding-top:6px; width:100%;
+  .app-title-brand{ color:var(--accent); }
+
+  .big-question{
+    font-family:var(--f-display); text-transform:uppercase;
+    font-size:29px; font-weight:850; letter-spacing:.01em; margin:4px 2px 20px 2px;
   }
 
-  .poster-frame.warping .poster{ transition:transform .5s ease; transform:scale(1.06); }
-  .poster-frame.warping .glow{ opacity:.75; }
+  .big-choice-btn{
+    padding:26px 20px; border-radius:var(--r-lg); border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:19px; font-weight:800;
+    display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:14px;
+    box-shadow: var(--shadow-sm); position:relative; text-decoration:none;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .big-choice-btn:active{ transform: scale(0.98); }
 
-  .curtain-close{
-    position:fixed; inset:0;
-    display:flex;
-    pointer-events:none;
-    z-index:20;
+  .choice-icon{
+    width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
   }
-  .curtain-close .panel{
-    flex:1;
-    background: repeating-linear-gradient(90deg, var(--curtain) 0 18px, var(--curtain-dark) 18px 36px);
-    transform:translateX(-102%);
+  .big-choice-btn.muscu .choice-icon{
+    background:linear-gradient(150deg, var(--corentin), var(--corentin-dark)); color:#fff;
   }
-  .curtain-close .panel.right{ transform:translateX(102%); }
-  .hall-wrap.closing .curtain-close .panel{
-    transition: transform .62s cubic-bezier(.6,0,.2,1);
-    transform:translateX(0);
+  .big-choice-btn.budget .choice-icon{
+    background:linear-gradient(150deg, var(--gold), #b8860b); color:#20160a;
+  }
+  .big-choice-btn.course .choice-icon{
+    background:linear-gradient(150deg, var(--done), #0d9468); color:#fff;
   }
 
-  .reel-zone{
-    position:fixed;
-    right:20px;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
-    display:flex; flex-direction:column; align-items:flex-end; gap:6px;
-    z-index:6;
-  }
-  .reel{
-    width:46px; height:46px;
-    cursor:pointer;
-    touch-action:none;
-  }
-  .reel svg{ width:100%; height:100%; animation: reelSpin 9s linear infinite; }
-  .reel.fast svg{ animation: reelSpin 0.5s linear infinite; }
-  @keyframes reelSpin{ to{ transform:rotate(360deg); } }
-  .reel .rim{ fill:none; stroke:var(--gold); stroke-width:2.4; opacity:.85; }
-  .reel .hole{ fill:var(--wall-2); }
-  .reel-caption{ font-size:9.5px; font-style:italic; color:rgba(239,230,210,.55); }
+  .choice-label{ display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+  .choice-name{ font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em; font-size:17px; }
+  .choice-desc{ font-size:12.5px; font-weight:500; color:var(--text-dim); }
+  .chevron{ font-size:20px; color:var(--text-dim); flex:0 0 auto; }
 
-  @media (prefers-reduced-motion: reduce){
-    .reel svg{ animation:none; }
-    .poster-frame{ transition:none; }
+  .footer-note{
+    text-align:center; font-size:11px; color:var(--text-dim); opacity:.75; margin-top:6px;
   }
 </style>
 </head>
 <body>
 
-  <div class="hall-wrap" id="hallWrap">
-    <div class="wall">
-      <div class="sconce a"></div>
-      <div class="sconce b"></div>
-    </div>
-    <div class="valance"></div>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Changer de thème">🌙</button>
+  <button class="cache-toggle" id="cache-btn" aria-label="Vider le cache et redémarrer">🔄</button>
 
-    <div class="plaque">
-      <span class="t1">Portail Duo</span>
-      <span class="t2">Corentin &amp; Lisa</span>
-    </div>
+  <div class="view-inner">
+    <p class="app-title"><span class="app-title-brand">Portail Duo</span> · Corentin &amp; Lisa</p>
+    <h1 class="big-question">Où va-t-on&nbsp;?</h1>
 
-    <div class="hall">
+    <a class="big-choice-btn muscu" href="./Muscu/">
+      <span class="choice-icon">🏋️</span>
+      <span class="choice-label">
+        <span class="choice-name">Musculation</span>
+        <span class="choice-desc">Séances, progressions &amp; coach IA</span>
+      </span>
+      <span class="chevron">›</span>
+    </a>
 
-      <div class="poster-frame" style="--rot:-3deg; --c:var(--c-muscu);" data-url="./Muscu/">
-        <div class="glow"></div>
-        <div class="poster">
-          <span class="badge" style="background:var(--c-muscu)">Action</span>
-          <h2 class="title">Musculation</h2>
-          <p class="tagline">Chaque séance est une bataille.</p>
-          <div class="ribbon">Séances · Progressions · Coach IA</div>
-        </div>
-        <div class="foot"></div>
-      </div>
+    <a class="big-choice-btn budget" href="./Budget/">
+      <span class="choice-icon">💶</span>
+      <span class="choice-label">
+        <span class="choice-name">Budget</span>
+        <span class="choice-desc">Charges, dépenses &amp; provisions</span>
+      </span>
+      <span class="chevron">›</span>
+    </a>
 
-      <div class="poster-frame" style="--rot:2deg; --c:var(--c-budget);" data-url="./Budget/">
-        <div class="glow"></div>
-        <div class="poster">
-          <span class="badge" style="background:var(--c-budget)">Drame financier</span>
-          <h2 class="title">Budget</h2>
-          <p class="tagline">Personne n'y échappe.</p>
-          <div class="ribbon">Charges · Dépenses · Provisions</div>
-        </div>
-        <div class="foot"></div>
-      </div>
+    <a class="big-choice-btn course" href="./Course/">
+      <span class="choice-icon">🛒</span>
+      <span class="choice-label">
+        <span class="choice-name">Courses</span>
+        <span class="choice-desc">Saisie &amp; liste au supermarché</span>
+      </span>
+      <span class="chevron">›</span>
+    </a>
 
-      <div class="poster-frame" style="--rot:-1.5deg; --c:var(--c-course);" data-url="./Course/">
-        <div class="glow"></div>
-        <div class="poster">
-          <span class="badge" style="background:var(--c-course)">Aventure</span>
-          <h2 class="title">Courses</h2>
-          <p class="tagline">La quête du dernier rayon.</p>
-          <div class="ribbon">Saisie &amp; liste au supermarché</div>
-        </div>
-        <div class="foot"></div>
-      </div>
-
-    </div>
-
-    <div class="curtain-close">
-      <div class="panel left"></div>
-      <div class="panel right"></div>
-    </div>
-  </div>
-
-  <div class="reel-zone">
-    <div class="reel" id="reel" role="button" tabindex="0" aria-label="Vider le cache et redémarrer">
-      <svg viewBox="0 0 40 40">
-        <circle class="rim" cx="20" cy="20" r="17"/>
-        <circle class="hole" cx="20" cy="8" r="3.4"/>
-        <circle class="hole" cx="30.4" cy="26" r="3.4"/>
-        <circle class="hole" cx="9.6" cy="26" r="3.4"/>
-        <circle class="rim" cx="20" cy="20" r="3.2"/>
-      </svg>
-    </div>
-    <span class="reel-caption">bobine · maintenir pour rafraîchir</span>
+    <p class="footer-note">Portail Duo · pas de compte, pas de cloud</p>
   </div>
 
 <script>
 (function(){
-  const hallWrap = document.getElementById('hallWrap');
-  const posters = Array.from(document.querySelectorAll('.poster-frame'));
+  const THEME_KEY = 'duo_theme';
 
-  posters.forEach((p) => {
-    p.setAttribute('role', 'link');
-    p.setAttribute('tabindex', '0');
-    p.addEventListener('click', () => launch(p));
-    p.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        launch(p);
-      }
-    });
-  });
-
-  function launch(poster){
-    if (hallWrap.classList.contains('closing')) return;
-    poster.classList.add('warping');
-    hallWrap.classList.add('closing');
-    setTimeout(() => { window.location.href = poster.dataset.url; }, 640);
+  function getTheme(){
+    try { return localStorage.getItem(THEME_KEY) || 'dark'; }
+    catch (e) { return 'dark'; }
   }
+  function applyTheme(theme){
+    document.documentElement.classList.toggle('light-mode', theme === 'light');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  }
+  function toggleTheme(){
+    const next = getTheme() === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    applyTheme(next);
+  }
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+  applyTheme(getTheme());
 
   // Service worker du shell (inchangé)
   if ('serviceWorker' in navigator) {
@@ -268,12 +211,14 @@
     });
   }
 
-  // Bobine de film — vidage de cache + redémarrage (maintenir le doigt)
-  const reel = document.getElementById('reel');
-  let holdTimer = null;
-  let triggered = false;
+  // Vidage de cache + redémarrage (tap simple, comme le reste de l'app)
+  const cacheBtn = document.getElementById('cache-btn');
+  let busy = false;
 
   async function clearCacheAndRestart(){
+    if (busy) return;
+    busy = true;
+    cacheBtn.classList.add('spinning');
     try {
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -288,35 +233,11 @@
     } finally {
       setTimeout(() => {
         window.location.replace('./index.html?_reset=' + Date.now());
-      }, 420);
+      }, 380);
     }
   }
 
-  function triggerReset(){
-    if (triggered) return;
-    triggered = true;
-    reel.classList.add('fast');
-    clearCacheAndRestart();
-  }
-
-  reel.addEventListener('pointerdown', (e) => {
-    e.stopPropagation();
-    triggered = false;
-    holdTimer = setTimeout(triggerReset, 600);
-  });
-  function releaseReel(){
-    clearTimeout(holdTimer);
-    if (!triggered) reel.classList.remove('fast');
-  }
-  reel.addEventListener('pointerup', releaseReel);
-  reel.addEventListener('pointercancel', releaseReel);
-  reel.addEventListener('pointerleave', releaseReel);
-  reel.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' '){
-      e.preventDefault();
-      triggerReset();
-    }
-  });
+  cacheBtn.addEventListener('click', clearCacheAndRestart);
 })();
 </script>
 

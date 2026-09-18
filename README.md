@@ -79,55 +79,59 @@ Les icônes sont de vrais fichiers PNG (192, 512, 512 maskable) — la première
 version du portail utilisait des SVG en data-URI, remplacés depuis pour un support
 iOS/Android fiable une fois hébergé.
 
-## 4. Design / identité visuelle — "Affiches de cinéma" (3e refonte, 18/09/2026)
+## 4. Design / identité visuelle — thème "Ardoise & Craie" repris de Muscu (18/09/2026)
 
-Après "Carte céleste" (rejetée) et "Jardin zen" (encore trop élaboré au goût
-de Corentin), demande explicite d'un concept "plus simple" : des affiches de
-cinéma avec une salle en arrière-plan.
+Après trois refontes expérimentales dans la journée ("Carte céleste", "Jardin
+zen", "Affiches de cinéma"), demande finale : abandonner la piste "sortir
+des standards" et **reprendre tel quel le thème de l'app Muscu**
+("Ardoise & Craie") pour que le portail ait la même identité que ses
+sous-apps plutôt qu'une esthétique propre.
 
-**Métaphore retenue** : un mur de cinéma avec 3 affiches éclairées, chacune
-représentant une app comme un film (genre, titre, accroche). Un simple tap
-sur l'affiche = on "entre dans la salle" (rideau qui se ferme sur l'écran)
-avant la redirection. Concept volontairement plus direct que les deux
-précédents : pas de geste à apprendre, pas de mécanique de sélection, juste
-3 affiches posées côte à côte et un rideau.
+**Ce qui a été repris à l'identique du CSS live de `Muscu/index.html`** :
+- Tokens de couleur : `--bg:#0d1014`, `--card:#161b22`, `--border:rgba(255,255,255,.09)`,
+  `--text:#e9eff6`/`--text-dim:#8a97a8`, `--corentin:#1f8fff` (bleu),
+  `--lisa:#ff3d7e` (rose, non utilisé ici faute de profils), `--done:#12b981`
+  (vert), `--gold:#ffb800`.
+- Thème clair (`html.light-mode`) avec les mêmes valeurs de bascule
+  (`--bg:#eef1f5`, `--card:#fff`, `--text:#131a23`, etc.).
+- Police d'affichage `Bebas Neue` (Google Fonts, mêmes balises `<link>`) pour
+  les gros titres, réservée aux titres comme dans Muscu.
+- "Poussière de craie" en fond (`body::before`, mêmes `radial-gradient`),
+  désactivée en thème clair.
+- Composant `.big-choice-btn` (carte cliquable, icône colorée 46×46, libellé,
+  chevron) copié à l'identique des styles de Muscu — y compris le rayon
+  `--r-lg`, l'ombre `--shadow-sm` et l'effet `:active{scale(.98)}`.
+- Bouton rond `.theme-toggle` (38×38, même position `top:14px; right:14px`,
+  même emoji 🌙/☀️) avec bascule dark/light.
 
-| Variable CSS | Valeur | Usage |
-|---|---|---|
-| `--wall-1` / `--wall-2` | `#2a0d12` / `#14060a` | Mur (haut) / sol (bas) |
-| `--curtain` / `--curtain-dark` | `#7a1620` / `#4a0d14` | Rideau (velours rayé) |
-| `--gold` | `#c9a35c` | Cadres des affiches, filet du bandeau |
-| `--paper` / `--paper-2` | `#efe6d2` / `#e2d6b8` | Papier des affiches |
-| `--c-muscu` | `#3b6ea5` | Bandeau genre "Action" (Musculation) |
-| `--c-budget` | `#a3781f` | Bandeau genre "Drame financier" (Budget) |
-| `--c-course` | `#3f7a4a` | Bandeau genre "Aventure" (Courses) |
+**Différence assumée** : Muscu a un système de profils Corentin (bleu) /
+Lisa (rose) qui n'a pas de sens ici (le portail n'a pas de connexion) — donc
+`--lisa` est repris comme token mais non utilisé, et les 3 icônes d'app
+utilisent `--corentin` (Musculation), `--gold` (Budget) et `--done` (Courses)
+plutôt qu'un système de profil.
 
-Chaque affiche a un titre (le nom de l'app), un "genre" façon bandeau de
-festival, une accroche façon tagline de film, et la description fonctionnelle
-d'origine en petit texte en bas — clin d'œil ludique sans perdre
-l'information utile. Rotation légère et hauteur non identique entre les 3
-affiches (`--rot: -3deg / 2deg / -1.5deg`) pour éviter l'alignement en
-grille parfaite malgré la disposition "3 éléments en ligne".
+**Détail notable** : la préférence de thème est stockée sous la même clé
+`localStorage` que Muscu (`duo_theme`). Le portail et les 3 sous-apps étant
+sur la même origine GitHub Pages, **changer le thème depuis le portail (ou
+depuis Muscu) change aussi les autres** — comportement voulu, pas un bug.
 
-`theme-color` et barre de statut repassés en tons sombres (`#1c0709`,
-`black`) cohérents avec la salle de cinéma (contrairement au "Jardin zen",
-clair).
+⚠️ Ce choix réintroduit une dépendance externe (Google Fonts, pour Bebas
+Neue) que le portail n'avait pas jusqu'ici — assumé pour matcher Muscu à
+l'identique ; à garder en tête si "zéro dépendance externe" redevient un
+critère.
 
 ## 5. Navigation / interactions
 
-- **Les 3 affiches sont visibles et tapables directement**, aucune étape
-  intermédiaire — cohérent avec la demande précédente de retirer toute
-  "mécanique de sélection", et avec le nouvel objectif de simplicité.
-- **Taper une affiche** : léger zoom de l'affiche + halo qui s'intensifie,
-  puis un vrai rideau de velours se ferme depuis les deux bords de l'écran
-  (`translateX` synchronisé, 620 ms) avant la redirection vers le sous-dossier.
-- Bandeau de rideau fixe en haut d'écran (`.valance`) et deux halos de
-  lumière chaude sur le mur (`.sconce`) : purs éléments d'ambiance, non
-  interactifs.
-- **Plaque d'identité** sous le bandeau, en haut à gauche : nom du portail,
-  jamais un hero centré.
-- Aucune logique JS au-delà de la navigation, du geste de la bobine et de
-  l'enregistrement du service worker.
+- **3 vrais liens `<a href>`** vers `./Muscu/`, `./Budget/`, `./Course/` —
+  plus de gestion JS de la navigation (ni transition custom), pour rester
+  fidèle à la simplicité du menu de Muscu (qui utilise le même type de
+  bouton pour naviguer entre écrans).
+- Léger effet d'enfoncement au tap (`scale(.98)`), identique à Muscu.
+- Bouton **thème clair/sombre** en haut à droite, partagé avec les 3
+  sous-apps (voir plus haut).
+- Bouton **vidage de cache** (🔄) juste à côté, tap simple (pas de geste à
+  maintenir) — cohérent avec le reste de l'interface, qui ne demande jamais
+  de geste long.
 
 ## 6. Disponibilité hors-ligne (service worker)
 
@@ -184,62 +188,56 @@ présent).
 Vérifié en ligne via l'API GitHub (contenu réel du fichier sur `main`) — le
 correctif est bien effectif.
 
-## 8. Vidage du cache — la bobine de film (3e refonte, 18/09/2026)
+## 8. Vidage du cache — bouton 🔄 (thème Ardoise & Craie, 18/09/2026)
 
 **Problème identifié** : après une mise à jour poussée sur GitHub (portail ou
 sous-apps), le cache côté iPhone (Safari / mode standalone) ne se vide pas tout
-seul. Mécanisme déjà passé par un bouton classique, une comète ("Carte
-céleste"), puis un bassin d'eau ("Jardin zen") ; version actuelle : une
-bobine de film.
+seul. Mécanisme déjà passé par un bouton classique, une comète, un bassin
+d'eau puis une bobine de film dans les versions expérimentales ; revenu à un
+simple bouton rond avec la reprise du thème de Muscu — cohérent avec le
+reste de l'interface qui n'utilise que des taps simples, jamais de geste à
+maintenir.
 
-**Mécanisme actuel** : une bobine tourne lentement en boucle en bas à droite
-(ambiance projectionniste). Maintenir le doigt dessus ~600 ms déclenche :
+**Mécanisme actuel** : bouton rond 🔄 en haut à droite, à côté du bouton de
+thème. Un tap déclenche :
 1. désenregistrement de tous les service workers actifs
    (`navigator.serviceWorker.getRegistrations()` + `unregister()`),
 2. suppression de toutes les entrées du Cache Storage (`caches.keys()` +
    `caches.delete()`), y compris `portail-duo-shell-v1` posé par `sw.js`,
-3. la bobine se met à tourner très vite (effet "rembobinage"), puis
-   rechargement forcé de `index.html` via
-   `location.replace('./index.html?_reset=' + Date.now())` — le paramètre
-   `_reset` unique empêche de resservir une copie locale.
-
-Accessible aussi au clavier (élément focusable, `Entrée`/`Espace`). Légende
-discrète en permanence à côté ("bobine · maintenir pour rafraîchir").
+3. l'icône tourne pendant l'opération, puis rechargement forcé de
+   `index.html` via `location.replace('./index.html?_reset=' + Date.now())`
+   — le paramètre `_reset` unique empêche de resservir une copie locale.
 
 ## 9. Historique — démarche de refonte design (18/09/2026)
 
-Corentin a demandé une refonte "radicale" sortant des standards UI habituels
-(pas de navbar/sidebar/cards à ombre/hero centré/palette SaaS), puis a itéré
-en plusieurs passes le même jour :
+Corentin a demandé une refonte "radicale" sortant des standards UI habituels,
+puis a itéré en plusieurs passes le même jour avant de changer d'objectif :
 
-1. **1ère vague (8 concepts)** → **"Carte céleste"** choisie et implémentée
-   (navigation orbitale, warp) → rejetée ("j'aime pas trop au final").
-2. **2ème vague (10 concepts)**, avec consigne supplémentaire de retirer
-   toute mécanique de sélection (rotation/alignement) → **"Jardin zen"**
-   choisie et implémentée (3 pierres tapables directement, onde au tap) →
-   jugée encore trop élaborée.
-3. **Demande directe** (hors liste) : "un truc plus simple, genre des
-   affiches de cinéma avec un cinéma en arrière-plan" → **"Affiches de
-   cinéma" (retenu)** implémenté directement sans nouvelle liste de choix,
-   la demande étant déjà précise.
+1. **1ère vague (8 concepts)** → **"Carte céleste"** implémentée (navigation
+   orbitale, warp) → rejetée ("j'aime pas trop au final").
+2. **2ème vague (10 concepts)**, avec consigne de retirer toute mécanique de
+   sélection → **"Jardin zen"** implémentée (3 pierres tapables directement,
+   onde au tap) → jugée encore trop élaborée.
+3. **Demande directe** (hors liste) : affiches de cinéma → **"Affiches de
+   cinéma"** implémentée (rideau qui se ferme, bobine de film) — pas de
+   retour explicite dessus.
+4. **Revirement** : "va regarder le design de l'app Muscu et applique le
+   même thème, la même idée générale" → objectif "sortir des standards"
+   abandonné au profit de la **cohérence avec Muscu** → thème **"Ardoise &
+   Craie" (retenu)**, repris tel quel (tokens CSS, Bebas Neue, composant
+   `.big-choice-btn`, bouton de thème).
 
-**Pourquoi "Affiches de cinéma" reste non-générique tout en étant plus
-simple** :
-- Les 3 "cards" sont des affiches de film habillées (papier, cadre doré,
-  bandeau de genre, accroche) posées sur un mur de salle éclairé — pas des
-  rectangles blancs à coins arrondis avec ombre portée uniforme.
-- Rotation et hauteur légèrement différentes entre les 3 affiches pour
-  éviter l'alignement en grille parfaite, même en disposition côte à côte.
-- La transition (rideau de velours qui se ferme) est un élément de
-  narration cinéma, pas une animation générique de fade/slide.
-- Le vidage de cache (bobine qui s'emballe) prolonge la métaphore plutôt
-  que d'être un bouton isolé.
+**Pourquoi ce revirement n'est pas contradictoire avec le reste du repo** :
+Muscu et Course avaient déjà convergé vers ce même thème ("Course : reprise
+du design 'Fonte & Craie'/'Ardoise & Craie' de Muscu"). Le portail rejoint
+donc une cohérence déjà engagée entre les sous-apps plutôt que d'imposer
+un 4e langage visuel isolé. Seul **Budget** reste sur son propre design à ce
+jour — à harmoniser un jour si Corentin le souhaite, mais hors du périmètre
+de cette conversation (le portail n'a pas vocation à modifier les sous-apps).
 
-**Compromis assumé** : contrairement à "Carte céleste" et "Jardin zen", ce
-concept accepte une disposition proche d'une rangée (3 éléments côte à
-côte) — jugé nécessaire pour la lisibilité et la simplicité demandées ;
-l'écart au pattern générique se joue sur l'habillage (affiche, cadre,
-rideau) plutôt que sur la disposition spatiale.
+Les 3 refontes expérimentales ("Carte céleste", "Jardin zen", "Affiches de
+cinéma") restent consultables dans l'historique Git (`git log -- index.html`)
+si Corentin veut y revenir ou piocher un élément.
 
 ## 10. Règle de travail avec l'assistant IA (Claude)
 
@@ -252,5 +250,6 @@ procéder :
 ---
 *Dernière vérification du code live : 18/09/2026, via `git clone` direct du dépôt
 (donc sans aucun cache CDN/raw.githubusercontent.com) pour `index.html`,
-`README.md` et `sw.js`. Refonte "Affiches de cinéma" (3e refonte du jour,
-après "Carte céleste" puis "Jardin zen") poussée le 18/09/2026.*
+`README.md`, `sw.js` et `Muscu/index.html` (thème source). Thème "Ardoise &
+Craie" (4e itération design du jour, après "Carte céleste", "Jardin zen" et
+"Affiches de cinéma") poussé le 18/09/2026.*
