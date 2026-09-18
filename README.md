@@ -79,60 +79,55 @@ Les icônes sont de vrais fichiers PNG (192, 512, 512 maskable) — la première
 version du portail utilisait des SVG en data-URI, remplacés depuis pour un support
 iOS/Android fiable une fois hébergé.
 
-## 4. Design / identité visuelle — "Jardin zen" (refonte du 18/09/2026)
+## 4. Design / identité visuelle — "Affiches de cinéma" (3e refonte, 18/09/2026)
 
-Deuxième refonte du 18/09/2026 : Corentin n'a pas retenu "Carte céleste"
-(1ère refonte, conservée dans l'historique Git) et a demandé, après une
-liste de 10 nouvelles directions, que soit retirée toute "mécanique de
-sélection" (rotation, alignement, glisser-viser) — les 3 apps doivent être
-visibles et tapables directement, sans étape intermédiaire.
+Après "Carte céleste" (rejetée) et "Jardin zen" (encore trop élaboré au goût
+de Corentin), demande explicite d'un concept "plus simple" : des affiches de
+cinéma avec une salle en arrière-plan.
 
-**Métaphore retenue** : un jardin sec japonais (karesansui) vu du dessus.
-Les 3 apps sont 3 pierres posées en composition asymétrique (jamais alignées
-ni en grille) sur un lit de gravier ratissé (motif SVG en vaguelettes,
-faible contraste). Taper une pierre directement propage une onde colorée
-(dégradé radial centré sur la pierre) qui recouvre l'écran avant la
-redirection — pas de geste d'orientation préalable.
+**Métaphore retenue** : un mur de cinéma avec 3 affiches éclairées, chacune
+représentant une app comme un film (genre, titre, accroche). Un simple tap
+sur l'affiche = on "entre dans la salle" (rideau qui se ferme sur l'écran)
+avant la redirection. Concept volontairement plus direct que les deux
+précédents : pas de geste à apprendre, pas de mécanique de sélection, juste
+3 affiches posées côte à côte et un rideau.
 
 | Variable CSS | Valeur | Usage |
 |---|---|---|
-| `--sand` / `--sand-2` | `#f1ead8` / `#e4dabf` | Fond (gravier, lumière du jour) |
-| `--ink` / `--ink-dim` | `#3c362b` / `rgba(60,54,43,.5)` | Texte, traits ratissés |
-| `--stone-blue` | `#64767e` | Pierre Musculation (ardoise) |
-| `--stone-gold` | `#b3854a` | Pierre Budget (ocre) |
-| `--stone-green` | `#6d8a5b` | Pierre Courses (mousse) |
-| `--water` | `#6fa3bf` | Bassin (vidage de cache) |
+| `--wall-1` / `--wall-2` | `#2a0d12` / `#14060a` | Mur (haut) / sol (bas) |
+| `--curtain` / `--curtain-dark` | `#7a1620` / `#4a0d14` | Rideau (velours rayé) |
+| `--gold` | `#c9a35c` | Cadres des affiches, filet du bandeau |
+| `--paper` / `--paper-2` | `#efe6d2` / `#e2d6b8` | Papier des affiches |
+| `--c-muscu` | `#3b6ea5` | Bandeau genre "Action" (Musculation) |
+| `--c-budget` | `#a3781f` | Bandeau genre "Drame financier" (Budget) |
+| `--c-course` | `#3f7a4a` | Bandeau genre "Aventure" (Courses) |
 
-Rupture volontaire avec les 2 designs précédents (sombres, nocturnes) : ici
-fond clair et lumineux, ambiance diurne — évite que "sortir des standards"
-ne devienne systématiquement synonyme de "thème sombre". Palette
-volontairement désaturée (tons pierre/terre/mousse) plutôt que les couleurs
-vives bleu/or/vert des versions précédentes, pour rester cohérente avec le
-matériau (pierre, gravier) plutôt qu'avec un code couleur applicatif.
+Chaque affiche a un titre (le nom de l'app), un "genre" façon bandeau de
+festival, une accroche façon tagline de film, et la description fonctionnelle
+d'origine en petit texte en bas — clin d'œil ludique sans perdre
+l'information utile. Rotation légère et hauteur non identique entre les 3
+affiches (`--rot: -3deg / 2deg / -1.5deg`) pour éviter l'alignement en
+grille parfaite malgré la disposition "3 éléments en ligne".
 
-`apple-mobile-web-app-status-bar-style` repassé à `default` (texte de la
-barre de statut sombre sur fond clair) et `theme-color` à `#eee6d3` — les
-deux anciens réglages ("black") étaient pensés pour un fond sombre et
-casseraient la lisibilité ici.
+`theme-color` et barre de statut repassés en tons sombres (`#1c0709`,
+`black`) cohérents avec la salle de cinéma (contrairement au "Jardin zen",
+clair).
 
 ## 5. Navigation / interactions
 
-- **Les 3 pierres sont visibles et tapables en permanence**, sans étape
-  d'alignement ou de sélection préalable — contrainte explicitement demandée
-  par Corentin après les propositions de refonte n°2.
-- **Taper une pierre** déclenche une onde radiale (dégradé circulaire,
-  couleur propre à la pierre) centrée sur son point d'impact réel à l'écran
-  (calculé via `getBoundingClientRect`), qui grandit et s'intensifie
-  pendant 760 ms avant la redirection — pas de flash dur ni de zoom brutal,
-  rythme volontairement plus lent/calme que la version "Carte céleste"
-  (cohérent avec l'ambiance zen).
-- Les anneaux ratissés en pointillés autour de chaque pierre sont
-  purement décoratifs (ambiance jardin sec), jamais interactifs.
-- **Plaque d'identité** en haut à gauche ("Portail Duo — Corentin & Lisa"),
-  fixe et non interactive : légende de jardin plutôt que hero.
-- Aucune logique JS au-delà de la navigation, du geste du bassin et de
-  l'enregistrement du service worker (toujours pas de Firebase, pas d'auth,
-  pas de state serveur).
+- **Les 3 affiches sont visibles et tapables directement**, aucune étape
+  intermédiaire — cohérent avec la demande précédente de retirer toute
+  "mécanique de sélection", et avec le nouvel objectif de simplicité.
+- **Taper une affiche** : léger zoom de l'affiche + halo qui s'intensifie,
+  puis un vrai rideau de velours se ferme depuis les deux bords de l'écran
+  (`translateX` synchronisé, 620 ms) avant la redirection vers le sous-dossier.
+- Bandeau de rideau fixe en haut d'écran (`.valance`) et deux halos de
+  lumière chaude sur le mur (`.sconce`) : purs éléments d'ambiance, non
+  interactifs.
+- **Plaque d'identité** sous le bandeau, en haut à gauche : nom du portail,
+  jamais un hero centré.
+- Aucune logique JS au-delà de la navigation, du geste de la bobine et de
+  l'enregistrement du service worker.
 
 ## 6. Disponibilité hors-ligne (service worker)
 
@@ -189,67 +184,62 @@ présent).
 Vérifié en ligne via l'API GitHub (contenu réel du fichier sur `main`) — le
 correctif est bien effectif.
 
-## 8. Vidage du cache — le bassin (refonte "Jardin zen" du 18/09/2026)
+## 8. Vidage du cache — la bobine de film (3e refonte, 18/09/2026)
 
 **Problème identifié** : après une mise à jour poussée sur GitHub (portail ou
 sous-apps), le cache côté iPhone (Safari / mode standalone) ne se vide pas tout
-seul. Un bouton classique avait été ajouté le 18/09/2026 (version "plaque
-industrielle"), puis remplacé par une comète à lancer (version "Carte
-céleste"), puis par le mécanisme actuel dans la version "Jardin zen".
+seul. Mécanisme déjà passé par un bouton classique, une comète ("Carte
+céleste"), puis un bassin d'eau ("Jardin zen") ; version actuelle : une
+bobine de film.
 
-**Mécanisme actuel** : un petit bassin d'eau (tsukubai stylisé) en bas à
-droite, avec une goutte qui tombe en boucle (animation d'ambiance). Maintenir
-le doigt dessus ~600 ms déclenche :
+**Mécanisme actuel** : une bobine tourne lentement en boucle en bas à droite
+(ambiance projectionniste). Maintenir le doigt dessus ~600 ms déclenche :
 1. désenregistrement de tous les service workers actifs
    (`navigator.serviceWorker.getRegistrations()` + `unregister()`),
 2. suppression de toutes les entrées du Cache Storage (`caches.keys()` +
    `caches.delete()`), y compris `portail-duo-shell-v1` posé par `sw.js`,
-3. une onde claire (couleur du sable) part du bassin et recouvre tout le
-   jardin, puis rechargement forcé de `index.html` via
+3. la bobine se met à tourner très vite (effet "rembobinage"), puis
+   rechargement forcé de `index.html` via
    `location.replace('./index.html?_reset=' + Date.now())` — le paramètre
    `_reset` unique empêche de resservir une copie locale.
 
-Accessible aussi au clavier (élément focusable, `Entrée`/`Espace` déclenche
-le même geste). Légende discrète en permanence à côté ("bassin · maintenir
-pour rafraîchir").
+Accessible aussi au clavier (élément focusable, `Entrée`/`Espace`). Légende
+discrète en permanence à côté ("bobine · maintenir pour rafraîchir").
 
 ## 9. Historique — démarche de refonte design (18/09/2026)
 
 Corentin a demandé une refonte "radicale" sortant des standards UI habituels
-(pas de navbar/sidebar/cards à ombre/hero centré/palette SaaS).
+(pas de navbar/sidebar/cards à ombre/hero centré/palette SaaS), puis a itéré
+en plusieurs passes le même jour :
 
-**1ère vague (8 concepts)** : coffret électrique, établi-plan cyanotype,
-carnet de bord, platine vinyle, hublots de sous-marin, **carte céleste**,
-distributeur automatique rétro, origami en éventail. "Carte céleste" a été
-choisie et implémentée (navigation orbitale par glissement + tap pour
-lancer), puis finalement écartée par Corentin ("j'aime pas trop au final").
+1. **1ère vague (8 concepts)** → **"Carte céleste"** choisie et implémentée
+   (navigation orbitale, warp) → rejetée ("j'aime pas trop au final").
+2. **2ème vague (10 concepts)**, avec consigne supplémentaire de retirer
+   toute mécanique de sélection (rotation/alignement) → **"Jardin zen"**
+   choisie et implémentée (3 pierres tapables directement, onde au tap) →
+   jugée encore trop élaborée.
+3. **Demande directe** (hors liste) : "un truc plus simple, genre des
+   affiches de cinéma avec un cinéma en arrière-plan" → **"Affiches de
+   cinéma" (retenu)** implémenté directement sans nouvelle liste de choix,
+   la demande étant déjà précise.
 
-**2ème vague (10 concepts)**, demandée explicitement : horloge astronomique,
-jardin zen, sismographe, lanternes nocturnes, table d'orientation, fonds
-marins bioluminescents, cabinet de curiosités, partition qui défile,
-terrarium, casiers à clés d'hôtel. Corentin a ensuite demandé de retirer
-**toute mécanique de sélection** (rotation, alignement, glisser-viser) des
-10 concepts : les 3 apps devaient rester visibles et tapables directement.
-**"Jardin zen" (retenu)** a été reformulé en ce sens et implémenté.
+**Pourquoi "Affiches de cinéma" reste non-générique tout en étant plus
+simple** :
+- Les 3 "cards" sont des affiches de film habillées (papier, cadre doré,
+  bandeau de genre, accroche) posées sur un mur de salle éclairé — pas des
+  rectangles blancs à coins arrondis avec ombre portée uniforme.
+- Rotation et hauteur légèrement différentes entre les 3 affiches pour
+  éviter l'alignement en grille parfaite, même en disposition côte à côte.
+- La transition (rideau de velours qui se ferme) est un élément de
+  narration cinéma, pas une animation générique de fade/slide.
+- Le vidage de cache (bobine qui s'emballe) prolonge la métaphore plutôt
+  que d'être un bouton isolé.
 
-**Pourquoi "Jardin zen" tient la contrainte "non-générique"** :
-- Composition asymétrique à 3 éléments de tailles différentes (pas de
-  grille, pas d'alignement) — rompt directement avec le pattern de cards
-  identiques en rangée.
-- La sélection est un tap direct sur un élément narratif (une pierre dans
-  son décor), pas un bouton avec fond/bordure — le seul retour visuel est
-  une onde qui part du point de contact réel.
-- Palette diurne désaturée (sable, ardoise, ocre, mousse) délibérément
-  choisie pour trancher avec les deux premières refontes (sombres,
-  nocturnes) et éviter que "non-générique" ne devienne un simple réflexe
-  "thème sombre".
-- Le vidage de cache (bassin + goutte d'eau) reste un geste (maintenir),
-  pas un `<button>` classique, et partage la mécanique visuelle des ondes
-  utilisée pour la navigation — cohérence entre les deux usages.
-
-**Limite connue** : les micro-interactions (onde, goutte) demandent un
-minimum d'animation JS ; testé avec `prefers-reduced-motion` mais pas sur
-device réel — à vérifier par Corentin.
+**Compromis assumé** : contrairement à "Carte céleste" et "Jardin zen", ce
+concept accepte une disposition proche d'une rangée (3 éléments côte à
+côte) — jugé nécessaire pour la lisibilité et la simplicité demandées ;
+l'écart au pattern générique se joue sur l'habillage (affiche, cadre,
+rideau) plutôt que sur la disposition spatiale.
 
 ## 10. Règle de travail avec l'assistant IA (Claude)
 
@@ -262,5 +252,5 @@ procéder :
 ---
 *Dernière vérification du code live : 18/09/2026, via `git clone` direct du dépôt
 (donc sans aucun cache CDN/raw.githubusercontent.com) pour `index.html`,
-`README.md` et `sw.js`. Refonte "Jardin zen" (2e refonte du jour, après
-"Carte céleste") poussée le 18/09/2026.*
+`README.md` et `sw.js`. Refonte "Affiches de cinéma" (3e refonte du jour,
+après "Carte céleste" puis "Jardin zen") poussée le 18/09/2026.*
