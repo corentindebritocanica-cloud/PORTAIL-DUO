@@ -301,7 +301,7 @@
 
                 <div class="card">
                     <div class="card-header collapsed" data-target="repartition-m"><h3>📊 Répartition</h3></div>
-                    <div id="repartition-m" class="section-content collapsed"
+                    <div id="repartition-m" class="section-content collapsed">
                         <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--danger);" id="bar-charges-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--secondary);" id="bar-depenses-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>✈️ Épargne</span><span id="pct-epargne-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--info);" id="bar-epargne-m"></div></div></div>
@@ -436,7 +436,7 @@
             </div>
 
             <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
-                Version 3.0.0 (Migration vers Firestore)
+                Version 3.0.1 (Correctif balise cassée + ouverture auto des cartes)
             </div>
         </div>
 
@@ -1163,6 +1163,13 @@
                 mois[type].unshift(nouv);
                 sauvegarderDonnees();
                 rafraichirTouteLInterface();
+
+                // Déplie automatiquement la carte correspondante si elle était repliée
+                const conteneur = document.getElementById('conteneur-' + type);
+                if (conteneur && conteneur.classList.contains('collapsed')) {
+                    const header = document.querySelector(`.card-header[data-target="conteneur-${type}"]`);
+                    toggleSection('conteneur-' + type, header);
+                }
             }
         });
 
