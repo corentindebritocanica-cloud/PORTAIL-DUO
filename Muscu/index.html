@@ -1419,6 +1419,11 @@
     </div>
 
     <div class="progress-section">
+      <span class="section-label">Version</span>
+      <p class="setting-desc" id="settings-derniere-maj"></p>
+    </div>
+
+    <div class="progress-section">
       <span class="section-label">Sauvegarde</span>
       <p class="setting-desc">Génère un export complet et brut de toutes les données (archives des deux profils, corbeille, séances personnalisées, conversations et mensurations). Sert de point de sauvegarde avant une migration du catalogue d'exercices — copie le texte et transmets-le tel quel.</p>
       <button class="coach-btn ghost-wide" onclick="exportFullDataJSON()">📤 Exporter toutes les données</button>
@@ -4235,11 +4240,25 @@ function repairChatThreads(){
    téléphones et sans nouvelle collection Firestore. */
 /* L'écran Réglages ne gère plus que le compte : poids et mensurations vivent
    désormais dans Suivi Progression, à côté de tout le reste de ce qu'on suit. */
+/* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
+   jour manuellement a chaque commit sur cette app, au format ISO avec
+   decalage horaire. Complement du bandeau "Nouvelle version disponible". */
+const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+function formaterDerniereMaj(iso){
+  const d = new Date(iso);
+  const jour = String(d.getDate()).padStart(2,'0');
+  const mois = String(d.getMonth()+1).padStart(2,'0');
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
+}
 function goToSettingsView(){
   const account = document.getElementById('settings-account');
   if(account) account.textContent = window.__authUser
     ? 'Connecté avec ' + window.__authUser.email
     : 'Non connecté';
+  const derniereMaj = document.getElementById('settings-derniere-maj');
+  if(derniereMaj) derniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
   renderSettingsProfileToggle();
   showView('view-settings', 'fwd');
 }
