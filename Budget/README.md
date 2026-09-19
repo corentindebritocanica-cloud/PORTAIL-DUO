@@ -82,4 +82,11 @@ Même design que Course (voir `Course/README.md` et `/UX_UI_CHARTER.md` §5.5b),
 - **Toasts** : le toast « Nouvelle version disponible » et le toast d'annulation (`#toast.show`) se posent désormais au-dessus de la barre (`bottom: tabbar-height + 12px`) au lieu de la recouvrir.
 - **Desktop (≥ 768px)** : la colonne d'onglets de la sidebar disparaît ; la pilule est centrée en bas, largeur max 520px.
 - Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v4` → `v5`.
-- ⚠️ **Point ouvert découvert à cette occasion (non corrigé)** : `<main class="main-content">` n'a **aucune balise fermante `</main>`** ; `<div id="toast">` (toast « Ligne supprimée / Annuler ») et le `<script>` sont donc *à l'intérieur* de `<main>`, et `changerVue()` ajoute `.hidden` (`display:none !important`) à tous les `main > div` dont l'id n'est pas `vue-…`, y compris `#toast`. Très probablement, le bouton « Annuler » après suppression d'une ligne n'est donc jamais visible. Correctif envisagé : ajouter `</main>` juste avant `<div id="toast">`.
+- ✅ **Bug découvert à cette occasion, corrigé juste après (voir v3.4.1)**.
+
+### v3.4.1 — Correctif : le toast « Annuler » (suppression de ligne) n'était jamais visible (2026-09-20)
+- **Symptôme** : après suppression d'une ligne (charge, dépense, épargne, provision), le bandeau « Ligne supprimée — Annuler » n'apparaissait pas, donc impossible d'annuler.
+- **Cause** : `<main class="main-content">` n'avait **aucune balise fermante `</main>`**. `<div id="toast">` (et le `<script>`) se retrouvaient donc *dans* `<main>` (confirmé en analysant l'arbre DOM). Or `changerVue()` fait `document.querySelectorAll('main > div').forEach(d => d.classList.toggle('hidden', d.id !== 'vue-' + vue))` : le toast, dont l'id n'est pas `vue-…`, recevait `.hidden` (`display:none !important`) à chaque changement de vue, y compris au démarrage. Le `classList.add('show')` de la suppression n'y pouvait rien.
+- **Correction** : ajout de `</main>` juste avant `<div id="toast">`. Test avant/après (même sélecteur `main > div`) : avant → toast `display:none`, parent `MAIN` ; après → parent `BODY`, `display:flex`, visible ; les 4 vues continuent de se masquer/afficher normalement et la barre d'onglets reste visible.
+- **Au passage** : `white-space:nowrap` sur `#toast` (le texte « Ligne supprimée » passait sur deux lignes, le toast étant centré avec `left:50%`).
+- Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v5` → `v6`.
