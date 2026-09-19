@@ -90,3 +90,6 @@ Même design que Course (voir `Course/README.md` et `/UX_UI_CHARTER.md` §5.5b),
 - **Correction** : ajout de `</main>` juste avant `<div id="toast">`. Test avant/après (même sélecteur `main > div`) : avant → toast `display:none`, parent `MAIN` ; après → parent `BODY`, `display:flex`, visible ; les 4 vues continuent de se masquer/afficher normalement et la barre d'onglets reste visible.
 - **Au passage** : `white-space:nowrap` sur `#toast` (le texte « Ligne supprimée » passait sur deux lignes, le toast étant centré avec `left:50%`).
 - Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v5` → `v6`.
+
+### v3.4.2 — Barre d'onglets remontée de 6px (2026-09-20)
+Retour d'usage de Corentin : la barre était un peu trop basse sur Budget. `--nav-offset` passe de `max(2px, safe-area − 30px)` (~4px du bord) à **`max(8px, safe-area − 24px)`** (~10px du bord sur iPhone à home indicator) — soit 6px de plus vers le haut. **Budget diverge donc volontairement de Course** (~4px). `--tabbar-height`, le `padding-bottom` de `.main-content` et la position des toasts (« Annuler », « Nouvelle version ») suivent automatiquement. Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v6` → `v7`.
