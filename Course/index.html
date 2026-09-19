@@ -47,10 +47,12 @@
     --safe-top:calc(env(safe-area-inset-top) + 16px);
     --safe-bottom:env(safe-area-inset-bottom);
     /* Barre d'onglets flottante : distance entre le bas de la pilule et le bord reel
-       de l'ecran = safe-area moins 26px, mais jamais moins de 6px (~8px sur iPhone a
-       home indicator). Plancher : plus bas, la pilule entre dans la zone de geste et
-       frole la courbure des coins de l'ecran. */
-    --nav-offset:max(6px, calc(env(safe-area-inset-bottom) - 26px));
+       de l'ecran = safe-area moins 30px, mais jamais moins de 2px (~4px sur iPhone a
+       home indicator). Tres bas : la pilule est dans la zone de geste du home
+       indicator (surveiller un declenchement de Siri) et frole les coins de l'ecran. */
+    --nav-offset:max(2px, calc(env(safe-area-inset-bottom) - 30px));
+    /* Bouton rond « + » pose au-dessus de la pilule, a droite */
+    --add-size:56px; --add-gap:12px;
     /* Hauteur totale occupee en bas par la barre (pilule 62px + distance au bord) :
        sert a decaler le contenu et les boutons fixes au-dessus. */
     --tabbar-height:calc(62px + var(--nav-offset));
@@ -104,7 +106,7 @@
   }
   .btn-effacer-recherche:active{background:var(--border);}
 
-  .liste{padding: 6px 18px calc(var(--tabbar-height) + 24px);}
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--add-gap) + var(--add-size) + 16px);}
   .section-rayon{margin-top:22px;}
   .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 8px 4px;}
   .carte-produit{
@@ -173,7 +175,7 @@
      position:fixed;inset:0) : le flou de fond est ainsi reellement visible.
      Le conteneur laisse passer les touches (pointer-events:none), seuls la
      pilule et le bouton rond les captent. Distance au bord : --nav-offset
-     (safe-area - 26px, min 6px) : plus basse qu'avant mais toujours hors de
+     (safe-area - 30px, min 2px) : plus basse qu'avant mais toujours hors de
      la zone de geste du home indicator. */
   .tabbar-flottante{
     position:absolute; left:14px; right:14px; z-index:30;
@@ -204,15 +206,18 @@
   nav.tabbar button.actif{color:var(--accent); background:var(--accent-soft);}
   nav.tabbar button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2;}
 
-  /* Bouton rond "+" (ancien FAB) : visible uniquement sur l'onglet Liste. */
+  /* Bouton rond "+" : pose JUSTE AU-DESSUS de la pilule, aligne a droite
+     (bottom:100% = haut du conteneur, dont la hauteur est celle de la pilule).
+     Visible uniquement sur l'onglet Liste. */
   .nav-add{
-    flex-shrink:0; width:62px; height:62px; padding:0; border-radius:50%;
+    position:absolute; right:0; bottom:calc(100% + var(--add-gap));
+    width:var(--add-size); height:var(--add-size); padding:0; border-radius:50%;
     color:var(--accent);
     display:flex; align-items:center; justify-content:center;
     transition: transform var(--t-fast) ease;
   }
   .nav-add:active{transform:scale(0.94);}
-  .nav-add svg{width:28px; height:28px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
+  .nav-add svg{width:26px; height:26px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
   #app:not([data-onglet="liste"]) .nav-add{display:none;}
 
   /* Modale ajout/édition produit */
@@ -706,7 +711,7 @@ dbReady.then(demarrer);
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T00:53:00+02:00';
+const DERNIERE_MAJ = '2026-09-20T00:56:00+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
