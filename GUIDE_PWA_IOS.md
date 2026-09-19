@@ -34,6 +34,17 @@ Un Service Worker ne se réinstalle QUE si le navigateur détecte que le fichier
 - **Point critique** : iOS 26 ajoute un bouton bascule **"Ouvrir en tant qu'app Web"** dans la boîte de dialogue d'ajout. Il est activé par défaut, mais si jamais quelqu'un le désactive par erreur, l'icône ouvre le site comme un simple signet dans Safari classique (avec toute l'interface navigateur) au lieu du mode standalone plein écran — aucun des styles CSS liés au standalone (safe-area, status-bar-style, etc.) ne s'applique alors, ce qui peut ressembler à un bug alors que c'est juste ce réglage.
 - Si jamais Corentin ou Lisa doivent réinstaller une icône (comme on l'a fait plusieurs fois aujourd'hui), bien vérifier que ce toggle reste sur ON.
 
+### 🐛 Bug WebKit confirmé n°4 : le "traitement de bord" d'iOS 26+ peut assombrir/flouter la zone au-dessus du header, surtout lors d'une navigation interne
+Un projet open-source dédié à ce problème précis (Homeframe, sept. 2026) documente noir sur blanc ce comportement, sous le nom **"iOS 26's edge treatment"** : *"iOS leaves a blurry/translucent strip above the app header"*. Leur solution : le header doit être un élément **persistant** qui ne se redémonte jamais depuis zéro pendant une navigation — sinon, le temps du rechargement, iOS peut brièvement exposer une "couche système de flou détachée" par-dessus une zone sans contenu propre. C'est très probablement l'explication technique précise de ce qu'on a vécu sur Course : le flou revenait plus facilement en arrivant **via une navigation depuis le Portail** (`window.location.href`, donc un rechargement complet de document) qu'en ouvrant l'icône Course directement.
+**Pour nos 4 apps (HTML statique, pas de framework)** : le header est déjà écrit en dur dans le HTML de chaque page (jamais injecté dynamiquement en JS après coup), ce qui limite déjà ce risque — mais si le flou revient un jour spécifiquement lors d'une navigation Portail → sous-app (et pas en accès direct), c'est ce mécanisme précis à regarder en premier, avant de re-suspecter le cache.
+
+### 🆕 iOS 27 (sorti le 14 septembre 2026 — donc très récent)
+D'après le suivi de changements WebKit et plusieurs projets déjà mis à jour pour cette version :
+- **Comportement d'installation "Ajouter à l'écran d'accueil" inchangé** par rapport à iOS 26 (donc tout ce qui est dit plus haut reste valable).
+- **Nouveau : le "scroll anchoring"** — Safari 27 empêche désormais les sauts visuels de défilement quand du contenu est inséré *au-dessus* de la zone visible. Si un jour on ajoute un article en haut d'une liste déjà affichée (ex. Muscu qui préfixe un nouvel exercice, Course qui insère un produit en haut de liste triée), le comportement de scroll pourrait légèrement changer par rapport à avant. À surveiller si un souci de ce type apparaît un jour ; contournement documenté : `overflow-anchor: none` sur le conteneur concerné.
+- Rendu du texte et des bordures légèrement plus précis au pixel près (positionnement subpixel) — aucune action requise, mentionné pour référence si un décalage visuel d'un pixel apparaissait un jour sur un élément très finement calé.
+- Rien trouvé de spécifique à Safari 27 sur `viewport-fit`, `env(safe-area-inset-*)` ou `dvh` : les bugs n°1 et n°2 ci-dessus restent d'actualité sur cette version.
+
 ---
 
 ## 1. L'Écosystème Apple : Comprendre le moteur WebKit
@@ -201,5 +212,9 @@ Avant de dire à Corentin qu'un correctif visuel/layout est en ligne et prêt à
 - MacRumors Forums / Glide Community / idownloadblog — changements iOS 26 sur "Ajouter à l'écran d'accueil"
 - javascript.ac, Mendix docs, hidekazu-konishi.com — bonnes pratiques Service Worker 2026 (détection de mise à jour, skipWaiting)
 - GitHub issues (Next.js, Flutter, FlutterFlow) — statut réel de `apple-mobile-web-app-capable` vs `mobile-web-app-capable`
+- webkit.org — *WebKit Features for Safari 27.0* et *News from WWDC26* (iOS 27, sorti le 14/09/2026, scroll anchoring)
+- GitHub (Padel-Battle, FreightLogic issues) — retours de développeurs sur l'adoption d'iOS 27
+- GitHub (BuiltByTed/Homeframe) — framework dédié aux quirks iOS Home Screen, documente noir sur blanc le "iOS 26's edge treatment" (flou au-dessus du header) et sa solution (shell persistant)
+- MacRumors Forums, Glide Community, idownloadblog — changements iOS 26 sur "Ajouter à l'écran d'accueil"
 
 **Ce document doit être mis à jour si une nouvelle version d'iOS change un comportement documenté ici.**
