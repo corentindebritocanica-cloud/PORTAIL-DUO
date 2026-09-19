@@ -223,6 +223,7 @@
         </svg>
       </button>
     </div>
+    <p id="derniere-maj" style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:10px;"></p>
   </main>
 
 <script>
@@ -292,6 +293,20 @@
      du dépôt mais n'avait jamais été enregistré depuis cette page — corrigé
      ici. Chemin ET scope volontairement relatifs ('sw.js', './') plutôt
      qu'absolus, comme dans /Muscu/, /Course/ et désormais /Budget/. */
+  /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre
+     a jour manuellement a chaque commit sur cette app. Complement du
+     bandeau "Nouvelle version disponible". */
+  const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+  function formaterDerniereMaj(iso){
+    const d = new Date(iso);
+    const jour = String(d.getDate()).padStart(2,'0');
+    const mois = String(d.getMonth()+1).padStart(2,'0');
+    const h = String(d.getHours()).padStart(2,'0');
+    const m = String(d.getMinutes()).padStart(2,'0');
+    return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
+  }
+  document.getElementById('derniere-maj').textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
+
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js', { scope: './' }).then((reg) => {
