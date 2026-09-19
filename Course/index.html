@@ -46,7 +46,13 @@
        un flou/assombrissement natif dans sa propre zone de securite. */
     --safe-top:calc(env(safe-area-inset-top) + 16px);
     --safe-bottom:env(safe-area-inset-bottom);
-    --tabbar-height:70px; /* barre flottante : pilule 62px + 8px de marge sous elle (la safe-area s'ajoute a part) */
+    /* Barre d'onglets flottante : distance entre le bas de la pilule et le bord reel
+       de l'ecran = safe-area moins 14px (barre plus basse), mais jamais moins de 12px
+       (les boutons restent au-dessus de la zone de geste du home indicator). */
+    --nav-offset:max(12px, calc(env(safe-area-inset-bottom) - 14px));
+    /* Hauteur totale occupee en bas par la barre (pilule 62px + distance au bord) :
+       sert a decaler le contenu et les boutons fixes au-dessus. */
+    --tabbar-height:calc(62px + var(--nav-offset));
   }
   :root[data-profil="Lisa"]{
     --accent: var(--lisa); --accent-rgb: var(--lisa-rgb);
@@ -97,7 +103,7 @@
   }
   .btn-effacer-recherche:active{background:var(--border);}
 
-  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--safe-bottom) + 24px);}
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + 24px);}
   .section-rayon{margin-top:22px;}
   .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 8px 4px;}
   .carte-produit{
@@ -138,14 +144,14 @@
   /* Onglet Course */
   .btn-course-terminee{
     display:none;
-    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 14px);
+    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + 14px);
     padding:16px; border:none; border-radius:var(--r-md); background:var(--accent);
     color:white; font-size:16px; font-weight:700; z-index:20;
   }
   .btn-course-terminee.visible{display:block;}
 
   /* Onglet Paramètres */
-  .params{padding:20px 18px calc(var(--tabbar-height) + var(--safe-bottom) + 24px);}
+  .params{padding:20px 18px calc(var(--tabbar-height) + 24px);}
   .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
   .bloc-param h3{margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim);}
   .choix-profil{display:flex; gap:10px;}
@@ -164,11 +170,12 @@
      Posee PAR-DESSUS le contenu (position:absolute dans #app, lui-meme
      position:fixed;inset:0) : le flou de fond est ainsi reellement visible.
      Le conteneur laisse passer les touches (pointer-events:none), seuls la
-     pilule et le bouton rond les captent. La safe-area du bas est respectee
-     integralement (zone de geste du home indicator). */
+     pilule et le bouton rond les captent. Distance au bord : --nav-offset
+     (safe-area - 14px, min 12px) : plus basse qu'avant mais toujours hors de
+     la zone de geste du home indicator. */
   .tabbar-flottante{
     position:absolute; left:14px; right:14px; z-index:30;
-    bottom:calc(var(--safe-bottom) + 8px);
+    bottom:var(--nav-offset);
     display:flex; align-items:center; gap:10px;
     pointer-events:none;
   }
@@ -266,7 +273,7 @@
     </section>
 
     <section class="vue" id="vue-course">
-      <div class="liste" id="liste-course" style="padding-top:16px; padding-bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 90px);"></div>
+      <div class="liste" id="liste-course" style="padding-top:16px; padding-bottom:calc(var(--tabbar-height) + 90px);"></div>
       <button class="btn-course-terminee" id="btn-course-terminee">Course terminée</button>
     </section>
 
@@ -696,7 +703,7 @@ dbReady.then(demarrer);
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T00:35:00+02:00';
+const DERNIERE_MAJ = '2026-09-20T00:44:00+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
