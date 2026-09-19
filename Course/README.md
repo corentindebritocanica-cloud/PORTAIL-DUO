@@ -83,3 +83,9 @@ Suite à tout le chantier de débogage ci-dessus, un document de référence a �
 
 - **Meta tag standard ajouté** : `<meta name="mobile-web-app-capable" content="yes">` à côté de `apple-mobile-web-app-capable` (jamais retiré, iOS Safari ne lit que l'orthographe Apple).
 - **Bandeau "🔄 Nouvelle version disponible"** : élimine définitivement le problème de cache jamais invalidé qui a causé toute la confusion du 18/09. `sw.js` fait déjà `skipWaiting()`+`clients.claim()` automatiquement ; il manquait juste un moyen d'en informer l'utilisateur. Un bandeau discret apparaît désormais avec un bouton "Actualiser" dès qu'une mise à jour est détectée — rechargement volontairement non automatique pour ne jamais interrompre une saisie en cours.
+
+
+## Historique — Bouton "Course terminée" masqué si vide + horodatage de déploiement (19/09/2026)
+
+- **`.btn-course-terminee`** : passait auparavant en semi-transparent (`opacity:0.35` via `:disabled`) quand aucun produit n'était coché. Comportement jugé peu lisible par Corentin. Remplacé par un affichage/masquage complet (`display:none` par défaut, classe `.visible` ajoutée dès qu'au moins un produit est coché, retirée sinon), recalculé dans `renderCourse()` à chaque rendu. Au passage, correction d'un bug latent dans `toggleAchete()` qui remettait inconditionnellement le bouton actif à chaque clic (y compris en décochant le dernier produit coché, où il aurait dû redevenir masqué) — la fonction s'appuie désormais uniquement sur le rendu déclenché par le listener temps réel Firestore, seule source de vérité.
+- Ajout d'une ligne dans Réglages affichant la date/heure du dernier déploiement de code (constante `DERNIERE_MAJ`). **À mettre à jour manuellement à chaque futur commit.**
