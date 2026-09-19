@@ -235,7 +235,7 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 ```css
 .tabbar-flottante{
   position:absolute; left:14px; right:14px; z-index:30;
-  bottom:calc(env(safe-area-inset-bottom) + 8px);   /* safe-area COMPLÈTE, jamais moins */
+  bottom:var(--nav-offset);   /* --nav-offset: max(12px, calc(env(safe-area-inset-bottom) - 14px)) */
   display:flex; align-items:center; gap:10px;
   pointer-events:none;                               /* les marges laissent passer scroll/taps */
 }
@@ -263,7 +263,8 @@ nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  
 
 **Règles à respecter absolument** (leçons de l'implémentation Course — détail dans `PROBLEMES_RESOLUS.md`) :
 - **Le conteneur de l'app doit être `position:fixed; inset:0`** (voir `GUIDE_PWA_IOS.md` §0) : la barre en `position:absolute` s'ancre alors sur le vrai viewport, sans le bug `dvh`.
-- **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur pilule + 8px + env(safe-area-inset-bottom) + marge` (Course : variable `--tabbar-height: 70px`, réutilisée par les listes et les boutons fixes au-dessus de la barre).
+- **Position basse** : la pilule se pose à `--nav-offset = max(12px, safe-area-inset-bottom − 14px)` du bord de l'écran (≈ 20px sur iPhone à home indicator). Ne pas descendre plus bas : les boutons doivent rester hors de la zone de geste du home indicator (sinon Siri / retour à l'accueil se déclenchent au tap).
+- **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur totale de la barre + marge`. Course : `--tabbar-height = 62px + --nav-offset` (la safe-area y est **déjà incluse** — ne pas la rajouter), réutilisée par les listes et les boutons fixes au-dessus de la barre.
 - **`pointer-events:none` sur le conteneur**, `auto` uniquement sur la pilule et le bouton rond — sinon la zone vide bloque le scroll.
 - **Onglet actif = teinte d'accent** (`--accent-soft` + icône/label en `--accent`), jamais une couleur fixe : la barre suit le profil Corentin/Lisa et le mode clair/sombre.
 - **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 62px.
