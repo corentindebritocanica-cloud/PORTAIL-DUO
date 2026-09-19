@@ -230,12 +230,12 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
 **Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course (20/09/26).
 
-**Anatomie** : un conteneur transparent posé *par-dessus* le contenu, avec (1) la pilule contenant les onglets, (2) optionnellement un bouton rond d'action à droite (ex. « + »).
+**Anatomie** : un conteneur transparent posé *par-dessus* le contenu, avec (1) la pilule contenant les onglets, (2) optionnellement un bouton rond d'action posé **juste au-dessus de la pilule, aligné à droite** (ex. « + »).
 
 ```css
 .tabbar-flottante{
   position:absolute; left:14px; right:14px; z-index:30;
-  bottom:var(--nav-offset);   /* --nav-offset: max(6px, calc(env(safe-area-inset-bottom) - 26px)) */
+  bottom:var(--nav-offset);   /* --nav-offset: max(2px, calc(env(safe-area-inset-bottom) - 30px)) */
   display:flex; align-items:center; gap:10px;
   pointer-events:none;                               /* les marges laissent passer scroll/taps */
 }
@@ -257,17 +257,20 @@ nav.tabbar button{
 }
 nav.tabbar button:active{ transform:scale(0.97); }
 nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  /* accent-soft = rgba(var(--accent-rgb),0.14) */
-.nav-add{ flex-shrink:0; width:62px; height:62px; padding:0; border-radius:50%; color:var(--accent);
-  display:flex; align-items:center; justify-content:center; }
+.nav-add{                                           /* au-dessus de la pilule, à droite */
+  position:absolute; right:0; bottom:calc(100% + 12px);
+  width:56px; height:56px; padding:0; border-radius:50%; color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+}
 ```
 
 **Règles à respecter absolument** (leçons de l'implémentation Course — détail dans `PROBLEMES_RESOLUS.md`) :
 - **Le conteneur de l'app doit être `position:fixed; inset:0`** (voir `GUIDE_PWA_IOS.md` §0) : la barre en `position:absolute` s'ancre alors sur le vrai viewport, sans le bug `dvh`.
-- **Position basse** : la pilule se pose à `--nav-offset = max(6px, safe-area-inset-bottom − 26px)` du bord de l'écran (≈ 8px sur iPhone à home indicator, valeur retenue sur Course : c'est le plancher). Ne pas descendre plus bas : les boutons doivent rester hors de la zone de geste du home indicator (sinon Siri / retour à l'accueil se déclenchent au tap).
-- **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur totale de la barre + marge`. Course : `--tabbar-height = 62px + --nav-offset` (la safe-area y est **déjà incluse** — ne pas la rajouter), réutilisée par les listes et les boutons fixes au-dessus de la barre.
+- **Position basse** : la pilule se pose à `--nav-offset = max(2px, safe-area-inset-bottom − 30px)` du bord de l'écran (≈ 4px sur iPhone à home indicator : valeur choisie sur Course à la demande de Corentin, **volontairement très basse**, au-delà de la recommandation initiale ≈ 20px). Plus la barre est basse, plus les boutons s'approchent de la zone de geste du home indicator ; à surveiller, et à remonter (~8 à 20px) en cas de déclenchement de Siri. Ne pas descendre en dessous : les boutons doivent rester hors de la zone de geste du home indicator (sinon Siri / retour à l'accueil se déclenchent au tap).
+- **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur totale de la barre + marge`. Course : `--tabbar-height = 62px + --nav-offset` (la safe-area y est **déjà incluse** — ne pas la rajouter), réutilisée par les listes et les boutons fixes au-dessus de la barre. Avec un bouton rond au-dessus de la pilule, ajouter aussi sa hauteur + son écart (`+ 56px + 12px + marge`) au `padding-bottom` de la liste, sinon le dernier élément reste masqué derrière lui.
 - **`pointer-events:none` sur le conteneur**, `auto` uniquement sur la pilule et le bouton rond — sinon la zone vide bloque le scroll.
 - **Onglet actif = teinte d'accent** (`--accent-soft` + icône/label en `--accent`), jamais une couleur fixe : la barre suit le profil Corentin/Lisa et le mode clair/sombre.
-- **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 62px.
+- **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 56px.
 - **Le bouton rond doit être masqué explicitement** sur les onglets où il n'a pas de sens (ex. attribut `data-onglet` sur le conteneur + `#app:not([data-onglet="liste"]) .nav-add{display:none}`) ; le laisser dans une section masquée ne suffit plus une fois déplacé dans la barre.
 - Le blur (`backdrop-filter`) n'est visible que parce que le contenu passe réellement derrière la barre : ne pas la remettre comme ligne flex séparée.
 
