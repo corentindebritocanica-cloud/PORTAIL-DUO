@@ -17,7 +17,7 @@ Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS v
 - un petit carré éditable à droite pour la quantité ou une info libre (ex: "2", "grande taille")
 - un crayon (✎) pour modifier le nom et/ou le rayon du produit
 
-Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton **+** flottant en bas à droite ouvre le même formulaire que le crayon (nom + rayon, avec possibilité de créer un nouveau rayon à la volée) pour ajouter un produit.
+Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton rond **+**, à droite de la barre d'onglets flottante (visible uniquement sur l'onglet Liste), ouvre le même formulaire que le crayon (nom + rayon, avec possibilité de créer un nouveau rayon à la volée) pour ajouter un produit.
 
 **Course** : uniquement les produits cochés "à acheter" en Liste, groupés par rayon. On coche ici un produit une fois réellement acheté (nom barré, carte estompée) — rien n'est retiré automatiquement. Le bouton **Course terminée** (actif seulement si au moins un produit est coché acheté) décoche d'un coup, dans les deux onglets, tous les produits ainsi cochés — sans jamais les supprimer de la Liste.
 
@@ -89,3 +89,16 @@ Suite à tout le chantier de débogage ci-dessus, un document de référence a �
 
 - **`.btn-course-terminee`** : passait auparavant en semi-transparent (`opacity:0.35` via `:disabled`) quand aucun produit n'était coché. Comportement jugé peu lisible par Corentin. Remplacé par un affichage/masquage complet (`display:none` par défaut, classe `.visible` ajoutée dès qu'au moins un produit est coché, retirée sinon), recalculé dans `renderCourse()` à chaque rendu. Au passage, correction d'un bug latent dans `toggleAchete()` qui remettait inconditionnellement le bouton actif à chaque clic (y compris en décochant le dernier produit coché, où il aurait dû redevenir masqué) — la fonction s'appuie désormais uniquement sur le rendu déclenché par le listener temps réel Firestore, seule source de vérité.
 - Ajout d'une ligne dans Réglages affichant la date/heure du dernier déploiement de code (constante `DERNIERE_MAJ`). **À mettre à jour manuellement à chaque futur commit.**
+
+## Historique — Barre d'onglets flottante « pilule » (20/09/2026)
+
+À la demande de Corentin (inspiration : capture d'une app de e-commerce mobile), la barre d'onglets pleine largeur collée au bas de l'écran est remplacée par une **barre flottante en pilule**.
+
+- **Structure** : `div.tabbar-flottante` (conteneur `position:absolute` dans `#app`, à `bottom: safe-area + 8px`, marges latérales 14px) contenant `nav.tabbar` (la pilule : 62px de haut, `--r-pill`, fond `--glass-bar` + `backdrop-filter: blur(18px) saturate(160%)`, bordure `--border`, ombre `--shadow`) et le bouton rond `.nav-add`.
+- **Onglet actif** : capsule de fond `--accent-soft` + icône/label en `--accent` (suit donc le profil Corentin bleu / Lisa rose et les modes sombre/clair). Chaque onglet fait ~50px de haut (> 44px Apple HIG). Feedback tactile `scale(0.97)`.
+- **Bouton rond « + »** : remplace l'ancien FAB (`.fab-ajouter`, supprimé). Même `id="btn-ouvrir-ajout"`, donc aucun changement de JS pour l'ouverture de la modale. Il n'existe plus dans la section `#vue-liste` : sa visibilité est pilotée par l'attribut `data-onglet` porté par `#app` (mis à jour dans le handler de navigation) via `#app:not([data-onglet="liste"]) .nav-add{display:none}` — la pilule occupe alors toute la largeur.
+- **La barre flotte PAR-DESSUS le contenu** (elle n'est plus un enfant flex de `#app`) : `main` occupe donc toute la hauteur, et `.liste` / `.params` reçoivent un `padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 24px)` pour que le dernier élément reste atteignable. `--tabbar-height` passe de 58px à **70px** (= pilule 62px + 8px de marge basse ; la safe-area s'ajoute séparément via `--safe-bottom`). Le bouton « Course terminée » (`bottom: tabbar-height + safe-bottom + 14px`) reste donc automatiquement 14px au-dessus de la barre.
+- **Conteneur `pointer-events:none`** : seuls la pilule et le bouton rond captent les touches ; l'espace vide autour (marges, écart entre pilule et bouton) laisse passer le scroll/tap vers la liste en dessous.
+- **Safe-area** : la barre est décalée de la `safe-area-inset-bottom` **complète** (jamais moins) — on ne remet pas de contrôle dans la zone de geste du home indicator (cf. incident Siri du 18/09/2026).
+- **Inchangés** : ancrage `#app{position:fixed;inset:0}`, `viewport-fit=cover`, marge de 16px en haut, bandeau « Nouvelle version disponible » (toujours positionné en bas, peut recouvrir brièvement la barre).
+- **Déploiement** : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` passé de `courses-lc-shell-v5` à `courses-lc-shell-v6`.
