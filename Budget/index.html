@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#F2F2F7" id="meta-theme-color">
+    <meta name="apple-mobile-web-app-title" content="Budget L&C">
+    <meta name="theme-color" content="#0d1014" id="meta-theme-color">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icone.PNG">
     <title>Budget L&C</title>
@@ -22,91 +23,45 @@
     <style>
         /* =====================================================
            1. DESIGN TOKENS — Variables CSS globales
+           Alignes sur UX_UI_CHARTER.md (accent unique, semantique
+           partagee avec Muscu/Course/Portail). Les 10 themes
+           decoratifs (Garde-robe) ont ete retires le 18/09/2026.
         ===================================================== */
         :root {
-            --primary:       #007AFF;
-            --primary-light: #E1F0FF;
+            --primary:       #1f8fff;
+            --primary-light: rgba(31,143,255,0.14);
             --secondary:     #FF9500;
-            --danger:        #FF3B30;
-            --success:       #34C759;
+            --danger:        #ef4444;
+            --success:       #12b981;
             --info:          #AF52DE;
             --warn:          #FFCC00;
-            --bg-color:      #F2F2F7;
-            --card-bg:       #FFFFFF;
-            --text-main:     #1C1C1E;
-            --text-muted:    #8E8E93;
-            --border:        #E5E5EA;
+
+            --bg-color:      #eef1f5;
+            --card-bg:       #ffffff;
+            --text-main:     #131a23;
+            --text-muted:    #5f6c7c;
+            --border:        rgba(23,38,56,0.11);
 
             --radius-card:   16px;
             --radius-input:  10px;
-            --shadow-card:   0 2px 10px rgba(0,0,0,0.03);
+            --shadow-card:   0 6px 14px rgba(20,30,45,0.08);
             --transition:    all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* 2. MODE SOMBRE */
+        /* 2. MODE SOMBRE — valeur par defaut de l'app (voir init JS section 10) */
         body.dark-mode {
             color-scheme: dark;
-            --primary-light: #003366;
-            --secondary:     #FF9F0A;
-            --danger:        #FF453A;
-            --success:       #30D158;
-            --info:          #BF5AF2;
-            --warn:          #FFD60A;
-            --bg-color:      #000000;
-            --card-bg:       #1C1C1E;
-            --text-main:     #FFFFFF;
-            --text-muted:    #EBEBF599;
-            --border:        #38383A;
+            --bg-color:      #0d1014;
+            --card-bg:       #161b22;
+            --text-main:     #e9eff6;
+            --text-muted:    #8a97a8;
+            --border:        rgba(255,255,255,0.09);
+            --shadow-card:   0 6px 16px rgba(0,0,0,0.30);
         }
 
-        /* 3. THEMES — Adaptatif Jour/Nuit */
-        body.theme-purple { --primary: #AF52DE; --primary-light: #F2E6FA; }
-        body.dark-mode.theme-purple { --primary-light: #3A1D4A; }
-        body.theme-green  { --primary: #34C759; --primary-light: #E6F8EA; }
-        body.dark-mode.theme-green { --primary-light: #1A3B24; }
-        body.theme-rose   { --primary: #FF2D55; --primary-light: #FFE5EA; }
-        body.dark-mode.theme-rose { --primary-light: #4A1A24; }
-
-        /* 4. THEME GLASSMORPHISM */
-        body.theme-glass {
-            --primary: #007AFF; --primary-light: rgba(0, 122, 255, 0.1);
-            --bg-color: #F5F5F7; --text-main: #1D1D1F; --text-muted: rgba(60, 60, 67, 0.6); --border: rgba(255, 255, 255, 0.6);
-            --glass-bg: radial-gradient(circle at 20% 30%, rgba(255, 182, 193, 0.4), transparent 50%), radial-gradient(circle at 80% 70%, rgba(173, 216, 230, 0.4), transparent 50%);
-            --card-glass: rgba(255, 255, 255, 0.6); --glass-blur: blur(30px) saturate(150%);
-        }
-        body.dark-mode.theme-glass {
-            --primary: #0a84ff; --primary-light: rgba(10, 132, 255, 0.2);
-            --bg-color: #000000; --text-main: #ffffff; --text-muted: rgba(235, 235, 245, 0.6); --border: rgba(255, 255, 255, 0.1);
-            --glass-bg: radial-gradient(circle at 15% 50%, rgba(70, 20, 150, 0.35), transparent 50%), radial-gradient(circle at 85% 30%, rgba(10, 100, 200, 0.35), transparent 50%);
-            --card-glass: rgba(30, 30, 35, 0.5); --glass-blur: blur(25px) saturate(200%);
-        }
-        body.theme-glass::before { content: ''; position: fixed; inset: 0; background: var(--glass-bg); z-index: -1; pointer-events: none; }
-        body.theme-glass .card, body.theme-glass .revenus-box, body.theme-glass .admin-section, body.theme-glass .top-nav, body.theme-glass .popup-box {
-            background: var(--card-glass) !important; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border) !important;
-        }
-
-        /* 5. THEMES HORS TECH */
-        body.theme-latte { --primary: #C47335; --bg-color: #F9F6F0; --card-bg: #EFEBE0; --text-main: #4A3B32; --border: #D8D0C5; }
-        body.dark-mode.theme-latte { --bg-color: #2E251F; --card-bg: #3D322A; --text-main: #EAE0D5; --border: #4D4036; }
-        
-        body.theme-botanic { --primary: #3E7C59; --bg-color: #E8EFE9; --card-bg: #F4F9F5; --text-main: #2C4A3B; --border: #CDE0D5; }
-        body.dark-mode.theme-botanic { --bg-color: #1A2620; --card-bg: #24362D; --text-main: #E2EDE7; --border: #314A3E; }
-
-        body.theme-gatsby { --primary: #D4AF37; --bg-color: #FDFBF7; --card-bg: #FFFFFF; --text-main: #1A1F29; --border: #D4AF37; }
-        body.dark-mode.theme-gatsby { --bg-color: #12151C; --card-bg: #1A1F29; --text-main: #E5C37E; }
-
-        body.theme-terracotta { --primary: #C0573E; --bg-color: #F4E8E1; --card-bg: #FCF7F4; --text-main: #5C3A21; --border: #E8D0C3; }
-        body.dark-mode.theme-terracotta { --bg-color: #3B241A; --card-bg: #4A3024; --text-main: #F4E8E1; }
-
-        body.theme-moleskine { --primary: #B22222; --bg-color: #F1EAD7; --card-bg: #F8F3E6; --text-main: #1C2B4B; --border: #A2B5CD; }
-        body.dark-mode.theme-moleskine { --bg-color: #21252B; --card-bg: #2C313C; --text-main: #ABB2BF; --border: #4B5363; }
-
-        body.theme-watercolor { --primary: #FF8DA1; --bg-color: #FAFAFA; --text-main: #555555; --border: rgba(0,0,0,0.05); }
-        body.dark-mode.theme-watercolor { --bg-color: #121212; --text-main: #E0E0E0; --border: rgba(255,255,255,0.05); }
-
-        /* 6. LAYOUT GLOBAL */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: var(--transition); }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+        /* 3. LAYOUT GLOBAL */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: var(--transition); -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: none; }
 
         /* 7. ECRAN DE CONNEXION */
         #login-screen { position: fixed; inset: 0; background: var(--bg-color); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -207,9 +162,7 @@
 
         /* 22. RESPONSIVE DESKTOP ET ADMIN */
         .admin-section { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
-        .color-selector { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-        .color-circle { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
-        .color-circle.active { border-color: var(--text-main); transform: scale(1.15); }
+
 
         @media (min-width: 768px) {
             body { flex-direction: row; }
@@ -224,7 +177,7 @@
         #btn-undo { background: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body class="theme-glass">
+<body>
 
     <div id="login-screen">
         <div class="login-box">
@@ -412,12 +365,6 @@
             </div>
 
             <div class="admin-section">
-                <h3>🎨 Garde-robe (Thèmes)</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Changez l'ambiance. <strong>S'adapte au Soleil ☀️ et à la Lune 🌙 !</strong></p>
-                <div class="color-selector" id="theme-selector"></div>
-            </div>
-
-            <div class="admin-section">
                 <h3>📧 Sauvegarde Automatique</h3>
                 <p style="font-size: 0.9rem; color: var(--text-muted); margin: 10px 0;">Le dimanche à minuit, un e-mail est envoyé automatiquement.</p>
                 <button class="btn-action" id="btn-sauvegarde-mail" style="background:#5856D6; margin-bottom: 0;">✉️ Envoyer fichier .json par mail</button>
@@ -493,17 +440,8 @@
 
         // --- Configuration ---
         const LS_DARK = 'budgetLC_dark';
-        const LS_THEME = 'budgetLC_theme';
         const LS_CACHE = 'budgetLC_cache';
         const NOMS_MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-        const THEMES = [
-            { id:'default', color:'#007AFF' }, { id:'theme-purple', color:'#AF52DE' },
-            { id:'theme-green', color:'#34C759' }, { id:'theme-rose', color:'#FF2D55' },
-            { id:'theme-glass', color:'linear-gradient(135deg, #ccc, #eee)' },
-            { id:'theme-latte', color:'#C47335' }, { id:'theme-botanic', color:'#3E7C59' },
-            { id:'theme-gatsby', color:'#D4AF37' }, { id:'theme-terracotta', color:'#C0573E' },
-            { id:'theme-moleskine', color:'#1C2B4B' }, { id:'theme-watercolor', color:'#FF8DA1' }
-        ];
         const REGEX_SUPERMARCHE = /leclerc|carrefour|auchan|intermarch|super\s*u|lidl|aldi|frais|cora|casino|netto/i;
 
 
@@ -989,8 +927,6 @@
                 `).join('');
             }
 
-            const ts = document.getElementById('theme-selector');
-            ts.innerHTML = THEMES.map(t => `<div class="color-circle ${localStorage.getItem(LS_THEME) === t.id ? 'active' : ''}" style="background:${t.color}" data-set-theme="${t.id}"></div>`).join('');
         };
 
         // --- Corbeille : restauration et vidage (remet l'élément dans le mois actif, faute de mois d'origine mémorisé) ---
@@ -1196,25 +1132,21 @@
         };
 
 
-        // 10. Initialisation Thème
+        // 10. Initialisation Thème (sombre par defaut - charte UX/UI du 18/09/2026 ;
+        // les 10 themes decoratifs "Garde-robe" ont ete retires, seul le mode
+        // sombre/clair subsiste desormais, comme sur Muscu/Course/Portail)
         const toggleDark = () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
             localStorage.setItem(LS_DARK, isDark);
             document.getElementById('btn-toggle-dark').innerText = isDark ? '🌙' : '☀️';
-            document.getElementById('meta-theme-color').content = isDark ? '#000000' : '#F2F2F7';
+            document.getElementById('meta-theme-color').content = isDark ? '#0d1014' : '#eef1f5';
         };
         document.getElementById('btn-toggle-dark').onclick = toggleDark;
-        if (localStorage.getItem(LS_DARK) === 'true') toggleDark();
-        
-        const applyTheme = (t) => {
-            THEMES.forEach(thm => document.body.classList.remove(thm.id));
-            if (t !== 'default') document.body.classList.add(t);
-            localStorage.setItem(LS_THEME, t);
-            rendreAdmin();
-        };
-        
-        if (localStorage.getItem(LS_THEME)) applyTheme(localStorage.getItem(LS_THEME));
+        // Sombre par defaut : active sauf si l'utilisateur a explicitement choisi le clair
+        // (ancienne logique : dark uniquement si LS_DARK==='true' ; nouvelle logique :
+        // dark sauf si LS_DARK==='false' explicitement enregistre par un clic anterieur).
+        if (localStorage.getItem(LS_DARK) !== 'false') toggleDark();
 
         // 11. Auth Listener (attend que Firestore/Auth soient initialisés avec le cache persistant)
         dbReady.then(() => authListen((user) => {
@@ -1322,9 +1254,6 @@
         document.getElementById('select-annee').onchange = (e) => rendreVueAnnuelle();
 
         document.getElementById('vue-admin').addEventListener('click', (e) => {
-            // Choix du thème
-            if (e.target.dataset.setTheme) { applyTheme(e.target.dataset.setTheme); return; }
-
             // Supprimer catégorie
             const delCat = e.target.closest('[data-del-cat]');
             if (delCat) { state.categories.splice(parseInt(delCat.dataset.delCat), 1); sauvegarderConfig(true); rendreAdmin(); return; }
