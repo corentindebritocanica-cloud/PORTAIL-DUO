@@ -108,6 +108,18 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 ---
 
+## 🐛 Course — horodatage absent + Service Worker jamais enregistré (20/09/2026)
+
+**Symptôme** : dans Réglages de Course, la ligne « Dernière mise à jour du code » n'apparaissait pas (alors que Portail, Budget et Muscu l'affichaient).
+**Fausses pistes explorées** : aucune — cache et constante `DERNIERE_MAJ` étaient corrects ; un `grep` du HTML a suffi.
+**Cause racine** : le JS `document.getElementById('derniere-maj').textContent = …` existait, mais l'élément HTML `id="derniere-maj"` n'a **jamais été ajouté** à Course (commit du 19/09). `getElementById` renvoie `null`, la ligne lève un `TypeError` au niveau racine du script et **stoppe toute la suite du `<script>`** — ici l'enregistrement du Service Worker et le bandeau « Nouvelle version disponible », placés juste après. Une erreur silencieuse (pas d'écran d'erreur en PWA) qui cassait bien plus que l'affichage de la date.
+**Solution** : ajout de l'élément dans Réglages, et **garde systématique** sur toute écriture dans le DOM en fin de script : `const el = document.getElementById(...); if (el) el.textContent = ...`.
+**Leçon généralisable** : ne jamais écrire `getElementById(...).xxx = ...` sur un élément non garanti, surtout dans un script où du code critique (Service Worker) suit. Après avoir ajouté du JS qui référence un id, **vérifier par `grep` que l'id existe dans le HTML**.
+**Vérifié** : Portail, Budget et Muscu ne sont pas concernés (élément présent, ou id différent et déjà gardé par `if`).
+**Fichiers touchés** : `Course/index.html`, `Course/sw.js` (cache v7→v8), `Course/README.md`
+
+---
+
 ## 🎯 Petites fonctionnalités (19/09/2026)
 
 ### 20/09/2026 — Course — barre d'onglets flottante « pilule » + bouton rond
