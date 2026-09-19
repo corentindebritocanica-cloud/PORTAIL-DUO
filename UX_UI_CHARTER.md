@@ -228,7 +228,7 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
 ### 5.5b Barre de navigation flottante — variante « pilule » (onglets)
 
-**Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course (20/09/26).
+**Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course et Budget (20/09/26) — sur Budget, sans bouton rond (4 onglets Mois / Année / Fixes / Réglages).
 
 **Anatomie** : un conteneur transparent posé *par-dessus* le contenu, avec (1) la pilule contenant les onglets, (2) optionnellement un bouton rond d'action posé **juste au-dessus de la pilule, aligné à droite** (ex. « + »).
 
@@ -464,7 +464,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
-| 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
+| 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course puis Budget. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
 
 *Cette section doit être mise à jour à chaque évolution majeure de la charte.*
 
