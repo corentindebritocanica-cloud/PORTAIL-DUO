@@ -108,6 +108,18 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 ---
 
+## 🎨 Budget — barre d'onglets flottante + `viewport-fit=cover` + `</main>` manquant (20/09/2026)
+
+**Besoin** : appliquer à Budget le design de barre d'onglets flottante « pilule » de Course.
+**Particularités rencontrées** (Budget n'est pas structuré comme Course — pas de `#app` en `position:fixed;inset:0`, onglets **en haut** dans une `top-nav` sticky, mise en page desktop avec sidebar) :
+- Budget n'avait **pas `viewport-fit=cover`** : sans lui, `env(safe-area-inset-bottom)` vaut 0 et la position de la barre ne serait pas comparable à Course. Ajouté, avec `padding-top: calc(15px + env(safe-area-inset-top))` sur `.top-nav` pour compenser. Budget n'a pas le bug `100dvh` (document qui défile, `min-height:100vh`, pas de conteneur à hauteur verrouillée), donc pas besoin d'ancrer un `#app`.
+- Le JS de navigation s'accroche sur `.tab-buttons` (délégation de clic) : **conserver le nom de classe** en déplaçant le bloc évite de toucher au JS.
+- Un `position:fixed` en bas oblige à revoir **tous les éléments qui se posaient en bas** : `padding-bottom` de `.main-content`, toast d'annulation, toast « Nouvelle version » (sinon ils recouvrent la barre).
+- ⚠️ **Piège structurel découvert (non corrigé)** : `<main>` n'est jamais refermé, donc `<div id="toast">` et le `<script>` sont dans `<main>`, et `changerVue()` (`document.querySelectorAll('main > div')` + `.hidden`) masque aussi `#toast`. Le bouton « Annuler » après suppression d'une ligne est très probablement invisible. **Leçon** : toute balise structurante doit être refermée ; ajouter un élément « global » (barre, toast) *dans* `<main>` le soumettrait à ce masquage — placer les éléments globaux avant `<main>` ou hors du parent.
+**Fichiers touchés** : `Budget/index.html`, `Budget/sw.js` (cache v4→v5), `Budget/README.md`, `UX_UI_CHARTER.md`
+
+---
+
 ## 🐛 Course — horodatage absent + Service Worker jamais enregistré (20/09/2026)
 
 **Symptôme** : dans Réglages de Course, la ligne « Dernière mise à jour du code » n'apparaissait pas (alors que Portail, Budget et Muscu l'affichaient).
