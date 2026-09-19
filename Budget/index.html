@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -49,6 +49,12 @@
             --radius-input:  10px;
             --shadow-card:   0 6px 14px rgba(20,30,45,0.08);
             --transition:    all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* Barre d'onglets flottante (meme design que Course, cf. charte 5.5b) */
+            --glass-bar:     rgba(255,255,255,0.84);
+            --shadow-nav:    0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+            --nav-offset:    max(2px, calc(env(safe-area-inset-bottom) - 30px));
+            --tabbar-height: calc(62px + var(--nav-offset));
         }
 
         /* Profil actif (Corentin = defaut, Lisa = accent rose) — cf. charte UX/UI,
@@ -68,6 +74,8 @@
             --text-muted:    #8a97a8;
             --border:        rgba(255,255,255,0.09);
             --shadow-card:   0 6px 16px rgba(0,0,0,0.30);
+            --glass-bar:     rgba(19,24,31,0.86);
+            --shadow-nav:    0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
         }
 
         /* 3. LAYOUT GLOBAL */
@@ -84,14 +92,25 @@
         #login-error { color: var(--danger); font-size: 0.9rem; margin-top: 15px; display: none; }
 
         /* 8. BARRE DE NAVIGATION HAUTE */
-        .top-nav { background-color: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-card); }
+        .top-nav { background-color: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-card); }
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .nav-header h2 { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .btn-theme { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-main); }
         
-        .tab-buttons { display: flex; gap: 4px; background: var(--border); padding: 4px; border-radius: 12px; margin-bottom: 15px; }
-        .btn-tab { flex: 1; padding: 8px 2px; border-radius: 9px; border: none; background: transparent; font-weight: 600; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
-        .btn-tab.active { background: var(--card-bg); color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        /* Barre d'onglets flottante « pilule » (meme design que Course — charte 5.5b).
+           Fixe en bas, PAR-DESSUS le contenu. Le conteneur laisse passer les touches
+           (pointer-events:none), seule la pilule les capte. Le nav garde la classe
+           .tab-buttons : le JS de navigation (delegation de clic) est inchange. */
+        .tabbar-flottante { position: fixed; left: 14px; right: 14px; bottom: var(--nav-offset); z-index: 150; display: flex; pointer-events: none; }
+        .tab-buttons { pointer-events: auto; flex: 1; min-width: 0; display: flex; gap: 4px; height: 62px; padding: 5px; border-radius: 999px;
+            background: var(--glass-bar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid var(--border); box-shadow: var(--shadow-nav); }
+        .btn-tab { flex: 1; min-width: 0; padding: 0; border: none; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+            font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .btn-tab:active { transform: scale(0.97); }
+        .btn-tab.active { background: var(--primary-light); color: var(--primary); }
+        .btn-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
 
         /* 9. LISTE DES MOIS (SIDEBAR) */
         .year-group { margin-bottom: 8px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
@@ -104,7 +123,7 @@
         .month-pill.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
 
         /* 10. CONTENU PRINCIPAL */
-        .main-content { flex: 1; padding: 15px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: 80px; }
+        .main-content { flex: 1; padding: 15px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: calc(var(--tabbar-height) + 24px); }
         .hidden { display: none !important; }
 
         /* 11. FORMULAIRES & INPUTS */
@@ -184,18 +203,18 @@
         @media (min-width: 768px) {
             body { flex-direction: row; }
             .top-nav { width: 280px; height: 100vh; position: sticky; padding: 25px; border-bottom: none; border-right: 1px solid var(--border); }
-            .tab-buttons { flex-direction: column; }
-            .main-content { padding: 40px; }
+            .main-content { padding: 40px 40px calc(var(--tabbar-height) + 40px); }
+            .tabbar-flottante { left: 50%; right: auto; width: min(520px, calc(100% - 28px)); transform: translateX(-50%); }
         }
         
         /* TOAST */
         #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 15px; transition: bottom 0.3s ease; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        #toast.show { bottom: 25px; }
+        #toast.show { bottom: calc(var(--tabbar-height) + 12px); }
         #btn-undo { background: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px)); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:calc(var(--tabbar-height, 0px) + 12px); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <span>🔄 Nouvelle version disponible</span>
   <button id="maj-btn" type="button" style="background:var(--accent, var(--primary, #1f8fff)); color:#fff; border:none; border-radius:999px; padding:7px 14px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer;">Actualiser</button>
 </div>
@@ -237,18 +256,33 @@
             <h2>Budget <span id="sync-dot" class="status-dot"></span></h2>
             <button class="btn-theme" id="btn-toggle-dark">☀️</button>
         </div>
-        <div class="tab-buttons">
-            <button class="btn-tab active" data-view="mensuelle">Mois</button>
-            <button class="btn-tab" data-view="annuelle">Année</button>
-            <button class="btn-tab" data-view="fixes">Fixes</button>
-            <button class="btn-tab" data-view="admin">Réglages</button>
-        </div>
-        
         <div id="month-nav-group">
             <div id="month-list"></div>
             <button class="btn-action bg-primary" id="btn-next-month">+ Démarrer un mois</button>
         </div>
     </nav>
+
+    <!-- Barre d'onglets flottante (hors de <main> : le JS masque tous les `main > div`) -->
+    <div class="tabbar-flottante">
+        <nav class="tab-buttons">
+            <button class="btn-tab active" data-view="mensuelle">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Mois
+            </button>
+            <button class="btn-tab" data-view="annuelle">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Année
+            </button>
+            <button class="btn-tab" data-view="fixes">
+                <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Fixes
+            </button>
+            <button class="btn-tab" data-view="admin">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Réglages
+            </button>
+        </nav>
+    </div>
 
     <main class="main-content">
         <div id="vue-mensuelle">
@@ -1337,7 +1371,7 @@
         /* Horodatage du dernier deploiement de code (pas des donnees) : a
            mettre a jour manuellement a chaque commit sur cette app.
            Complement du bandeau "Nouvelle version disponible". */
-        const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+        const DERNIERE_MAJ = '2026-09-20T01:32:00+02:00';
         function formaterDerniereMaj(iso) {
             const d = new Date(iso);
             const jour = String(d.getDate()).padStart(2,'0');
