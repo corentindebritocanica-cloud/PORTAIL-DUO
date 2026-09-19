@@ -165,6 +165,7 @@
     background:var(--card-2); color:var(--text); font-size:16px; font-weight:600;
   }
   .btn-large:active{background:var(--border);}
+  .derniere-maj{margin:14px 0 0; font-size:12px; color:var(--text-dim); text-align:center;}
 
   /* Barre d'onglets flottante (style "pilule" + bouton rond a droite).
      Posee PAR-DESSUS le contenu (position:absolute dans #app, lui-meme
@@ -289,6 +290,7 @@
         <div class="bloc-param">
           <h3>Application</h3>
           <button class="btn-large" id="btn-vider-cache">Recharger l'application (vider le cache)</button>
+          <p class="derniere-maj" id="derniere-maj"></p>
         </div>
       </div>
     </section>
@@ -703,7 +705,7 @@ dbReady.then(demarrer);
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T00:44:00+02:00';
+const DERNIERE_MAJ = '2026-09-20T00:47:00+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
@@ -712,7 +714,8 @@ function formaterDerniereMaj(iso){
   const m = String(d.getMinutes()).padStart(2,'0');
   return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
 }
-document.getElementById('derniere-maj').textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
+const elDerniereMaj = document.getElementById('derniere-maj');
+if (elDerniereMaj) elDerniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
