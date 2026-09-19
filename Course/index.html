@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Courses L&C">
 <meta name="theme-color" content="#0b0f14">
 <link rel="manifest" href="manifest.json">
@@ -68,10 +68,6 @@
     display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
   }
   header.topbar h1{margin:0; font-size:24px; color:var(--accent);}
-  .profil-badge{
-    font-size:13px; color:var(--text-dim); background:var(--card-2);
-    padding:6px 12px; border-radius:var(--r-pill); border:1px solid var(--border);
-  }
   main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px; position:relative;}
   section.vue{display:none;}
   section.vue.actif{display:block;}
@@ -219,7 +215,6 @@
   <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Changer de theme">🌙</button>
   <header class="topbar">
     <h1 id="titre-onglet">Liste</h1>
-    <span class="profil-badge" id="badge-profil"></span>
   </header>
 
   <main>
@@ -363,7 +358,6 @@ const state = {
    ============================================================ */
 function appliquerProfil(){
   document.documentElement.setAttribute('data-profil', state.profil);
-  document.getElementById('badge-profil').textContent = state.profil;
   document.getElementById('btn-profil-corentin').classList.toggle('actif', state.profil==='Corentin');
   document.getElementById('btn-profil-lisa').classList.toggle('actif', state.profil==='Lisa');
 }
