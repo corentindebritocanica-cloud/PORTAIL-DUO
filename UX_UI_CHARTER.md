@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 1.0  
+**Version** : 1.1  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **App de référence** : Muscu (Duo Training) — extraite directement de son code source
@@ -226,6 +226,52 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 ```
 
+### 5.5b Barre de navigation flottante — variante « pilule » (onglets)
+
+**Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course (20/09/26).
+
+**Anatomie** : un conteneur transparent posé *par-dessus* le contenu, avec (1) la pilule contenant les onglets, (2) optionnellement un bouton rond d'action à droite (ex. « + »).
+
+```css
+.tabbar-flottante{
+  position:absolute; left:14px; right:14px; z-index:30;
+  bottom:calc(env(safe-area-inset-bottom) + 8px);   /* safe-area COMPLÈTE, jamais moins */
+  display:flex; align-items:center; gap:10px;
+  pointer-events:none;                               /* les marges laissent passer scroll/taps */
+}
+nav.tabbar, .nav-add{
+  pointer-events:auto;
+  background:var(--glass-bar);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+nav.tabbar{ flex:1; min-width:0; display:flex; gap:4px; height:62px; padding:5px; border-radius:var(--r-pill); }
+nav.tabbar button{
+  flex:1; min-width:0; padding:0; border:none; background:transparent; color:var(--text-dim);
+  border-radius:var(--r-pill);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  font-family:inherit; font-size:11px; font-weight:600;
+  transition:background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease;
+}
+nav.tabbar button:active{ transform:scale(0.97); }
+nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  /* accent-soft = rgba(var(--accent-rgb),0.14) */
+.nav-add{ flex-shrink:0; width:62px; height:62px; padding:0; border-radius:50%; color:var(--accent);
+  display:flex; align-items:center; justify-content:center; }
+```
+
+**Règles à respecter absolument** (leçons de l'implémentation Course — détail dans `PROBLEMES_RESOLUS.md`) :
+- **Le conteneur de l'app doit être `position:fixed; inset:0`** (voir `GUIDE_PWA_IOS.md` §0) : la barre en `position:absolute` s'ancre alors sur le vrai viewport, sans le bug `dvh`.
+- **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur pilule + 8px + env(safe-area-inset-bottom) + marge` (Course : variable `--tabbar-height: 70px`, réutilisée par les listes et les boutons fixes au-dessus de la barre).
+- **`pointer-events:none` sur le conteneur**, `auto` uniquement sur la pilule et le bouton rond — sinon la zone vide bloque le scroll.
+- **Onglet actif = teinte d'accent** (`--accent-soft` + icône/label en `--accent`), jamais une couleur fixe : la barre suit le profil Corentin/Lisa et le mode clair/sombre.
+- **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 62px.
+- **Le bouton rond doit être masqué explicitement** sur les onglets où il n'a pas de sens (ex. attribut `data-onglet` sur le conteneur + `#app:not([data-onglet="liste"]) .nav-add{display:none}`) ; le laisser dans une section masquée ne suffit plus une fois déplacé dans la barre.
+- Le blur (`backdrop-filter`) n'est visible que parce que le contenu passe réellement derrière la barre : ne pas la remettre comme ligne flex séparée.
+
+---
+
 ### 5.6 Sélecteur de profil (Corentin/Lisa) — Pattern réutilisable
 
 ```css
@@ -389,7 +435,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 - [ ] `env(safe-area-inset-bottom)` sur toute barre fixe en bas
 - [ ] Zones tactiles ≥ 44px pour les actions principales
 - [ ] Cards : `var(--card)` + `var(--border)` + `var(--r-lg)` + `var(--shadow-sm)`
-- [ ] Bottom bar en `backdrop-filter: blur(18px) saturate(160%)` + `var(--glass-bar)`
+- [ ] Bottom bar en `backdrop-filter: blur(18px) saturate(160%)` + `var(--glass-bar)` (ou variante flottante « pilule » §5.5b, avec ses règles)
 - [ ] Transitions `.14s`/`.22s` ease, feedback tap `scale(0.97)`
 - [ ] Toasts en `--r-pill`, `--card-2`, centrés bas d'écran
 - [ ] Modales en bottom-sheet (`align-items: flex-end`) avec overlay `rgba(0,0,0,0.6)`
@@ -414,6 +460,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
+| 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
 
 *Cette section doit être mise à jour à chaque évolution majeure de la charte.*
 
@@ -435,4 +482,4 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ---
 
 **Auteur** : Lead Developer Full-Stack  
-**Dernière mise à jour** : 18 Septembre 2026
+**Dernière mise à jour** : 20 Septembre 2026
