@@ -46,7 +46,7 @@
        un flou/assombrissement natif dans sa propre zone de securite. */
     --safe-top:calc(env(safe-area-inset-top) + 16px);
     --safe-bottom:env(safe-area-inset-bottom);
-    --tabbar-height:58px;
+    --tabbar-height:70px; /* barre flottante : pilule 62px + 8px de marge sous elle (la safe-area s'ajoute a part) */
   }
   :root[data-profil="Lisa"]{
     --accent: var(--lisa); --accent-rgb: var(--lisa-rgb);
@@ -97,7 +97,7 @@
   }
   .btn-effacer-recherche:active{background:var(--border);}
 
-  .liste{padding: 6px 18px 100px;}
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--safe-bottom) + 24px);}
   .section-rayon{margin-top:22px;}
   .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 8px 4px;}
   .carte-produit{
@@ -131,15 +131,6 @@
   }
   .carte-produit.achete-carte{opacity:0.55;}
 
-  .fab-ajouter{
-    position:fixed; right:20px; bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 16px);
-    width:58px; height:58px; border-radius:50%; border:none;
-    background:var(--accent); color:white; font-size:30px; font-weight:300;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: var(--shadow); z-index:20;
-    transition: transform var(--t-fast) ease;
-  }
-  .fab-ajouter:active{transform:scale(0.94);}
 
   .vide{ text-align:center; padding:60px 30px; color:var(--text-dim); }
   .vide h2{color:var(--text); font-size:20px; margin-bottom:8px;}
@@ -154,7 +145,7 @@
   .btn-course-terminee.visible{display:block;}
 
   /* Onglet Paramètres */
-  .params{padding:20px 18px 100px;}
+  .params{padding:20px 18px calc(var(--tabbar-height) + var(--safe-bottom) + 24px);}
   .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
   .bloc-param h3{margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim);}
   .choix-profil{display:flex; gap:10px;}
@@ -169,20 +160,51 @@
   }
   .btn-large:active{background:var(--border);}
 
-  /* Barre d'onglets */
-  nav.tabbar{
-    display:flex; background:var(--glass-bar);
+  /* Barre d'onglets flottante (style "pilule" + bouton rond a droite).
+     Posee PAR-DESSUS le contenu (position:absolute dans #app, lui-meme
+     position:fixed;inset:0) : le flou de fond est ainsi reellement visible.
+     Le conteneur laisse passer les touches (pointer-events:none), seuls la
+     pilule et le bouton rond les captent. La safe-area du bas est respectee
+     integralement (zone de geste du home indicator). */
+  .tabbar-flottante{
+    position:absolute; left:14px; right:14px; z-index:30;
+    bottom:calc(var(--safe-bottom) + 8px);
+    display:flex; align-items:center; gap:10px;
+    pointer-events:none;
+  }
+  nav.tabbar, .nav-add{
+    pointer-events:auto;
+    background:var(--glass-bar);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     backdrop-filter: blur(18px) saturate(160%);
-    border-top:1px solid var(--border);
-    padding-bottom:var(--safe-bottom); flex-shrink:0; min-height:var(--tabbar-height);
+    border:1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  nav.tabbar{
+    flex:1; min-width:0; display:flex; gap:4px; height:62px; padding:5px;
+    border-radius:var(--r-pill);
   }
   nav.tabbar button{
-    flex:1; padding:10px 0 8px; border:none; background:none; color:var(--text-dim);
-    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px;
+    flex:1; min-width:0; padding:0; border:none; background:transparent; color:var(--text-dim);
+    border-radius:var(--r-pill);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:inherit; font-size:11px; font-weight:600;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease;
   }
-  nav.tabbar button.actif{color:var(--accent);}
+  nav.tabbar button:active{transform:scale(0.97);}
+  nav.tabbar button.actif{color:var(--accent); background:var(--accent-soft);}
   nav.tabbar button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2;}
+
+  /* Bouton rond "+" (ancien FAB) : visible uniquement sur l'onglet Liste. */
+  .nav-add{
+    flex-shrink:0; width:62px; height:62px; padding:0; border-radius:50%;
+    color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform var(--t-fast) ease;
+  }
+  .nav-add:active{transform:scale(0.94);}
+  .nav-add svg{width:28px; height:28px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
+  #app:not([data-onglet="liste"]) .nav-add{display:none;}
 
   /* Modale ajout/édition produit */
   .modal-fond{
@@ -227,7 +249,7 @@
 </div>
 
 
-<div id="app" style="display:none;">
+<div id="app" data-onglet="liste" style="display:none;">
   <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Changer de theme">🌙</button>
   <header class="topbar">
     <h1 id="titre-onglet">Liste</h1>
@@ -241,7 +263,6 @@
         <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" aria-label="Effacer la recherche">&#10005;</button>
       </div>
       <div class="liste" id="liste-produits"></div>
-      <button class="fab-ajouter" id="btn-ouvrir-ajout" aria-label="Ajouter un produit">+</button>
     </section>
 
     <section class="vue" id="vue-course">
@@ -266,6 +287,7 @@
     </section>
   </main>
 
+  <div class="tabbar-flottante">
   <nav class="tabbar">
     <button class="actif" data-tab="liste">
       <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -280,6 +302,10 @@
       Réglages
     </button>
   </nav>
+  <button type="button" class="nav-add" id="btn-ouvrir-ajout" aria-label="Ajouter un produit">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  </div>
 </div>
 
 <div class="modal-fond" id="modal-produit" style="display:none;">
@@ -394,6 +420,7 @@ const titres = { liste:'Liste', course:'Course', parametres:'Réglages' };
 document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.ongletActif = btn.dataset.tab;
+    document.getElementById('app').dataset.onglet = btn.dataset.tab;
     document.querySelectorAll('nav.tabbar button').forEach(b=> b.classList.toggle('actif', b===btn));
     document.querySelectorAll('section.vue').forEach(s=> s.classList.toggle('actif', s.id==='vue-'+btn.dataset.tab));
     document.getElementById('titre-onglet').textContent = titres[btn.dataset.tab];
@@ -669,7 +696,7 @@ dbReady.then(demarrer);
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+const DERNIERE_MAJ = '2026-09-20T00:35:00+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
