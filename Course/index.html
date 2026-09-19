@@ -146,11 +146,12 @@
 
   /* Onglet Course */
   .btn-course-terminee{
+    display:none;
     position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + var(--safe-bottom) + 14px);
     padding:16px; border:none; border-radius:var(--r-md); background:var(--accent);
     color:white; font-size:16px; font-weight:700; z-index:20;
   }
-  .btn-course-terminee:disabled{opacity:0.35;}
+  .btn-course-terminee.visible{display:block;}
 
   /* Onglet Paramètres */
   .params{padding:20px 18px 100px;}
@@ -485,7 +486,7 @@ function renderCourse(){
     html += `</div>`;
   }
   conteneur.innerHTML = html;
-  document.getElementById('btn-course-terminee').disabled = !items.some(([id,p])=> p.achete);
+  document.getElementById('btn-course-terminee').classList.toggle('visible', items.some(([id,p])=> p.achete));
 }
 
 function carteProduitCourse(id, p){
@@ -504,7 +505,10 @@ function carteProduitCourse(id, p){
 function toggleAchete(id){
   const p = state.produits[id]; if(!p) return;
   dbUpdateDoc('produits', id, { achete: !p.achete });
-  document.getElementById('btn-course-terminee').disabled = false;
+  // Pas de mise a jour optimiste ici : le listener temps reel sur 'produits'
+  // rappelle render()/renderCourse() a chaque ecriture, qui recalcule
+  // correctement la visibilite du bouton (evite un etat incorrect si on
+  // decoche le dernier produit coche).
 }
 
 document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
@@ -661,6 +665,20 @@ dbReady.then(demarrer);
     appliquer(nouveauTheme);
   });
 })();
+
+/* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
+   jour manuellement a chaque commit sur cette app. Complement du bandeau
+   "Nouvelle version disponible". */
+const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+function formaterDerniereMaj(iso){
+  const d = new Date(iso);
+  const jour = String(d.getDate()).padStart(2,'0');
+  const mois = String(d.getMonth()+1).padStart(2,'0');
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
+}
+document.getElementById('derniere-maj').textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
