@@ -30,6 +30,8 @@
         :root {
             --primary:       #1f8fff;
             --primary-light: rgba(31,143,255,0.14);
+            --lisa:          #ff3d7e;
+            --lisa-light:    rgba(255,61,126,0.14);
             --secondary:     #FF9500;
             --danger:        #ef4444;
             --success:       #12b981;
@@ -46,6 +48,14 @@
             --radius-input:  10px;
             --shadow-card:   0 6px 14px rgba(20,30,45,0.08);
             --transition:    all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Profil actif (Corentin = defaut, Lisa = accent rose) — cf. charte UX/UI,
+           meme principe que Muscu/Course. Preference par appareil (localStorage),
+           purement visuelle : le compte et les donnees restent partages. */
+        body.profil-lisa {
+            --primary:       var(--lisa);
+            --primary-light: var(--lisa-light);
         }
 
         /* 2. MODE SOMBRE — valeur par defaut de l'app (voir init JS section 10) */
@@ -162,6 +172,12 @@
 
         /* 22. RESPONSIVE DESKTOP ET ADMIN */
         .admin-section { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+
+        /* Selecteur de profil Corentin/Lisa (charte UX/UI) */
+        .profile-switch { display:flex; gap:8px; padding:5px; margin-top:8px; background:var(--bg-color); border:1px solid var(--border); border-radius:var(--radius-input); }
+        .profile-switch-btn { flex:1; padding:11px 8px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--text-muted); font-size:14.5px; font-weight:700; font-family:inherit; cursor:pointer; }
+        .profile-switch-btn.corentin.selected { background:rgba(31,143,255,0.14); border-color:#1f8fff; color:#1f8fff; }
+        .profile-switch-btn.lisa.selected { background:var(--lisa-light); border-color:var(--lisa); color:var(--lisa); }
 
 
         @media (min-width: 768px) {
@@ -361,6 +377,15 @@
                     <input type="text" id="new-obj-nom" placeholder="Mot-clé" style="flex:1; border:1px solid var(--border); padding:10px; border-radius:8px; min-width:0;">
                     <input type="number" id="new-obj-mnt" placeholder="€" style="width:70px; border:1px solid var(--border); padding:10px; border-radius:8px; min-width:0;">
                     <button class="btn-small bg-primary" id="btn-add-obj" style="color:white; padding:10px 20px;">Ajouter</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>👤 Profil</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Qui utilise l'app sur cet appareil ? Change juste la couleur d'accent (bleu/rose), les données restent communes.</p>
+                <div class="profile-switch">
+                    <button type="button" class="profile-switch-btn corentin" id="btn-profil-corentin" data-profil="corentin">Corentin</button>
+                    <button type="button" class="profile-switch-btn lisa" id="btn-profil-lisa" data-profil="lisa">Lisa</button>
                 </div>
             </div>
 
@@ -1147,6 +1172,19 @@
         // (ancienne logique : dark uniquement si LS_DARK==='true' ; nouvelle logique :
         // dark sauf si LS_DARK==='false' explicitement enregistre par un clic anterieur).
         if (localStorage.getItem(LS_DARK) !== 'false') toggleDark();
+
+        // 10bis. Profil actif (Corentin/Lisa) — preference par appareil, purement
+        // visuelle (couleur d'accent), memorisee dans localStorage. Le compte et
+        // les donnees restent partages entre les deux.
+        const LS_PROFIL = 'budgetLC_profil';
+        const applyProfil = (p) => {
+            document.body.classList.toggle('profil-lisa', p === 'lisa');
+            document.querySelectorAll('.profile-switch-btn').forEach(b => b.classList.toggle('selected', b.dataset.profil === p));
+            localStorage.setItem(LS_PROFIL, p);
+        };
+        document.getElementById('btn-profil-corentin').onclick = () => applyProfil('corentin');
+        document.getElementById('btn-profil-lisa').onclick = () => applyProfil('lisa');
+        applyProfil(localStorage.getItem(LS_PROFIL) === 'lisa' ? 'lisa' : 'corentin');
 
         // 11. Auth Listener (attend que Firestore/Auth soient initialisés avec le cache persistant)
         dbReady.then(() => authListen((user) => {
