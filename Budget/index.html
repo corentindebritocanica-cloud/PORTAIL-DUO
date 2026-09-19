@@ -208,7 +208,7 @@
         }
         
         /* TOAST */
-        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 15px; transition: bottom 0.3s ease; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 15px; white-space: nowrap; transition: bottom 0.3s ease; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         #toast.show { bottom: calc(var(--tabbar-height) + 12px); }
         #btn-undo { background: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
@@ -454,6 +454,8 @@
         </div>
 
         <!-- ===== VUE VACANCES ===== -->
+
+    </main>
 
     <div id="toast">Ligne supprimée <button id="btn-undo">Annuler</button></div>
 
@@ -1371,7 +1373,7 @@
         /* Horodatage du dernier deploiement de code (pas des donnees) : a
            mettre a jour manuellement a chaque commit sur cette app.
            Complement du bandeau "Nouvelle version disponible". */
-        const DERNIERE_MAJ = '2026-09-20T01:32:00+02:00';
+        const DERNIERE_MAJ = '2026-09-20T01:35:00+02:00';
         function formaterDerniereMaj(iso) {
             const d = new Date(iso);
             const jour = String(d.getDate()).padStart(2,'0');
