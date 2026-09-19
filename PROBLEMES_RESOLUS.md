@@ -108,6 +108,17 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 ---
 
+## 🐛 Budget — le toast « Annuler » n'apparaissait jamais : `</main>` manquant (20/09/2026)
+
+**Symptôme** : après suppression d'une ligne dans Budget, le bandeau « Ligne supprimée — Annuler » ne s'affichait pas (fonction d'annulation décrite au README v3.0.0, mais inutilisable en pratique).
+**Fausses pistes explorées** : aucune — repéré en lisant le DOM lors de l'ajout de la barre flottante ; le JS d'affichage (`classList.add('show')`) et le CSS (`#toast.show`) étaient corrects.
+**Cause racine** : `<main class="main-content">` sans `</main>`. L'analyseur HTML laisse alors tout ce qui suit *dans* `<main>` : `<div id="toast">` devenait un enfant direct de `main`. `changerVue()` masque tous les `main > div` dont l'id ≠ `vue-…` avec la classe `.hidden` (`display:none !important`) → le toast était masqué en permanence, quel que soit `.show`.
+**Solution** : ajout de `</main>` avant `<div id="toast">` (+ `white-space:nowrap` sur le toast). Vérifié par un test avant/après : parent `MAIN` + `display:none` → parent `BODY` + `display:flex`.
+**Leçon généralisable** : un élément « global » (toast, barre, popup) ne doit jamais se trouver sous un conteneur dont le JS masque/affiche les enfants par sélecteur (`main > div`). Et une balise structurante non refermée ne fait aucune erreur visible : à chaque ajout de bloc HTML, vérifier l'arbre DOM (parent réel de l'élément), pas seulement l'indentation. **Symptôme type à rechercher** : un élément correctement stylé et correctement déclenché en JS qui « ne s'affiche jamais » → regarder son parent réel et les règles `.hidden` appliquées par sélecteur.
+**Fichiers touchés** : `Budget/index.html`, `Budget/sw.js` (cache v5→v6), `Budget/README.md`
+
+---
+
 ## 🎨 Budget — barre d'onglets flottante + `viewport-fit=cover` + `</main>` manquant (20/09/2026)
 
 **Besoin** : appliquer à Budget le design de barre d'onglets flottante « pilule » de Course.
@@ -115,7 +126,7 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 - Budget n'avait **pas `viewport-fit=cover`** : sans lui, `env(safe-area-inset-bottom)` vaut 0 et la position de la barre ne serait pas comparable à Course. Ajouté, avec `padding-top: calc(15px + env(safe-area-inset-top))` sur `.top-nav` pour compenser. Budget n'a pas le bug `100dvh` (document qui défile, `min-height:100vh`, pas de conteneur à hauteur verrouillée), donc pas besoin d'ancrer un `#app`.
 - Le JS de navigation s'accroche sur `.tab-buttons` (délégation de clic) : **conserver le nom de classe** en déplaçant le bloc évite de toucher au JS.
 - Un `position:fixed` en bas oblige à revoir **tous les éléments qui se posaient en bas** : `padding-bottom` de `.main-content`, toast d'annulation, toast « Nouvelle version » (sinon ils recouvrent la barre).
-- ⚠️ **Piège structurel découvert (non corrigé)** : `<main>` n'est jamais refermé, donc `<div id="toast">` et le `<script>` sont dans `<main>`, et `changerVue()` (`document.querySelectorAll('main > div')` + `.hidden`) masque aussi `#toast`. Le bouton « Annuler » après suppression d'une ligne est très probablement invisible. **Leçon** : toute balise structurante doit être refermée ; ajouter un élément « global » (barre, toast) *dans* `<main>` le soumettrait à ce masquage — placer les éléments globaux avant `<main>` ou hors du parent.
+- ✅ **Piège structurel découvert puis corrigé (voir l'entrée du 20/09/2026 ci-dessous, « Budget — bouton Annuler jamais visible »)** : `<main>` n'était jamais refermé, donc `<div id="toast">` et le `<script>` sont dans `<main>`, et `changerVue()` (`document.querySelectorAll('main > div')` + `.hidden`) masque aussi `#toast`. Le bouton « Annuler » après suppression d'une ligne est très probablement invisible. **Leçon** : toute balise structurante doit être refermée ; ajouter un élément « global » (barre, toast) *dans* `<main>` le soumettrait à ce masquage — placer les éléments globaux avant `<main>` ou hors du parent.
 **Fichiers touchés** : `Budget/index.html`, `Budget/sw.js` (cache v4→v5), `Budget/README.md`, `UX_UI_CHARTER.md`
 
 ---
