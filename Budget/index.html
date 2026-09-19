@@ -241,7 +241,7 @@
             <button class="btn-tab active" data-view="mensuelle">Mois</button>
             <button class="btn-tab" data-view="annuelle">Année</button>
             <button class="btn-tab" data-view="fixes">Fixes</button>
-            <button class="btn-tab" data-view="admin">Admin</button>
+            <button class="btn-tab" data-view="admin">Réglages</button>
         </div>
         
         <div id="month-nav-group">
@@ -415,6 +415,7 @@
 
             <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
                 Version 3.0.1 (Correctif balise cassée + ouverture auto des cartes)
+                <br><span id="derniere-maj" style="font-weight:normal;"></span>
             </div>
         </div>
 
@@ -1333,6 +1334,21 @@
         // Service worker (18/09/26) : ouverture hors-ligne du shell de
         // l'app, voir sw.js pour le détail. Chemin ET scope volontairement
         // relatifs ('sw.js', './'), comme dans /Muscu/ et /Course/.
+        /* Horodatage du dernier deploiement de code (pas des donnees) : a
+           mettre a jour manuellement a chaque commit sur cette app.
+           Complement du bandeau "Nouvelle version disponible". */
+        const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+        function formaterDerniereMaj(iso) {
+            const d = new Date(iso);
+            const jour = String(d.getDate()).padStart(2,'0');
+            const mois = String(d.getMonth()+1).padStart(2,'0');
+            const h = String(d.getHours()).padStart(2,'0');
+            const m = String(d.getMinutes()).padStart(2,'0');
+            return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
+        }
+        const elDerniereMaj = document.getElementById('derniere-maj');
+        if (elDerniereMaj) elDerniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
+
         if('serviceWorker' in navigator){
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js', { scope: './' }).then((reg) => {
