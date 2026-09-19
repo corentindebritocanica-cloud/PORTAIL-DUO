@@ -257,7 +257,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px)); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:calc(var(--tabbar-height, 0px) + var(--add-gap, 12px) + var(--add-size, 56px) + 12px); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <span>🔄 Nouvelle version disponible</span>
   <button id="maj-btn" type="button" style="background:var(--accent, var(--primary, #1f8fff)); color:#fff; border:none; border-radius:999px; padding:7px 14px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer;">Actualiser</button>
 </div>
@@ -711,7 +711,7 @@ dbReady.then(demarrer);
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T00:56:00+02:00';
+const DERNIERE_MAJ = '2026-09-20T01:36:00+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
