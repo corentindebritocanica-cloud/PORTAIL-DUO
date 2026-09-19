@@ -17,7 +17,7 @@ Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS v
 - un petit carré éditable à droite pour la quantité ou une info libre (ex: "2", "grande taille")
 - un crayon (✎) pour modifier le nom et/ou le rayon du produit
 
-Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton rond **+**, à droite de la barre d'onglets flottante (visible uniquement sur l'onglet Liste), ouvre le même formulaire que le crayon (nom + rayon, avec possibilité de créer un nouveau rayon à la volée) pour ajouter un produit.
+Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton rond **+**, posé juste au-dessus de la barre d'onglets flottante, aligné à droite (visible uniquement sur l'onglet Liste), ouvre le même formulaire que le crayon (nom + rayon, avec possibilité de créer un nouveau rayon à la volée) pour ajouter un produit.
 
 **Course** : uniquement les produits cochés "à acheter" en Liste, groupés par rayon. On coche ici un produit une fois réellement acheté (nom barré, carte estompée) — rien n'est retiré automatiquement. Le bouton **Course terminée** (actif seulement si au moins un produit est coché acheté) décoche d'un coup, dans les deux onglets, tous les produits ainsi cochés — sans jamais les supprimer de la Liste.
 
@@ -99,7 +99,7 @@ Suite à tout le chantier de débogage ci-dessus, un document de référence a �
 - **Bouton rond « + »** : remplace l'ancien FAB (`.fab-ajouter`, supprimé). Même `id="btn-ouvrir-ajout"`, donc aucun changement de JS pour l'ouverture de la modale. Il n'existe plus dans la section `#vue-liste` : sa visibilité est pilotée par l'attribut `data-onglet` porté par `#app` (mis à jour dans le handler de navigation) via `#app:not([data-onglet="liste"]) .nav-add{display:none}` — la pilule occupe alors toute la largeur.
 - **La barre flotte PAR-DESSUS le contenu** (elle n'est plus un enfant flex de `#app`) : `main` occupe donc toute la hauteur, et `.liste` / `.params` reçoivent un `padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + 24px)` pour que le dernier élément reste atteignable. `--tabbar-height` passe de 58px à **70px** (= pilule 62px + 8px de marge basse ; la safe-area s'ajoute séparément via `--safe-bottom`). Le bouton « Course terminée » (`bottom: tabbar-height + safe-bottom + 14px`) reste donc automatiquement 14px au-dessus de la barre.
 - **Conteneur `pointer-events:none`** : seuls la pilule et le bouton rond captent les touches ; l'espace vide autour (marges, écart entre pilule et bouton) laisse passer le scroll/tap vers la liste en dessous.
-- **Safe-area / position basse** : distance entre le bas de la pilule et le bord réel de l'écran = `--nav-offset` (voir ajustements du 20/09/2026 ci-dessous : valeur actuelle `max(6px, safe-area − 26px)`, soit ~8px sur iPhone à home indicator). Les contrôles restent hors de la zone de geste (cf. incident Siri du 18/09/2026).
+- **Safe-area / position basse** : distance entre le bas de la pilule et le bord réel de l'écran = `--nav-offset` (voir ajustements du 20/09/2026 ci-dessous : valeur actuelle `max(2px, safe-area − 30px)`, soit ~4px sur iPhone à home indicator). Les contrôles restent hors de la zone de geste (cf. incident Siri du 18/09/2026).
 - **Inchangés** : ancrage `#app{position:fixed;inset:0}`, `viewport-fit=cover`, marge de 16px en haut, bandeau « Nouvelle version disponible » (toujours positionné en bas, peut recouvrir brièvement la barre).
 - **Déploiement** : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` passé de `courses-lc-shell-v5` à `courses-lc-shell-v6`.
 
@@ -119,3 +119,10 @@ Nouveau retour de Corentin : encore trop haute. `--nav-offset` passe de `max(12p
 
 ### Ajustement — barre au plus bas (20/09/2026)
 Troisième retour de Corentin (« encore plus bas ») : `--nav-offset` passe à **`max(6px, safe-area − 26px)`**, soit ~8px du bord sur iPhone à home indicator (contre ~12px). **C'est le plancher retenu** : les boutons commencent à ~13px du bord (dans la zone de geste du home indicator si l'on tape tout en bas) et la pilule, à 8px du bas et 14px des côtés, se rapproche de la courbure des coins de l'écran. Si un tap déclenche Siri/retour à l'accueil, remonter à `safe-area − 22px` (valeur précédente). Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `v9` → `v10`.
+
+### Ajustement — bouton « + » sorti de la pilule + barre encore 4px plus bas (20/09/2026)
+Demande de Corentin :
+- **Bouton « + » sorti de la barre** : il n'est plus à côté des onglets (la pilule occupe donc toute la largeur sur tous les onglets) mais **juste au-dessus, aligné à droite** (`.nav-add{position:absolute; right:0; bottom:calc(100% + var(--add-gap))}` par rapport au conteneur `.tabbar-flottante`, dont la hauteur est celle de la pilule). Taille 56px (`--add-size`), écart de 12px avec la pilule (`--add-gap`), style verre + icône d'accent inchangés. Toujours masqué hors onglet Liste via `data-onglet`.
+- **Espace sous la liste** : `.liste` reçoit `padding-bottom: tabbar-height + add-gap + add-size + 16px`, sinon le dernier produit (et son champ quantité, à droite) resterait masqué derrière le « + » en fin de défilement — vérifié en test : le dernier produit s'arrête ~50px au-dessus du bouton.
+- **Barre 4px plus bas** : `--nav-offset` = **`max(2px, safe-area − 30px)`**, soit ~4px du bord sur iPhone à home indicator (contre ~8px). Les boutons commencent à ~9px du bord : en pleine zone de geste du home indicator. **Point de surveillance** : si un tap sur le bas d'un onglet déclenche Siri / le retour à l'accueil, remonter à `safe-area − 26px` (~8px). `--tabbar-height` et tous les décalages suivent automatiquement.
+- Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `v10` → `v11`.
