@@ -110,6 +110,15 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 ## 🎯 Petites fonctionnalités (19/09/2026)
 
+### 20/09/2026 — Course — barre d'onglets flottante « pilule » + bouton rond
+**Besoin** : remplacer la tabbar pleine largeur collée en bas par une barre flottante arrondie (style d'une app e-commerce vue par Corentin), avec un bouton d'action rond à côté.
+**Pièges évités / leçons généralisables** :
+- Une barre flottante n'est plus un enfant flex de `#app` : elle passe en `position:absolute` (dans un parent déjà `position:fixed;inset:0`, donc sans risque `dvh`). Conséquence : **tous les `padding-bottom` du contenu scrollable doivent être recalculés** avec la hauteur réelle de la barre + `env(safe-area-inset-bottom)`, sinon le dernier élément est masqué. Ici, une seule variable (`--tabbar-height`) alimente déjà `.liste`, `.params`, « Course terminée » : changer la variable suffit à tout répercuter.
+- Un conteneur transparent qui couvre la largeur de l'écran **bloque le scroll et les taps** de la liste dessous : mettre `pointer-events:none` sur le conteneur et `pointer-events:auto` uniquement sur les éléments interactifs.
+- Un bouton `position:fixed` rangé dans une `<section>` masquée (`display:none`) disparaît avec elle — c'est ainsi que l'ancien FAB se cachait hors de l'onglet Liste. Déplacé dans la barre, cette visibilité implicite disparaît : elle est reproduite explicitement via un attribut `data-onglet` sur `#app` + une règle CSS `#app:not([data-onglet="liste"]) …`.
+- `backdrop-filter` n'a d'effet visible que si du contenu passe réellement *derrière* la barre : c'est le cas seulement parce qu'elle flotte au-dessus du contenu, pas parce qu'elle occupe sa propre ligne flex.
+**Fichiers touchés** : `Course/index.html`, `Course/sw.js` (cache v5→v6), `Course/README.md`
+
 ### Course — bouton "Course terminée" masqué si aucune sélection
 **Avant** : le bouton restait affiché en permanence, semi-transparent (`opacity:0.35` via `:disabled`) quand aucun produit n'était coché — jugé peu lisible.
 **Solution** : `display:none` par défaut, classe `.visible` ajoutée dès qu'au moins un produit est coché (recalculé dans `renderCourse()` à chaque rendu, seule source de vérité).
@@ -129,4 +138,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 19 septembre 2026
+**Dernière mise à jour de ce fichier** : 20 septembre 2026
