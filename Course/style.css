@@ -1,0 +1,240 @@
+/* style.css — feuille de style de l'app.
+   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+  :root{
+    /* Identite Corentin/Lisa alignee sur la charte UX/UI (meme hex que Muscu) */
+    --corentin:#1f8fff; --corentin-rgb:31,143,255;
+    --lisa:#ff3d7e; --lisa-rgb:255,61,126;
+    --accent: var(--corentin); --accent-rgb: var(--corentin-rgb);
+    --accent-soft: rgba(var(--accent-rgb), 0.14);
+
+    /* Fonds (nomenclature Muscu : card/card-2, text/text-dim, border) */
+    --bg:#0b0f14; --card:#141a21; --card-2:#1b232c;
+    --text:#f2f5f7; --text-dim:#9aa7b2; --border:#26303a;
+
+    /* Etats semantiques (valeurs Muscu) */
+    --done:#12b981; --danger:#ef4444; --gold:#ffb800;
+
+    /* Rayons : echelle a 5 crans de la charte */
+    --r-xs:4px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px; --r-pill:999px;
+
+    /* Ombres (valeurs Muscu) */
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
+
+    /* Durees d'animation (Muscu) */
+    --t-fast:.14s; --t-mid:.22s;
+
+    /* Surfaces flottantes (glassmorphism) */
+    --glass-bar: rgba(19,24,31,0.86);
+
+    /* Marge tampon volontaire de 16px en plus de la vraie safe-area iOS :
+       l'app ne colle jamais aux bords reels de l'ecran, meme si iOS applique
+       un flou/assombrissement natif dans sa propre zone de securite. */
+    --safe-top:calc(env(safe-area-inset-top) + 16px);
+    --safe-bottom:env(safe-area-inset-bottom);
+    /* Barre d'onglets flottante : distance entre le bas de la pilule et le bord reel
+       de l'ecran = safe-area moins 30px, mais jamais moins de 2px (~4px sur iPhone a
+       home indicator). Tres bas : la pilule est dans la zone de geste du home
+       indicator (surveiller un declenchement de Siri) et frole les coins de l'ecran. */
+    --nav-offset:max(2px, calc(env(safe-area-inset-bottom) - 30px));
+    /* Bouton rond « + » pose au-dessus de la pilule, a droite */
+    --add-size:56px; --add-gap:12px;
+    /* Hauteur totale occupee en bas par la barre (pilule 62px + distance au bord) :
+       sert a decaler le contenu et les boutons fixes au-dessus. */
+    --tabbar-height:calc(62px + var(--nav-offset));
+  }
+  :root[data-profil="Lisa"]{
+    --accent: var(--lisa); --accent-rgb: var(--lisa-rgb);
+  }
+  /* Mode clair (charte UX/UI) */
+  .light-mode{
+    --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
+    --border:rgba(23,38,56,0.11);
+    --text:#131a23; --text-dim:#5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+    --glass-bar: rgba(255,255,255,0.84);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;}
+  body{overflow:hidden;}
+  /* #app est ancre directement aux bords reels de l'ecran (position:fixed;inset:0)
+     plutot que de dependre de body/html en 100dvh : ce dernier a un calcul peu
+     fiable en PWA standalone sur iOS et laissait un bloc vide non couvert en bas
+     de l'ecran (bug constate le 18/09/2026). position:fixed;inset:0 s'aligne
+     toujours sur le vrai viewport visuel, sans ce risque. */
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
+  header.topbar{
+    padding: calc(14px + var(--safe-top)) 18px 14px;
+    background:var(--card); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  header.topbar h1{margin:0; font-size:24px; color:var(--accent);}
+  main{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px; position:relative;}
+  section.vue{display:none;}
+  section.vue.actif{display:block;}
+
+  /* Barre de recherche */
+  .searchbar{
+    margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:10px 14px;
+  }
+  .searchbar input{flex:1; border:none; background:none; color:var(--text); font-size:16px; outline:none;}
+  .searchbar input::placeholder{color:var(--text-dim);}
+  .btn-effacer-recherche{
+    flex-shrink:0; width:30px; height:30px; border-radius:50%; border:none;
+    background:var(--card-2); color:var(--text-dim); font-size:14px;
+    display:none; align-items:center; justify-content:center; padding:0; line-height:1;
+  }
+  .btn-effacer-recherche:active{background:var(--border);}
+
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--add-gap) + var(--add-size) + 16px);}
+  .section-rayon{margin-top:22px;}
+  .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 8px 4px;}
+  .carte-produit{
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:12px 14px; margin-bottom:10px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--t-mid) ease;
+  }
+  .case{
+    flex-shrink:0; width:30px; height:30px; border-radius:var(--r-sm); border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center; background:var(--card-2);
+  }
+  .case.checked{ background:var(--accent); border-color:var(--accent); }
+  .case svg{width:16px; height:16px; stroke:white; fill:none; stroke-width:3; display:none;}
+  .case.checked svg{display:block;}
+  .infos-produit{flex:1; min-width:0;}
+  .nom-produit{font-size:16px; font-weight:600; margin:0;}
+  .nom-produit.achete{ text-decoration:line-through; color:var(--text-dim); }
+  .rayon-produit{font-size:12px; color:var(--text-dim); margin:2px 0 0;}
+  .btn-crayon{
+    flex-shrink:0; width:36px; height:36px; border-radius:50%; border:none;
+    background:var(--card-2); color:var(--text-dim); font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-crayon:active{background:var(--border);}
+  .qte-produit{
+    flex-shrink:0; width:64px; min-width:64px; height:36px; border-radius:10px;
+    border:1px solid var(--border); background:var(--card-2); color:var(--text);
+    text-align:center; font-size:14px; padding:0 4px;
+  }
+  .carte-produit.achete-carte{opacity:0.55;}
+
+
+  .vide{ text-align:center; padding:60px 30px; color:var(--text-dim); }
+  .vide h2{color:var(--text); font-size:20px; margin-bottom:8px;}
+
+  /* Onglet Course */
+  .btn-course-terminee{
+    display:none;
+    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + 14px);
+    padding:16px; border:none; border-radius:var(--r-md); background:var(--accent);
+    color:white; font-size:16px; font-weight:700; z-index:20;
+  }
+  .btn-course-terminee.visible{display:block;}
+
+  /* Onglet Paramètres */
+  .params{padding:20px 18px calc(var(--tabbar-height) + 24px);}
+  .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
+  .bloc-param h3{margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim);}
+  .choix-profil{display:flex; gap:10px;}
+  .btn-profil{
+    flex:1; padding:16px; border-radius:var(--r-md); border:2px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-weight:600;
+  }
+  .btn-profil.actif{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .btn-large{
+    width:100%; padding:16px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-weight:600;
+  }
+  .btn-large:active{background:var(--border);}
+  .derniere-maj{margin:14px 0 0; font-size:12px; color:var(--text-dim); text-align:center;}
+
+  /* Barre d'onglets flottante (style "pilule" + bouton rond a droite).
+     Posee PAR-DESSUS le contenu (position:absolute dans #app, lui-meme
+     position:fixed;inset:0) : le flou de fond est ainsi reellement visible.
+     Le conteneur laisse passer les touches (pointer-events:none), seuls la
+     pilule et le bouton rond les captent. Distance au bord : --nav-offset
+     (safe-area - 30px, min 2px) : plus basse qu'avant mais toujours hors de
+     la zone de geste du home indicator. */
+  .tabbar-flottante{
+    position:absolute; left:14px; right:14px; z-index:30;
+    bottom:var(--nav-offset);
+    display:flex; align-items:center; gap:10px;
+    pointer-events:none;
+  }
+  nav.tabbar, .nav-add{
+    pointer-events:auto;
+    background:var(--glass-bar);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border:1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  nav.tabbar{
+    flex:1; min-width:0; display:flex; gap:4px; height:62px; padding:5px;
+    border-radius:var(--r-pill);
+  }
+  nav.tabbar button{
+    flex:1; min-width:0; padding:0; border:none; background:transparent; color:var(--text-dim);
+    border-radius:var(--r-pill);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:inherit; font-size:11px; font-weight:600;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease;
+  }
+  nav.tabbar button:active{transform:scale(0.97);}
+  nav.tabbar button.actif{color:var(--accent); background:var(--accent-soft);}
+  nav.tabbar button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2;}
+
+  /* Bouton rond "+" : pose JUSTE AU-DESSUS de la pilule, aligne a droite
+     (bottom:100% = haut du conteneur, dont la hauteur est celle de la pilule).
+     Visible uniquement sur l'onglet Liste. */
+  .nav-add{
+    position:absolute; right:0; bottom:calc(100% + var(--add-gap));
+    width:var(--add-size); height:var(--add-size); padding:0; border-radius:50%;
+    color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform var(--t-fast) ease;
+  }
+  .nav-add:active{transform:scale(0.94);}
+  .nav-add svg{width:26px; height:26px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
+  #app:not([data-onglet="liste"]) .nav-add{display:none;}
+
+  /* Modale ajout/édition produit */
+  .modal-fond{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
+    display:flex; align-items:flex-end;
+  }
+  .modal-carte{
+    width:100%; background:var(--card); border-radius:var(--r-xl) var(--r-xl) 0 0;
+    padding:22px 20px calc(22px + var(--safe-bottom)); max-height:80vh; overflow-y:auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal-carte h2{margin:0 0 18px; font-size:19px;}
+  .champ{margin-bottom:16px;}
+  .champ label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
+  .champ input, .champ select{
+    width:100%; padding:13px 14px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px;
+  }
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+  .modal-actions button{flex:1; padding:14px; border-radius:var(--r-md); border:none; font-size:16px; font-weight:700;}
+  .btn-annuler{background:var(--card-2); color:var(--text);}
+  .btn-enregistrer{background:var(--accent); color:white;}
+  .btn-supprimer{background:none; color:var(--danger); border:none; width:100%; text-align:center; margin-top:6px; padding:10px; font-size:14px;}
+
+  /* Bouton de bascule theme (charte UX/UI) */
+  .theme-toggle{
+    position:fixed; top:calc(14px + var(--safe-top)); right:14px; z-index:25;
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow: var(--shadow-sm);
+  }

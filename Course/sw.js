@@ -15,6 +15,8 @@ const CACHE_PREFIX = 'courses-lc-shell-';
 const SHELL_FILES = [
   './',
   './index.html',
+  './style.css',
+  './app.js',
   './manifest.json'
 ];
 
@@ -36,7 +38,7 @@ function requeteExterne(url){
 }
 
 async function mettreEnCacheAvecRetry(cache, url, externe){
-  const req = externe ? requeteExterne(url) : url;
+  const req = externe ? requeteExterne(url) : new Request(url, { cache: 'reload' });
   try {
     await cache.add(req);
   } catch (err1) {
@@ -72,17 +74,24 @@ self.addEventListener('activate', (event) => {
 // de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
 // Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
 const DELAI_RESEAU_MS = 4000;
+function cleCache(requete){
+  const u = new URL(requete.url);
+  u.search = '';   // app.js?v=… et app.js partagent la même entrée de cache
+  return u.href;
+}
 function reseauPuisCache(requete){
   return new Promise((resolve) => {
     let termine = false;
-    const repliCache = () => caches.match(requete).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
     const minuteur = setTimeout(() => {
       repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
     }, DELAI_RESEAU_MS);
-    fetch(requete).then((reponse) => {
+    // Requête neuve avec cache:'no-cache' : force la revalidation auprès du serveur (304 si inchangé)
+    // et évite de resservir une copie du cache HTTP de Safari (GitHub Pages : max-age=600).
+    fetch(new Request(requete.url, { cache: 'no-cache' })).then((reponse) => {
       if (reponse && reponse.status === 200) {
         const copie = reponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(requete, copie));
+        caches.open(CACHE_NAME).then((cache) => cache.put(cleCache(requete), copie));
       }
       if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
     }).catch(() => {
@@ -119,11 +128,11 @@ self.addEventListener('fetch', (event) => {
   if (!url.pathname.startsWith(scopePath)) return;
 
   const chemin = url.pathname.slice(scopePath.length);
-  const estFichierDuShell = chemin === '' || chemin === 'index.html' || chemin === 'manifest.json';
+  const estFichierDuShell = chemin === '' || chemin === 'index.html' || chemin === 'style.css' || chemin === 'app.js' || chemin === 'manifest.json';
   if (!estFichierDuShell) return;
 
   // index.html : réseau d'abord (voir reseauPuisCache) ; manifest : cache-first.
-  if (chemin === '' || chemin === 'index.html') {
+  if (chemin === '' || chemin === 'index.html' || chemin === 'style.css' || chemin === 'app.js') {
     event.respondWith(reseauPuisCache(event.request));
     return;
   }
