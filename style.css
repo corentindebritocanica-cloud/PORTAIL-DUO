@@ -1,0 +1,149 @@
+/* style.css — feuille de style de l'app.
+   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+  /* ==========================================================================
+     JETONS DE DESIGN — repris tels quels de Muscu (thème "Ardoise & Craie")
+     pour une cohérence visuelle entre le Portail et les 3 apps.
+     ========================================================================== */
+  :root{
+    --bg:#0d1014;
+    --card:#161b22;
+    --card-2:#1e2530;
+    --border:rgba(255,255,255,0.09);
+    --border-strong:rgba(255,255,255,0.17);
+
+    --text:#e9eff6;
+    --text-dim:#8a97a8;
+
+    --blue:#1f8fff;      /* Musculation */
+    --blue-dark:#1a5fc4;
+    --gold:#ffb800;      /* Budget */
+    --gold-dark:#c48e00;
+    --green:#12b981;     /* Courses */
+    --green-dark:#0d8f64;
+
+    --r-xs:4px;
+    --r-sm:10px;
+    --r-md:14px;
+    --r-lg:18px;
+    --r-xl:22px;
+    --r-pill:999px;
+
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
+
+    --t-fast:.14s;
+    --t-mid:.22s;
+
+    --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  /* Mode clair (charte UX/UI, memes valeurs que Muscu/Course) */
+  html.light-mode{
+    --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
+    --border:rgba(23,38,56,0.11); --border-strong:rgba(23,38,56,0.20);
+    --text:#131a23; --text-dim:#5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+  }
+  html.light-mode body::before{ display:none; }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{ margin:0; min-height:100%; overscroll-behavior:none; }
+  body{
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:22px 18px calc(22px + env(safe-area-inset-bottom));
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* Poussière de craie, discrète, façon tableau noir essuyé — reprise de Muscu */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:.5;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,238,.5), transparent),
+      radial-gradient(1px 1px at 78% 9%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 32% 64%, rgba(238,240,238,.35), transparent),
+      radial-gradient(1px 1px at 91% 47%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 58% 82%, rgba(238,240,238,.3), transparent),
+      radial-gradient(1px 1px at 6% 88%, rgba(238,240,238,.35), transparent);
+    background-repeat:no-repeat;
+  }
+
+  main{ position:relative; z-index:1; display:flex; flex-direction:column; max-width:460px; width:100%; margin:0 auto; }
+
+  .reload-row{ display:flex; justify-content:center; margin-top:18px; }
+  .reload-btn{
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim);
+    box-shadow: var(--shadow-sm);
+    transition: transform .5s cubic-bezier(.2,.7,.3,1), color .15s ease, background .15s ease;
+  }
+  .reload-btn svg{ width:16px; height:16px; }
+  .reload-btn:active{ background:var(--card-2); color:var(--text); }
+  .reload-btn.spin svg{ transform: rotate(360deg); transition: transform .5s cubic-bezier(.2,.7,.3,1); }
+
+  .app-title{
+    font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
+  }
+  .app-title-brand{ color:var(--blue); }
+
+  .big-question{
+    font-family:var(--f-display); text-transform:uppercase;
+    font-size:34px; font-weight:400; letter-spacing:.01em;
+    margin:4px 2px 22px 2px; line-height:1.05;
+  }
+
+  .doors{ display:flex; flex-direction:column; gap:14px; }
+
+  .big-choice-btn{
+    padding:22px 18px; border-radius:var(--r-lg); border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-family:inherit;
+    display:flex; align-items:center; text-align:left; gap:16px;
+    box-shadow: var(--shadow-sm); position:relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .big-choice-btn:active{ transform: scale(0.98); }
+
+  .choice-icon{
+    width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);
+    display:flex; align-items:center; justify-content:center; color:#fff;
+  }
+  .big-choice-btn.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
+  .big-choice-btn.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
+  .big-choice-btn.green .choice-icon{ background:linear-gradient(150deg, var(--green), var(--green-dark)); }
+  .choice-icon svg{ width:20px; height:20px; }
+
+  .choice-text{ flex:1; min-width:0; }
+  .choice-label{
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em;
+    font-size:19px; font-weight:400; display:block;
+  }
+  .choice-desc{
+    display:block; font-size:12.5px; color:var(--text-dim); margin-top:2px; font-weight:500;
+  }
+  .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform .15s ease; }
+  .big-choice-btn:active .choice-chev{ transform: translateX(2px); }
+
+  @media (prefers-reduced-motion: reduce){
+    .big-choice-btn{ transition:none; }
+  }
+
+  /* Bouton de bascule theme (charte UX/UI) */
+  .theme-toggle{
+    position:fixed; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; z-index:25;
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow: var(--shadow-sm);
+  }

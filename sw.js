@@ -13,6 +13,8 @@ const CACHE_PREFIX = 'portail-duo-shell-';
 const SHELL_FILES = [
   './',
   './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
   './icone-192.png',
   './icone-512.png',
@@ -22,7 +24,7 @@ const SHELL_FILES = [
 // Installation : mise en cache du shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES.map((u) => new Request(u, { cache: 'reload' }))))
   );
   self.skipWaiting();
 });
@@ -48,17 +50,24 @@ self.addEventListener('activate', (event) => {
 // de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
 // Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
 const DELAI_RESEAU_MS = 4000;
+function cleCache(requete){
+  const u = new URL(requete.url);
+  u.search = '';   // app.js?v=… et app.js partagent la même entrée de cache
+  return u.href;
+}
 function reseauPuisCache(requete){
   return new Promise((resolve) => {
     let termine = false;
-    const repliCache = () => caches.match(requete).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
     const minuteur = setTimeout(() => {
       repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
     }, DELAI_RESEAU_MS);
-    fetch(requete).then((reponse) => {
+    // Requête neuve avec cache:'no-cache' : force la revalidation auprès du serveur (304 si inchangé)
+    // et évite de resservir une copie du cache HTTP de Safari (GitHub Pages : max-age=600).
+    fetch(new Request(requete.url, { cache: 'no-cache' })).then((reponse) => {
       if (reponse && reponse.status === 200) {
         const copie = reponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(requete, copie));
+        caches.open(CACHE_NAME).then((cache) => cache.put(cleCache(requete), copie));
       }
       if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
     }).catch(() => {
@@ -81,7 +90,7 @@ self.addEventListener('fetch', (event) => {
 
   // index.html / page d'accueil : réseau d'abord (voir reseauPuisCache)
   const scopePath = new URL(self.registration.scope).pathname;
-  if (url.pathname === scopePath || url.pathname === scopePath + 'index.html') {
+  if (url.pathname === scopePath || ['index.html', 'style.css', 'app.js'].some((f) => url.pathname === scopePath + f)) {
     event.respondWith(reseauPuisCache(event.request));
     return;
   }
