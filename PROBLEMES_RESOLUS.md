@@ -19,6 +19,19 @@
 
 ---
 
+## 🔑 Muscu — la clé API du coach disparaissait de `settings/coach` (20/09/2026)
+
+### 20/09/2026 — Muscu — Clé Google à recoller régulièrement dans l'app
+**Symptôme** : le coach cesse de répondre, la clé doit être recollée dans les réglages du coach. Constat en base : `settings/coach` ne contenait que le champ `threads` — ni `apiKey`, ni `model`.
+**Fausses pistes explorées** : (1) stocker la clé dans un secret GitHub Actions — écarté : un secret n'est lisible que par un workflow, et l'injecter dans `index.html` la rendrait publique (dépôt + Pages publics). (2) Incriminer la migration Google `AIza` → `AQ.` — la clé `AQ.` testée répond bien (HTTP 200 sur `models`) ; la migration n'explique pas une clé absente de la base.
+**Cause racine (probable, non reproduite)** : `setDoc` sans option remplace le document entier. Une écriture de `threads` (création/suppression de conversation, `repairChatThreads()`) faite avant le premier snapshot part de `coachSettings()` vide et remplace donc le document par `{ threads }` seul — effaçant `apiKey`, `model` et `body`.
+**Solution** : `setDoc(…, { merge: true })` dans `saveCoachSettingsRemote()` et dans l'import JSON (`body`). Les champs absents de l'écriture sont conservés côté serveur. Cache SW passé en `muscu-shell-v5`.
+**Leçon généralisable** : sur un document Firestore partagé entre plusieurs fonctionnalités, `{ merge: true }` est le réglage par défaut. Le « merge à la main » depuis un cache local ne protège pas tant que le premier snapshot n'est pas arrivé. **À vérifier sur Budget et Course** pour tout document partagé.
+**Point de sécurité relevé au passage** : l'inscription libre Firebase Auth était ouverte alors que les règles ne font que `request.auth != null` — n'importe qui pouvait créer un compte via l'API et lire la base (clé Gemini comprise). À fermer dans la console Firebase de chaque projet.
+**Fichiers touchés** : `Muscu/index.html`, `Muscu/sw.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🎨 Charte UX/UI — alignement des 4 apps (18/09/2026)
 
 ### Contexte
