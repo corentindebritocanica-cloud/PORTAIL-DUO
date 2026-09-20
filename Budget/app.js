@@ -528,6 +528,8 @@
                 tp += somme(m.provisions);
             });
 
+            document.getElementById('annuel-total-depenses').innerText = eur(td);
+
             const bloc = document.getElementById('bloc-annuel-stats');
             bloc.innerHTML = `
                 <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span>${eur(tc)}</span></div></div>

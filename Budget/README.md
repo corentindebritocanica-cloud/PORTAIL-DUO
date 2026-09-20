@@ -186,3 +186,8 @@ Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px
 **Données Firestore** (projet `lisa-et-corentin`) : champ `epargne` supprimé des 9 documents de la collection `mois` (3 lignes au total : Mars 2026 ×1, Avril 2026 ×2, catégorie « Vacances ») et 2 lignes vides de la corbeille (`config/global`). Sauvegarde JSON complète faite avant suppression (hors dépôt).
 
 **Vérifié** (jsdom, données réelles de la base) : aucune erreur console ; Reste à vivre d'avril identique avant/après (9,20 €) ; structure DOM intacte (les 4 cartes restantes dans `mois-content-wrapper`) ; Bilan Annuel inchangé sauf la carte retirée. **Non vérifié sur iPhone.**
+
+
+## Bilan Annuel — « Total Dépenses » remplace « Total Épargné » (21/09/2026)
+
+La carte d'en-tête du Bilan Annuel (laissée vide par la suppression de la carte Épargne) affiche désormais le **Total Dépenses** de l'année sélectionnée : somme des lignes de la carte Dépenses, **toutes catégories confondues** (tickets restaurant et espèces inclus, comme dans le bloc « 🛒 Dépenses » en dessous). Même style que l'ancienne carte (dégradé orange → rose). Charges fixes et provisions ne sont pas comptées. Fichiers : `index.html` (carte `annuel-total-depenses`), `app.js` (`rendreVueAnnuelle`).
