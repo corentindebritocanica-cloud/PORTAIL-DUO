@@ -19,6 +19,39 @@
 
 ---
 
+## 🔄 Toutes apps — mises à jour visibles sans fermer l'app ni réinstaller (20/09/2026)
+
+### 20/09/2026 — Portail, Muscu, Course, Budget — Plus de swipe ni de réinstallation pour voir une nouvelle version
+**Symptôme** : après un push, il fallait fermer l'app (swipe vers le haut), voire la supprimer et la réinstaller, pour voir la nouvelle version. Le rituel manuel (incrémenter `CACHE_NAME` + mettre à jour `DERNIERE_MAJ` à chaque commit) était la seule parade à la confusion du 18/09, et un oubli suffisait à la faire revenir (9 incréments de cache pour Budget rien que le 20/09).
+**Fausses pistes écartées** : rechargement automatique sur `controllerchange` (couperait une saisie en cours) ; Workbox (surdimensionné pour 4 apps personnelles).
+**Cause racine** : trois causes cumulées — (1) `sw.js` servait `index.html` en **cache-first** : la copie en cache passait toujours avant le serveur ; (2) iOS **ne recharge pas** une PWA simplement remise au premier plan : le JavaScript en mémoire reste l'ancien ; (3) le contournement dépendait d'une action humaine.
+**Solution (identique sur les 4 apps)** :
+1. `sw.js` : `index.html` en **réseau d'abord** (`reseauPuisCache()`), repli sur le cache après 4 s ou hors ligne. Les autres fichiers du shell restent en cache-first.
+2. `index.html` : au retour au premier plan (`visibilitychange`), `fetch('index.html', {cache:'no-store'})`, comparaison de `DERNIERE_MAJ` avec celle du code en cours, puis **rechargement automatique** — sauf champ de saisie actif ou fenêtre ouverte, auquel cas le bandeau « Nouvelle version disponible » s'affiche. Max un contrôle / 30 s.
+3. **GitHub Action** `.github/workflows/auto-version.yml` : à chaque push modifiant l'`index.html` d'une app, met à jour `DERNIERE_MAJ` (heure de Paris) et `CACHE_NAME` (`<préfixe>r<n° d'exécution>`) de **cette app seulement**, committe, puis relance la publication Pages par l'API. Lancement manuel possible (onglet Actions) : met à jour les 4 apps pour forcer un rafraîchissement général.
+**Pièges à connaître** :
+- `DERNIERE_MAJ` est **fonctionnelle** (numéro de version pour la détection) : garder une seule occurrence de `DERNIERE_MAJ = '…'` par `index.html`.
+- Le workflow s'appuie sur `const CACHE_PREFIX = '…';` et `const CACHE_NAME = '…';` **en début de ligne** dans chaque `sw.js` ; sinon l'exécution échoue (croix rouge dans l'onglet Actions) et rien n'est mis à jour.
+- Le filtre du workflow porte sur les `index.html` : un push qui ne touche que `sw.js` ne déclenche pas le robot (bumper `CACHE_NAME` à la main ou lancer le workflow manuellement).
+- Ne pas mettre `[skip ci]` dans un message de commit (non testé, mais peut aussi empêcher la publication Pages).
+- La première mise à jour vers cette version ne profite pas encore du mécanisme : fermer et rouvrir l'app une ou deux fois.
+**Vérifié** : premier passage réel du workflow OK (commit du robot, Pages construit sur ce commit, site publié avec les valeurs à jour) ; logique du service worker testée avec des stubs Node (5 cas : réseau OK, hors ligne, réseau lent, avec et sans cache). **Non vérifié sur iPhone** : le rechargement automatique au retour au premier plan.
+**Fichiers touchés** : `index.html` + `sw.js` × 4, `.github/workflows/auto-version.yml`, `README.md` × 4, `GUIDE_PWA_IOS.md`
+
+---
+
+## 🔔 Budget — le pop-up « Nouveautés » ne voyait plus les dépenses de Lisa (20/09/2026)
+
+### 20/09/2026 — Budget — Pop-up « Nouveautés » silencieusement inopérant avec le cache Firestore persistant
+**Symptôme attendu** : Lisa ajoute une dépense sur son téléphone ; à l'ouverture suivante de Budget chez Corentin, aucun pop-up (comportement historique : un pop-up listant les nouveautés).
+**Cause racine** : le pop-up comparait le **premier** snapshot `onSnapshot` à une copie locale (`budgetLC_cache`) réécrite à chaque snapshot. Depuis l'activation du cache persistant (v3.0.2/v3.0.3), ce premier snapshot vient du **cache local**, identique à la copie : écart nul, `firstLoad` passait à `false`, et le snapshot **serveur** contenant les nouveautés n'était jamais comparé. `snap.metadata.fromCache` n'était consulté nulle part. Aggravants : référence écrasée à chaque snapshot (donc perdue si l'app est tuée pendant l'affichage), aucune détection au retour d'arrière-plan (iOS ne relance pas la page), catégories injectées sans échappement dans `innerHTML`.
+**Règle générale à retenir** : avec `persistentLocalCache`, **tout traitement « à la première donnée reçue » doit vérifier `snap.metadata.fromCache`** et attendre le snapshot serveur ; l'écho de ses propres écritures se reconnaît à `snap.metadata.hasPendingWrites`.
+**Solution** : référence « dernier état vu » dans `budgetLC_vu`, enregistrée à la fermeture du pop-up ; comparaison uniquement sur snapshot serveur, à l'ouverture et à chaque retour au premier plan ; ses propres modifications mettent la référence à jour sans pop-up ; ancien → nouveau montant affiché ; échappement HTML. Le mois par défaut n'est plus créé sur un snapshot vide issu du cache. Détail dans `Budget/README.md` (v3.5.0).
+**Vérifié** : harnais de test Node, 14 vérifications sur 8 scénarios (cache puis serveur, ajout de Lisa, ma propre modification, relance sans fermer, fermeture, premier lancement, arrière-plan puis retour, changement en direct, modification de montant). **Cause établie par lecture du code, non observée sur appareil avant correction ; correctif non testé sur iPhone.**
+**Fichiers touchés** : `Budget/index.html`, `Budget/sw.js`, `Budget/README.md`
+
+---
+
 ## 🔑 Gemini API — clés et API : état vérifié le 20/09/2026
 
 ### 20/09/2026 — Muscu (coach IA) — Ce qu'il faut savoir avant de toucher à `geminiFetch()` ou à la clé
@@ -145,7 +178,7 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 **Implémentation** : une constante `DERNIERE_MAJ = 'YYYY-MM-DDTHH:MM:SS+02:00'` (format ISO) en tête de script sur chaque app, affichée formatée en français ("19/09/2026 à 23h27"). Emplacements d'affichage : onglet Réglages pour Muscu/Course/Budget, bas de page pour Portail.
 
-**⚠️ Règle impérative pour la suite** : cette constante doit être **mise à jour manuellement à chaque commit qui modifie `index.html`** sur l'app concernée — voir le prompt système pour les emplacements exacts (recherchable via `grep -n "DERNIERE_MAJ ="`). Une constante non mise à jour devient trompeuse (affiche une ancienne date alors que du code plus récent est en ligne).
+**⚠️ Règle (modifiée le 20/09/2026 : désormais automatisée par le workflow `auto-version.yml`, voir l'entrée du 20/09 plus haut)** : cette constante doit être mise à jour à chaque commit qui modifie `index.html` — le robot s'en charge. sur l'app concernée — voir le prompt système pour les emplacements exacts (recherchable via `grep -n "DERNIERE_MAJ ="`). Une constante non mise à jour devient trompeuse (affiche une ancienne date alors que du code plus récent est en ligne).
 
 **Fichiers touchés** : `index.html` × 4
 

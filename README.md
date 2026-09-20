@@ -188,6 +188,8 @@ procéder :
 Chaque modification du `index.html` doit être accompagnée d'une mise à jour de ce
 README (section concernée + date).
 
+**Depuis le 20/09/2026** : `DERNIERE_MAJ` (dans `index.html`) et `CACHE_NAME` (dans `sw.js`) sont mis à jour **automatiquement** par le workflow `.github/workflows/auto-version.yml` à chaque push qui modifie l'`index.html` d'une app (voir l'historique en bas de ce fichier). Les mettre à jour à la main reste inoffensif mais n'est plus nécessaire ; `CACHE_NAME` prend la forme `<préfixe>r<n° d'exécution>`.
+
 ## 8. Historique — bug cross-app du cache/Service Worker (corrigé le 18/09/2026)
 
 **Contexte** : chacune des 4 apps du dépôt (Portail, Course, Muscu, Budget) a son
@@ -290,3 +292,15 @@ Ajout d'un petit texte sous le bouton de rechargement affichant la date/heure du
 - ⚠️ **`DERNIERE_MAJ` est désormais un élément fonctionnel** (plus seulement un affichage) : elle sert de numéro de version pour cette détection. Ne pas la supprimer, et garder la forme `DERNIERE_MAJ = '…'` (une seule occurrence par fichier).
 - **Une seule fois** : la première mise à jour vers cette version ne bénéficie pas encore du mécanisme (l'ancien code est encore en place). Fermer l'app et la rouvrir une ou deux fois suffit ; ensuite plus aucune manipulation.
 - Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `portail-duo-shell-v3` → `portail-duo-shell-v4`.
+
+
+## Historique — Automatisation de DERNIERE_MAJ et du cache (GitHub Action, 20/09/2026)
+
+Fichier : `.github/workflows/auto-version.yml` (gratuit, quelques secondes par exécution).
+
+- **Déclencheur** : push sur `main` modifiant `index.html`, `Budget/index.html`, `Course/index.html` ou `Muscu/index.html`. Un commit du robot ne relance jamais le workflow.
+- **Action, pour l'app concernée uniquement** : `DERNIERE_MAJ` ← heure de Paris au format ISO ; `CACHE_NAME` ← `<CACHE_PREFIX>r<n° d'exécution>` (ex. `budget-lc-shell-r1`). Le préfixe est lu dans le `sw.js` de l'app, ce qui préserve le nettoyage par préfixe introduit le 18/09. Le robot committe (`chore: DERNIERE_MAJ + cache SW mis à jour automatiquement`), puis relance la publication GitHub Pages par l'API.
+- **Lancement manuel** (onglet Actions → « Auto-version » → Run workflow) : met à jour les 4 apps, pour forcer un rafraîchissement général.
+- **Conditions** : `DERNIERE_MAJ = '…'` une seule fois par `index.html` ; `const CACHE_PREFIX` et `const CACHE_NAME` en début de ligne dans chaque `sw.js`. Sinon l'exécution échoue (croix rouge dans Actions) et rien n'est mis à jour.
+- **Limite** : un push qui ne touche que `sw.js` ne déclenche pas le robot ; bumper `CACHE_NAME` à la main ou lancer le workflow manuellement.
+- Premier passage réel vérifié le 20/09/2026 (Budget) : commit du robot, Pages construit, site publié avec les nouvelles valeurs.
