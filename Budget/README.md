@@ -169,3 +169,20 @@ Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px
 - **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
 - Le rechargement automatique ne se déclenche pas tant que le pop-up « 🔔 Nouveautés » ou la fenêtre « Connexion perdue » est ouvert.
 **Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
+
+
+## Suppression de la carte « Projets / Épargne » et de ses données (21/09/2026)
+
+**Demande** : la carte « ✈️ Projets / Épargne » de la vue Mensuelle est supprimée, ainsi que toutes les données qu'elle contenait.
+
+**Code** (`index.html`, `app.js`, `sw.js`) :
+- Carte « Projets / Épargne » (avec son bouton « + Épargner ») retirée de la vue Mensuelle.
+- Jauge « Épargne » de la carte Répartition retirée : les pourcentages sont recalculés sur Charges, Dépenses, Provisions et Reste.
+- Carte « Total Épargné » de la vue Bilan Annuel retirée (elle serait restée définitivement à 0 €). Les objectifs de provisions n'additionnent plus que les lignes de la carte Provisions.
+- `normaliserMois()` écarte désormais le champ `epargne` : une ancienne sauvegarde `.json` restaurée ne le réintroduit pas. Les lignes de la corbeille de type `epargne` sont ignorées au chargement.
+- Effet de bord retiré : la librairie `canvas-confetti` (les confettis ne servaient qu'au bouton « + Épargner ») n'est plus chargée ni précachée par `sw.js`.
+- **Aucun impact sur le Reste à vivre** : l'épargne n'y était déjà plus soustraite (compte à part).
+
+**Données Firestore** (projet `lisa-et-corentin`) : champ `epargne` supprimé des 9 documents de la collection `mois` (3 lignes au total : Mars 2026 ×1, Avril 2026 ×2, catégorie « Vacances ») et 2 lignes vides de la corbeille (`config/global`). Sauvegarde JSON complète faite avant suppression (hors dépôt).
+
+**Vérifié** (jsdom, données réelles de la base) : aucune erreur console ; Reste à vivre d'avril identique avant/après (9,20 €) ; structure DOM intacte (les 4 cartes restantes dans `mois-content-wrapper`) ; Bilan Annuel inchangé sauf la carte retirée. **Non vérifié sur iPhone.**

@@ -1,7 +1,7 @@
 // Service Worker — Budget L&C
 // Rôle : mettre en cache le "shell" statique de CETTE app (index.html,
 // manifest.json, icone.PNG) ET les scripts externes bloquants chargés en
-// CDN (SDK Firebase, Sortable.js, canvas-confetti), pour qu'elle puisse
+// CDN (SDK Firebase, Sortable.js), pour qu'elle puisse
 // s'ouvrir hors-ligne. Stratégie cache-first pour ces fichiers UNIQUEMENT.
 // Ne touche jamais à Firestore/Auth eux-mêmes (persistance offline gérée
 // séparément via persistentLocalCache), ni à aucune requête en dehors de
@@ -39,7 +39,6 @@ const SHELL_FILES = [
 // si jamais une version change dans index.html.
 const EXTERNAL_FILES = [
   'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
-  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
@@ -104,7 +103,7 @@ function reseauPuisCache(requete){
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Scripts externes (Sortable, confetti, SDK Firebase) : cache-first, en
+  // Scripts externes (Sortable, SDK Firebase) : cache-first, en
   // dehors de toute logique de scope/origine — voir EXTERNAL_FILES ci-dessus.
   if (EXTERNAL_FILES.includes(event.request.url)) {
     event.respondWith(

@@ -13,7 +13,6 @@
     <title>Budget L&C</title>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- Firebase compat — fonctionne sur tous les navigateurs dont Safari iOS -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -122,7 +121,6 @@
                     <div id="repartition-m" class="section-content collapsed">
                         <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--danger);" id="bar-charges-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--secondary);" id="bar-depenses-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>✈️ Épargne</span><span id="pct-epargne-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--info);" id="bar-epargne-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>🛡️ Provisions</span><span id="pct-provisions-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--warn);" id="bar-provisions-m"></div></div></div>
                         <div class="progress-container"><div class="progress-header"><span>✅ Reste</span><span id="pct-reste-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--success);" id="bar-reste-m"></div></div></div>
                     </div>
@@ -140,12 +138,6 @@
                     <button class="btn-action bg-primary" data-add="depenses">+ Nouvelle dépense</button>
                 </div>
 
-                <div class="card">
-                    <div class="card-header collapsed" data-target="conteneur-epargne"><h3>✈️ Projets / Épargne (<span id="total-epargne">0</span> €)</h3></div>
-                    <div id="conteneur-epargne" class="section-content collapsed"></div>
-                    <button class="btn-action bg-primary" data-add="epargne" data-special="epargne">+ Épargner</button>
-                </div>
-                
                 <div class="card">
                     <div class="card-header collapsed" data-target="conteneur-provisions"><h3>🛡️ Provisions (<span id="total-provisions">0</span> €)</h3></div>
                     <div id="conteneur-provisions" class="section-content collapsed"></div>
@@ -174,10 +166,6 @@
             <div class="header-title-group">
                 <h1>Bilan Annuel</h1>
                 <select id="select-annee" style="padding:8px; border-radius:8px; background:var(--card-bg); font-weight:bold;"></select>
-            </div>
-            <div class="card summary-card" style="background: linear-gradient(135deg, #FF9500, #FF2D55);">
-                <h3>Total Épargné</h3>
-                <div class="total-amount" id="annuel-total-epargne">0 €</div>
             </div>
             <div class="card">
                 <div id="bloc-annuel-stats"></div>

@@ -19,6 +19,23 @@
 
 ---
 
+## 🧹 Budget — supprimer une fonctionnalité ET ses données Firestore (21/09/2026)
+
+### 21/09/2026 — Budget — Retrait de la carte « Projets / Épargne » sans laisser de données fantômes
+**Symptôme / besoin** : supprimer une carte de l'app et les données qu'elle stockait (champ `epargne` dans chaque document `mois`, plus des lignes de type `epargne` dans `config/global.corbeille`).
+**Pièges identifiés** :
+- L'app écrit chaque mois en entier (`set(clean(mois))`) : un client encore sur l'ancien code (onglet ouvert, cache) peut **réécrire le champ supprimé**. Ordre retenu : déployer le code d'abord, purger Firestore ensuite.
+- Une ancienne sauvegarde `.json` restaurée ou une ligne restaurée depuis la corbeille peut recréer le champ : `normaliserMois()` écarte `epargne` et la corbeille filtre `typeOriginal === 'epargne'`.
+- Ne pas oublier les **dépendances d'affichage** : jauge de la Répartition, total annuel, objectifs de provisions, liste des types du pop-up « Nouveautés », import confetti (+ précache `sw.js`).
+**Solution** : voir README Budget (section du 21/09/2026). Sauvegarde JSON complète de Firestore avant toute suppression.
+**Méthode réutilisable (environnement de test)** :
+- `firebase-admin` (Python) via le proxy du sandbox : le gRPC échoue avec `CERTIFICATE_VERIFY_FAILED` tant que `GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt` n'est pas défini.
+- Ne jamais nommer un script `inspect.py` (masque le module standard `inspect` → import circulaire).
+- Test de rendu sans navigateur : jsdom ne gère pas `innerText` (lire `.innerText` et non `.textContent` pour les valeurs posées par l'app) et n'exécute pas le `<script>` inline qui définit `DERNIERE_MAJ` (à définir avant d'évaluer `app.js`).
+**Fichiers touchés** : `Budget/index.html`, `Budget/app.js`, `Budget/sw.js`, `Budget/README.md`
+
+---
+
 ## 📱 Muscu — haut de l'écran flou après `viewport-fit=cover` (20/09/2026)
 
 ### 20/09/2026 — Muscu — Le contenu du haut passait sous la barre d'état

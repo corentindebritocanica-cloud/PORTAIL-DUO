@@ -83,10 +83,9 @@
         const sommeCB = (arr) => (arr || []).reduce((s, i) => (!i.moyenPaiement || i.moyenPaiement === 'CB' ? s + (parseFloat(i.montant) || 0) : s), 0);
 
         const normaliserMois = (m) => ({
-            ...m,
+            ...(({ epargne, ...reste }) => reste)(m), // le champ « epargne » (carte Projets / Épargne) n'existe plus : on l'écarte, même s'il vient d'une ancienne sauvegarde .json
             charges: Array.isArray(m.charges) ? m.charges : (m.charges ? Object.values(m.charges) : []),
             depenses: Array.isArray(m.depenses) ? m.depenses : (m.depenses ? Object.values(m.depenses) : []),
-            epargne: Array.isArray(m.epargne) ? m.epargne : (m.epargne ? Object.values(m.epargne) : []),
             provisions: Array.isArray(m.provisions) ? m.provisions : (m.provisions ? Object.values(m.provisions) : []),
             fixes: Array.isArray(m.fixes) ? m.fixes : (m.fixes ? Object.values(m.fixes) : []), 
             revenus_add: m.revenus_add || 0,
@@ -116,7 +115,7 @@
         const extractAllItems = (dataArray) => {
             let items = {};
             (dataArray || []).forEach(m => {
-                ['charges', 'depenses', 'epargne', 'provisions', 'fixes'].forEach(type => {
+                ['charges', 'depenses', 'provisions', 'fixes'].forEach(type => {
                     (m[type] || []).forEach(item => {
                         items[item.id] = { ...item, type, moisNom: m.nom };
                     });
@@ -253,7 +252,7 @@
                 if (doc.exists) {
                     const c = doc.data();
                     state.categories = c.categories || state.categories;
-                    state.corbeille = c.corbeille || [];
+                    state.corbeille = (c.corbeille || []).filter(i => i.typeOriginal !== 'epargne'); // anciennes lignes de la carte Épargne supprimée
                     state.objectifsProvisions = c.objectifsProvisions || [];
                     rafraichirTouteLInterface();
                 }
@@ -352,7 +351,7 @@
                 const tc = somme(m.charges);
                 const tdCB = sommeCB(m.depenses);
                 const tprov = somme(m.provisions);
-                // L'épargne et les Tickets Restos/Especes sont exclus
+                // Les Tickets Restos/Especes sont exclus
                 solde += (rev - tc - tdCB - tprov);
             }
             return solde;
@@ -457,7 +456,6 @@
 
             rendreLignes('conteneur-charges', mois.charges, 'charges');
             rendreLignes('conteneur-depenses', mois.depenses, 'depenses');
-            rendreLignes('conteneur-epargne',  mois.epargne,  'epargne');
             rendreLignes('conteneur-provisions', mois.provisions, 'provisions');
 
             calculerTotauxMensuels(mois, report);
@@ -467,14 +465,12 @@
             const tc = somme(m.charges);
             const tdTotal = somme(m.depenses);
             const tdCB = sommeCB(m.depenses);
-            const te = somme(m.epargne);
             const tprov = somme(m.provisions);
             const totalRev = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
 
-            const reste = totalRev - tc - tdCB - tprov; // L'épargne (te) n'est plus soustraite car c'est un compte à part
+            const reste = totalRev - tc - tdCB - tprov;
 
             document.getElementById('total-charges').innerText = tc.toFixed(0);
-            document.getElementById('total-epargne').innerText = te.toFixed(0);
             document.getElementById('total-provisions').innerText = tprov.toFixed(0);
             document.getElementById('reste-a-vivre').innerText = eur(reste);
 
@@ -482,14 +478,14 @@
             document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small style="font-weight:normal; opacity:0.6;">(dont ${tdDiff.toFixed(0)}€ 🎟️/💵)</small>` : ''}`;
 
             // Jauges
-            const globalTotal = tc + tdTotal + Math.abs(te) + tprov + (reste > 0 ? reste : 0);
+            const globalTotal = tc + tdTotal + tprov + (reste > 0 ? reste : 0);
             const fmt = (n) => { const v = parseFloat(n) || 0; return parseFloat(v.toFixed(2)).toString().replace('.', ','); };
             const setBar = (id, val) => {
                 const p = globalTotal > 0 ? Math.round((val / globalTotal) * 100) : 0;
                 document.getElementById(`bar-${id}-m`).style.width = p + '%';
                 document.getElementById(`pct-${id}-m`).innerText = fmt(val) + ' € · ' + p + '%';
             };
-            setBar('charges', tc); setBar('depenses', tdTotal); setBar('epargne', Math.abs(te)); setBar('provisions', tprov); setBar('reste', reste > 0 ? reste : 0);
+            setBar('charges', tc); setBar('depenses', tdTotal); setBar('provisions', tprov); setBar('reste', reste > 0 ? reste : 0);
 
             // Jours restants
             const [n, a] = m.nom.split(' ');
@@ -525,16 +521,13 @@
             const an = parseInt(sel.value);
             const mois = state.donnees.filter(m => m.annee === an);
             
-            let te = 0, tc = 0, td = 0, tp = 0;
+            let tc = 0, td = 0, tp = 0;
             mois.forEach(m => {
-                te += (m.epargne || []).reduce((s, i) => s + (parseFloat(i.montant) || 0), 0);
                 tc += somme(m.charges);
                 td += somme(m.depenses);
                 tp += somme(m.provisions);
             });
 
-            document.getElementById('annuel-total-epargne').innerText = eur(te);
-            
             const bloc = document.getElementById('bloc-annuel-stats');
             bloc.innerHTML = `
                 <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span>${eur(tc)}</span></div></div>
@@ -547,7 +540,7 @@
                 let totalObj = 0;
                 const search = sansAccents(obj.nom).trim();
                 mois.forEach(m => {
-                    [...(m.provisions||[]), ...(m.epargne||[])].forEach(line => {
+                    (m.provisions||[]).forEach(line => {
                         const cat = sansAccents(line.categorie || '').replace(/[^\w\s]/g, '').trim();
                         if (cat.includes(search)) totalObj += parseMontant(line.montant);
                     });
@@ -675,7 +668,6 @@
                 revenus_add: 0,
                 charges: last.charges.map(c => ({ ...c, id: genId(), montant: 0 })),
                 depenses: [],
-                epargne: [],
                 provisions: last.provisions.map(p => ({ ...p, id: genId(), montant: 0 })),
                 fixes: last.fixes ? last.fixes.map(f => ({ ...f, id: genId(), montant: 0 })) : []
             });
@@ -769,10 +761,6 @@
             if (type) {
                 const mois = getMoisActif();
                 const nouv = { id: genId(), libelle: "", montant: 0, date: new Date().toISOString().split('T')[0], categorie: state.categories[0] };
-                if (type === 'epargne') {
-                    if (e.target.dataset.special === 'epargne') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                    else nouv.isRetrait = true;
-                }
                 if (type === 'depenses') nouv.moyenPaiement = 'CB';
                 
                 mois[type].unshift(nouv);
@@ -850,7 +838,7 @@
             
             const nouveau = normaliserMois({
                 id: genId(), nom: nomMois, annee: an, revenus: lastRevenus, revenus_add: 0,
-                charges: [], depenses: [], epargne: [], provisions: [], fixes: []
+                charges: [], depenses: [], provisions: [], fixes: []
             });
             
             state.donnees.push(nouveau);
