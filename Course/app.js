@@ -276,8 +276,15 @@ document.getElementById('btn-modal-enregistrer').addEventListener('click', async
   if(rayonId==='__nouveau__'){
     const nomRayon = document.getElementById('modal-nouveau-rayon').value.trim();
     if(!nomRayon) return;
-    const ref = await dbAddDoc('rayons', { nom: nomRayon });
-    rayonId = ref.id;
+    // Anti-doublon : si un rayon du même nom existe déjà (sans tenir compte des accents ni de la casse), on le réutilise
+    const sansAccents = (s)=> (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+    const existant = Object.entries(state.rayons).find(([,r])=> sansAccents(r.nom)===sansAccents(nomRayon));
+    if(existant){
+      rayonId = existant[0];
+    } else {
+      const ref = await dbAddDoc('rayons', { nom: nomRayon });
+      rayonId = ref.id;
+    }
   }
 
   if(state.editionId){

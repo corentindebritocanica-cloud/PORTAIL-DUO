@@ -19,6 +19,19 @@
 
 ---
 
+## 🧬 Course — doublons de rayons/produits : un appareil au vieux cache réinjecte le catalogue (21/09/2026)
+
+### 21/09/2026 — Course — 25 rayons et 257 produits au lieu de 13 et 133
+**Symptôme** : rayons en double dans Course (« encore », après l'incident du 18/09).
+**Fausses pistes** : le code client actuel (aucune logique de réinjection ; le bouton « + Nouveau rayon » ne crée qu'un rayon à la fois).
+**Cause racine** : un lot unique de 136 documents créé le 19/09 à 11:05:30 (Paris) par l'ancienne fonction `lancerSeedSiVide()` tournant sur un appareil resté sur l'ancienne version en cache. **Empreinte à reconnaître** : tous les documents suspects ont la **même `create_time` à la seconde** (écriture par lot) et un schéma différent du reste (ici : `compteur:0`, pas de champ `achete`).
+**Solution** : sauvegarde JSON, puis fusion par nom (plus ancien gardé, états `aAcheter`/`achete` en « ou », `compteur` en somme, rayons rattachés au plus ancien), vérification avant/après de l'état par produit. Plus un anti-doublon sur la création de rayon dans l'app.
+**Méthode réutilisable** : pour dater une pollution Firestore, lire `create_time` / `update_time` des documents (Admin SDK) — un histogramme des `create_time` montre chaque épisode d'écriture en masse. Ne jamais supposer que « propre » le jour J le reste : tout appareil au vieux cache peut ré-écrire.
+**Piste non faite** : règle Firestore exigeant `achete` à la création d'un produit (bloquerait l'ancien code).
+**Fichiers touchés** : `Course/app.js`, `Course/README.md` (+ nettoyage direct dans Firestore)
+
+---
+
 ## 🖼️ Muscu — icône d'écran d'accueil référencée mais jamais commitée (21/09/2026)
 
 ### 21/09/2026 — Muscu — `apple-touch-icon.png` en 404 pendant 4 jours

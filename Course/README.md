@@ -175,3 +175,15 @@ Audit statique de `app.js`, `style.css` et `index.html`. **Aucun changement de c
 - `app.js` : `dbSetDoc()` (jamais appelée).
 - `style.css` : variables `--done` et `--gold` (jamais lues). `--r-xs`, `--r-sm`, `--r-md`, `--r-lg`, `--r-xl`, `--r-pill` sont **conservées** : ce sont les jetons de rayon de la charte UX/UI, même si tous ne sont pas utilisés ici.
 - **Vérifié** : syntaxe JS ; plus aucune référence à `dbSetDoc`, `--done`, `--gold`. **Non vérifié sur iPhone.**
+
+
+## Doublons de rayons et de produits — nettoyage et prévention (21/09/2026)
+
+**Symptôme** : rayons en double dans l'app (25 rayons au lieu de 13, 257 produits au lieu de 133).
+**Cause** : un **second lot de 136 documents** (12 rayons + 124 produits) a été écrit d'un seul bloc dans Firestore le **19/09/2026 à 11:05:30 (heure de Paris)**, alors que le catalogue de départ (18/09 à 20:27) était déjà en base. Son empreinte — produits avec `aAcheter:false, compteur:0` et **sans champ `achete`** — est exactement celle de l'ancienne fonction `lancerSeedSiVide()` du code d'avant le reset. Un appareil qui avait gardé cette ancienne version en cache l'a donc réexécutée (même mécanisme que l'incident du 18/09, déjà décrit plus haut). Rien dans le code actuel n'écrit en masse : aucune écriture de ce type n'a eu lieu depuis. Le nettoyage du 18/09 n'avait naturellement pas pu couvrir cet épisode du 19/09.
+**Nettoyage (Firestore, `course-app-36e9d`)** : sauvegarde JSON complète avant toute écriture, puis fusion :
+- rayons : 25 → 13, on garde le plus ancien de chaque nom et on y rattache tous les produits (aucun `rayonId` orphelin) ;
+- produits : 257 → 133, un seul par nom ; états **préservés** par produit (à acheter / acheté = « au moins une copie », `compteur` = somme des deux copies) : 5 produits à acheter, compteur total 8, identiques avant/après. « Pommes de terre » existait dans 2 rayons (Fruits & légumes / Surgelés, l'ancien catalogue divergeait) : fusionné dans le plus ancien, Fruits & légumes.
+**Prévention côté app** (`app.js`) : « + Nouveau rayon… » **réutilise** un rayon existant du même nom (sans tenir compte des accents ni de la casse) au lieu d'en créer un second.
+**Risque résiduel** : un téléphone qui n'aurait jamais rouvert Course depuis le 19/09 pourrait encore porter l'ancien code en cache. Sur chaque téléphone : ouvrir Course une fois en ligne ; en cas de doute, supprimer le raccourci d'écran d'accueil et le recréer. Piste durable (non faite) : une règle de sécurité Firestore refusant la création d'un produit sans champ `achete`, ce qui bloquerait définitivement l'ancienne fonction.
+**Non vérifié sur iPhone.**
