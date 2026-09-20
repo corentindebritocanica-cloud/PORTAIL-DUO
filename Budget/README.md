@@ -157,3 +157,15 @@ Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px
 - **Nom de fichier inchangé** (`icone.PNG`, casse comprise) : `manifest.json`, `index.html` (`apple-touch-icon`) et `sw.js` n'ont pas été touchés.
 - **Pas de nouvelle version de cache forcée** : les installations existantes gardent l'ancienne copie jusqu'au prochain déploiement de Budget, dont le robot `auto-version` change `CACHE_NAME` et fait retélécharger l'icône allégée. L'icône déjà posée sur l'écran d'accueil ne change pas.
 - Piste écartée (possible plus tard) : palette 256 couleurs, ≈ 110 Ko, mais avec risque de bandes dans les dégradés du fond.
+
+
+## Correctif — bandeau « Nouvelle version disponible » affiché à tort (20/09/2026)
+
+**Symptôme** : le bandeau « 🔄 Nouvelle version disponible » s'affichait à l'ouverture après un déploiement, alors que la page était déjà la dernière version.
+**Cause** : il était déclenché par la seule installation d'un nouveau service worker (`updatefound` / `reg.waiting`). Or depuis le passage de `index.html` en réseau d'abord, la page est déjà à jour quand le service worker se met à jour : le bandeau était un faux positif, et il court-circuitait en plus le rechargement automatique.
+**Correction** (`app.js`) :
+- La mise à jour du service worker appelle désormais la vérification de version (`window.__verifierVersion(true)`) au lieu d'afficher le bandeau : elle compare `DERNIERE_MAJ` avec celle du serveur. Page vraiment périmée → **rechargement automatique** ; le bandeau n'apparaît que si une saisie ou une fenêtre est ouverte.
+- Le contrôle est aussi fait **~3 s après chaque lancement** (au cas où un réseau lent aurait fait servir une copie ancienne de la page).
+- **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
+- Le rechargement automatique ne se déclenche pas tant que le pop-up « 🔔 Nouveautés » ou la fenêtre « Connexion perdue » est ouvert.
+**Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
