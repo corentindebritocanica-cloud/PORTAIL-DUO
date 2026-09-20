@@ -628,10 +628,10 @@ Suite au chantier de débogage du flou/décalage sur Course (voir son propre REA
 Ajout d'une ligne "Version" dans Réglages affichant la date/heure du dernier déploiement de code (constante `DERNIERE_MAJ` en tête du script, format ISO). **À mettre à jour manuellement à chaque futur commit sur cette app** — complète le bandeau "Nouvelle version disponible" ajouté juste avant.
 
 
-## Historique — Bottom-bar remontée de 10 px (20/09/2026)
+## Historique — Bottom-bar remontée de 14 px (20/09/2026)
 
-Sur l'écran des exercices, la barre du bas (🔄 + « Séance terminée ✅ ») a été remontée de **10 px** à la demande de Corentin : `.bottom-bar` passe de `padding-bottom: calc(10px + env(safe-area-inset-bottom))` à `calc(20px + env(safe-area-inset-bottom))`.
-- **Choix** : on augmente le padding plutôt que de décoller la barre (`bottom:10px`), pour que le fond translucide reste collé au bord bas de l'écran (pas de bande où le contenu défilerait sous la barre). Effet : les boutons montent de 10 px et s'éloignent de la zone du home indicator.
+Sur l'écran des exercices, la barre du bas (🔄 + « Séance terminée ✅ ») a été remontée de **14 px** à la demande de Corentin (10 px, puis 4 px de plus le même jour) : `.bottom-bar` passe de `padding-bottom: calc(10px + env(safe-area-inset-bottom))` à `calc(24px + env(safe-area-inset-bottom))`.
+- **Choix** : on augmente le padding plutôt que de décoller la barre (`bottom:10px`), pour que le fond translucide reste collé au bord bas de l'écran (pas de bande où le contenu défilerait sous la barre). Effet : les boutons montent de 14 px et s'éloignent de la zone du home indicator.
 - **Écart volontaire avec la charte** (§5.5 : `calc(10px + …)`), noté dans `UX_UI_CHARTER.md` — ne pas « corriger » en remettant 10 px.
-- Rien d'autre à ajuster : `adjustBottomSpacing()` lit `bar.offsetHeight`, la réserve sous le contenu s'agrandit donc toute seule de 10 px.
-- Cache SW passé en `muscu-shell-v6`, `DERNIERE_MAJ` mise à jour.
+- Rien d'autre à ajuster : `adjustBottomSpacing()` lit `bar.offsetHeight`, la réserve sous le contenu s'agrandit donc toute seule de 14 px.
+- Cache SW passé en `muscu-shell-v7`, `DERNIERE_MAJ` mise à jour.
