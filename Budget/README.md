@@ -96,3 +96,6 @@ Retour d'usage de Corentin : la barre était un peu trop basse sur Budget. `--na
 
 ### v3.4.3 — Barre d'onglets remontée de 4px supplémentaires (2026-09-20)
 Nouveau retour de Corentin : encore un peu plus haut. `--nav-offset` passe de `max(8px, safe-area − 24px)` (~10px du bord) à **`max(12px, safe-area − 20px)`** (~14px du bord sur iPhone à home indicator), soit 4px de plus vers le haut (10px cumulés depuis la v3.4.0, qui était à ~4px). Tout le reste (`--tabbar-height`, marge basse de `.main-content`, toasts) suit automatiquement. Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v7` → `v8`.
+
+### v3.4.4 — Barre d'onglets remontée de 8px supplémentaires (2026-09-20)
+Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px, safe-area − 20px)` (~14px du bord) à **`max(20px, safe-area − 12px)`** (~22px du bord sur iPhone à home indicator), soit 8px de plus vers le haut (18px cumulés depuis la v3.4.0, qui était à ~4px). À ~22px du bord, les boutons de la pilule sont désormais entièrement hors de la zone de geste du home indicator. Tout le reste (`--tabbar-height`, marge basse de `.main-content`, toasts) suit automatiquement. Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v8` → `v9`.
