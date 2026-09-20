@@ -226,7 +226,7 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 ```
 
-**Variante Muscu (20/09/2026)** : la bottom-bar de Muscu (bouton « Séance terminée ») utilise `padding-bottom: calc(20px + env(safe-area-inset-bottom))` au lieu de `10px` — boutons remontés de 10 px à la demande de Corentin, fond translucide toujours collé au bord bas. Écart voulu propre à Muscu, ne pas le « normaliser ».
+**Variante Muscu (20/09/2026)** : la bottom-bar de Muscu (bouton « Séance terminée ») utilise `padding-bottom: calc(24px + env(safe-area-inset-bottom))` au lieu de `10px` — boutons remontés de 14 px à la demande de Corentin, fond translucide toujours collé au bord bas. Écart voulu propre à Muscu, ne pas le « normaliser ».
 
 ### 5.5b Barre de navigation flottante — variante « pilule » (onglets)
 
