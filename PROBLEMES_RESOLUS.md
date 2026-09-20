@@ -19,6 +19,19 @@
 
 ---
 
+## 📱 Muscu — haut de l'écran flou après `viewport-fit=cover` (20/09/2026)
+
+### 20/09/2026 — Muscu — Le contenu du haut passait sous la barre d'état
+**Symptôme** : le haut de Muscu était « tout flou » sur iPhone juste après l'ajout de `viewport-fit=cover`.
+**Cause racine** : avec `viewport-fit=cover` la page s'étend sous la barre d'état (≈ 59 px à Dynamic Island). Les titres et boutons du haut démarraient à 14–22 px du bord, dans cette zone où iOS applique son flou natif (« edge treatment », cf. saga Course). Avant `cover`, iOS décalait la page sous la barre d'état, ce qui masquait le défaut. Je l'avais annoncé comme un effet possible mais sans le compenser : le `cover` aurait dû partir avec la marge de sécurité.
+**Solution** : variable `--safe-top: calc(env(safe-area-inset-top, 0px) + 16px)` (même valeur que Course) appliquée à `.view-inner`, à l'en-tête sticky `header` (exercices), à la `.chat-bar` sticky (marge négative + padding pour que son fond couvre la zone de la barre d'état), et aux boutons fixes `.theme-toggle` / `.sync-badge`.
+**Règle à retenir** : **ajouter `viewport-fit=cover` sur une app impose, dans le même commit, de décaler tout ce qui touche le haut de l'écran de `env(safe-area-inset-top)`** (contenu, en-têtes sticky, boutons fixes) ; les éléments sticky doivent porter la marge dans leur propre padding pour que leur fond opaque couvre la barre d'état au défilement.
+**Méthode réutilisable** : Chromium sait simuler les zones de sécurité iPhone — `Emulation.setSafeAreaInsetsOverride` via une session CDP (`{'insets': {'top': 59, 'bottom': 34, 'left': 0, 'right': 0}}`) — ce qui permet de mesurer et de photographier le haut des écrans sans iPhone (Playwright : `context.new_cdp_session(page)`). Le flou lui-même est un comportement d'iOS et n'est pas reproductible ainsi ; on vérifie seulement que rien ne démarre dans la zone.
+**Vérifié** : simulation 59 px / 34 px — premier titre du menu de 22 → 97 px, bouton « ← Séances » de 14 → 89 px, sélecteur du coach collé à 86 px, bascule de thème alignée. **Non vérifié sur iPhone.**
+**Fichiers touchés** : `Muscu/style.css`, `Muscu/README.md`
+
+---
+
 ## 🔔 Toutes apps — bandeau « Nouvelle version disponible » affiché à tort (20/09/2026)
 
 ### 20/09/2026 — Portail, Muscu, Course, Budget — Faux positif du bandeau de mise à jour
