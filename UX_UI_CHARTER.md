@@ -228,7 +228,7 @@ font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
 ### 5.5b Barre de navigation flottante — variante « pilule » (onglets)
 
-**Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course et Budget (20/09/26) — sur Budget, sans bouton rond (4 onglets Mois / Année / Fixes / Réglages) et avec `--nav-offset = max(12px, safe-area − 20px)` (≈ 14px du bord), choisi par Corentin (Course : ≈ 4px).
+**Quand l'utiliser** : app à onglets (2 à 4 destinations) où l'on veut une navigation plus légère et plus « native iOS 26 » que la bottom-bar pleine largeur (5.5). La bottom-bar 5.5 reste la référence pour une barre d'**actions** (boutons d'export, valider, etc.). **Utilisée par** : Course et Budget (20/09/26) — sur Budget, sans bouton rond (4 onglets Mois / Année / Fixes / Réglages) et avec `--nav-offset = max(20px, safe-area − 12px)` (≈ 22px du bord), choisi par Corentin (Course : ≈ 4px).
 
 **Anatomie** : un conteneur transparent posé *par-dessus* le contenu, avec (1) la pilule contenant les onglets, (2) optionnellement un bouton rond d'action posé **juste au-dessus de la pilule, aligné à droite** (ex. « + »).
 
