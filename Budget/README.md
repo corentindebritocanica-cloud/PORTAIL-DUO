@@ -191,3 +191,11 @@ Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px
 ## Bilan Annuel — « Total Dépenses » remplace « Total Épargné » (21/09/2026)
 
 La carte d'en-tête du Bilan Annuel (laissée vide par la suppression de la carte Épargne) affiche désormais le **Total Dépenses** de l'année sélectionnée : somme des lignes de la carte Dépenses, **toutes catégories confondues** (tickets restaurant et espèces inclus, comme dans le bloc « 🛒 Dépenses » en dessous). Même style que l'ancienne carte (dégradé orange → rose). Charges fixes et provisions ne sont pas comptées. Fichiers : `index.html` (carte `annuel-total-depenses`), `app.js` (`rendreVueAnnuelle`).
+
+
+## Total Dépenses = Courses + Charges fixes ; Réglages allégés (21/09/2026)
+
+- **Bilan Annuel** : la carte « Total Dépenses » vaut désormais **Dépenses (🛒 courses) + Charges fixes (🏠)** de l'année sélectionnée, soit la somme des deux premières lignes du bloc en dessous (correction de la version précédente, qui n'additionnait que les dépenses). Provisions non comptées. Sur les données 2026 : 6 434,59 + 8 849,87 = 15 284,46 €.
+- **Réglages** : trois cartes retirées avec leur code — « 🔒 Sécurité » (bouton « Se déconnecter », `authLogout`), « 📅 Créer un mois spécifique » (`btn-creer-mois`) et « 🛠️ Gestion des Catégories » (`admin-categories`, ajout / suppression).
+- **Conséquences à connaître** : (1) plus de bouton de déconnexion dans l'app (l'écran « Ouvrir les comptes » reste pour un appareil non connecté) ; (2) un nouveau mois ne se crée plus que par « + Démarrer un mois » (mois suivant le dernier) ; (3) la liste de catégories n'est plus modifiable dans l'app : elle reste stockée dans `config/global` (Firestore) et alimente toujours les listes déroulantes des lignes.
+- **Vérifié** (jsdom, données réelles) : aucune erreur ; Réglages = Outils Système, Budgets de Provisions, Profil, Sauvegarde Automatique, Corbeille, Restauration Manuelle ; Bilan Annuel = 15 284,46 €. **Non vérifié sur iPhone.**

@@ -45,7 +45,6 @@
         let unsubConfig = null;
         const authListen  = (cb)         => auth.onAuthStateChanged(cb);
         const authLogin   = (email, pass)=> auth.signInWithEmailAndPassword(email, pass);
-        const authLogout  = ()           => auth.signOut();
 
         // --- Configuration ---
         const LS_DARK = 'budgetLC_dark';
@@ -528,7 +527,7 @@
                 tp += somme(m.provisions);
             });
 
-            document.getElementById('annuel-total-depenses').innerText = eur(td);
+            document.getElementById('annuel-total-depenses').innerText = eur(tc + td); // Courses (carte Dépenses) + Charges fixes (carte Charges)
 
             const bloc = document.getElementById('bloc-annuel-stats');
             bloc.innerHTML = `
@@ -560,13 +559,6 @@
         // --- Vue Vacances ---
         // --- Vue Admin RESTAURÉE ---
         const rendreAdmin = () => {
-            const catDiv = document.getElementById('admin-categories');
-            catDiv.innerHTML = state.categories.map((c, i) => `
-                <div class="month-pill" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <span>${c}</span><button class="btn-delete" data-del-cat="${i}">✕</button>
-                </div>
-            `).join('');
-
             const objDiv = document.getElementById('admin-objectifs');
             objDiv.innerHTML = state.objectifsProvisions.map((o, i) => `
                 <div class="month-pill" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -826,30 +818,6 @@
             }
         }));
 
-        // Nouveau mois manuel
-        document.getElementById('btn-creer-mois').onclick = () => {
-            const val = document.getElementById('input-new-month').value;
-            if(!val) { alert("Veuillez sélectionner un mois et une année."); return; }
-            const parts = val.split('-'); const an = parseInt(parts[0]); const moisIdx = parseInt(parts[1]) - 1;
-            const nomMois = NOMS_MOIS[moisIdx] + " " + an;
-            
-            if(state.donnees.find(m => m.nom === nomMois)) { alert("Ce mois existe déjà !"); return; }
-            
-            let lastRevenus = 0;
-            if(state.donnees.length > 0) lastRevenus = state.donnees[state.donnees.length-1].revenus;
-            
-            const nouveau = normaliserMois({
-                id: genId(), nom: nomMois, annee: an, revenus: lastRevenus, revenus_add: 0,
-                charges: [], depenses: [], provisions: [], fixes: []
-            });
-            
-            state.donnees.push(nouveau);
-            state.donnees = trierMois(state.donnees);
-            state.moisActifId = nouveau.id;
-            sauvegarderDonnees(); changerVue('mensuelle');
-            document.getElementById('input-new-month').value = "";
-        };
-
         // Sauvegarde Mail
         document.getElementById('btn-sauvegarde-mail').onclick = (e) => {
             const btn = e.target;
@@ -882,18 +850,11 @@
             });
         }
 
-        document.getElementById('btn-add-cat').onclick = () => {
-            const v = document.getElementById('new-cat-input').value;
-            if (v) { state.categories.push(v); sauvegarderConfig(); rendreAdmin(); }
-        };
-
         document.getElementById('btn-add-obj').onclick = () => {
             const nom = document.getElementById('new-obj-nom').value;
             const montant = parseFloat(document.getElementById('new-obj-mnt').value);
             if (nom && montant) { state.objectifsProvisions.push({ nom, montant }); sauvegarderConfig(); rendreAdmin(); }
         };
-
-        document.getElementById('btn-logout').onclick = () => authLogout().then(() => window.location.reload());
 
         document.getElementById('btn-undo').onclick = () => {
             if (state.suppressionEnAttente) {
@@ -920,10 +881,6 @@
         document.getElementById('select-annee').onchange = (e) => rendreVueAnnuelle();
 
         document.getElementById('vue-admin').addEventListener('click', (e) => {
-            // Supprimer catégorie
-            const delCat = e.target.closest('[data-del-cat]');
-            if (delCat) { state.categories.splice(parseInt(delCat.dataset.delCat), 1); sauvegarderConfig(true); rendreAdmin(); return; }
-
             // Supprimer objectif
             const delObj = e.target.closest('[data-del-obj]');
             if (delObj) { state.objectifsProvisions.splice(parseInt(delObj.dataset.delObj), 1); sauvegarderConfig(true); rendreAdmin(); return; }

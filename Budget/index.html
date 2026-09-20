@@ -170,7 +170,7 @@
             <div class="card summary-card" style="background: linear-gradient(135deg, #FF9500, #FF2D55);">
                 <h3>Total Dépenses</h3>
                 <div class="total-amount" id="annuel-total-depenses">0 €</div>
-                <div class="sub-text">Toutes catégories confondues</div>
+                <div class="sub-text">Courses + charges fixes</div>
             </div>
             <div class="card">
                 <div id="bloc-annuel-stats"></div>
@@ -180,35 +180,10 @@
         <div id="vue-admin" class="hidden">
             <h1 style="margin-bottom: 20px;">Paramètres</h1>
             
-            <div class="admin-section" style="border-color:var(--danger); background: rgba(255,59,48,0.05);">
-                <h3 style="color:var(--danger);">🔒 Sécurité</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Déconnectez cet appareil pour empêcher l'accès aux comptes.</p>
-                <button class="btn-action bg-danger" id="btn-logout" style="margin-bottom: 0;">Se déconnecter</button>
-            </div>
-
             <div class="admin-section">
                 <h3>🔄 Outils Système</h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Forcer la mise à jour de l'application (vide le cache de la page).</p>
                 <button class="btn-action" style="background:var(--secondary); margin-bottom: 0;" onclick="window.location.reload(true)">Forcer le rechargement</button>
-            </div>
-
-            <div class="admin-section">
-                <h3>📅 Créer un mois spécifique</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Ajouter un mois manuellement (ex: Février 2026).</p>
-                <div style="display:flex; gap:10px;">
-                    <input type="month" id="input-new-month" style="flex:1; border:1px solid var(--border); padding:10px; border-radius:8px;">
-                    <button class="btn-small bg-primary" id="btn-creer-mois" style="color:white; padding:10px 20px;">Créer</button>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h3>🛠️ Gestion des Catégories</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Gérez vos catégories de dépenses par défaut.</p>
-                <div id="admin-categories"></div>
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." style="flex:1; border:1px solid var(--border); padding:10px; border-radius:8px;">
-                    <button class="btn-small bg-primary" id="btn-add-cat" style="color:white; padding:10px 20px;">Ajouter</button>
-                </div>
             </div>
 
             <div class="admin-section">
