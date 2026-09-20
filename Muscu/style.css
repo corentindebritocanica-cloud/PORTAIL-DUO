@@ -10,6 +10,9 @@
      neutre donnait une interface générique, sans rapport avec une salle.
      ========================================================================== */
   :root{
+    /* Zone de sécurité du haut (encoche / Dynamic Island) + 16 px de respiration, comme Course :
+       avec viewport-fit=cover, le contenu passe sous la barre d'état, où iOS applique un flou. */
+    --safe-top: calc(env(safe-area-inset-top, 0px) + 16px);
     /* Fonds, du plus profond au plus proche */
     --bg:#0d1014;
     --card:#161b22;
@@ -114,14 +117,14 @@
 
   /* bouton bascule de thème */
   .theme-toggle{
-    position:fixed; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; z-index:25;
+    position:fixed; top:calc(14px + var(--safe-top)); right:14px; z-index:25;
     width:38px; height:38px; border-radius:50%;
     background:var(--card); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
     font-size:16px; box-shadow: var(--shadow-sm);
   }
   .sync-badge{
-    position:fixed; top:calc(16px + env(safe-area-inset-top, 0px)); right:56px; z-index:25;
+    position:fixed; top:calc(16px + var(--safe-top)); right:56px; z-index:25;
     font-size:9px; width:16px; height:16px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
     background:var(--card); box-shadow: var(--shadow-sm);
@@ -165,7 +168,7 @@
   }
 
   .view-inner{
-    padding:22px 18px; display:flex; flex-direction:column; gap:14px; flex:1;
+    padding:calc(22px + var(--safe-top)) 18px 22px; display:flex; flex-direction:column; gap:14px; flex:1;
   }
   .app-title{
     font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
@@ -325,7 +328,7 @@
   header{
     position:sticky; top:0; z-index:20;
     background:var(--bg);
-    padding:14px 14px 10px 14px;
+    padding:calc(14px + var(--safe-top)) 14px 10px 14px;
     border-bottom:1px solid var(--border);
     display:flex; flex-direction:column; gap:8px;
   }
@@ -638,8 +641,8 @@
   .chat-bar{
     position:sticky; top:0; z-index:15;
     display:flex; align-items:center; gap:8px;
-    margin:0 -18px 4px -18px;
-    padding:10px 86px 10px 18px;
+    margin:calc(-1 * var(--safe-top)) -18px 4px -18px;   /* remonte la barre : son fond couvre la zone de la barre d'état */
+    padding:calc(10px + var(--safe-top)) 86px 10px 18px;
     background:var(--bg);
     border-bottom:1px solid var(--border);
   }

@@ -690,3 +690,16 @@ Le meta viewport de `index.html` reçoit `viewport-fit=cover`, comme les 3 autre
 - **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
 - Sur l'écran de connexion (fenêtre « connexion » ouverte), le rechargement automatique est remplacé par le bandeau, comme pour toute fenêtre ouverte.
 **Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
+
+
+## Correctif — haut de l'écran flou après `viewport-fit=cover` : marge de sécurité `--safe-top` (20/09/2026)
+
+**Symptôme** : le haut de Muscu était « tout flou » sur iPhone juste après l'ajout de `viewport-fit=cover` (section précédente).
+**Cause** : avec `cover`, la page s'étend sous la barre d'état (≈ 59 px sur un iPhone à Dynamic Island). Les titres et boutons du haut commençaient à 14–22 px du bord, donc **dans cette zone**, où iOS applique son flou natif (« edge treatment », voir `PROBLEMES_RESOLUS.md`, saga Course). Course n'a pas ce défaut parce que son contenu démarre à `env(safe-area-inset-top) + 16 px`.
+**Correction** (`style.css`) : nouvelle variable `--safe-top: calc(env(safe-area-inset-top, 0px) + 16px)` (même valeur que Course), appliquée à tout ce qui touche le haut de l'écran :
+- `.view-inner` : `padding-top: calc(22px + var(--safe-top))` (menu, réglages, coach, profil, séance, constructeur, archives, progression) ;
+- `header` (écran des exercices, `position:sticky`) : `padding-top: calc(14px + var(--safe-top))` — collé en haut, son fond opaque couvre la zone de la barre d'état ;
+- `.chat-bar` (coach, sticky) : `margin-top: calc(-1 * var(--safe-top))` + `padding-top: calc(10px + var(--safe-top))` — même effet, sans décaler sa position initiale ;
+- `.theme-toggle` et `.sync-badge` (fixes en haut à droite) : `top: calc(14px|16px + var(--safe-top))`, donc alignés avec la première ligne de chaque écran.
+**Vérifié** (Chromium headless, zones de sécurité iPhone simulées 59 px / 34 px via `Emulation.setSafeAreaInsetsOverride`) : premier titre du menu de 22 → 97 px du bord, bouton « ← Séances » de 14 → 89 px, sélecteur du coach collé à 86 px au défilement, bascule de thème alignée (89 px). **Non vérifié sur iPhone.**
+**Si le haut est trop bas ou trop haut** : ajuster le `+ 16px` de `--safe-top` (une seule ligne, en tête de `:root`).
