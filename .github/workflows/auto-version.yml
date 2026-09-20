@@ -1,8 +1,10 @@
 name: Auto-version (DERNIERE_MAJ + cache du Service Worker)
 
-# À chaque push sur main qui modifie l'index.html d'une app, met à jour
-# automatiquement, pour CETTE app uniquement :
+# À chaque push sur main qui modifie index.html, style.css ou app.js d'une app,
+# met à jour automatiquement, pour CETTE app uniquement :
 #   - DERNIERE_MAJ dans son index.html (heure de Paris, format ISO)
+#   - les URLs versionnées style.css?v=… et app.js?v=… dans son index.html
+#     (chiffres de DERNIERE_MAJ : garantit qu'aucun cache ne ressert l'ancien code)
 #   - CACHE_NAME dans son sw.js (préfixe de l'app + "r" + numéro d'exécution)
 # Lancement manuel (onglet Actions > Run workflow) : met à jour les 4 apps,
 # ce qui force le rafraîchissement de toutes les installations.
@@ -13,9 +15,17 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'style.css'
+      - 'app.js'
       - 'Budget/index.html'
+      - 'Budget/style.css'
+      - 'Budget/app.js'
       - 'Course/index.html'
+      - 'Course/style.css'
+      - 'Course/app.js'
       - 'Muscu/index.html'
+      - 'Muscu/style.css'
+      - 'Muscu/app.js'
   workflow_dispatch:
 
 permissions:
@@ -54,13 +64,17 @@ jobs:
           fi
           for DIR in "" Budget Course Muscu; do
             P="${DIR:+$DIR/}"
-            if ! printf '%s\n' "$CHANGED" | grep -qxF "${P}index.html"; then continue; fi
+            if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then continue; fi
             echo "→ ${P:-racine (Portail)}"
             PREFIX=$(sed -nE "s/^const CACHE_PREFIX = '([^']*)';.*/\1/p" "${P}sw.js")
             test -n "$PREFIX"
+            VER=$(printf '%s' "$NOW" | tr -dc '0-9')
             sed -i -E "s/(DERNIERE_MAJ = ')[^']*(')/\1${NOW}\2/" "${P}index.html"
+            sed -i -E "s/(style\.css\?v=)[0-9]*/\1${VER}/; s/(app\.js\?v=)[0-9]*/\1${VER}/" "${P}index.html"
             sed -i -E "s/^(const CACHE_NAME = ')[^']*(';)/\1${PREFIX}r${RUN_NUMBER}\2/" "${P}sw.js"
             test "$(grep -c "DERNIERE_MAJ = '${NOW}'" "${P}index.html")" = "1"
+            test "$(grep -c "style\.css?v=${VER}" "${P}index.html")" = "1"
+            test "$(grep -c "app\.js?v=${VER}" "${P}index.html")" = "1"
             test "$(grep -c "^const CACHE_NAME = '${PREFIX}r${RUN_NUMBER}';" "${P}sw.js")" = "1"
           done
           if git diff --quiet; then echo "Rien à mettre à jour"; exit 0; fi
