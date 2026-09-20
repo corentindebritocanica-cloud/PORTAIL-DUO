@@ -678,3 +678,15 @@ Le meta viewport de `index.html` reçoit `viewport-fit=cover`, comme les 3 autre
 - `index.html` : bandeau « Nouvelle version disponible » (`bottom: max(20px, safe-area + 20px)`).
 
 **Si le rendu est moins bien qu'avant** : revenir en arrière = retirer `, viewport-fit=cover` du meta (un seul commit, `feat(muscu): viewport-fit=cover`), ou garder `cover` et ajuster ces marges à la manière de Course (`max(20px, calc(env(safe-area-inset-bottom) - 12px))`). Point d'attention connu : `100dvh` n'est pas utilisé dans Muscu, donc le bug WebKit du « bandeau vide » décrit dans le guide ne s'applique pas ici.
+
+
+## Correctif — bandeau « Nouvelle version disponible » affiché à tort (20/09/2026)
+
+**Symptôme** : le bandeau « 🔄 Nouvelle version disponible » s'affichait à l'ouverture après un déploiement, alors que la page était déjà la dernière version.
+**Cause** : il était déclenché par la seule installation d'un nouveau service worker (`updatefound` / `reg.waiting`). Or depuis le passage de `index.html` en réseau d'abord, la page est déjà à jour quand le service worker se met à jour : le bandeau était un faux positif, et il court-circuitait en plus le rechargement automatique.
+**Correction** (`app.js`) :
+- La mise à jour du service worker appelle désormais la vérification de version (`window.__verifierVersion(true)`) au lieu d'afficher le bandeau : elle compare `DERNIERE_MAJ` avec celle du serveur. Page vraiment périmée → **rechargement automatique** ; le bandeau n'apparaît que si une saisie ou une fenêtre est ouverte.
+- Le contrôle est aussi fait **~3 s après chaque lancement** (au cas où un réseau lent aurait fait servir une copie ancienne de la page).
+- **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
+- Sur l'écran de connexion (fenêtre « connexion » ouverte), le rechargement automatique est remplacé par le bandeau, comme pour toute fenêtre ouverte.
+**Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
