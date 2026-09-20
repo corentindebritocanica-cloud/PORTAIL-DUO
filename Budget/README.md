@@ -149,3 +149,11 @@ Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px
 - `sw.js` précache `index.html`, `style.css` et `app.js`, et les sert en **réseau d'abord** (repli sur le cache hors ligne ou après 4 s). Le cache est indexé sans la partie `?v=…`, donc une seule copie par fichier. Les requêtes réseau du service worker utilisent `cache:'no-cache'` (revalidation systématique).
 
 **Vérifié avant mise en ligne** (Chromium headless, ancienne et nouvelle version côte à côte) : DOM identique hors `<script>`/`<style>` (75 éléments à `id`), styles calculés identiques sur tous ces éléments, mêmes variables globales, mêmes messages console ; ouverture hors ligne (page rendue, CSS et JS servis par le cache) ; déploiement simulé visible après un simple rechargement malgré `Cache-Control: max-age=600` (comme GitHub Pages) ; rechargement automatique au retour au premier plan, sauf saisie en cours ou fenêtre ouverte. **Non vérifié sur iPhone.**
+
+
+## Historique — Icône allégée : 1024 → 512 px (20/09/2026)
+
+`Budget/icone.PNG` faisait **1 024 × 1 024 px pour 1,29 Mo** (dont une miniature EXIF embarquée) : elle était téléchargée à chaque installation du cache du service worker (`sw.js` la précache) alors que l'app n'en a besoin qu'en 180 px (`apple-touch-icon`) et 512 px (`manifest.json`). Elle est désormais en **512 × 512 px, PNG opaque sans métadonnées, 362 Ko** (−72 %), redimensionnée en Lanczos ; rendu visuellement identique.
+- **Nom de fichier inchangé** (`icone.PNG`, casse comprise) : `manifest.json`, `index.html` (`apple-touch-icon`) et `sw.js` n'ont pas été touchés.
+- **Pas de nouvelle version de cache forcée** : les installations existantes gardent l'ancienne copie jusqu'au prochain déploiement de Budget, dont le robot `auto-version` change `CACHE_NAME` et fait retélécharger l'icône allégée. L'icône déjà posée sur l'écran d'accueil ne change pas.
+- Piste écartée (possible plus tard) : palette 256 couleurs, ≈ 110 Ko, mais avec risque de bandes dans les dégradés du fond.
