@@ -3,7 +3,7 @@
 // pour qu'il puisse s'ouvrir hors-ligne. Ne touche pas aux sous-apps
 // (Muscu/, Budget/, Course/), qui gèrent leur propre cache indépendamment.
 
-const CACHE_NAME = 'portail-duo-shell-v3';
+const CACHE_NAME = 'portail-duo-shell-v4';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Course, Muscu, Budget inclus), et un
@@ -43,6 +43,32 @@ self.addEventListener('activate', (event) => {
 
 // Fetch : cache-first pour le shell du portail, réseau pour le reste
 // (les sous-dossiers Muscu/Budget/Course ne sont jamais interceptés ici)
+// Réseau d'abord pour index.html (20/09/2026) : on tente le serveur en priorité
+// pour toujours servir la dernière version ; si le réseau est absent ou met plus
+// de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
+// Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
+const DELAI_RESEAU_MS = 4000;
+function reseauPuisCache(requete){
+  return new Promise((resolve) => {
+    let termine = false;
+    const repliCache = () => caches.match(requete).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const minuteur = setTimeout(() => {
+      repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
+    }, DELAI_RESEAU_MS);
+    fetch(requete).then((reponse) => {
+      if (reponse && reponse.status === 200) {
+        const copie = reponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(requete, copie));
+      }
+      if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
+    }).catch(() => {
+      clearTimeout(minuteur);
+      if (termine) return;
+      repliCache().then((r) => { termine = true; resolve(r || Response.error()); });
+    });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -50,6 +76,13 @@ self.addEventListener('fetch', (event) => {
   // (jamais /Muscu/, /Budget/, /Course/, ni les requêtes cross-origin type Firebase)
   const isSubApp = /\/(Muscu|Budget|Course)\//.test(url.pathname);
   if (url.origin !== self.location.origin || isSubApp) {
+    return;
+  }
+
+  // index.html / page d'accueil : réseau d'abord (voir reseauPuisCache)
+  const scopePath = new URL(self.registration.scope).pathname;
+  if (url.pathname === scopePath || url.pathname === scopePath + 'index.html') {
+    event.respondWith(reseauPuisCache(event.request));
     return;
   }
 

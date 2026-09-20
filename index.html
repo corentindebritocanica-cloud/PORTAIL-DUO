@@ -296,7 +296,7 @@
   /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre
      a jour manuellement a chaque commit sur cette app. Complement du
      bandeau "Nouvelle version disponible". */
-  const DERNIERE_MAJ = '2026-09-19T23:27:00+02:00';
+  const DERNIERE_MAJ = '2026-09-20T22:05:58+02:00';
   function formaterDerniereMaj(iso){
     const d = new Date(iso);
     const jour = String(d.getDate()).padStart(2,'0');
@@ -329,6 +329,41 @@
     const btnMaj = document.getElementById('maj-btn');
     if (btnMaj) btnMaj.addEventListener('click', () => window.location.reload());
   }
+/* Vérification de version au retour dans l'app (20/09/2026).
+   Sur iPhone, une PWA remise au premier plan n'est pas rechargée : elle garde
+   l'ancien code en mémoire. Au retour, on relit index.html sur le serveur et on
+   compare son horodatage de déploiement avec celui du code en cours. Si une
+   version plus récente existe : rechargement automatique, sauf si l'utilisateur
+   saisit du texte ou a une fenêtre ouverte (alors : bandeau « Actualiser »). */
+(function(){
+  if (typeof DERNIERE_MAJ === 'undefined' || !('fetch' in window)) return;
+  let dernierControle = 0;
+  const estVisible = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+  const utilisateurOccupe = () => {
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return true;
+    return Array.from(document.querySelectorAll('.overlay-popup, .confirm-overlay, .modal-overlay, .login-overlay, .modal-fond')).some(estVisible);
+  };
+  const verifierVersion = async () => {
+    if (Date.now() - dernierControle < 30000) return;
+    dernierControle = Date.now();
+    try {
+      const rep = await fetch('index.html', { cache: 'no-store' });
+      if (!rep.ok) return;
+      const m = (await rep.text()).match(/DERNIERE_MAJ\s*=\s*'([^']+)'/);
+      if (!m || m[1] === DERNIERE_MAJ) return;
+      if (utilisateurOccupe()) {
+        const t = document.getElementById('maj-toast');
+        if (t) t.style.display = 'flex';
+      } else {
+        window.location.reload();
+      }
+    } catch (e) { /* hors ligne : on garde la version en cours */ }
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') verifierVersion();
+  });
+})();
 </script>
 
 </body>
