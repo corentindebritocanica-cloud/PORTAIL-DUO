@@ -38,7 +38,7 @@
    lister nommément. Firestore gère déjà sa propre persistance hors-ligne ;
    ce service worker n'a pas à s'en mêler. */
 
-const CACHE_NAME = 'muscu-shell-v8';
+const CACHE_NAME = 'muscu-shell-v9';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Budget inclus), et un
@@ -92,6 +92,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Réseau d'abord pour index.html (20/09/2026) : on tente le serveur en priorité
+// pour toujours servir la dernière version ; si le réseau est absent ou met plus
+// de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
+// Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
+const DELAI_RESEAU_MS = 4000;
+function reseauPuisCache(requete){
+  return new Promise((resolve) => {
+    let termine = false;
+    const repliCache = () => caches.match(requete).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const minuteur = setTimeout(() => {
+      repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
+    }, DELAI_RESEAU_MS);
+    fetch(requete).then((reponse) => {
+      if (reponse && reponse.status === 200) {
+        const copie = reponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(requete, copie));
+      }
+      if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
+    }).catch(() => {
+      clearTimeout(minuteur);
+      if (termine) return;
+      repliCache().then((r) => { termine = true; resolve(r || Response.error()); });
+    });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
@@ -131,6 +157,13 @@ self.addEventListener('fetch', (event) => {
 
   const known = shellUrls().some((u) => new URL(u).pathname === url.pathname);
   if(!known) return; /* pas un fichier du shell : réseau normal, pas de cache */
+
+  /* index.html / racine du dossier : réseau d'abord (voir reseauPuisCache) ;
+     icônes : cache-first. */
+  if (url.pathname === scopePath || url.pathname === new URL('index.html', self.registration.scope).pathname) {
+    event.respondWith(reseauPuisCache(req));
+    return;
+  }
 
   event.respondWith(
     caches.match(req).then((cached) => {
