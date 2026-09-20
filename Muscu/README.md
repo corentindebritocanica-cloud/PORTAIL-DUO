@@ -710,5 +710,13 @@ Le meta viewport de `index.html` reçoit `viewport-fit=cover`, comme les 3 autre
 Audit statique de `app.js`, `style.css` et `index.html`, puis retrait de ce qui n'était plus référencé. **Aucun changement de comportement.**
 - `app.js` : `openExportModal()` (jamais appelée) et sa constante `MOTIVATION_LINES` (qui ne servait qu'à elle) ; `getAllSelectableSessions()`. Le reste de la modale d'export (`closeExportModal`, `copyExport`, `#export-modal`, `buildExportText`) est **conservé** : il est réutilisé par la fin de séance, les archives et les exports complets.
 - `style.css` : `.big-choice-btn.build` (+ `:active`), `.setting-row` (+ `input[type=checkbox]`), `.setting-text`, `.setting-name`, `.coach-head` (+ `.big-question`). `.setting-desc` reste utilisée.
-- **Volontairement laissé** : les liens `apple-touch-icon.png` / `icon-512.png` de `index.html` (et leur préchargement dans `sw.js`). Ces fichiers sont **absents du dépôt**, mais ils sont *voulus* (Safari ne lit pas une icône en data URI). ⚠️ **`Muscu/IMG_4867.png` n'est pas du code mort** : c'est l'icône de l'app (haltère bleu/rose, 180 × 180 px), envoyée le 11/09/2026 sous ce nom d'appareil photo et jamais renommée. Il suffit de la copier en `apple-touch-icon.png` pour que l'icône d'écran d'accueil s'affiche. À faire (non fait ici : hors périmètre du nettoyage).
+- **Icône d'écran d'accueil — corrigée** (voir la section suivante) : les liens `apple-touch-icon.png` / `icon-512.png` de `index.html` étaient volontairement laissés, car les fichiers sont voulus (Safari ne lit pas une icône en data URI).
 - **Vérifié** : syntaxe JS ; plus aucun identifiant JS inutilisé ni appel à une fonction inexistante ; aucune référence restante aux éléments retirés. **Non vérifié sur iPhone.**
+
+
+## Icône d'écran d'accueil enfin en ligne (21/09/2026)
+
+`index.html` référence `apple-touch-icon.png` depuis le 17/09/2026, mais le fichier n'a jamais existé dans le dépôt (404) : l'icône de l'app, un haltère bleu/rose de 180 × 180 px, avait été envoyée le 11/09/2026 sous un nom d'appareil photo, `IMG_4867.png`. Elle est désormais **renommée `Muscu/apple-touch-icon.png`** (l'ancien fichier est supprimé, pas dupliqué). Aucune modification de code.
+- **Pour la voir sur iPhone** : l'icône déjà posée sur l'écran d'accueil ne change pas toute seule. Il faut la supprimer, puis refaire « Partager → Sur l'écran d'accueil » (en laissant « Ouvrir en tant qu'app Web » sur ON).
+- **Reste un 404** : `icon-512.png` (lien `rel="icon"` de `index.html`, précache de `sw.js`) est toujours absent. Sans effet sur l'icône iPhone (ce lien ne sert qu'aux onglets de bureau) ; le service worker tolère l'absence fichier par fichier. À supprimer ou à créer plus tard.
+- **Non vérifié sur iPhone.**

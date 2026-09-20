@@ -19,6 +19,17 @@
 
 ---
 
+## 🖼️ Muscu — icône d'écran d'accueil référencée mais jamais commitée (21/09/2026)
+
+### 21/09/2026 — Muscu — `apple-touch-icon.png` en 404 pendant 4 jours
+**Symptôme** : `index.html` pointait vers `apple-touch-icon.png` (et `icon-512.png`), fichiers absents du dépôt ; l'icône d'écran d'accueil de Muscu n'était donc pas celle prévue.
+**Cause racine** : l'image avait été envoyée sur GitHub le 11/09 (« Add files via upload ») sous son nom d'appareil photo, `IMG_4867.png`, et jamais renommée. Détectée lors d'un audit de code mort : le fichier « orphelin » était en réalité la pièce manquante. Le `sw.js` documentait déjà le 404, sans qu'on relie le fichier au lien.
+**Solution** : `IMG_4867.png` (180 × 180 px) renommé `Muscu/apple-touch-icon.png`. Il faut supprimer puis rrajouter le raccourci sur l'écran d'accueil pour voir la nouvelle icône.
+**Règle à retenir** : avant de supprimer un fichier « non référencé », le rapprocher des liens **cassés** (404) du dépôt — l'un est peut-être l'autre. Et une icône iOS doit être un vrai fichier à la racine du dossier de l'app (pas de data URI).
+**Fichiers touchés** : `Muscu/apple-touch-icon.png` (ex-`IMG_4867.png`), `Muscu/README.md`
+
+---
+
 ## 🧹 Budget — supprimer une fonctionnalité ET ses données Firestore (21/09/2026)
 
 ### 21/09/2026 — Budget — Retrait de la carte « Projets / Épargne » sans laisser de données fantômes
