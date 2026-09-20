@@ -703,3 +703,12 @@ Le meta viewport de `index.html` reçoit `viewport-fit=cover`, comme les 3 autre
 - `.theme-toggle` et `.sync-badge` (fixes en haut à droite) : `top: calc(14px|16px + var(--safe-top))`, donc alignés avec la première ligne de chaque écran.
 **Vérifié** (Chromium headless, zones de sécurité iPhone simulées 59 px / 34 px via `Emulation.setSafeAreaInsetsOverride`) : premier titre du menu de 22 → 97 px du bord, bouton « ← Séances » de 14 → 89 px, sélecteur du coach collé à 86 px au défilement, bascule de thème alignée (89 px). **Non vérifié sur iPhone.**
 **Si le haut est trop bas ou trop haut** : ajuster le `+ 16px` de `--safe-top` (une seule ligne, en tête de `:root`).
+
+
+## Nettoyage du code mort (21/09/2026)
+
+Audit statique de `app.js`, `style.css` et `index.html`, puis retrait de ce qui n'était plus référencé. **Aucun changement de comportement.**
+- `app.js` : `openExportModal()` (jamais appelée) et sa constante `MOTIVATION_LINES` (qui ne servait qu'à elle) ; `getAllSelectableSessions()`. Le reste de la modale d'export (`closeExportModal`, `copyExport`, `#export-modal`, `buildExportText`) est **conservé** : il est réutilisé par la fin de séance, les archives et les exports complets.
+- `style.css` : `.big-choice-btn.build` (+ `:active`), `.setting-row` (+ `input[type=checkbox]`), `.setting-text`, `.setting-name`, `.coach-head` (+ `.big-question`). `.setting-desc` reste utilisée.
+- **Volontairement laissé** : les liens `apple-touch-icon.png` / `icon-512.png` de `index.html` (et leur préchargement dans `sw.js`). Ces fichiers sont **absents du dépôt**, mais ils sont *voulus* (Safari ne lit pas une icône en data URI). ⚠️ **`Muscu/IMG_4867.png` n'est pas du code mort** : c'est l'icône de l'app (haltère bleu/rose, 180 × 180 px), envoyée le 11/09/2026 sous ce nom d'appareil photo et jamais renommée. Il suffit de la copier en `apple-touch-icon.png` pour que l'icône d'écran d'accueil s'affiche. À faire (non fait ici : hors périmètre du nettoyage).
+- **Vérifié** : syntaxe JS ; plus aucun identifiant JS inutilisé ni appel à une fonction inexistante ; aucune référence restante aux éléments retirés. **Non vérifié sur iPhone.**

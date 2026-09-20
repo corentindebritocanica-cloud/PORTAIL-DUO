@@ -280,12 +280,6 @@
   .menu-hero-chip .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
   .menu-hero-chip .who{ font-size:11.5px; font-weight:700; color:var(--text-dim); }
   .menu-hero-chip .val{ font-family:var(--f-display); font-size:19px; }
-  .big-choice-btn.build{
-    border-style:dashed; font-size:16px; opacity:0.9;
-  }
-  .big-choice-btn.build:active{
-    border-color:var(--text-dim); color:var(--text); background:var(--card-2);
-  }
 
   .session-list{
     display:flex; flex-direction:column; gap:14px;
@@ -549,15 +543,7 @@
   }
 
   /* Réglages */
-  .setting-row{
-    display:flex; align-items:center; gap:14px;
-    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
-    padding:14px 16px; box-shadow: var(--shadow-sm);
-  }
-  .setting-text{ flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
-  .setting-name{ font-size:15px; font-weight:700; }
   .setting-desc{ font-size:12.5px; color:var(--text-dim); line-height:1.4; margin:0; }
-  .setting-row input[type=checkbox]{ width:22px; height:22px; flex:0 0 auto; }
   .body-form{ display:flex; flex-direction:column; gap:9px; }
   .body-form-actions{ display:flex; flex-direction:column; gap:8px; }
   .ghost-wide{ border-color:var(--border); color:var(--text-dim); }
@@ -631,8 +617,6 @@
 
 
   /* Fil de discussion du coach */
-  .coach-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .coach-head .big-question{ margin:0; }
   /* Barre de conversation, collée en haut du défilement.
      - marges négatives : le fond couvre toute la largeur, sinon le contenu
        défilerait visiblement dans les 18px de marge latérale ;

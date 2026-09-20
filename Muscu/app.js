@@ -360,9 +360,6 @@ function decorateSession(session){
 function getPureCustomSessions(){
   return (window.customSessionsCache || []).filter(s => !isFixedSessionId(s.id));
 }
-function getAllSelectableSessions(){
-  return SESSIONS.map(s => getSession(s.id)).concat(getPureCustomSessions());
-}
 
 /* ---------- ETAT ---------- */
 let currentProfile = storage.get("duo_profile") || "corentin";
@@ -1575,21 +1572,6 @@ function buildExportText(){
   return txt;
 }
 
-const MOTIVATION_LINES = [
-  "Séance dans la poche 💪",
-  "Encore une de faite, respect.",
-  "T'as tout donné, ça se voit.",
-  "Une brique de plus sur l'édifice.",
-  "Bien joué, prochaine séance ça sera encore mieux.",
-  "Solide. On note et on continue."
-];
-
-function openExportModal(){
-  document.getElementById('export-text').value = buildExportText();
-  const line = MOTIVATION_LINES[Math.floor(Math.random() * MOTIVATION_LINES.length)];
-  document.getElementById('motivation-line').textContent = line;
-  document.getElementById('export-modal').classList.add('open');
-}
 function closeExportModal(){
   document.getElementById('export-modal').classList.remove('open');
 }
