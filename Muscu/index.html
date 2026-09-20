@@ -882,7 +882,11 @@
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     backdrop-filter: blur(18px) saturate(160%);
     border-top:1px solid var(--border);
-    padding:10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
+    /* Boutons remontés de 10px (20/09/26, demande de Corentin) : 20px + safe-area au lieu
+       de 10px. Le fond translucide reste collé au bord bas de l'écran. Écart voulu
+       avec la charte §5.5 — ne pas remettre à 10px. La réserve sous le contenu suit
+       toute seule (adjustBottomSpacing lit bar.offsetHeight). */
+    padding:10px 14px calc(20px + env(safe-area-inset-bottom)) 14px;
     display:flex; gap:10px;
   }
   .bottom-btn{
@@ -4243,7 +4247,7 @@ function repairChatThreads(){
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app, au format ISO avec
    decalage horaire. Complement du bandeau "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T19:27:11+02:00';
+const DERNIERE_MAJ = '2026-09-20T19:59:09+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
