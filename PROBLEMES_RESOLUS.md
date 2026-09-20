@@ -178,7 +178,7 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 
 **Implémentation** : une constante `DERNIERE_MAJ = 'YYYY-MM-DDTHH:MM:SS+02:00'` (format ISO) en tête de script sur chaque app, affichée formatée en français ("19/09/2026 à 23h27"). Emplacements d'affichage : onglet Réglages pour Muscu/Course/Budget, bas de page pour Portail.
 
-**⚠️ Règle (modifiée le 20/09/2026 : désormais automatisée par le workflow `auto-version.yml`, voir l'entrée du 20/09 plus haut)** : cette constante doit être mise à jour à chaque commit qui modifie `index.html` — le robot s'en charge. sur l'app concernée — voir le prompt système pour les emplacements exacts (recherchable via `grep -n "DERNIERE_MAJ ="`). Une constante non mise à jour devient trompeuse (affiche une ancienne date alors que du code plus récent est en ligne).
+**⚠️ Règle (modifiée le 20/09/2026 : désormais automatisée par le workflow `auto-version.yml`, voir l'entrée du 20/09 plus haut)** : cette constante est mise à jour à chaque commit qui modifie `index.html` de l'app concernée — le robot s'en charge (recherchable via `grep -n "DERNIERE_MAJ ="`). Une constante non mise à jour devient trompeuse (affiche une ancienne date alors que du code plus récent est en ligne) et, depuis le 20/09/2026, fausse la détection de nouvelle version.
 
 **Fichiers touchés** : `index.html` × 4
 
