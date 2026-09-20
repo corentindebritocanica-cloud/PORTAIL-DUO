@@ -298,8 +298,8 @@ Ajout d'un petit texte sous le bouton de rechargement affichant la date/heure du
 
 Fichier : `.github/workflows/auto-version.yml` (gratuit, quelques secondes par exécution).
 
-- **Déclencheur** : push sur `main` modifiant `index.html`, `Budget/index.html`, `Course/index.html` ou `Muscu/index.html`. Un commit du robot ne relance jamais le workflow.
-- **Action, pour l'app concernée uniquement** : `DERNIERE_MAJ` ← heure de Paris au format ISO ; `CACHE_NAME` ← `<CACHE_PREFIX>r<n° d'exécution>` (ex. `budget-lc-shell-r1`). Le préfixe est lu dans le `sw.js` de l'app, ce qui préserve le nettoyage par préfixe introduit le 18/09. Le robot committe (`chore: DERNIERE_MAJ + cache SW mis à jour automatiquement`), puis relance la publication GitHub Pages par l'API.
+- **Déclencheur** : push sur `main` modifiant `index.html`, `style.css` ou `app.js` d'une app (racine, `Budget/`, `Course/`, `Muscu/`). Un commit du robot ne relance jamais le workflow.
+- **Action, pour l'app concernée uniquement** : `DERNIERE_MAJ` ← heure de Paris au format ISO ; `style.css?v=…` et `app.js?v=…` (dans `index.html`) ← chiffres de cette date ; `CACHE_NAME` ← `<CACHE_PREFIX>r<n° d'exécution>` (ex. `budget-lc-shell-r1`). Le préfixe est lu dans le `sw.js` de l'app, ce qui préserve le nettoyage par préfixe introduit le 18/09. Le robot committe (`chore: DERNIERE_MAJ + cache SW mis à jour automatiquement`), puis relance la publication GitHub Pages par l'API.
 - **Lancement manuel** (onglet Actions → « Auto-version » → Run workflow) : met à jour les 4 apps, pour forcer un rafraîchissement général.
 - **Conditions** : `DERNIERE_MAJ = '…'` une seule fois par `index.html` ; `const CACHE_PREFIX` et `const CACHE_NAME` en début de ligne dans chaque `sw.js`. Sinon l'exécution échoue (croix rouge dans Actions) et rien n'est mis à jour.
 - **Limite** : un push qui ne touche que `sw.js` ne déclenche pas le robot ; bumper `CACHE_NAME` à la main ou lancer le workflow manuellement.
@@ -320,3 +320,7 @@ Fichier : `.github/workflows/auto-version.yml` (gratuit, quelques secondes par e
 - `sw.js` précache `index.html`, `style.css` et `app.js`, et les sert en **réseau d'abord** (repli sur le cache hors ligne ou après 4 s). Le cache est indexé sans la partie `?v=…`, donc une seule copie par fichier. Les requêtes réseau du service worker utilisent `cache:'no-cache'` (revalidation systématique).
 
 **Vérifié avant mise en ligne** (Chromium headless, ancienne et nouvelle version côte à côte) : DOM identique hors `<script>`/`<style>` (5 éléments à `id`), styles calculés identiques sur tous ces éléments, mêmes variables globales, mêmes messages console ; ouverture hors ligne (page rendue, CSS et JS servis par le cache) ; déploiement simulé visible après un simple rechargement malgré `Cache-Control: max-age=600` (comme GitHub Pages) ; rechargement automatique au retour au premier plan, sauf saisie en cours ou fenêtre ouverte. **Non vérifié sur iPhone.**
+
+## Structure des fichiers (20/09/2026)
+
+Chaque app (racine pour le Portail, `Budget/`, `Course/`, `Muscu/`) comprend : `index.html` (structure), `style.css` (styles), `app.js` (code), `sw.js`, `manifest.json`, `README.md`. Détail et règles dans la section « Découpage en `index.html` / `style.css` / `app.js` » du README de chaque app, et dans `PROBLEMES_RESOLUS.md`.

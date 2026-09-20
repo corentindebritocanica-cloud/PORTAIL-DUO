@@ -19,6 +19,22 @@
 
 ---
 
+## 🧩 Toutes apps — découpage en index.html / style.css / app.js (20/09/2026)
+
+### 20/09/2026 — Portail, Muscu, Course, Budget — Un `index.html` de 350 Ko découpé sans rien changer au comportement
+**Contexte** : chaque app tenait dans un seul `index.html` (Muscu : 351 Ko, ≈ 7 000 lignes). Difficile à relire, à modifier sans risque, et tout était retéléchargé/recaché d'un bloc.
+**Solution (identique sur les 4 apps)** : `index.html` (structure + petit script inline `DERNIERE_MAJ` + balises `<link href="style.css?v=…">` / `<script src="app.js?v=…">`), `style.css` (ancien `<style>`), `app.js` (anciens `<script>` classiques, ordre d'origine ; `DERNIERE_MAJ` sortie du JS). `sw.js` : les 3 fichiers en précache et en réseau d'abord ; cache indexé **sans** la partie `?v=`. Le robot `auto-version.yml` se déclenche si l'un des 3 fichiers change et met à jour `DERNIERE_MAJ`, les deux `?v=` (chiffres de `DERNIERE_MAJ`) et `CACHE_NAME`.
+**Cas particulier Muscu** : le `<script type="module">` Firebase reste inline (un module ES ne se fusionne pas avec du code classique : les `onclick="…"` du HTML cesseraient de trouver leurs fonctions) ; les 3 scripts classiques sont fusionnés dans `app.js`.
+**Pièges rencontrés pendant les tests (Chromium headless, serveur avec `Cache-Control: max-age=600` comme GitHub Pages)** :
+- **`cache:'no-cache'` dans le service worker ne suffisait pas** : après un déploiement simulé, un simple rechargement continuait d'exécuter l'ancien `app.js` (le navigateur ne redemandait même pas les sous-ressources au serveur), alors que `index.html` était bien à jour. **Correctif : URLs versionnées `?v=<chiffres de DERNIERE_MAJ>`** — une URL neuve à chaque déploiement, quel que soit le cache. Constaté sur Chromium ; le comportement exact de WebKit/iOS n'a pas été vérifié, mais cette parade ne dépend d'aucun navigateur.
+- Le cache du service worker doit ignorer `?v=` (`cleCache()`), sinon chaque déploiement empilerait une nouvelle entrée par fichier.
+- À l'écran de connexion de Muscu, le rechargement automatique est volontairement remplacé par le bandeau (la fenêtre de connexion compte comme « fenêtre ouverte »).
+**Méthode de non-régression réutilisable** (Playwright + Chromium, ancienne et nouvelle version servies côte à côte) : comparer le DOM hors `<script>`/`<style>`, les styles calculés de tous les éléments à `id`, la liste des variables globales et les messages console ; puis tester hors ligne, un déploiement simulé et le rechargement automatique. Résultat ici : identique sur les 4 apps (5, 27, 97 et 75 éléments à `id`).
+**Règle de travail** : lire `index.html`, `style.css` et `app.js` de l'app concernée ; ne jamais modifier à la main `DERNIERE_MAJ`, les `?v=` ni `CACHE_NAME`.
+**Fichiers touchés** : `index.html`, `style.css` (nouveau), `app.js` (nouveau), `sw.js`, `README.md` × 4 ; `.github/workflows/auto-version.yml`.
+
+---
+
 ## 🔄 Toutes apps — mises à jour visibles sans fermer l'app ni réinstaller (20/09/2026)
 
 ### 20/09/2026 — Portail, Muscu, Course, Budget — Plus de swipe ni de réinstallation pour voir une nouvelle version
