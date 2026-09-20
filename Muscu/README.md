@@ -666,3 +666,15 @@ Sur l'écran des exercices, la barre du bas (🔄 + « Séance terminée ✅ »)
 - `sw.js` précache `index.html`, `style.css` et `app.js`, et les sert en **réseau d'abord** (repli sur le cache hors ligne ou après 4 s). Le cache est indexé sans la partie `?v=…`, donc une seule copie par fichier. Les requêtes réseau du service worker utilisent `cache:'no-cache'` (revalidation systématique).
 
 **Vérifié avant mise en ligne** (Chromium headless, ancienne et nouvelle version côte à côte) : DOM identique hors `<script>`/`<style>` (97 éléments à `id`), styles calculés identiques sur tous ces éléments, mêmes variables globales, mêmes messages console ; ouverture hors ligne (page rendue, CSS et JS servis par le cache) ; déploiement simulé visible après un simple rechargement malgré `Cache-Control: max-age=600` (comme GitHub Pages) ; rechargement automatique au retour au premier plan, sauf saisie en cours ou fenêtre ouverte. **Non vérifié sur iPhone.**
+
+
+## Historique — `viewport-fit=cover` ajouté (20/09/2026) — à valider sur iPhone
+
+Le meta viewport de `index.html` reçoit `viewport-fit=cover`, comme les 3 autres apps et la charte (`GUIDE_PWA_IOS.md`, §3.B). **Conséquence attendue** : jusque-là, sans cette valeur, iOS renvoyait `0` pour tous les `env(safe-area-inset-*)` de l'app, donc les 6 endroits qui les utilisent (voir ci-dessous) n'avaient aucun effet et les positions actuelles ont été réglées à l'œil avec des marges fixes. Avec `cover`, ces valeurs deviennent réelles (≈ 59 px en haut et ≈ 34 px en bas sur un iPhone à Dynamic Island / à barre d'accueil) :
+- `style.css` l.117 et l.124 : boutons en haut à droite (`top: 14px / 16px + safe-area-inset-top`) → **descendent** d'autant, sous la barre d'état ;
+- `style.css` l.131 : marge basse du contenu (`120px + safe-area-inset-bottom`) ;
+- `style.css` l.721 et l.863 : barre du bas (`10px` / `24px + safe-area-inset-bottom`) → **monte** d'autant ;
+- `app.js` (~l.5026) : `paddingBottom` du corps (`24px + safe-area-inset-bottom`) ;
+- `index.html` : bandeau « Nouvelle version disponible » (`bottom: max(20px, safe-area + 20px)`).
+
+**Si le rendu est moins bien qu'avant** : revenir en arrière = retirer `, viewport-fit=cover` du meta (un seul commit, `feat(muscu): viewport-fit=cover`), ou garder `cover` et ajuster ces marges à la manière de Course (`max(20px, calc(env(safe-area-inset-bottom) - 12px))`). Point d'attention connu : `100dvh` n'est pas utilisé dans Muscu, donc le bug WebKit du « bandeau vide » décrit dans le guide ne s'applique pas ici.
