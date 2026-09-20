@@ -19,6 +19,19 @@
 
 ---
 
+## 📧 Budget + Muscu — la sauvegarde hebdomadaire par mail lisait l'ancienne base (20/09/2026)
+
+### 20/09/2026 — Budget, Muscu — Mail du dimanche = données figées au 18/09
+**Symptôme** : un mail de sauvegarde arrivait bien chaque dimanche, donnant l'impression que Budget était sauvegardé. Le bouton manuel « Envoyer fichier .json par mail » de Budget pointait en plus sur une adresse par défaut (`VOTRE_ADRESSE_MAIL@gmail.com`) dans le code source du script.
+**Fausses pistes explorées** : le README de Budget supposait une **Cloud Function Firebase planifiée** — fausse hypothèse, cherchée dans `index.html` sans succès. Le mécanisme est un **Google Apps Script** dans le Drive de Corentin (hors dépôt), ce qui se voit dans `index.html` uniquement par l'URL `script.google.com/macros/s/…/exec` du bouton manuel.
+**Cause racine** : le script (dernière modification le 09/03/2026) lisait `budgetDataLC.json` dans la Realtime Database avec un secret de base en clair dans l'URL. Depuis la migration Firestore du 18/09/2026, l'app n'écrit plus dans cette base : les mails contenaient des données périmées. Personne ne pouvait le voir sans ouvrir la pièce jointe. Muscu n'avait aucune sauvegarde automatique.
+**Solution** : script réécrit. Lecture de Firestore par **compte de service** (JWT signé avec `Utilities.computeRsaSha256Signature`, clés dans les **propriétés du script** `SA_BUDGET` / `SA_MUSCU`, jamais dans le code). Budget : tableau de mois réimportable + fichier de config. Muscu : format de « Exporter toutes les données » + `coachChat`, **sans `apiKey`**. Mail « ⚠️ Échec » si une lecture échoue ou revient vide. Nom `sauvegardeHebdomadaireBudget` **conservé** pour que le déclencheur existant continue de fonctionner. `doPost` corrigé (adresse) — nécessite **Déployer → Gérer les déploiements → Nouvelle version**. Testé avant livraison : le vrai code contre le vrai Firestore (lecture seule), avec Apps Script et MailApp simulés.
+**Leçon généralisable** : après une migration de base, **lister tout ce qui lit encore l'ancienne** — scripts externes, sauvegardes, automatisations hors dépôt — pas seulement le code de l'app. Une sauvegarde périmée ne se voit pas : prévoir une alerte en cas d'échec ou de résultat vide, et contrôler de temps en temps la date de la dernière donnée dans la pièce jointe. Le secret de l'ancienne Realtime Database n'est plus dans le script ; à révoquer si cette base n'est plus utile.
+**À vérifier sur Course** : si une automatisation du même genre y existe.
+**Fichiers touchés** : Google Apps Script (hors dépôt), `Budget/README.md`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🔑 Muscu — la clé API du coach disparaissait de `settings/coach` (20/09/2026)
 
 ### 20/09/2026 — Muscu — Clé Google à recoller régulièrement dans l'app
