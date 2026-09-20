@@ -83,17 +83,16 @@
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js', { scope: './' }).then((reg) => {
-        const afficherToastMaj = () => {
-          const t = document.getElementById('maj-toast');
-          if (t) t.style.display = 'flex';
-        };
-        if (reg.waiting) afficherToastMaj();
+        // Une mise à jour du service worker ne signifie pas que la page est périmée (index.html est servi en
+        // réseau d'abord) : c'est la vérification de version qui décide (rechargement auto, ou bandeau si saisie).
+        const verifierMaj = () => { if (window.__verifierVersion) window.__verifierVersion(true); };
+        if (reg.waiting) verifierMaj();
         reg.addEventListener('updatefound', () => {
           const nv = reg.installing;
           if (!nv) return;
           nv.addEventListener('statechange', () => {
             if (nv.state === 'installed' && navigator.serviceWorker.controller) {
-              afficherToastMaj();
+              verifierMaj();
             }
           });
         });
@@ -117,18 +116,23 @@
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return true;
     return Array.from(document.querySelectorAll('.overlay-popup, .confirm-overlay, .modal-overlay, .login-overlay, .modal-fond')).some(estVisible);
   };
-  const verifierVersion = async () => {
-    if (Date.now() - dernierControle < 30000) return;
+  const verifierVersion = async (force) => {
+    if (!force && Date.now() - dernierControle < 30000) return;
     dernierControle = Date.now();
     try {
       const rep = await fetch('index.html', { cache: 'no-store' });
       if (!rep.ok) return;
       const m = (await rep.text()).match(/DERNIERE_MAJ\s*=\s*'([^']+)'/);
-      if (!m || m[1] === DERNIERE_MAJ) return;
-      if (utilisateurOccupe()) {
+      if (!m) return;
+      if (m[1] === DERNIERE_MAJ) { try { sessionStorage.removeItem('majRechargements'); } catch (e) {} return; }
+      // Garde-fou : au plus 2 rechargements automatiques par session (réseau très lent : repli sur une
+      // copie ancienne) ; au-delà, on affiche le bandeau au lieu de recharger en boucle.
+      let n = 0; try { n = parseInt(sessionStorage.getItem('majRechargements') || '0', 10) || 0; } catch (e) {}
+      if (utilisateurOccupe() || n >= 2) {
         const t = document.getElementById('maj-toast');
         if (t) t.style.display = 'flex';
       } else {
+        try { sessionStorage.setItem('majRechargements', String(n + 1)); } catch (e) {}
         window.location.reload();
       }
     } catch (e) { /* hors ligne : on garde la version en cours */ }
@@ -136,4 +140,8 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') verifierVersion();
   });
+  // Exposé pour le bloc service worker, et contrôle au lancement (si un réseau lent a fait servir
+  // une copie ancienne de la page, on le détecte ici).
+  window.__verifierVersion = verifierVersion;
+  window.addEventListener('load', () => setTimeout(() => verifierVersion(true), 3000));
 })();
