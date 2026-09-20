@@ -5,7 +5,6 @@
         const firebaseConfig = {
             apiKey: "AIzaSyBro9AXaoXhSptyUVxoKVtr6xC4rtZQ3FI",
             authDomain: "lisa-et-corentin.firebaseapp.com",
-            databaseURL: "https://lisa-et-corentin-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "lisa-et-corentin",
             storageBucket: "lisa-et-corentin.firebasestorage.app",
             messagingSenderId: "694332145017",
@@ -310,7 +309,6 @@
             if (state.vueActuelle === 'mensuelle') rendreVueMensuelle();
             else if (state.vueActuelle === 'fixes') rendreVueFixes();
             else if (state.vueActuelle === 'annuelle') rendreVueAnnuelle();
-            else if (state.vueActuelle === 'vacances') rendreVueVacances();
             else if (state.vueActuelle === 'admin') rendreAdmin();
         };
 
@@ -369,7 +367,7 @@
                 row.className = 'item-row';
                 row.dataset.id = item.id;
 
-                const isNeg = (item.montant < 0) || item.isRetrait;
+                const isNeg = item.montant < 0;
                 const style = isNeg ? 'color:var(--danger);' : '';
                 const mntFinal = isNeg ? Math.abs(item.montant || 0) : (item.montant || 0);
 
@@ -556,8 +554,7 @@
             });
         };
 
-        // --- Vue Vacances ---
-        // --- Vue Admin RESTAURÉE ---
+        // --- Vue Admin ---
         const rendreAdmin = () => {
             const objDiv = document.getElementById('admin-objectifs');
             objDiv.innerHTML = state.objectifsProvisions.map((o, i) => `
@@ -689,7 +686,7 @@
                 if (item) {
                     if (field === 'montant') {
                         let val = parseFloat(e.target.value) || 0;
-                        item.montant = item.isRetrait ? -Math.abs(val) : val;
+                        item.montant = val;
                     } else {
                         item[field] = e.target.value;
                     }

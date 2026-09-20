@@ -141,7 +141,6 @@
         .summary-card { background: linear-gradient(135deg, var(--primary), var(--info)); color: white; text-align: center; border-radius: var(--radius-card); padding: 25px 15px; }
         .total-amount { font-size: 2.4rem; font-weight: 800; margin: 5px 0; letter-spacing: -1px; }
         .sub-text { font-size: 0.85rem; opacity: 0.9; }
-        .comparison { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; margin-top: 10px; background: rgba(255,255,255,0.2); }
 
         /* 16. REVENUS BOX */
         .revenus-box { background: var(--card-bg); padding: 15px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border); }

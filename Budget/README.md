@@ -199,3 +199,14 @@ La carte d'en-tête du Bilan Annuel (laissée vide par la suppression de la cart
 - **Réglages** : trois cartes retirées avec leur code — « 🔒 Sécurité » (bouton « Se déconnecter », `authLogout`), « 📅 Créer un mois spécifique » (`btn-creer-mois`) et « 🛠️ Gestion des Catégories » (`admin-categories`, ajout / suppression).
 - **Conséquences à connaître** : (1) plus de bouton de déconnexion dans l'app (l'écran « Ouvrir les comptes » reste pour un appareil non connecté) ; (2) un nouveau mois ne se crée plus que par « + Démarrer un mois » (mois suivant le dernier) ; (3) la liste de catégories n'est plus modifiable dans l'app : elle reste stockée dans `config/global` (Firestore) et alimente toujours les listes déroulantes des lignes.
 - **Vérifié** (jsdom, données réelles) : aucune erreur ; Réglages = Outils Système, Budgets de Provisions, Profil, Sauvegarde Automatique, Corbeille, Restauration Manuelle ; Bilan Annuel = 15 284,46 €. **Non vérifié sur iPhone.**
+
+
+## Nettoyage du code mort (21/09/2026)
+
+Audit statique de `index.html`, `app.js`, `style.css` et `sw.js` (fonctions, variables, ids, classes et variables CSS, propriétés de `state`, fichiers précachés), puis retrait de ce qui restait d'anciennes fonctionnalités. **Aucun changement de comportement.**
+- `app.js` : appel à `rendreVueVacances()` (fonction inexistante, vue jamais ouvrable) et branche `'vacances'` de `rafraichirTouteLInterface` ; commentaires orphelins « Vue Vacances » / « RESTAURÉE » ; flag `isRetrait` (créé uniquement par l'ancienne carte Épargne, absent des données) dans le rendu et l'édition du montant ; `databaseURL` de `firebaseConfig` (Realtime Database abandonnée depuis la v3.0.0).
+- `index.html` : bloc caché `#comparaison-n1` (jamais utilisé par le JS) et commentaire `VUE VACANCES`.
+- `style.css` : règle `.comparison` (ne servait qu'à `#comparaison-n1`).
+- **Firestore** : champ `locked` (jamais lu par le code) supprimé des 2 documents qui le portaient (Janvier et Février 2026).
+- Le reste est propre : aucune fonction ou variable inutilisée, aucune classe/variable CSS orpheline, tous les fichiers précachés par `sw.js` existent. Les ids construits dynamiquement (`bar-…-m`, `pct-…-m`, `vue-…`, `conteneur-…`) ne sont pas du code mort.
+- **Vérifié** (jsdom, données réelles) : aucune erreur ; rendu Mensuel (avril : reste 9,20 €), Bilan Annuel (15 284,46 €) et Réglages identiques à avant. **Non vérifié sur iPhone.**
