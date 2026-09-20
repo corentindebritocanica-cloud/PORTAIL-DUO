@@ -1,0 +1,1292 @@
+/* style.css — feuille de style de l'app.
+   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+  /* ==========================================================================
+     JETONS DE DESIGN
+     Palette, rayons et ombres sont définis ici et nulle part ailleurs. Toute
+     valeur codée en dur dans une règle plus bas est une anomalie à corriger.
+
+     Parti pris de la palette : un charcoal légèrement bleuté plutôt qu'un gris
+     neutre — la teinte de l'acier laqué d'un rack sous néon. Le gris parfaitement
+     neutre donnait une interface générique, sans rapport avec une salle.
+     ========================================================================== */
+  :root{
+    /* Fonds, du plus profond au plus proche */
+    --bg:#0d1014;
+    --card:#161b22;
+    --card-2:#1e2530;
+    /* Bordures neutres (17/09/26) : auparavant teintées bleu-gris, ce qui
+       donnait un liseré froid à chaque carte de l'app et éloignait le rendu
+       de la maquette Fonte & Craie, plus proche du blanc neutre sur noir. */
+    --border:rgba(255,255,255,0.09);
+    --border-strong:rgba(255,255,255,0.17);
+
+    /* Voile posé sur les fonds (icônes, états sélectionnés). Suit désormais
+       la couleur du profil actif (--accent-rgb) plutôt qu'un rouge de marque
+       fixe : bleu pour Corentin, rose pour Lisa, partout dans l'app. */
+    --tint:rgba(var(--accent-rgb), 0.07);
+    --tint-strong:rgba(var(--accent-rgb), 0.13);
+
+    /* Texte */
+    --text:#e9eff6;
+    --text-dim:#8a97a8;
+
+    /* Identité — Ardoise & craie (08/09/26) : mêmes teintes qu'avant, poussées
+       plus franches, plus "craie sur tableau noir" que pastel. */
+    --corentin:#1f8fff;
+    --corentin-rgb:31,143,255;
+    --corentin-dark:#1a5fc4;
+    --lisa:#ff3d7e;
+    --lisa-rgb:255,61,126;
+    --lisa-dark:#c4225f;
+    --done:#12b981;
+    --danger:#ef4444;
+    --accent: var(--corentin);
+    /* Valeurs par défaut avant que applyThemeColor()/renderProgressView() ne
+       les surchargent en JS selon le profil actif : bleu Corentin. */
+    --accent-rgb: var(--corentin-rgb);
+    --accent-dark: var(--corentin-dark);
+    --accent-glow: rgba(var(--accent-rgb), 0.30);
+
+    /* (18/09/26) Le rouge de marque "Fonte & Craie" (--brand/--brand-dark/
+       --brand-glow/--brand-rgb) a été retiré à la demande de Corentin : toute
+       l'app utilise désormais --accent (bleu Corentin / rose Lisa selon le
+       profil actif) là où --brand était utilisé, y compris avant tout choix
+       de profil (écran de connexion, menu principal), où --accent vaut bleu
+       par défaut. --gold n'est pas concerné, conservé tel quel. */
+    --gold:#ffb800;
+
+    /* Rayons : cinq crans, la taille encode la hiérarchie.
+       Plus l'élément est grand et contenant, plus le rayon est ample. */
+    --r-xs:4px;    /* jauges, filets */
+    --r-sm:10px;   /* champs, petits boutons */
+    --r-md:14px;   /* boutons pleins, bascules */
+    --r-lg:18px;   /* cartes */
+    --r-xl:22px;   /* modales, gros choix */
+    --r-pill:999px;
+
+    /* Ombres : deux niveaux seulement, plus une pour les surfaces flottantes */
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
+
+    /* Durées d'animation */
+    --t-fast:.14s;
+    --t-mid:.22s;
+
+    --glass-bar: rgba(19,24,31,0.86);
+    --glass-modal: rgba(22,27,34,0.95);
+    --reset-btn-bg: var(--tint-strong);
+    /* Réservée aux gros titres/chiffres (voir commentaire dans <head>). */
+    --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* Reflet des animations de balayage : il passe toujours sur une surface
+       colorée (jauge verte), le blanc convient donc dans les deux thèmes. */
+    --sheen: rgba(255,255,255,0.55);
+  }
+  html.light-mode{
+    --bg:#eef1f5;
+    --card:#ffffff;
+    --card-2:#e7ecf2;
+    --border:rgba(23,38,56,0.11);
+    --border-strong:rgba(23,38,56,0.20);
+    --tint:rgba(var(--accent-rgb), 0.06);
+    --tint-strong:rgba(var(--accent-rgb), 0.10);
+    --text:#131a23;
+    --text-dim:#5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+    --glass-bar: rgba(255,255,255,0.84);
+    --glass-modal: rgba(255,255,255,0.95);
+    --reset-btn-bg: var(--tint-strong);
+    --sheen: rgba(255,255,255,0.70);
+    --accent-glow: rgba(var(--accent-rgb), 0.22);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+    transition: background .25s ease, color .25s ease;
+  }
+
+  /* bouton bascule de thème */
+  .theme-toggle{
+    position:fixed; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; z-index:25;
+    width:38px; height:38px; border-radius:50%;
+    background:var(--card); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; box-shadow: var(--shadow-sm);
+  }
+  .sync-badge{
+    position:fixed; top:calc(16px + env(safe-area-inset-top, 0px)); right:56px; z-index:25;
+    font-size:9px; width:16px; height:16px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card); box-shadow: var(--shadow-sm);
+  }
+  body{
+    display:flex; flex-direction:column; min-height:100vh;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    position:relative;
+  }
+  /* Ardoise & craie : poussière de craie très discrète sur le fond, façon
+     tableau noir essuyé. Fixe (ne défile pas avec le contenu), sous les
+     écrans (.view a déjà z-index:1). Désactivée en thème clair — la craie
+     n'a de sens que sur une "ardoise" sombre. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:.5;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(238,240,238,.5), transparent),
+      radial-gradient(1px 1px at 78% 9%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 32% 64%, rgba(238,240,238,.35), transparent),
+      radial-gradient(1px 1px at 91% 47%, rgba(238,240,238,.4), transparent),
+      radial-gradient(1.5px 1.5px at 58% 82%, rgba(238,240,238,.3), transparent),
+      radial-gradient(1px 1px at 6% 88%, rgba(238,240,238,.35), transparent);
+    background-repeat:no-repeat;
+  }
+  html.light-mode body::before{ display:none; }
+
+  /* VUES (écrans) */
+  .view{
+    display:none; flex-direction:column; flex:1; position:relative; z-index:1;
+  }
+  .view.active{ display:flex; }
+  /* 126 : le glissement d'origine (.32s, 28px) traînait sur un écran de téléphone.
+     Plus court et plus serré, il accompagne le geste au lieu de le retarder. */
+  .view.slide-fwd{ animation: slideInFwd var(--t-mid) cubic-bezier(.32,.72,.3,1); }
+  .view.slide-back{ animation: slideInBack var(--t-mid) cubic-bezier(.32,.72,.3,1); }
+  @keyframes slideInFwd{ from{ transform:translateX(16px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  @keyframes slideInBack{ from{ transform:translateX(-16px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .view.slide-fwd, .view.slide-back{ animation:none; }
+  }
+
+  .view-inner{
+    padding:22px 18px; display:flex; flex-direction:column; gap:14px; flex:1;
+  }
+  .app-title{
+    font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
+  }
+  /* "Duo Training" en toutes lettres (menu, profil) : seul repère de marque
+     avant même le titre d'écran — en --accent (bleu Corentin / rose Lisa
+     selon le profil actif, bleu par défaut) — les autres usages de
+     .app-title (nom du profil pendant une séance, etc.) restent neutres. */
+  .app-title-brand{ color:var(--accent); }
+  .big-question{
+    font-family:var(--f-display); text-transform:uppercase;
+    font-size:29px; font-weight:850; letter-spacing:.01em; margin:4px 2px 16px 2px;
+  }
+  .back-btn{
+    align-self:flex-start; background:none; border:none; color:var(--text-dim);
+    font-size:14px; font-weight:600; padding:8px 2px; margin-bottom:2px;
+  }
+
+  .big-choice-btn{
+    padding:26px 20px; border-radius:var(--r-lg); border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:19px; font-weight:800;
+    display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:14px;
+    box-shadow: var(--shadow-sm); position:relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .big-choice-btn:active{ transform: scale(0.98); }
+  .big-choice-btn .choice-icon{
+    width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);
+    display:flex; align-items:center; justify-content:center;
+    background: var(--tint);
+  }
+  /* Icônes toujours colorées (17/09/26) : sur l'écran "Qui s'entraîne ?", le
+     bleu/rose doit identifier Corentin/Lisa au premier coup d'œil, avant même
+     de taper — la classe `.selected` correspondante n'est en réalité jamais
+     posée par selectProfile() (qui change d'écran tout de suite), donc les
+     règles ci-dessous sont ce que l'utilisateur voit vraiment sur cet écran. */
+  .big-choice-btn.corentin .choice-icon{
+    background:linear-gradient(150deg, var(--corentin), #1a5fc4); color:#fff;
+  }
+  .big-choice-btn.lisa .choice-icon{
+    background:linear-gradient(150deg, var(--lisa), #c4225f); color:#fff;
+  }
+  .big-choice-btn.corentin.selected{
+    border-color:var(--corentin); color:var(--corentin); background:rgba(31,143,255,0.1);
+    box-shadow: 0 10px 28px rgba(31,143,255,0.18), var(--shadow-sm);
+  }
+  .big-choice-btn.corentin.selected .choice-icon{ background:rgba(31,143,255,0.18); }
+  .big-choice-btn.lisa.selected{
+    border-color:var(--lisa); color:var(--lisa); background:rgba(255,61,126,0.1);
+    box-shadow: 0 10px 28px rgba(255,61,126,0.18), var(--shadow-sm);
+  }
+  .big-choice-btn.lisa.selected .choice-icon{ background:rgba(255,61,126,0.18); }
+  /* "Fonte & Craie" (17/09/26) : l'entrée la plus utilisée du menu principal
+     (Entraînement) se distingue visuellement des 4 autres — en --accent
+     (bleu Corentin / rose Lisa) plutôt qu'une couleur de marque figée
+     (18/09/26), plutôt que de rester à parité stricte avec Réglages ou Coach. */
+  .big-choice-btn.primary{
+    background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+    border-color:transparent; color:#fff;
+    box-shadow: 0 10px 26px var(--accent-glow), var(--shadow-sm);
+  }
+  .big-choice-btn.primary .choice-icon{ background:rgba(255,255,255,0.18); }
+  /* Repères visuels ajoutés le 17/09/26 : libellé qui prend toute la place
+     restante (pour pousser le chevron à droite) et chevron discret indiquant
+     que chaque bouton ouvre un écran suivant. */
+  /* 17/09/26 : la maquette "Fonte & Craie" utilise la police d'affichage
+     (Bebas Neue, majuscules) pour les libellés du menu principal, pas
+     seulement pour les titres d'écran — c'est ce qui manquait le plus pour
+     que le menu ressemble vraiment au concept plutôt qu'à une simple liste
+     recolorée. */
+  .choice-label{
+    flex:1; text-align:left; font-family:var(--f-display); text-transform:uppercase;
+    letter-spacing:.02em; font-size:19px; font-weight:400;
+  }
+  .choice-chev{ color:var(--text-dimmer); font-size:20px; flex:0 0 auto; }
+  .big-choice-btn.primary .choice-chev{ color:rgba(255,255,255,0.7); }
+  .badge-tag{
+    position:absolute; top:12px; right:16px; background:var(--gold); color:#241a00;
+    font-size:9.5px; font-weight:800; padding:3px 8px; border-radius:999px; text-transform:uppercase;
+  }
+  /* Carte "hero" du menu principal : tonnage cumulé des deux profils, pour
+     comparer d'un coup d'œil sans ouvrir Suivi Progression. */
+  .menu-hero{
+    background:linear-gradient(140deg,var(--card-2),var(--card) 55%);
+    border:1px solid var(--border); border-radius:var(--r-lg); padding:16px;
+    margin-bottom:16px; position:relative; overflow:hidden;
+  }
+  .menu-hero::before{
+    content:''; position:absolute; inset:0; opacity:.05; pointer-events:none;
+    background:repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 14px);
+  }
+  .menu-hero::after{
+    content:''; position:absolute; right:-30px; top:-30px; width:150px; height:150px;
+    background:radial-gradient(circle, var(--accent-glow), transparent 70%);
+  }
+  .menu-hero-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-dim);
+    font-weight:800; position:relative;
+  }
+  .menu-hero-top{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; }
+  .menu-hero-streak{ font-family:var(--f-display); font-size:34px; line-height:1.1; margin-top:2px; }
+  .menu-hero-streak small{ font-size:14px; font-weight:600; color:var(--text-dim); font-family:var(--f-body); }
+  .menu-hero-row{ display:flex; gap:8px; margin-top:10px; position:relative; }
+  .menu-hero-chip{
+    flex:1; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-sm);
+    padding:10px 11px; display:flex; align-items:center; gap:8px;
+  }
+  .menu-hero-chip .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .menu-hero-chip .who{ font-size:11.5px; font-weight:700; color:var(--text-dim); }
+  .menu-hero-chip .val{ font-family:var(--f-display); font-size:19px; }
+  .big-choice-btn.build{
+    border-style:dashed; font-size:16px; opacity:0.9;
+  }
+  .big-choice-btn.build:active{
+    border-color:var(--text-dim); color:var(--text); background:var(--card-2);
+  }
+
+  .session-list{
+    display:flex; flex-direction:column; gap:14px;
+  }
+  .session-btn{
+    padding:18px; border-radius:var(--r-lg); border:1px solid var(--border);
+    background:var(--card); color:var(--text); text-align:left;
+    display:flex; align-items:center; gap:14px; font-family:inherit;
+    box-shadow: var(--shadow-sm);
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .session-btn:active{ transform: scale(0.98); }
+  .session-btn .session-icon{
+    width:44px; height:44px; flex:0 0 auto; border-radius:var(--r-md);
+    display:flex; align-items:center; justify-content:center;
+    background: var(--tint); color: var(--accent);
+  }
+  .session-btn .session-text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .session-btn .s-label{font-size:16px; font-weight:800;}
+  .session-btn .s-subtitle{font-size:13px; color:var(--text-dim); font-weight:500;}
+  .session-btn.selected{
+    border-color:var(--accent);
+  }
+  .session-btn.selected .session-icon{ background:var(--tint-strong); }
+  .custom-session-row{ cursor:pointer; }
+  .s-tag{
+    font-family:var(--f-body); font-size:10px; font-weight:800; letter-spacing:0.4px; text-transform:uppercase;
+    /* Or plutôt qu'accent (17/09/26) : "modifiée" est un fait objectif sur la
+       séance, pas une info liée au profil qui la consulte. */
+    color:var(--gold); background:rgba(255,184,0,0.14);
+    border-radius:var(--r-sm); padding:2px 6px; margin-left:6px; vertical-align:1px;
+  }
+  .custom-session-delete{
+    flex:0 0 auto; width:34px; height:34px; border-radius:var(--r-sm);
+    border:1px solid var(--border); background:var(--card-2); color:var(--text-dim);
+    font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+
+  /* HEADER ÉCRAN EXERCICES */
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--bg);
+    padding:14px 14px 10px 14px;
+    border-bottom:1px solid var(--border);
+    display:flex; flex-direction:column; gap:8px;
+  }
+  /* padding-right : réserve la zone occupée par le badge de sync et le bouton
+     de thème (tous deux en position:fixed en haut à droite), sinon ils
+     recouvrent le bouton undo et interceptent le tap. */
+  .header-row{ display:flex; align-items:center; gap:10px; padding-right:86px; }
+  header .back-btn.small{
+    margin:0; padding:6px 0; flex:0 0 auto;
+  }
+  header .app-title{ margin:0; flex:1; }
+  .undo-btn{
+    flex:0 0 auto; background:none; border:none; font-size:17px; padding:6px 4px;
+    opacity:0.85;
+  }
+  .session-progress-track{
+    height:5px; border-radius:var(--r-xs); background:var(--card-2); overflow:hidden;
+  }
+  .session-progress-fill{
+    /* Dégradé couleur de profil (--accent) → or (18/09/26 : accent remplace
+       le rouge de marque partout, y compris ici). */
+    height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--gold)); border-radius:var(--r-xs);
+    transition: width .3s cubic-bezier(.4,0,.2,1), background .3s ease;
+  }
+  /* 129 : séance complète — la jauge passe au vert et un reflet la parcourt une fois. */
+  .session-progress-track.complete .session-progress-fill{ background:var(--done); }
+  .session-progress-track.complete{ position:relative; overflow:hidden; }
+  .session-progress-track.celebrate::after{
+    content:''; position:absolute; top:0; bottom:0; width:45%;
+    background:linear-gradient(90deg, transparent, var(--sheen), transparent);
+    animation: trackSweep .85s ease-out 1;
+  }
+  @keyframes trackSweep{ from{ left:-45%; } to{ left:105%; } }
+  @media (prefers-reduced-motion: reduce){
+    .session-progress-track.celebrate::after{ display:none; }
+  }
+  .session-progress-label{
+    font-size:11.5px; color:var(--text-dim); font-weight:600; margin:0;
+  }
+  .session-tonnage-label{
+    font-size:11px; color:var(--text-dim); font-weight:500; margin:0; opacity:0.8;
+  }
+
+  /* MAIN */
+  main{
+    flex:1; padding:16px; display:flex; flex-direction:column; gap:16px;
+  }
+  .session-title{
+    font-family:var(--f-display); text-transform:uppercase;
+    font-size:24px; font-weight:850; letter-spacing:.01em; margin:4px 2px 0 2px;
+  }
+  .session-subtitle{
+    font-size:13px; color:var(--text-dim); margin:0 2px 4px 2px;
+  }
+
+  /* ---------- CARTE D'EXERCICE (109) ----------
+     Deux zones : l'en-tête dit ce qu'est l'exercice, le corps sert à saisir.
+     Le fond légèrement teinté de l'en-tête et le filet de séparation évitent
+     que le nom, la cible, l'historique et les champs se lisent comme une
+     seule bouillie d'informations de même poids. */
+  .exercise-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--t-mid) ease;
+  }
+  .exercise-card.complete{ border-color:rgba(18,185,129,0.42); }
+  .exercise-headwrap{
+    padding:14px 16px 12px 16px; background:var(--tint);
+    border-bottom:1px solid var(--border);
+    display:flex; flex-direction:column; gap:6px;
+    position:relative;
+  }
+  /* Liseré vert sur la tranche gauche quand toutes les séries sont validées */
+  .exercise-card.complete .exercise-headwrap::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--done);
+  }
+  .exercise-body{
+    padding:13px 16px 15px 16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .exercise-head{ display:flex; flex-direction:column; gap:3px; }
+  .exercise-name{
+    /* Corrigé (17/09/26) : dans la maquette "Fonte & Craie", les noms
+       d'exercice restent en police système grasse — Bebas Neue n'y est
+       utilisé que pour les titres d'écran (menu, séance, profil), pas pour
+       chaque élément de liste. Revenu à l'esprit exact de la maquette. */
+    font-size:16px; font-weight:800; line-height:1.25;
+  }
+  .exercise-target{ font-size:13px; font-weight:600; color:var(--accent); }
+
+  /* 005 / 006 : contexte historique de l'exercice */
+  .exercise-history{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    font-size:12px; color:var(--text-dim);
+    padding-top:8px; border-top:1px solid var(--border);
+  }
+  .hist-last{ font-weight:500; }
+  .hist-record{
+    /* Or (17/09/26), comme .pr-badge : un record se repère toujours de la
+       même couleur, qu'il soit affiché en médaillon ou en mini-badge d'historique. */
+    font-weight:700; color:var(--gold);
+    background:rgba(255,184,0,0.12);
+    border-radius:var(--r-sm); padding:2px 8px; margin-left:auto;
+  }
+  .pr-badge{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 12px; border-radius:var(--r-pill); font-size:13px; font-weight:800;
+    /* Repris tel quel de la maquette "Fonte & Craie" (.pr-chip) le 17/09/26 :
+       pastille propre sur fond --card-2, liseré or fin — le motif craie
+       (pointillés + rotation) de l'ancienne identité "Ardoise & craie" est
+       abandonné ici, la maquette ne le reprenait pas. */
+    background:var(--card-2); color:var(--gold);
+    border:1px solid rgba(255,184,0,0.4);
+  }
+  .pr-badge::before{ content:'🏆'; font-size:14px; }
+  .pr-badge.pop{ animation: prPop .45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes prPop{
+    0%{ transform:scale(.9); opacity:0; }
+    60%{ transform:scale(1.04); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  .variant-row{
+    display:flex; gap:6px; flex-wrap:wrap;
+  }
+  /* 133 : les boutons de variante et de duplication ne donnaient aucun retour
+     au doigt. Enfoncement à la pression, et transition sur le changement d'état. */
+  .variant-btn{
+    flex:1 1 0; min-width:0; padding:8px 6px; border-radius:var(--r-sm);
+    display:flex; flex-direction:column; gap:2px; align-items:center;
+    border:1px solid var(--border); background:transparent; color:var(--text-dim);
+    text-align:center;
+    transition: border-color var(--t-fast) ease, color var(--t-fast) ease,
+                background var(--t-fast) ease, transform var(--t-fast) ease;
+  }
+  .variant-btn:active{ transform:scale(.96); }
+  .variant-icon{ display:flex; align-items:center; justify-content:center; color:inherit; }
+  .variant-name{ font-size:12.5px; font-weight:700; line-height:1.2; }
+  .variant-sub{ font-size:10px; font-weight:600; opacity:.8; line-height:1.2; }
+  .variant-hint{
+    font-size:11.5px; line-height:1.4; color:var(--text-dim);
+    margin-top:-4px; padding-left:2px;
+  }
+  /* Mode de charge (17/09/26) : couleur de marque plutôt que le profil — le
+     choix "haltères / un bras / barre" n'a rien à voir avec qui s'entraîne. */
+  .variant-hint.doubled{ color:var(--accent); font-weight:600; }
+  .variant-btn.selected{
+    border-color:var(--accent); color:var(--accent); background:var(--tint);
+    animation: variantPick .3s cubic-bezier(.34,1.4,.64,1);
+  }
+  @keyframes variantPick{
+    0%{ transform:scale(.97); }
+    55%{ transform:scale(1.03); }
+    100%{ transform:scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .variant-btn.selected{ animation:none; }
+  }
+
+  .set-grid-header, .set-row{
+    display:grid; grid-template-columns: 30px 1fr 1fr 26px 44px;
+    gap:8px; align-items:center;
+  }
+  .set-grid-header.with-rpe, .set-row.with-rpe{
+    grid-template-columns: 30px 1fr 1fr 48px 26px 44px;
+  }
+  /* Menu déroulant RPE : même gabarit que les champs de saisie, mais la flèche
+     système est retirée pour ne pas alourdir une colonne étroite. */
+  select.rpe-input{
+    width:100%; padding:10px 4px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; text-align:center;
+    text-align-last:center; min-width:0; font-family:inherit;
+    -webkit-appearance:none; appearance:none;
+  }
+  select.rpe-input:focus{ outline:none; border-color:var(--accent); }
+  /* Le numéro de la ligne d'échauffement se distingue visuellement du reste. */
+  .set-num.kind-warmup{ color:var(--text-dim); border-color:var(--border-strong); font-weight:700; }
+  .warmup-row{ opacity:.82; }
+  .add-warmup-btn{
+    width:100%; padding:9px; margin-top:2px; border-radius:var(--r-sm);
+    border:1px dashed var(--border-strong); background:transparent;
+    color:var(--text-dim); font-size:12.5px; font-weight:700; font-family:inherit;
+  }
+  .add-warmup-btn:active{ border-color:var(--accent); color:var(--accent); }
+  .set-grid-header.circuit, .set-row.circuit{
+    grid-template-columns: 58px 1fr 44px;
+  }
+  .set-row.circuit .set-num{
+    text-align:left; font-size:13.5px;
+  }
+  .set-grid-header{
+    font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px;
+    padding:0 2px;
+  }
+  .set-num{
+    font-size:14px; font-weight:700; color:var(--text-dim); text-align:center;
+  }
+  .set-row input{
+    width:100%; padding:10px 8px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; text-align:center;
+    min-width:0;
+  }
+  .set-row input:focus{
+    outline:none; border-color:var(--accent);
+  }
+  .dup-btn{
+    width:26px; height:26px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:transparent; color:var(--text-dim); font-size:13px;
+    display:flex; align-items:center; justify-content:center; padding:0;
+    transition: color var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
+  }
+  .dup-btn:active{ color:var(--accent); border-color:var(--accent); transform:scale(.9); }
+  .dup-btn.done{ animation: dupFlash .4s ease-out; }
+  @keyframes dupFlash{
+    0%{ color:var(--accent); border-color:var(--accent); transform:translateY(-2px); }
+    100%{ color:var(--text-dim); border-color:var(--border); transform:translateY(0); }
+  }
+
+  /* Réglages */
+  .setting-row{
+    display:flex; align-items:center; gap:14px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:14px 16px; box-shadow: var(--shadow-sm);
+  }
+  .setting-text{ flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .setting-name{ font-size:15px; font-weight:700; }
+  .setting-desc{ font-size:12.5px; color:var(--text-dim); line-height:1.4; margin:0; }
+  .setting-row input[type=checkbox]{ width:22px; height:22px; flex:0 0 auto; }
+  .body-form{ display:flex; flex-direction:column; gap:9px; }
+  .body-form-actions{ display:flex; flex-direction:column; gap:8px; }
+  .ghost-wide{ border-color:var(--border); color:var(--text-dim); }
+
+  /* ---------- MENSURATIONS — REFONTE (14/09/26) ---------- */
+  /* Cases de saisie : grille 2 colonnes, poids et date en pleine largeur,
+     mises en avant (bordure accent) puisque ce sont les deux champs qu'on
+     renseigne à chaque mesure. L'unité inscrite DANS le champ (plutôt que
+     seulement dans le libellé au-dessus) évite d'avoir à relever les yeux
+     pour se rappeler si on est en kg ou en cm. */
+  .body-input-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .body-input-card{
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:10px 12px; display:flex; flex-direction:column; gap:5px; min-width:0;
+  }
+  .body-input-card.wide{ grid-column:1 / -1; }
+  .body-input-card.primary{ border-color:var(--accent); background:var(--tint); }
+  .body-input-card label{
+    font-size:10.5px; font-weight:800; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.4px;
+  }
+  .body-input-field{ position:relative; display:flex; align-items:center; }
+  .body-input-field input{
+    width:100%; padding:9px 38px 9px 10px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .body-input-field input:focus{ outline:none; border-color:var(--accent); }
+  .body-input-field input[type=date]{ padding:9px 10px; }
+  .body-input-unit{
+    position:absolute; right:11px; font-size:11.5px; color:var(--text-dim);
+    font-weight:700; pointer-events:none;
+  }
+
+  /* Légende / bascule du graphique d'ensemble : chaque puce est à la fois la
+     légende d'une couleur et le bouton pour l'inclure ou non dans le tracé.
+     Tout activé par défaut (voir bodyVisibleFields). */
+  .body-legend-row{ display:flex; flex-wrap:wrap; gap:7px; }
+  .body-legend-chip{
+    display:flex; align-items:center; gap:6px; padding:6px 11px;
+    border-radius:var(--r-pill); border:1.5px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:12px; font-weight:700;
+    font-family:inherit; opacity:.55; transition: opacity .15s ease, border-color .15s ease;
+  }
+  .body-legend-chip.active{ opacity:1; border-color:var(--legend-color, var(--accent)); color:var(--text); }
+  .body-legend-dot{
+    width:9px; height:9px; border-radius:50%; background:var(--legend-color, var(--accent)); flex:0 0 auto;
+  }
+
+  /* Historique : une carte par date, les mesures en puces plutôt qu'une seule
+     ligne de texte concaténé — beaucoup plus scannable dès qu'il y a plus de
+     deux ou trois champs renseignés le même jour. */
+  .body-list{ display:flex; flex-direction:column; gap:10px; }
+  .body-history-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:12px 14px; display:flex; flex-direction:column; gap:9px; box-shadow: var(--shadow-sm);
+  }
+  .body-history-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .body-history-date{ font-size:13.5px; font-weight:800; }
+  .body-history-actions{ display:flex; gap:6px; flex:0 0 auto; }
+  .body-history-actions button{
+    width:30px; height:30px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:13px; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .body-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .body-chip{
+    display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700;
+    padding:5px 10px 5px 8px; border-radius:var(--r-pill); background:var(--tint); color:var(--text);
+  }
+  .body-chip .body-legend-dot{ width:7px; height:7px; }
+
+
+  /* Fil de discussion du coach */
+  .coach-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .coach-head .big-question{ margin:0; }
+  /* Barre de conversation, collée en haut du défilement.
+     - marges négatives : le fond couvre toute la largeur, sinon le contenu
+       défilerait visiblement dans les 18px de marge latérale ;
+     - padding-right : réserve la place du badge de synchro et du bouton de
+       thème, tous deux fixés en haut à droite. */
+  .chat-bar{
+    position:sticky; top:0; z-index:15;
+    display:flex; align-items:center; gap:8px;
+    margin:0 -18px 4px -18px;
+    padding:10px 86px 10px 18px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+  }
+  .chat-select{
+    flex:1; min-width:0; padding:11px 34px 11px 13px;
+    border-radius:var(--r-md); border:1px solid var(--border);
+    background-color:var(--card); color:var(--text);
+    font-size:16px; font-weight:700; font-family:inherit;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%238a97a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position: right 12px center;
+  }
+  .chat-icon-btn{
+    flex:0 0 42px; height:42px; border-radius:var(--r-md);
+    border:1px solid var(--border); background:var(--card); color:var(--text-dim);
+    font-size:17px; font-family:inherit;
+  }
+  .chat-prompt-hint{
+    font-size:11.5px; color:var(--text-dim); margin:10px 0 0 0;
+    line-height:1.4; font-style:italic;
+  }
+  .chat-prompt-hint:empty{ display:none; }
+  .thread-list{ display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; }
+  .thread-row{
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
+    border-radius:var(--r-sm); background:var(--card-2); border:1px solid var(--border);
+  }
+  .thread-row .name{
+    flex:1; min-width:0; font-size:14px; font-weight:700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .thread-row .count{ font-size:11.5px; color:var(--text-dim); flex:0 0 auto; }
+  .thread-row button{
+    flex:0 0 auto; background:none; border:none; color:var(--text-dim);
+    font-size:15px; padding:4px 6px; font-family:inherit;
+  }
+  .chat-thread{
+    display:flex; flex-direction:column; gap:10px; margin-top:14px;
+    min-height:120px;
+  }
+
+  /* Hub Build Training : liste des séances modifiables */
+  .builder-create-btn{ margin-top:2px; margin-bottom:22px; border-style:solid; color:var(--accent); border-color:var(--accent); }
+  .builder-hub-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .builder-hub-row{
+    display:flex; align-items:center; gap:10px; padding:12px 8px 12px 14px;
+    border-radius:var(--r-md); background:var(--card); border:1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+  .builder-hub-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .builder-hub-name{ font-size:14px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .builder-hub-sub{ font-size:12px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .builder-hub-row button{
+    flex:0 0 auto; background:none; border:1px solid var(--border); border-radius:var(--r-sm);
+    color:var(--text-dim); font-size:15px; padding:6px 9px; font-family:inherit;
+  }
+  .chat-msg{
+    max-width:88%; padding:11px 14px; border-radius:var(--r-md);
+    font-size:14px; line-height:1.5; white-space:pre-wrap;
+  }
+  .chat-msg.user{
+    /* Rouge de marque (17/09/26) plutôt que le profil : la bulle utilisateur
+       est déjà identifiée par sa position à droite, pas besoin d'une 2e info. */
+    align-self:flex-end; background:var(--accent); color:#fff;
+    border-bottom-right-radius:var(--r-xs);
+  }
+  .chat-msg.coach{
+    align-self:flex-start; background:var(--card); color:var(--text);
+    border:1px solid var(--border); border-bottom-left-radius:var(--r-xs);
+  }
+  .chat-author{
+    font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px;
+    opacity:.75; display:block; margin-bottom:3px;
+  }
+  .chat-empty{ font-size:13.5px; color:var(--text-dim); line-height:1.55; margin:0; }
+  .chat-composer{
+    position:sticky; bottom:0; z-index:15;
+    display:flex; flex-direction:column; gap:8px; margin:16px -18px 0 -18px;
+    padding:12px 18px calc(10px + env(safe-area-inset-bottom, 0px)) 18px;
+    border-top:1px solid var(--border); background:var(--bg);
+  }
+  .chat-send{
+    padding:13px; border-radius:var(--r-md); border:none;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:800;
+    font-family:inherit; box-shadow:0 8px 20px var(--accent-glow);
+  }
+  .chat-send:disabled{ opacity:.55; }
+  /* Bulle "le coach écrit" : une barre indéterminée plutôt qu'une vraie barre de
+     progression, parce qu'on n'a aucun moyen de connaître l'avancement réel
+     d'une réponse d'API — l'important est de montrer que ça travaille encore,
+     pas de mentir sur un pourcentage. */
+  .chat-msg.coach.typing{ display:flex; flex-direction:column; gap:7px; }
+  .typing-bar-track{
+    height:4px; width:130px; border-radius:var(--r-xs);
+    background:var(--tint-strong); overflow:hidden; position:relative;
+  }
+  .typing-bar-fill{
+    position:absolute; top:0; bottom:0; left:-40%; width:40%;
+    background:var(--accent); border-radius:var(--r-xs);
+    animation: typingSlide 1.1s ease-in-out infinite;
+  }
+  @keyframes typingSlide{ 0%{ left:-40%; } 100%{ left:100%; } }
+  .typing-status{ font-size:11.5px; color:var(--text-dim); }
+  @media (prefers-reduced-motion: reduce){
+    .typing-bar-fill{ animation:none; left:0; width:100%; opacity:.5; }
+  }
+
+  /* Conseiller */
+  .coach-block{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .coach-feedback{
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:13px 15px; font-size:13.5px; line-height:1.55; color:var(--text);
+    white-space:pre-wrap; max-height:340px; overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .coach-loading{
+    display:flex; flex-direction:column; gap:8px;
+    background:var(--card-2); border:1px solid var(--border);
+    border-radius:var(--r-md); padding:14px 15px;
+  }
+  .coach-note{ font-size:12px; color:var(--text-dim); margin:0; text-align:center; }
+  .coach-actions{ display:flex; gap:8px; }
+  .coach-btn{
+    flex:1; padding:12px; border-radius:var(--r-md); border:1px solid var(--accent);
+    background:transparent; color:var(--accent); font-size:14px; font-weight:700;
+    font-family:inherit;
+  }
+  .coach-btn.ghost{
+    flex:0 0 48px; border-color:var(--border); color:var(--text-dim);
+  }
+  .builder-field{ flex:1; display:flex; flex-direction:column; gap:5px; min-width:0; }
+
+  .session-note-card{
+    display:flex; flex-direction:column; gap:6px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:13px 15px; box-shadow: var(--shadow-sm);
+  }
+  .session-note-input{ min-height:52px; }
+
+  .note-wrap{
+    display:flex; flex-direction:column; gap:5px; margin-top:2px;
+    padding-top:10px; border-top:1px solid var(--border);
+  }
+  .note-label{
+    font-size:11px; color:var(--text-dim); font-weight:700; letter-spacing:0.2px;
+  }
+  .note-input{
+    width:100%; min-height:36px; padding:9px 10px; border-radius:var(--r-sm);
+    border:1px solid var(--border); background:var(--card-2); color:var(--text);
+    font-size:16px; font-family:inherit; resize:vertical; line-height:1.35;
+  }
+  .note-input:focus{ outline:none; border-color:var(--accent); }
+  .note-input::placeholder{ color:var(--text-dim); opacity:0.75; }
+
+  .check-btn{
+    width:44px; height:44px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:20px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .check-btn.checked{
+    background:var(--done); border-color:var(--done); color:#fff;
+  }
+  /* 125 : la validation d'une série est le geste le plus répété de l'app.
+     Le simple agrandissement passait inaperçu bras tendus : on y ajoute une
+     onde qui se propage depuis le bouton. */
+  .check-btn{ position:relative; }
+  .check-btn.pulse{ animation: checkPulse .42s cubic-bezier(.34,1.56,.64,1); }
+  .check-btn.pulse::after{
+    content:''; position:absolute; inset:-4px; border-radius:var(--r-md);
+    border:2px solid var(--done); animation: checkRipple .5s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes checkPulse{
+    0%{ transform:scale(1); }
+    35%{ transform:scale(1.22); }
+    100%{ transform:scale(1); }
+  }
+  @keyframes checkRipple{
+    0%{ transform:scale(.85); opacity:.9; }
+    100%{ transform:scale(1.5); opacity:0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .check-btn.pulse{ animation:none; }
+    .check-btn.pulse::after{ display:none; }
+  }
+
+  .cardio-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:16px; display:flex; flex-direction:column; gap:14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .cardio-top-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .cardio-card .label{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
+  .cardio-card .icon{font-size:22px; flex:0 0 auto;}
+  .cardio-text{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .cardio-card .name{font-weight:700; font-size:15px;}
+  .cardio-suggestion{font-size:12px; color:var(--text-dim);}
+  .cardio-fields-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  /* Replié : pas de gros bloc vide en bas de séance quand on n'a pas fait de cardio */
+  .cardio-card.collapsed{ padding:13px 16px; gap:0; }
+  .cardio-field{ flex:1; min-width:88px; display:flex; flex-direction:column; gap:5px; }
+  .cardio-field-label{ font-size:11px; color:var(--text-dim); font-weight:600; }
+  .cardio-minutes-input{
+    width:100%; padding:10px 6px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; text-align:center;
+  }
+  .cardio-minutes-input:focus{ outline:none; border-color:var(--accent); }
+
+  /* BOTTOM BAR */
+  .bottom-bar{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:var(--glass-bar);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border-top:1px solid var(--border);
+    /* Boutons remontés de 14px au total (10px puis +4px, 20/09/26, demande de Corentin) :
+       24px + safe-area au lieu de 10px. Le fond translucide reste collé au bord bas de l'écran. Écart voulu
+       avec la charte §5.5 — ne pas remettre à 10px. La réserve sous le contenu suit
+       toute seule (adjustBottomSpacing lit bar.offsetHeight). */
+    padding:10px 14px calc(24px + env(safe-area-inset-bottom)) 14px;
+    display:flex; gap:10px;
+  }
+  .bottom-btn{
+    flex:1; padding:14px 10px; border-radius:var(--r-lg); border:1px solid transparent;
+    font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;
+    transition: transform .15s ease;
+  }
+  .bottom-btn:active{ transform:scale(0.97); }
+  .btn-reset{
+    background:var(--reset-btn-bg); color:var(--text); border-color:var(--border); flex:0 0 56px;
+    font-size:20px;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .btn-export{
+    /* Solide (17/09/26), en --accent depuis le 18/09/26 (bleu Corentin /
+       rose Lisa) — pas une version translucide : en 28% d'opacité sur fond
+       sombre, la couleur tournait terne à l'écran plutôt que vive. */
+    background:var(--accent); color:#fff; border-color:transparent;
+    box-shadow:0 8px 20px var(--accent-glow);
+    font-family:var(--f-display); text-transform:uppercase; letter-spacing:.02em;
+    font-size:17px; font-weight:400;
+  }
+
+  /* MODAL */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:var(--glass-modal);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    width:100%; max-width:560px;
+    border-radius:var(--r-xl) var(--r-xl) 0 0; padding:18px; max-height:88vh;
+    display:flex; flex-direction:column; gap:12px;
+    border-top:1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .modal h3{margin:0; font-size:17px;}
+  .motivation-line{
+    margin:0; font-size:13.5px; font-weight:700; color:var(--accent);
+  }
+  .modal textarea{
+    width:100%; min-height:260px; resize:vertical;
+    background:var(--card-2); color:var(--text); border:1px solid var(--border);
+    border-radius:var(--r-md); padding:12px; font-size:16px; line-height:1.5;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  .modal-actions{display:flex; gap:10px;}
+  .modal-actions button{
+    flex:1; padding:13px 10px; border-radius:var(--r-md); border:none; font-size:14.5px; font-weight:700;
+  }
+  .btn-copy{background:var(--done); color:#fff;}
+  .btn-close-modal{background:var(--card-2); color:var(--text); border:1px solid var(--border);}
+
+  /* 131 : les messages s'empilent au lieu de s'écraser l'un l'autre */
+  .toast-stack{
+    position:fixed; bottom:100px; left:0; right:0; z-index:60;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    pointer-events:none; padding:0 16px;
+  }
+  .toast{
+    max-width:100%; background:var(--card-2); color:var(--text);
+    padding:10px 18px; border-radius:var(--r-pill);
+    font-size:13.5px; font-weight:600; border:1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    opacity:0; transform:translateY(12px) scale(.96);
+    transition: opacity .25s ease, transform .25s cubic-bezier(.32,.72,.3,1);
+    text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateY(0) scale(1); }
+  .toast.bump{ animation: toastBump .3s cubic-bezier(.34,1.5,.64,1); }
+  @keyframes toastBump{
+    0%{ transform:translateY(0) scale(1); }
+    45%{ transform:translateY(-3px) scale(1.04); }
+    100%{ transform:translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .toast{ transition: opacity .2s ease; transform:none; }
+    .toast.show{ transform:none; }
+    .toast.bump{ animation:none; }
+  }
+
+  .confirm-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:55;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .confirm-overlay.open{display:flex;}
+  .confirm-box{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:20px; width:100%; max-width:340px; text-align:center;
+  }
+  .confirm-box p{margin:0 0 16px 0; font-size:14.5px; color:var(--text);}
+  .confirm-actions{display:flex; gap:10px;}
+  .confirm-actions button{flex:1; padding:12px; border-radius:var(--r-sm); border:none; font-weight:700; font-size:14px;}
+  .btn-cancel{background:var(--card-2); color:var(--text); border:1px solid var(--border);}
+  .btn-confirm{background:var(--danger); color:#fff;}
+
+  /* POPUP FIN DE SÉANCE */
+  .finish-box{ max-width:360px; padding:22px 20px; }
+  .finish-title{ font-size:18px; font-weight:800; margin:0 0 4px 0 !important; }
+  .finish-sub{ font-size:13px; color:var(--text-dim); margin:0 0 16px 0 !important; }
+  .finish-actions{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .finish-btn{
+    padding:15px 12px; border-radius:var(--r-md); border:1px solid var(--border);
+    font-size:15px; font-weight:700; text-align:center;
+  }
+  .finish-btn.copy{ background:var(--card-2); color:var(--text); }
+  .finish-btn.archive{ background:var(--accent); color:#fff; border-color:transparent; box-shadow:0 8px 20px var(--accent-glow); }
+  .btn-cancel-text{
+    background:none; border:none; color:var(--text-dim); font-size:13.5px;
+    font-weight:600; padding:6px; width:100%;
+  }
+
+  /* BUILD TRAINING */
+  .builder-field{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+  .builder-label{ font-size:12.5px; color:var(--text-dim); font-weight:700; }
+  .builder-input{
+    width:100%; padding:12px 14px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .builder-input:focus{ outline:none; border-color:var(--accent); }
+  .builder-toggle-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-md); margin-top:6px;
+  }
+  .builder-checkbox{ width:20px; height:20px; accent-color:var(--accent); flex:0 0 auto; }
+  .builder-exercises{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+  .builder-exercise-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:14px; display:flex; flex-direction:column; gap:10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .builder-exercise-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .builder-exercise-num{ font-size:12px; color:var(--text-dim); font-weight:700; }
+  .builder-head-actions{ display:flex; gap:6px; }
+  .builder-move-btn, .builder-remove-btn{
+    width:26px; height:26px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:transparent; color:var(--text-dim); font-size:12px;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .builder-move-btn:disabled{ opacity:0.3; }
+  .builder-exercise-row{ display:flex; flex-direction:column; gap:5px; }
+  .builder-exercise-row .mini-label{ font-size:11px; color:var(--text-dim); font-weight:600; }
+  .builder-exercise-row input{
+    width:100%; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .builder-exercise-row input:focus{ outline:none; border-color:var(--accent); }
+  /* Suggestions de noms d'exercices (autocomplétion maison : <datalist> est trop
+     limité et peu fiable sur Safari iOS) */
+  .exercise-name-field{ position:relative; }
+  .suggest-panel{
+    position:absolute; top:100%; left:0; right:0; z-index:40; margin-top:4px;
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+    max-height:212px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    box-shadow: var(--shadow);
+  }
+  .suggest-head{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px;
+    color:var(--text-dim); font-weight:700; padding:9px 12px 5px 12px;
+  }
+  .suggest-item{
+    display:block; width:100%; text-align:left; padding:11px 12px;
+    background:none; border:none; border-top:1px solid var(--border);
+    color:var(--text); font-size:15px; font-family:inherit; line-height:1.3;
+  }
+  .suggest-item:active{ background:rgba(127,127,140,0.16); }
+  .suggest-hint{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-top:7px; font-size:12px; color:var(--text-dim); line-height:1.35;
+  }
+  .suggest-hint-btn{
+    padding:6px 10px; border-radius:var(--r-sm); border:1px solid var(--accent);
+    background:transparent; color:var(--accent); font-size:12px; font-weight:700;
+    font-family:inherit;
+  }
+  .builder-reps-row{ display:flex; gap:10px; }
+  .builder-reps-row .builder-exercise-row{ flex:1; }
+  .builder-options-row{ display:flex; flex-direction:column; gap:8px; margin-top:2px; }
+  .builder-checkbox-label{
+    display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim); font-weight:600;
+  }
+  .builder-checkbox-label input{ width:17px; height:17px; accent-color:var(--accent); flex:0 0 auto; }
+  .builder-add-btn{
+    padding:13px; border-radius:var(--r-md); border:1px dashed var(--border);
+    background:transparent; color:var(--text-dim); font-size:14px; font-weight:700;
+    margin-top:14px;
+  }
+  .builder-save-btn{
+    padding:15px; border-radius:var(--r-md); border:none; margin-top:20px;
+    background:var(--accent); color:#fff; font-size:15.5px; font-weight:800;
+    box-shadow:0 8px 20px var(--accent-glow);
+  }
+
+  /* ARCHIVES */
+  .archive-toolbar{ display:flex; gap:10px; margin:2px 0 4px 0; }
+  .archive-tool-btn{
+    flex:1; padding:11px 8px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:13px; font-weight:700;
+  }
+  .archive-list{ display:flex; flex-direction:column; gap:12px; }
+
+  /* Sélecteur de profil de l'écran Suivi Progression */
+  .profile-switch{
+    display:flex; gap:8px; padding:5px; margin-top:2px;
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+  }
+  .profile-switch-btn{
+    flex:1; padding:11px 8px; border-radius:var(--r-sm); border:1px solid transparent;
+    background:transparent; color:var(--text-dim); font-size:14.5px; font-weight:700;
+    font-family:inherit;
+  }
+  .profile-switch-btn.corentin.selected{
+    background:rgba(31,143,255,0.14); border-color:var(--corentin); color:var(--corentin);
+  }
+  .profile-switch-btn.lisa.selected{
+    background:rgba(255,61,126,0.14); border-color:var(--lisa); color:var(--lisa);
+  }
+
+  /* Sections de l'écran progression : un intitulé par bloc, pour que chaque
+     réglage dise ce qu'il commande au lieu de flotter entre deux cartes. */
+  .progress-section{ display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+  .section-label{
+    font-size:11px; font-weight:800; letter-spacing:0.9px; text-transform:uppercase;
+    color:var(--text-dim); padding-left:2px;
+  }
+  /* Menu déroulant natif. font-size:16px impératif : en dessous, Safari iOS
+     zoome sur le champ à l'ouverture. La flèche est dessinée en fond parce que
+     `appearance:none` supprime celle du système. */
+  .progress-select{
+    width:100%; padding:14px 40px 14px 16px;
+    border-radius:var(--r-md); border:1px solid var(--border);
+    background-color:var(--card); color:var(--text);
+    font-size:16px; font-weight:700; font-family:inherit;
+    box-shadow: var(--shadow-sm);
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%238a97a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position: right 16px center;
+  }
+  .progress-select:focus{ outline:none; border-color:var(--accent); }
+  /* Un choix fait se voit : bordure et texte à la couleur du profil. */
+  .progress-select.chosen{ border-color:var(--accent); color:var(--accent); }
+  .progress-select.skeleton-item{ display:flex; align-items:center; }
+
+  /* 063 : cumul de tout ce qui a été soulevé */
+  .lifetime-card{
+    display:flex; align-items:stretch; gap:14px; margin-top:0;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:15px 16px; box-shadow: var(--shadow-sm);
+  }
+  .lifetime-block{ flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .lifetime-value{
+    font-family:var(--f-display); font-size:27px; font-weight:850; letter-spacing:.02em;
+    color:var(--accent); font-variant-numeric: tabular-nums;
+  }
+  .lifetime-label{ font-size:11.5px; color:var(--text-dim); font-weight:600; line-height:1.3; }
+  .lifetime-sep{ width:1px; background:var(--border); flex:0 0 auto; }
+
+  .progress-exercise-list{ display:flex; flex-direction:column; gap:8px; margin-top:0; }
+  /* Réglages de l'écran progression : métrique et période */
+  .progress-controls{ display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+  .segmented{
+    display:flex; gap:4px; padding:4px;
+    background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);
+  }
+  .segmented-btn{
+    flex:1; padding:9px 4px; border-radius:var(--r-sm); border:1px solid transparent;
+    background:transparent; color:var(--text-dim); font-size:12.5px; font-weight:700;
+    font-family:inherit; white-space:nowrap;
+    transition: background .15s ease, color .15s ease;
+  }
+  .segmented-btn.selected{
+    background:var(--card); color:var(--accent); border-color:var(--border);
+  }
+  .segmented-btn.corentin.selected{
+    background:rgba(var(--corentin-rgb),.15); color:var(--corentin); border-color:var(--corentin);
+  }
+  .segmented-btn.lisa.selected{
+    background:rgba(var(--lisa-rgb),.15); color:var(--lisa); border-color:var(--lisa);
+  }
+  .progress-chart-foot{
+    font-size:11px; color:var(--text-dim); text-align:center; margin-top:2px;
+  }
+  /* 034 : écart sur la période affichée */
+  .progress-delta{
+    display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
+  }
+  .delta-main{ font-size:19px; font-weight:850; letter-spacing:-0.02em; }
+  .delta-pct{ font-size:13px; font-weight:700; }
+  .delta-ctx{ font-size:11.5px; color:var(--text-dim); width:100%; }
+  .progress-delta.up .delta-main, .progress-delta.up .delta-pct{ color:var(--done); }
+  .progress-delta.down .delta-main, .progress-delta.down .delta-pct{ color:var(--danger); }
+  .progress-delta.flat .delta-main, .progress-delta.flat .delta-pct{ color:var(--text-dim); }
+
+  .progress-chart-card{
+    margin-top:14px; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-lg); padding:16px; box-shadow: var(--shadow-sm);
+  }
+  .progress-chart-title{ font-size:14px; font-weight:800; margin-bottom:10px; }
+  .progress-chart-empty{ color:var(--text-dim); font-size:13px; text-align:center; padding:20px 0; }
+  .progress-point-label{ font-size:9.5px; fill:var(--text-dim); }
+  .progress-value-label{ font-size:10.5px; fill:var(--text); font-weight:700; }
+
+  /* ---------- COURBE DE PROGRESSION — ANIMÉE (14/09/26) ----------
+     Trois couches empilées : l'aire dégradée (contexte visuel), le tracé
+     (accent plein, légère lueur), les points (poussent un par un). Le tracé
+     passe par des courbes de Bézier quadratiques plutôt que des segments
+     droits — plus lisible qu'un zigzag sur peu de points, sans complexité
+     d'une vraie interpolation Catmull-Rom. */
+  /* Lignes de repère horizontales (17/09/26, comme dans la maquette) : trois
+     traits fins et discrets pour donner une échelle visuelle au graphique,
+     absents jusque-là. */
+  .chart-grid-row{ stroke:var(--border); stroke-width:1; }
+  .chart-area{ opacity:0; animation: chartAreaIn .6s ease-out .15s forwards; }
+  .chart-line{
+    filter: drop-shadow(0 0 5px rgba(var(--accent-rgb), 0.45));
+    stroke-dasharray: 2000; stroke-dashoffset: 2000;
+    animation: chartLineDraw 1s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  .chart-dot{
+    opacity:0; transform-origin: center;
+    animation: chartDotIn .35s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .chart-dot-glow{
+    opacity:0; animation: chartDotGlowIn .5s ease-out forwards;
+  }
+  @keyframes chartAreaIn{ to{ opacity:1; } }
+  @keyframes chartLineDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes chartDotIn{ from{ opacity:0; transform:scale(0); } to{ opacity:1; transform:scale(1); } }
+  @keyframes chartDotGlowIn{ from{ opacity:0; } to{ opacity:.35; } }
+  @media (prefers-reduced-motion: reduce){
+    .chart-area{ animation:none; opacity:1; }
+    .chart-line{ animation:none; stroke-dashoffset:0; filter:none; }
+    .chart-dot{ animation:none; opacity:1; transform:scale(1); }
+    .chart-dot-glow{ animation:none; opacity:.35; }
+  }
+
+  /* Graphique d'ensemble des mensurations : plusieurs courbes superposées,
+     une apparition en fondu par série (pas de dessin progressif ligne par
+     ligne façon buildChartSvg — avec jusqu'à huit courbes en même temps, ce
+     serait plus confus que lisible). */
+  .body-overview-line{ opacity:0; animation: bodyLineIn .5s ease-out forwards; }
+  .body-overview-dot{ opacity:0; animation: bodyLineIn .4s ease-out forwards; }
+  @keyframes bodyLineIn{ to{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .body-overview-line, .body-overview-dot{ animation:none; opacity:1; }
+  }
+  .archive-empty{
+    text-align:center; color:var(--text-dim); font-size:14px; padding:30px 10px;
+  }
+  .archive-item{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:15px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .archive-info{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .archive-date{ font-size:12px; color:var(--text-dim); font-weight:600; }
+  .archive-title{ font-size:14px; font-weight:800; margin-top:2px; }
+  .archive-actions{ display:flex; gap:8px; flex:0 0 auto; }
+  .archive-view-btn{
+    padding:9px 14px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:13px; font-weight:700;
+  }
+  .archive-delete-btn{
+    width:36px; height:36px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text-dim); font-size:14px;
+  }
+  /* ---------- SQUELETTES DE CHARGEMENT (130) ----------
+     Les classes étaient utilisées par le JS mais n'avaient aucun style : les
+     placeholders s'affichaient donc vides, ce qui était pire que rien. */
+  .skeleton-item{
+    pointer-events:none; opacity:.75;
+  }
+  .sk-line{
+    display:block; border-radius:var(--r-xs); background:var(--card-2);
+    position:relative; overflow:hidden;
+  }
+  .sk-line::after{
+    content:''; position:absolute; top:0; bottom:0; width:60%;
+    background:linear-gradient(90deg, transparent, var(--tint-strong), transparent);
+    animation: skShimmer 1.25s ease-in-out infinite;
+  }
+  @keyframes skShimmer{ from{ left:-60%; } to{ left:110%; } }
+  .sk-sm{ width:38%; height:9px; }
+  .sk-lg{ width:74%; height:13px; margin-top:6px; }
+  .sk-btn{ width:56px; height:30px; border-radius:var(--r-sm); }
+  .sk-icon{ width:100%; height:100%; border-radius:var(--r-md); margin:0; }
+  @media (prefers-reduced-motion: reduce){
+    .sk-line::after{ animation:none; }
+  }
+
+  /* ---------- CONNEXION ---------- */
+  .login-overlay{
+    position:fixed; inset:0; z-index:150; display:none;
+    align-items:center; justify-content:center; padding:24px;
+    /* Écran pré-profil : --accent vaut bleu par défaut (aucun profil choisi
+       à ce stade), 18/09/26 — avant, une lueur de marque rouge fixe. */
+    background:
+      radial-gradient(circle at 50% 35%, var(--accent-glow), transparent 60%),
+      var(--bg);
+  }
+  .login-overlay.open{ display:flex; }
+  .login-box{ width:100%; max-width:360px; display:flex; flex-direction:column; gap:11px; }
+  /* Repris de l'ancien écran de chargement (retiré) : le petit intitulé
+     "Duo Training" au-dessus du titre de connexion réutilisait son style. */
+  .login-eyebrow{
+    margin:5px 0 0 0; font-size:12px; font-weight:700;
+    letter-spacing:2.4px; text-transform:uppercase; color:var(--text-dim);
+  }
+  .login-title{
+    font-family:var(--f-display); text-transform:uppercase;
+    font-size:31px; font-weight:850; letter-spacing:.01em; margin:6px 0 0 0;
+  }
+  .login-sub{ font-size:13px; color:var(--text-dim); margin:0 0 8px 0; }
+  .login-error{ font-size:13px; color:var(--danger); margin:0; min-height:18px; }
+  .model-status{ font-size:12px; color:var(--text-dim); margin:0; line-height:1.4; }
+  .model-status.error{ color:var(--danger); }
+  .login-btn{
+    padding:15px; border-radius:var(--r-md); border:none;
+    background:var(--accent); color:#fff; font-size:16px; font-weight:800;
+    font-family:inherit; box-shadow:0 10px 24px var(--accent-glow);
+  }
+  .login-btn:disabled{ opacity:.6; }
