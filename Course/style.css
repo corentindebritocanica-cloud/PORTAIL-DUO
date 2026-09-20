@@ -12,7 +12,7 @@
     --text:#f2f5f7; --text-dim:#9aa7b2; --border:#26303a;
 
     /* Etats semantiques (valeurs Muscu) */
-    --done:#12b981; --danger:#ef4444; --gold:#ffb800;
+    --danger:#ef4444;
 
     /* Rayons : echelle a 5 crans de la charte */
     --r-xs:4px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px; --r-pill:999px;

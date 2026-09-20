@@ -40,7 +40,6 @@ const dbReady = (async () => {
 function colRef(nom){ return db.collection(nom); }
 function docRef(nom, id){ return db.collection(nom).doc(id); }
 function dbUpdateDoc(nom, id, val){ return docRef(nom, id).update(val); }
-function dbSetDoc(nom, id, val){ return docRef(nom, id).set(val); }
 function dbAddDoc(nom, val){ return colRef(nom).add(val); }
 function dbDeleteDoc(nom, id){ return docRef(nom, id).delete(); }
 function dbOnCollection(nom, cb){

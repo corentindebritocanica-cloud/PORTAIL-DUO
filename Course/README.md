@@ -167,3 +167,11 @@ Depuis l'abaissement de la barre flottante, le bandeau de mise à jour (`#maj-to
 - Le contrôle est aussi fait **~3 s après chaque lancement** (au cas où un réseau lent aurait fait servir une copie ancienne de la page).
 - **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
 **Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
+
+
+## Nettoyage du code mort (21/09/2026)
+
+Audit statique de `app.js`, `style.css` et `index.html`. **Aucun changement de comportement.**
+- `app.js` : `dbSetDoc()` (jamais appelée).
+- `style.css` : variables `--done` et `--gold` (jamais lues). `--r-xs`, `--r-sm`, `--r-md`, `--r-lg`, `--r-xl`, `--r-pill` sont **conservées** : ce sont les jetons de rayon de la charte UX/UI, même si tous ne sont pas utilisés ici.
+- **Vérifié** : syntaxe JS ; plus aucune référence à `dbSetDoc`, `--done`, `--gold`. **Non vérifié sur iPhone.**
