@@ -8,7 +8,7 @@
 // ce dossier (la racine du portail, /Muscu/, /Course/ ne sont jamais
 // interceptés par ce service worker).
 
-const CACHE_NAME = 'budget-lc-shell-v9';
+const CACHE_NAME = 'budget-lc-shell-v10';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Muscu inclus), et un
@@ -36,10 +36,9 @@ const SHELL_FILES = [
 // attendant leur échec réseau. Versions figées : mettre à jour cette liste
 // si jamais une version change dans index.html.
 const EXTERNAL_FILES = [
-  'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js',
+  'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
   'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js'
@@ -66,6 +65,32 @@ self.addEventListener('activate', (event) => {
     ).then(() => self.clients.claim())
   );
 });
+
+// Réseau d'abord pour index.html (20/09/2026) : on tente le serveur en priorité
+// pour toujours servir la dernière version ; si le réseau est absent ou met plus
+// de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
+// Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
+const DELAI_RESEAU_MS = 4000;
+function reseauPuisCache(requete){
+  return new Promise((resolve) => {
+    let termine = false;
+    const repliCache = () => caches.match(requete).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const minuteur = setTimeout(() => {
+      repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
+    }, DELAI_RESEAU_MS);
+    fetch(requete).then((reponse) => {
+      if (reponse && reponse.status === 200) {
+        const copie = reponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(requete, copie));
+      }
+      if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
+    }).catch(() => {
+      clearTimeout(minuteur);
+      if (termine) return;
+      repliCache().then((r) => { termine = true; resolve(r || Response.error()); });
+    });
+  });
+}
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -105,6 +130,12 @@ self.addEventListener('fetch', (event) => {
   const chemin = url.pathname.slice(scopePath.length);
   const estFichierDuShell = chemin === '' || chemin === 'index.html' || chemin === 'manifest.json' || chemin === 'icone.PNG';
   if (!estFichierDuShell) return;
+
+  // index.html : réseau d'abord (voir reseauPuisCache) ; manifest et icône : cache-first.
+  if (chemin === '' || chemin === 'index.html') {
+    event.respondWith(reseauPuisCache(event.request));
+    return;
+  }
 
   // Cache-first : on répond depuis le cache si présent, sinon on va
   // chercher sur le réseau (et on alimente le cache pour la prochaine fois).

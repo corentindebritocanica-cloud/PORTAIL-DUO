@@ -99,3 +99,37 @@ Nouveau retour de Corentin : encore un peu plus haut. `--nav-offset` passe de `m
 
 ### v3.4.4 — Barre d'onglets remontée de 8px supplémentaires (2026-09-20)
 Nouveau retour de Corentin : encore plus haut. `--nav-offset` passe de `max(12px, safe-area − 20px)` (~14px du bord) à **`max(20px, safe-area − 12px)`** (~22px du bord sur iPhone à home indicator), soit 8px de plus vers le haut (18px cumulés depuis la v3.4.0, qui était à ~4px). À ~22px du bord, les boutons de la pilule sont désormais entièrement hors de la zone de geste du home indicator. Tout le reste (`--tabbar-height`, marge basse de `.main-content`, toasts) suit automatiquement. Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v8` → `v9`.
+
+
+### v3.5.0 — Pop-up « 🔔 Nouveautés » fiabilisé, mise à jour au retour dans l'app, nettoyage SDK (2026-09-20)
+
+**Fonctionnalité à préserver** (jusqu'ici absente de ce README) : quand Lisa (ou Corentin depuis un autre appareil) ajoute, modifie ou supprime une ligne, l'autre voit à sa prochaine ouverture un pop-up « 🔔 Nouveautés » listant les changements (➕ ajout, ✏️ modification avec l'ancien et le nouveau montant, 🗑️ suppression), avec un bouton « J'ai compris ».
+
+**Bug corrigé (probablement en place depuis l'activation du cache persistant, v3.0.2/v3.0.3)** : le pop-up comparait le **premier** snapshot Firestore à une copie locale (`budgetLC_cache`) réécrite à chaque snapshot. Avec le cache persistant, ce premier snapshot vient du cache local (identique à la copie) : aucun écart détecté, `firstLoad` passait à `false`, et le snapshot serveur portant les dépenses de Lisa n'était plus jamais comparé. Diagnostic établi par lecture du code (`snap.metadata.fromCache` n'était jamais consulté) et validé par un harnais de test Node (14 vérifications) ; non observé sur appareil avant correction.
+
+**Nouveau fonctionnement** (`gererNouveautes()`, `calculerChangements()`, `afficherNouveautes()`) :
+- **Référence** = dernier état « vu » sur cet appareil, dans `localStorage` (`budgetLC_vu`). L'ancienne clé `budgetLC_cache` n'est plus écrite ; elle est lue une seule fois comme point de départ (migration sans perdre de notification).
+- On **ne compare jamais sur un snapshot issu du cache local** (`snap.metadata.fromCache`) : on attend le premier snapshot serveur.
+- Les **modifications faites sur cet appareil** (`snap.metadata.hasPendingWrites`) mettent la référence à jour sans pop-up : on ne voit jamais ses propres ajouts. Un champ « auteur » n'a donc pas été ajouté (il aurait fallu toucher tous les points de création de lignes).
+- La référence **n'avance ni en arrière-plan, ni tant que le pop-up est ouvert** : elle est enregistrée à la **fermeture** du pop-up (« J'ai compris »). Si l'app est fermée sans le fermer, il réapparaît au lancement suivant.
+- **Fenêtre de comparaison** : à l'ouverture de l'app **et à chaque retour au premier plan** (`visibilitychange`, qui remplace le relancement complet que iOS ne fait pas). Les changements qui arrivent en direct pendant qu'on utilise l'app sont simplement affichés à l'écran, sans pop-up.
+- Le mois par défaut (« Mars 2026 ») n'est plus créé sur un snapshot vide **issu du cache** (seulement sur un snapshot serveur vide).
+- Catégories et noms de mois **échappés** avant injection dans le pop-up (`esc()`).
+
+**Autres changements** :
+- **Mise à jour au retour dans l'app + `sw.js` en réseau d'abord pour `index.html`** — même mécanisme que sur les 3 autres apps (voir section « Mise à jour au retour dans l'app » ci-dessous). Le bandeau « Nouvelle version disponible » sert de repli si une saisie ou un pop-up est en cours.
+- Pied de page des Réglages : « Version 3.0.1 » → « Version 3.5.0 » (l'étiquette n'avait pas suivi les versions depuis v3.0.1).
+- `firebase-database-compat.js` retiré (index.html et EXTERNAL_FILES de `sw.js`) : la Realtime Database n'est plus utilisée depuis v3.0.0 ; un script bloquant en moins dans le `<head>`.
+- `sortablejs@latest` → `sortablejs@1.15.2` (index.html et `sw.js`, doivent rester identiques) : une version non épinglée pouvait changer sous les pieds et n'était de toute façon jamais rafraîchie dans le cache.
+- Déploiement : `DERNIERE_MAJ` mise à jour, `CACHE_NAME` `budget-lc-shell-v9` → `v10`.
+
+
+## Mise à jour au retour dans l'app + « réseau d'abord » (20/09/2026)
+
+**But** : ne plus avoir à fermer l'app (swipe vers le haut) ni à la supprimer/réinstaller pour voir une nouvelle version.
+
+- **`sw.js` — `index.html` en réseau d'abord** (`reseauPuisCache()`) : le serveur est interrogé en priorité, donc la dernière version est toujours servie quand il y a du réseau. Si le réseau est absent ou met plus de **4 s** à répondre (connexion « fantôme » sur iPhone), la copie en cache est servie : l'ouverture hors ligne reste garantie. Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first, inchangés.
+- **Vérification de version au retour au premier plan** (bloc en fin de `<script>`, événement `visibilitychange`) : sur iPhone une PWA remise au premier plan n'est pas rechargée. Au retour, la page relit `index.html` sur le serveur (`cache:'no-store'`) et compare sa constante `DERNIERE_MAJ` avec celle du code en cours d'exécution. Si le serveur a une version différente : **rechargement automatique**, sauf si un champ de saisie est actif ou si une fenêtre (pop-up, confirmation, connexion) est ouverte — dans ce cas c'est le bandeau « 🔄 Nouvelle version disponible » existant qui s'affiche (le rechargement n'interrompt donc jamais une saisie). Au plus un contrôle toutes les 30 s ; hors ligne, rien ne se passe.
+- ⚠️ **`DERNIERE_MAJ` est désormais un élément fonctionnel** (plus seulement un affichage) : elle sert de numéro de version pour cette détection. Ne pas la supprimer, et garder la forme `DERNIERE_MAJ = '…'` (une seule occurrence par fichier).
+- **Une seule fois** : la première mise à jour vers cette version ne bénéficie pas encore du mécanisme (l'ancien code est encore en place). Fermer l'app et la rouvrir une ou deux fois suffit ; ensuite plus aucune manipulation.
+- Budget : le rechargement automatique ne se déclenche pas si le pop-up « Nouveautés » ou la fenêtre « Connexion perdue » est ouvert.
