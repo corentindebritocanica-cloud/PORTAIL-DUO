@@ -1,0 +1,192 @@
+/* style.css — feuille de style de l'app.
+   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+        /* =====================================================
+           1. DESIGN TOKENS — Variables CSS globales
+           Alignes sur UX_UI_CHARTER.md (accent unique, semantique
+           partagee avec Muscu/Course/Portail). Les 10 themes
+           decoratifs (Garde-robe) ont ete retires le 18/09/2026.
+        ===================================================== */
+        :root {
+            --primary:       #1f8fff;
+            --primary-light: rgba(31,143,255,0.14);
+            --lisa:          #ff3d7e;
+            --lisa-light:    rgba(255,61,126,0.14);
+            --secondary:     #FF9500;
+            --danger:        #ef4444;
+            --success:       #12b981;
+            --info:          #AF52DE;
+            --warn:          #FFCC00;
+
+            --bg-color:      #eef1f5;
+            --card-bg:       #ffffff;
+            --text-main:     #131a23;
+            --text-muted:    #5f6c7c;
+            --border:        rgba(23,38,56,0.11);
+
+            --radius-card:   16px;
+            --radius-input:  10px;
+            --shadow-card:   0 6px 14px rgba(20,30,45,0.08);
+            --transition:    all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* Barre d'onglets flottante (meme design que Course, cf. charte 5.5b) */
+            --glass-bar:     rgba(255,255,255,0.84);
+            --shadow-nav:    0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+            --nav-offset:    max(20px, calc(env(safe-area-inset-bottom) - 12px)); /* ~22px sur iPhone (Course : ~4px) */
+            --tabbar-height: calc(62px + var(--nav-offset));
+        }
+
+        /* Profil actif (Corentin = defaut, Lisa = accent rose) — cf. charte UX/UI,
+           meme principe que Muscu/Course. Preference par appareil (localStorage),
+           purement visuelle : le compte et les donnees restent partages. */
+        body.profil-lisa {
+            --primary:       var(--lisa);
+            --primary-light: var(--lisa-light);
+        }
+
+        /* 2. MODE SOMBRE — valeur par defaut de l'app (voir init JS section 10) */
+        body.dark-mode {
+            color-scheme: dark;
+            --bg-color:      #0d1014;
+            --card-bg:       #161b22;
+            --text-main:     #e9eff6;
+            --text-muted:    #8a97a8;
+            --border:        rgba(255,255,255,0.09);
+            --shadow-card:   0 6px 16px rgba(0,0,0,0.30);
+            --glass-bar:     rgba(19,24,31,0.86);
+            --shadow-nav:    0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+        }
+
+        /* 3. LAYOUT GLOBAL */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: var(--transition); -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: none; }
+
+        /* 7. ECRAN DE CONNEXION */
+        #login-screen { position: fixed; inset: 0; background: var(--bg-color); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { background: var(--card-bg); padding: 40px 30px; border-radius: var(--radius-card); box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .login-box h1 { margin-bottom: 5px; font-size: 1.8rem; }
+        .login-box p { color: var(--text-muted); margin-bottom: 25px; font-size: 0.9rem; }
+        .login-box input { width: 100%; padding: 15px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); }
+        .login-btn { width: 100%; padding: 15px; border-radius: var(--radius-input); border: none; background: var(--primary); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        #login-error { color: var(--danger); font-size: 0.9rem; margin-top: 15px; display: none; }
+
+        /* 8. BARRE DE NAVIGATION HAUTE */
+        .top-nav { background-color: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px; padding-top: calc(15px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-card); }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .nav-header h2 { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .btn-theme { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-main); }
+        
+        /* Barre d'onglets flottante « pilule » (meme design que Course — charte 5.5b).
+           Fixe en bas, PAR-DESSUS le contenu. Le conteneur laisse passer les touches
+           (pointer-events:none), seule la pilule les capte. Le nav garde la classe
+           .tab-buttons : le JS de navigation (delegation de clic) est inchange. */
+        .tabbar-flottante { position: fixed; left: 14px; right: 14px; bottom: var(--nav-offset); z-index: 150; display: flex; pointer-events: none; }
+        .tab-buttons { pointer-events: auto; flex: 1; min-width: 0; display: flex; gap: 4px; height: 62px; padding: 5px; border-radius: 999px;
+            background: var(--glass-bar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid var(--border); box-shadow: var(--shadow-nav); }
+        .btn-tab { flex: 1; min-width: 0; padding: 0; border: none; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+            font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .btn-tab:active { transform: scale(0.97); }
+        .btn-tab.active { background: var(--primary-light); color: var(--primary); }
+        .btn-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        /* 9. LISTE DES MOIS (SIDEBAR) */
+        .year-group { margin-bottom: 8px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .year-header { padding: 12px 15px; background: var(--border); font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .year-header::after { content: '▼'; font-size: 0.6rem; transition: transform 0.3s; }
+        .year-header.collapsed::after { transform: rotate(-90deg); }
+        .month-sublist { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
+        .month-sublist.hidden { display: none; }
+        .month-pill { padding: 12px; background: var(--card-bg); border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border); }
+        .month-pill.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+
+        /* 10. CONTENU PRINCIPAL */
+        .main-content { flex: 1; padding: 15px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: calc(var(--tabbar-height) + 24px); }
+        .hidden { display: none !important; }
+
+        /* 11. FORMULAIRES & INPUTS */
+        input, select, textarea { font-size: 16px !important; outline: none; background: transparent; color: var(--text-main); border: none; }
+        input[type="number"] { background: var(--bg-color); border-radius: 6px; padding: 4px; }
+        .search-container input { width: 100%; padding: 12px 15px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--card-bg); font-size: 1rem; margin-bottom: 15px; }
+
+        /* 12. CARTES ET BOITES */
+        .card { background-color: var(--card-bg); border-radius: var(--radius-card); padding: 15px; box-shadow: var(--shadow-card); margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .card-header h3 { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .card-header::after { content: '▼'; font-size: 0.7rem; color: var(--text-muted); transition: 0.3s; }
+        .card-header.collapsed::after { transform: rotate(-90deg); }
+        .section-content { overflow: hidden; transition: max-height 0.4s ease-out; }
+        .section-content.collapsed { max-height: 0 !important; }
+
+        /* 13. LIGNES D'ARTICLES */
+        .item-row { display: flex; align-items: center; background: var(--card-bg); padding: 12px 0; border-bottom: 1px solid var(--border); touch-action: pan-y; }
+        .item-row:last-child { border-bottom: none; }
+        .drag-handle { padding: 10px 10px 10px 0; color: var(--text-muted); cursor: grab; font-size: 1.1rem; touch-action: none; }
+        .item-content { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+        .item-top textarea { flex: 1; font-weight: 600; padding: 0; resize: none; min-height: 24px; overflow: hidden; font-size: 0.95rem; }
+        .item-top input[type="number"] { width: 85px; text-align: right; font-weight: 700; border: none; }
+        .item-bottom { display: flex; gap: 8px; align-items: center; }
+        .item-bottom input[type="date"], .item-bottom select { flex: 1; background: var(--bg-color); font-size: 0.75rem !important; padding: 5px 8px; border-radius: 6px; color: var(--text-muted); }
+        .btn-delete { color: var(--danger); background: none; border: none; font-size: 1.2rem; padding: 0 5px 0 15px; cursor: pointer; }
+
+        /* 14. BOUTONS D'ACTION */
+        .btn-action { padding: 14px; color: white; border-radius: var(--radius-input); font-weight: 700; font-size: 1rem; cursor: pointer; border: none; width: 100%; margin-bottom: 10px; }
+        .bg-primary { background: var(--primary); } 
+        .bg-danger  { background: var(--danger); }
+        .btn-small { padding: 6px 12px; border-radius: 8px; border: none; background: var(--bg-color); color: var(--text-main); font-weight: 600; cursor:pointer;}
+        .btn-pay-method { background: var(--bg-color); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.9rem; cursor: pointer; margin-left: 5px; }
+
+        /* 15. RÉSUMÉS ET CHIFFRES CLÉS */
+        .summary-card { background: linear-gradient(135deg, var(--primary), var(--info)); color: white; text-align: center; border-radius: var(--radius-card); padding: 25px 15px; }
+        .total-amount { font-size: 2.4rem; font-weight: 800; margin: 5px 0; letter-spacing: -1px; }
+        .sub-text { font-size: 0.85rem; opacity: 0.9; }
+        .comparison { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; margin-top: 10px; background: rgba(255,255,255,0.2); }
+
+        /* 16. REVENUS BOX */
+        .revenus-box { background: var(--card-bg); padding: 15px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .revenus-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .revenus-row:not(:last-child) { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+        .revenus-row strong { font-size: 0.8rem; flex: 1; padding-right: 10px; }
+        .revenus-box input { width: 100px; text-align: right; border: 1px solid var(--border); padding: 6px; border-radius: 8px; font-weight: bold; color: var(--primary); }
+
+        /* 17. BARRES DE PROGRESSION */
+        .progress-container { margin-bottom: 12px; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; }
+        .progress-track { background: var(--border); border-radius: 10px; height: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.6s ease; background: var(--primary); }
+
+        /* 18. BULLES FLOTTANTES */
+
+        /* 20. POPUPS ET MODALES */
+        .overlay-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .popup-box { background: var(--card-bg); padding: 25px; border-radius: 20px; text-align: center; max-width: 90%; width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+
+        /* 21. INDICATEUR SYNC */
+        .status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: var(--success); display: inline-block; margin-left: 5px; }
+        .status-dot.offline { background-color: var(--danger); }
+        .status-dot.saving  { background-color: var(--secondary); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* 22. RESPONSIVE DESKTOP ET ADMIN */
+        .admin-section { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+
+        /* Selecteur de profil Corentin/Lisa (charte UX/UI) */
+        .profile-switch { display:flex; gap:8px; padding:5px; margin-top:8px; background:var(--bg-color); border:1px solid var(--border); border-radius:var(--radius-input); }
+        .profile-switch-btn { flex:1; padding:11px 8px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--text-muted); font-size:14.5px; font-weight:700; font-family:inherit; cursor:pointer; }
+        .profile-switch-btn.corentin.selected { background:rgba(31,143,255,0.14); border-color:#1f8fff; color:#1f8fff; }
+        .profile-switch-btn.lisa.selected { background:var(--lisa-light); border-color:var(--lisa); color:var(--lisa); }
+
+
+        @media (min-width: 768px) {
+            body { flex-direction: row; }
+            .top-nav { width: 280px; height: 100vh; position: sticky; padding: 25px; border-bottom: none; border-right: 1px solid var(--border); }
+            .main-content { padding: 40px 40px calc(var(--tabbar-height) + 40px); }
+            .tabbar-flottante { left: 50%; right: auto; width: min(520px, calc(100% - 28px)); transform: translateX(-50%); }
+        }
+        
+        /* TOAST */
+        #toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 15px; white-space: nowrap; transition: bottom 0.3s ease; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        #toast.show { bottom: calc(var(--tabbar-height) + 12px); }
+        #btn-undo { background: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    
