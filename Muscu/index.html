@@ -1434,6 +1434,12 @@
     </div>
 
     <div class="progress-section">
+      <span class="section-label">Sauvegarde automatique</span>
+      <p class="setting-desc">Le dimanche à minuit, un e-mail avec la sauvegarde complète est envoyé automatiquement. Ce bouton en envoie une à la demande. La clé API du coach n'est jamais incluse.</p>
+      <button class="coach-btn ghost-wide" id="btn-sauvegarde-mail" onclick="sendBackupByMail(this)">✉️ Envoyer fichier .json par mail</button>
+    </div>
+
+    <div class="progress-section">
       <span class="section-label">Import (migration)</span>
       <p class="setting-desc">Colle ici un JSON préparé pour réimport (issu d'une migration du catalogue). Écrase par id les archives et séances personnalisées déjà présentes, sans toucher aux conversations du coach ni à la clé API.</p>
       <textarea id="import-text" class="note-input" style="min-height:90px" placeholder="Colle le JSON migré ici…"></textarea>
@@ -4247,7 +4253,7 @@ function repairChatThreads(){
 /* Horodatage du dernier deploiement de code (pas des donnees) : a mettre a
    jour manuellement a chaque commit sur cette app, au format ISO avec
    decalage horaire. Complement du bandeau "Nouvelle version disponible". */
-const DERNIERE_MAJ = '2026-09-20T20:04:55+02:00';
+const DERNIERE_MAJ = '2026-09-20T20:14:33+02:00';
 function formaterDerniereMaj(iso){
   const d = new Date(iso);
   const jour = String(d.getDate()).padStart(2,'0');
@@ -5117,6 +5123,59 @@ function exportAllArchives(){
   document.getElementById('export-text').value = txt;
   document.getElementById('motivation-line').textContent = `Export complet — ${archives.length} séance(s)`;
   document.getElementById('export-modal').classList.add('open');
+}
+
+/* ---------- SAUVEGARDE PAR MAIL (bouton des Réglages) ----------
+   Même mécanisme que l'app Budget : POST du JSON vers le Google Apps Script
+   (fonction doPost) qui le renvoie en pièce jointe par mail. Structure identique à
+   exportFullDataJSON (réimportable), plus les messages du coach (`coachChat`),
+   et le marqueur `_app: 'muscu'` qui permet au script de choisir l'objet du mail.
+   ⚠️ La clé API du coach est RETIRÉE avant l'envoi : elle ne doit jamais partir par mail.
+   L'envoi est en `no-cors` : impossible de lire la réponse, le mail reçu fait foi. */
+const BACKUP_MAIL_URL = "https://script.google.com/macros/s/AKfycbwW3w-ScyWzRousgkNA7tdUeifNqB_kr2fXbGH1AqUSduOEdqjegbllEcxkkhVAko3ZIA/exec";
+
+function buildMailBackupPayload(){
+  const cs = Object.assign({}, coachSettings());
+  delete cs.apiKey;
+  return {
+    _app: 'muscu',
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    archives: {
+      corentin: getArchivesList('corentin'),
+      lisa: getArchivesList('lisa')
+    },
+    archivesTrash: {
+      corentin: getTrashList('corentin'),
+      lisa: getTrashList('lisa')
+    },
+    customSessions: window.customSessionsCache || [],
+    coachSettings: cs,
+    coachChat: window.coachChatCache || []
+  };
+}
+
+function sendBackupByMail(btn){
+  /* Jamais d'envoi avant le premier snapshot : une sauvegarde vide serait pire que pas de sauvegarde. */
+  if(!(window.__archivesLoaded && window.__customSessionsLoaded && window.__coachSettingsLoaded && window.__coachChatLoaded)){
+    showToast("Données en cours de chargement, réessaie dans un instant");
+    return;
+  }
+  const payload = buildMailBackupPayload();
+  const total = payload.archives.corentin.length + payload.archives.lisa.length + payload.customSessions.length;
+  if(total === 0){
+    showToast("Aucune donnée à sauvegarder pour l'instant");
+    return;
+  }
+  const label = btn.textContent;
+  btn.textContent = '⏳ Envoi…';
+  btn.disabled = true;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 30000);
+  fetch(BACKUP_MAIL_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload), signal: ctrl.signal })
+    .then(() => showToast("✅ Sauvegarde envoyée — vérifie ta boîte mail"))
+    .catch(() => showToast("❌ Envoi impossible — vérifie ta connexion"))
+    .finally(() => { clearTimeout(timer); btn.textContent = label; btn.disabled = false; });
 }
 
 /* ---------- EXPORT BRUT COMPLET (JSON, préparation migration catalogue) ----------
