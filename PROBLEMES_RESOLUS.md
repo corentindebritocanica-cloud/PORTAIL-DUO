@@ -19,6 +19,21 @@
 
 ---
 
+## 🔑 Gemini API — clés et API : état vérifié le 20/09/2026
+
+### 20/09/2026 — Muscu (coach IA) — Ce qu'il faut savoir avant de toucher à `geminiFetch()` ou à la clé
+**Contexte** : la clé du coach semblait « instable ». La vraie cause était une clé effacée de Firestore (voir l'entrée « la clé API du coach disparaissait »), pas la clé elle-même — mais les règles Google ont réellement changé cette année.
+**Ce qui est établi** (docs `ai.google.dev/gemini-api/docs/api-key` et `/interactions-overview`) :
+- Clés d'autorisation **`AQ.`** : créées par défaut dans AI Studio depuis le 28/05/2026, limitées par défaut à l'API Gemini, avec coupure rapide en cas de fuite détectée.
+- Clés standard **`AIza`** : les non restreintes sont rejetées depuis le 19/06/2026 ; **toutes les clés standard sont rejetées à partir de septembre 2026**. Une vieille clé `AIza` qui traîne ne marchera plus.
+- **`generateContent`** (utilisé par `geminiFetch()`) est classé « legacy » mais **reste entièrement supporté**. L'**Interactions API** est GA depuis juin 2026 et recommandée pour les nouveaux projets ; les nouvelles capacités (agents, tâches longues) arriveront d'abord dessus. **Aucune migration nécessaire à ce stade.**
+- Google déconseille d'exposer une clé côté client et recommande un proxy serveur. **Muscu s'en écarte sciemment** : clé dans `settings/coach`, règles Firestore `request.auth != null`. Acceptable **uniquement si l'inscription libre est désactivée dans Firebase Authentication** — elle était ouverte le 20/09/2026 (n'importe qui pouvait créer un compte et lire la base). À fermer dans la console, projet par projet.
+**Alternatives écartées** : secret GitHub Actions (injecté dans un HTML public → clé exposée) ; proxy Cloudflare Worker ou Cloud Function (service en plus / plan Blaze) — non retenus pour ne pas ajouter un troisième service à gérer.
+**Piège de lecture** : les pages `aistudio.google.com/docs/…` sont rendues en JavaScript et arrivent **vides** à un `fetch` ; lire les équivalents sur `ai.google.dev/gemini-api/docs/…`.
+**Fichiers touchés** : aucun (connaissance seulement).
+
+---
+
 ## 📧 Budget + Muscu — la sauvegarde hebdomadaire par mail lisait l'ancienne base (20/09/2026)
 
 ### 20/09/2026 — Budget, Muscu — Mail du dimanche = données figées au 18/09
@@ -27,6 +42,7 @@
 **Cause racine** : le script (dernière modification le 09/03/2026) lisait `budgetDataLC.json` dans la Realtime Database avec un secret de base en clair dans l'URL. Depuis la migration Firestore du 18/09/2026, l'app n'écrit plus dans cette base : les mails contenaient des données périmées. Personne ne pouvait le voir sans ouvrir la pièce jointe. Muscu n'avait aucune sauvegarde automatique.
 **Solution** : script réécrit. Lecture de Firestore par **compte de service** (JWT signé avec `Utilities.computeRsaSha256Signature`, clés dans les **propriétés du script** `SA_BUDGET` / `SA_MUSCU`, jamais dans le code). Budget : tableau de mois réimportable + fichier de config. Muscu : format de « Exporter toutes les données » + `coachChat`, **sans `apiKey`**. Mail « ⚠️ Échec » si une lecture échoue ou revient vide. Nom `sauvegardeHebdomadaireBudget` **conservé** pour que le déclencheur existant continue de fonctionner. `doPost` corrigé (adresse) — nécessite **Déployer → Gérer les déploiements → Nouvelle version**. Testé avant livraison : le vrai code contre le vrai Firestore (lecture seule), avec Apps Script et MailApp simulés.
 **Leçon généralisable** : après une migration de base, **lister tout ce qui lit encore l'ancienne** — scripts externes, sauvegardes, automatisations hors dépôt — pas seulement le code de l'app. Une sauvegarde périmée ne se voit pas : prévoir une alerte en cas d'échec ou de résultat vide, et contrôler de temps en temps la date de la dernière donnée dans la pièce jointe. Le secret de l'ancienne Realtime Database n'est plus dans le script ; à révoquer si cette base n'est plus utile.
+**Suite (20/09/2026) — bouton dans Muscu** : ajout de « ✉️ Envoyer fichier .json par mail » dans les Réglages de Muscu, même mécanisme que Budget. Le **même** script sert les deux boutons : `doPost` reconnaît l'objet `{ _app: 'muscu', … }` (Muscu) et traite un tableau comme avant (Budget). La clé API du coach est retirée du payload côté app. ⚠️ **Le script doit être mis à jour ET redéployé** (Déployer → Gérer les déploiements → Nouvelle version) : un `doPost` non redéployé garde l'ancien code, et le mail Muscu part alors quand même mais étiqueté « Budget ».
 **À vérifier sur Course** : si une automatisation du même genre y existe.
 **Fichiers touchés** : Google Apps Script (hors dépôt), `Budget/README.md`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
 
