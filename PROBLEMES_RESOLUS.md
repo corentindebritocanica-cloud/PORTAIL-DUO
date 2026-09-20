@@ -19,6 +19,18 @@
 
 ---
 
+## 🔔 Toutes apps — bandeau « Nouvelle version disponible » affiché à tort (20/09/2026)
+
+### 20/09/2026 — Portail, Muscu, Course, Budget — Faux positif du bandeau de mise à jour
+**Symptôme** : le bandeau « 🔄 Nouvelle version disponible » s'affichait à l'ouverture des apps après un déploiement, alors qu'elles étaient déjà à jour.
+**Cause racine** : le bandeau (ajouté le 19/09) se déclenchait sur la seule installation d'un nouveau service worker (`updatefound`, `reg.waiting`). Ça avait un sens tant que `index.html` était servi en cache-first ; depuis le passage en réseau d'abord (20/09), la page est déjà la dernière version quand le service worker se met à jour. Oubli de ma part lors de la mise en place du réseau d'abord : l'ancien mécanisme n'avait pas été remis en cause. Le bandeau court-circuitait en plus le rechargement automatique.
+**Solution** : la mise à jour du service worker déclenche maintenant `window.__verifierVersion(true)` (comparaison de `DERNIERE_MAJ` avec le serveur) au lieu d'afficher le bandeau : rechargement automatique si la page est vraiment périmée, bandeau seulement si une saisie ou une fenêtre est ouverte. Contrôle aussi ~3 s après chaque lancement. Garde-fou anti-boucle : 2 rechargements automatiques maximum par session (`sessionStorage`, clé `majRechargements`), puis bandeau.
+**Règle à retenir** : un signal « le service worker a changé » n'est pas un signal « la page est périmée » dès que la page est servie en réseau d'abord ; seul le numéro de version du code réellement chargé (`DERNIERE_MAJ`) fait foi.
+**Vérifié** : reproduit dans Chromium avant correction (page à jour + `sw.js` modifié → bandeau à tort sur les 4 apps, et vraie nouvelle version → bandeau au lieu de rechargement), corrigé ensuite ; suite hors ligne / déploiements simulés inchangée. Non vérifié sur iPhone.
+**Fichiers touchés** : `app.js` × 4, `README.md` × 4.
+
+---
+
 ## 🧩 Toutes apps — découpage en index.html / style.css / app.js (20/09/2026)
 
 ### 20/09/2026 — Portail, Muscu, Course, Budget — Un `index.html` de 350 Ko découpé sans rien changer au comportement
