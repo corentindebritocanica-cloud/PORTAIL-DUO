@@ -203,6 +203,7 @@ Le document `settings/coach` contient à la fois la clé API, le modèle, les co
 Deux garde-fous en place depuis :
 - **Toute écriture sur `settings/coach` doit fusionner** : `Object.assign({}, coachSettings(), { ...champs modifiés })`, jamais un objet construit à neuf. `saveCoachSettingsRemote(next)` refait lui-même ce merge en filet de sécurité, mais ne compte pas dessus pour écrire n'importe quoi en amont.
 - **Miroir local des conversations** (`backupChatThreads`, `COACH_THREADS_BACKUP` dans le wrapper `storage`) : à chaque snapshot de `settings/coach`, la liste des conversations (noms + rôles) est dupliquée sur le téléphone. `repairChatThreads()`, appelée à l'ouverture de l'écran Coach, restaure depuis ce miroir toute conversation manquante ou amputée de son rôle. Si le miroir est vide, elle reconstruit au moins l'identifiant et un nom (« Récupérée : … ») depuis les messages orphelins de `coachChat` — mais le rôle, lui, est alors perdu pour de bon.
+- **`{ merge: true }` sur toutes les écritures de `settings/coach`** (20/09/2026) : `saveCoachSettingsRemote()` et l'import JSON. Le « merge à la main » depuis le cache local ne suffisait pas : le même jour, `body` (mensurations), puis `apiKey` et `model`, ont été effacés par des écritures parties d'un cache incomplet. `body` a été restauré depuis une version antérieure lue avec `readTime` (voir `PROBLEMES_RESOLUS.md`). ⚠️ La base n'a **pas** de PITR : la fenêtre de lecture dans le passé n'est que d'**1 heure**. Faire « Exporter toutes les données » de temps en temps.
 
 ## Écran de saisie
 
