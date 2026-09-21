@@ -217,3 +217,14 @@ Audit statique de `index.html`, `app.js`, `style.css` et `sw.js` (fonctions, var
 Retour d'usage de Corentin : le haut de l'app (titre « Budget » et bouton thème) restait flou, trop près de la zone de la barre d'état. `.top-nav` : `padding-top` passe de `calc(15px + env(safe-area-inset-top))` à **`calc(19px + env(safe-area-inset-top))`**, soit **+4 px** (le contenu des vues, placé sous la barre, suit automatiquement). Valeur ajustée à l'usage, comme `--nav-offset` en bas ; pour mémoire Course et Muscu utilisent `inset + 16px`. Le flou natif d'iOS dans cette zone n'est pas reproductible hors iPhone : **non vérifié sur iPhone**, à confirmer visuellement. Fichier : `style.css`.
 
 **Nouveau retour de Corentin : encore 4 px plus bas.** `.top-nav` : `padding-top` passe de `calc(19px + env(safe-area-inset-top))` à **`calc(23px + env(safe-area-inset-top))`** (+4 px, soit **+8 px cumulés** depuis les 15 px d'origine). Toujours **non vérifié sur iPhone**. Fichier : `style.css`.
+
+
+## Résumé pour le Portail (22/09/2026)
+
+Budget publie le **reste à vivre du mois en cours** pour le tableau de bord du Portail. Architecture, sécurité et décisions : `README.md` du Portail, section « Tableau de bord ».
+
+- **`portail/budget`** est écrit dans la base de l'app **COURSES** (`course-app-36e9d`, connexion anonyme), **pas** dans celle de Budget : `maj`, `mois` (ex. « Septembre 2026 »), `reste`, `budget` (report + revenus + revenus additionnels), `depense` (charges + dépenses CB + provisions), `joursRestants`. Tous `null` sauf `mois` si le mois calendaire n'existe pas encore.
+- **Formule identique à `calculerTotauxMensuels`** (`calculerResumePortail`) : report exclusif Revolut (`calculerSoldeReporte`), tickets restos et espèces exclus des dépenses. ⚠️ Si la formule du reste à vivre change dans l'app, **la changer aussi dans `calculerResumePortail`** (sinon le Portail affiche un autre chiffre que l'app). Le calcul porte sur le **mois calendaire courant**, pas sur le mois affiché dans l'app.
+- **Une 2e application Firebase nommée `'portail'`** (`CONFIG_BASE_PORTAIL`, connexion anonyme) : la base et la session e-mail/mot de passe de Budget ne sont pas touchées. Créée à la première publication seulement (`obtenirBasePortail`), en SDK compat comme le reste de l'app.
+- **Déclenchement** : à chaque snapshot de `mois` (`planifierPublicationPortail`), **seulement après un snapshot venu du serveur** (`portailServeurVu`, indépendant de `state.serveurVu` qui ne se met pas à jour en arrière-plan), regroupé 2,5 s, sans effet si le contenu n'a pas changé. Erreurs absorbées.
+- **Vérifié** : calcul sur les vrais mois (identique à la formule de l'app) ; pont de connexion anonyme et d'écriture avec les vrais SDK. **Non vérifié dans l'app complète** (connexion e-mail/mot de passe requise) ni sur iPhone.
