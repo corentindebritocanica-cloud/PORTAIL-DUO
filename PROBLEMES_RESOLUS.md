@@ -19,6 +19,32 @@
 
 ---
 
+## 🧭 Portail — tableau de bord alimenté par 3 bases Firebase (22/09/2026)
+
+### 22/09/2026 — Portail, Muscu, Budget, Courses — Un aperçu de chaque app sur une seule page, sans 2 mots de passe de plus
+**Contexte** : les 3 apps sont sur 3 projets Firebase distincts (Muscu et Budget en e-mail/mot de passe, Courses en anonyme). Architecture retenue (« B1 ») et alternatives écartées : `README.md` du Portail, section « Tableau de bord ».
+**Décision clé** : la **base de Courses sert de boîte aux lettres** (connexion anonyme = aucun mot de passe) ; chaque app y écrit un résumé `portail/<app>` calculé par SA logique ; le Portail lit et affiche. Pas de recalcul dans le Portail (donc pas de divergence avec les apps).
+**Pièges et leçons, réutilisables** :
+- **Une base publique + un dépôt public = des données non fiables.** L'authentification anonyme n'empêche personne de lire/écrire ; ces documents alimentent une page qui partage son origine avec les 3 autres apps (donc leur `localStorage`). Règle : tout valider (types, bornes, longueurs) et n'écrire qu'avec `textContent`, **jamais `innerHTML`**. Test : injecter dans le cache `<img onerror=…>`, `<script>`, chaînes à la place de nombres, valeurs énormes, et vérifier qu'aucun code ne s'exécute.
+- **Ne publier un résumé qu'après un snapshot venu du SERVEUR** (`snap.metadata.fromCache === false`). Sinon un téléphone hors ligne au vieux cache écrase un résumé récent avec des chiffres périmés (même famille que l'incident Courses du 21/09).
+- **`cache.add()` rejette une réponse opaque** (`no-cors`, statut 0) dans Chromium : le SDK n'était pas dans le cache. `fetch(new Request(url, {mode:'no-cors'})).then(rep => cache.put(url, rep))` fonctionne. À vérifier sur `Course/sw.js`, qui utilise `cache.add` avec `no-cors` pour son SDK (fonctionne peut-être sur Safari, pas garanti ailleurs).
+- **Charger le SDK Firebase après le premier affichage** (injection de `<script>`) : un `<script>` de CDN bloquant plante l'ouverture hors ligne (cf. 18/09). Le Portail s'affiche depuis `localStorage` puis se met à jour.
+- **Deux SDK, deux versions, une même session** : Muscu (modulaire 12.18) et Budget (compat 10.8) ouvrent chacun une application nommée `'portail'` vers la base de Courses ; la clé de session Firebase dépend du nom d'application, ce qui isole ces sessions de celles des apps (les apps gardent leur propre connexion). Ne pas nommer cette 2e application `[DEFAULT]`.
+- **Un `const`/`let` dans un script classique n'est pas sur `window`** ; les blocs de publication de Muscu passent par `window.__portail` (défini dans le module), avec un garde `if(!window.__portail) return`.
+- **Recalculer côté Portail ce qui dépend de la date** (jours restants) : le document date de la dernière ouverture de l'app. Et **ne pas afficher « ≈ 0 €/j »** : n'afficher un budget par jour qu'à partir de 1 €.
+**Méthode réutilisable (tests sans iPhone ni mots de passe)** :
+- Extraire les fonctions de calcul d'`app.js` par ancres de texte, les exécuter dans Node sur les **vraies données lues avec l'accès Admin**, et comparer à la formule de l'app (ici : reste à vivre identique à `calculerTotauxMensuels`).
+- Tester un pont de connexion avec une **page-harnais** contenant le vrai bloc de code, le vrai SDK et la vraie base ; écrire un document `_test_…`, le relire, le supprimer.
+- Tester une règle Firestore depuis l'extérieur : `signUp` anonyme (Identity Toolkit REST) puis écriture REST sur une collection neuve, lecture sans jeton (attendu : 403).
+- Chromium simule les zones de sécurité iPhone (`Emulation.setSafeAreaInsetsOverride`) ; `context.set_offline(True)` après une première visite teste le service worker.
+**Process (leçons de mise en ligne)** :
+- **Vérifier que la copie locale d'un fichier est bien la version en ligne avant de la patcher** : mes copies de Muscu dataient d'avant les flammes et le workflow d'auto-version ; un envoi les aurait écrasées. Le contrôle est maintenant : empreinte distante = empreinte de la base, sinon on abandonne.
+- **Ordre des commits** : d'abord ce qui reste compatible avec l'ancien état (`style.css`, `sw.js`, puis `index.html`), en dernier `app.js` (un nouvel `app.js` sur l'ancien HTML aurait planté sur un élément absent, avant même l'enregistrement du service worker). Le workflow d'auto-version réécrit `index.html` (`?v=`) après chaque poussée : repartir de la version distante pour `index.html`.
+- **Les dates** : la date du jour était le 22/09 après minuit ; les commentaires étaient d'abord datés du 23/09. Vérifier avec `date` avant d'écrire une date dans du code ou un README.
+**Fichiers touchés** : `index.html`, `style.css`, `app.js`, `sw.js` (Portail) ; `Muscu/index.html`, `Muscu/app.js` ; `Budget/app.js` ; `Course/app.js` ; les 4 `README.md` ; (+ création des documents `portail/*` dans la base de Courses)
+
+---
+
 ## 🔥 Muscu — flammes de record : tuiles SVG rejetées (« emoji »), passage au canvas de particules (21/09/2026)
 
 ### 21/09/2026 — Muscu — Un effet de feu « réaliste » ne se fait pas avec un motif répété
