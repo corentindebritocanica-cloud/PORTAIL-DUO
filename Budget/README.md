@@ -210,3 +210,8 @@ Audit statique de `index.html`, `app.js`, `style.css` et `sw.js` (fonctions, var
 - **Firestore** : champ `locked` (jamais lu par le code) supprimé des 2 documents qui le portaient (Janvier et Février 2026).
 - Le reste est propre : aucune fonction ou variable inutilisée, aucune classe/variable CSS orpheline, tous les fichiers précachés par `sw.js` existent. Les ids construits dynamiquement (`bar-…-m`, `pct-…-m`, `vue-…`, `conteneur-…`) ne sont pas du code mort.
 - **Vérifié** (jsdom, données réelles) : aucune erreur ; rendu Mensuel (avril : reste 9,20 €), Bilan Annuel (15 284,46 €) et Réglages identiques à avant. **Non vérifié sur iPhone.**
+
+
+## Haut de l'écran : descendu de 4 px (21/09/2026)
+
+Retour d'usage de Corentin : le haut de l'app (titre « Budget » et bouton thème) restait flou, trop près de la zone de la barre d'état. `.top-nav` : `padding-top` passe de `calc(15px + env(safe-area-inset-top))` à **`calc(19px + env(safe-area-inset-top))`**, soit **+4 px** (le contenu des vues, placé sous la barre, suit automatiquement). Valeur ajustée à l'usage, comme `--nav-offset` en bas ; pour mémoire Course et Muscu utilisent `inset + 16px`. Le flou natif d'iOS dans cette zone n'est pas reproductible hors iPhone : **non vérifié sur iPhone**, à confirmer visuellement. Fichier : `style.css`.
