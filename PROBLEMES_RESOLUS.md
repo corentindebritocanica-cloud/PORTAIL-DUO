@@ -19,18 +19,20 @@
 
 ---
 
-## 🔥 Toutes apps — data-URI SVG en CSS : le `#` tronque l'image ; effets « hors carte » bloqués par `overflow:hidden` (21/09/2026)
+## 🔥 Muscu — flammes de record : tuiles SVG rejetées (« emoji »), passage au canvas de particules (21/09/2026)
 
-### 21/09/2026 — Muscu — Flammes autour de la carte d'exercice : premier rendu = simple halo, aucune flamme
-**Symptôme** : les flammes SVG (`background:url("data:image/svg+xml,…")`) étaient bien calculées par le navigateur (styles, dimensions et `background-image` corrects dans l'inspecteur) mais **rien ne s'affichait** ; seul le halo `box-shadow` apparaissait.
-**Fausses pistes explorées** : positions/dimensions des bandes (correctes), `display` de la couche (correct), animation ou `opacity` à 0 (non), `z-index`, XML du SVG (valide hors CSS).
-**Cause racine** : dans une data-URI, un **`#` brut est le début du fragment d'URL** : `stop-color='#ffb000'` coupait le SVG à cet endroit, qui devenait invalide (chargé en `Image` : erreur). Le CSS ne signale rien, l'image est juste absente. Les références `url(#gradient)` doivent, elles aussi, s'écrire `url(%23gradient)`.
-**Solution** : encoder **tous** les `#` en `%23` (couleurs et références de dégradés), en plus de `<` → `%3C`, `>` → `%3E` et des guillemets internes en `'`. **Test rapide** : `new Image()` avec la valeur de la variable CSS → `onload` ou `onerror`.
-**Pièges liés, même chantier** :
-- Un effet **en dehors** d'une carte est rogné par son `overflow:hidden` (utile à l'arrondi). Solution : `overflow:visible` sur l'état concerné, et redonner l'arrondi à l'enfant qui en dépendait (fond teinté de l'en-tête).
-- Une couche `position:absolute; inset:-Npx` qui **dépasse de la marge latérale de la page** crée un défilement horizontal (débordement à droite ; à gauche c'est inoffensif). Garder `N` inférieur à la marge.
-- Une règle `prefers-reduced-motion` qui met `animation:none` est **ignorée si son sélecteur est moins spécifique** que celui qui déclare l'animation : vérifier `getComputedStyle(el).animationName` avec `reduced_motion="reduce"`.
-- **Rotation de tuiles SVG** : un `<g transform>` emporte aussi les dégradés en `objectBoundingBox`, donc le sens du dégradé suit la rotation (pratique pour faire des flammes vers la droite, la gauche ou le bas à partir d'un seul dessin).
+### 21/09/2026 — Muscu — Un effet de feu « réaliste » ne se fait pas avec un motif répété
+**Symptôme** : 1re version (tuiles SVG de flammes répétées le long des bords, animées en `scaleY`) : rendu jugé « emoticonesque » — flammes identiques, alignées, clairement des icônes.
+**Cause racine (de conception)** : un motif répété est régulier par construction ; le feu réel est irrégulier, additif (les zones de recouvrement chauffent vers le blanc), change de couleur au fil de sa vie et monte en accélérant.
+**Solution** : système de **particules sur `<canvas>`** — sprites radiaux pré-rendus, mélange `lighter`, hauteur modulée par une somme de sinus glissants (langues de feu), étincelles, lit de braises à la base, flammes qui s'éteignent en douceur. Détails et réglages : README de Muscu, section « Flammes de record ».
+**Pièges rencontrés, réutilisables** :
+- **Data-URI SVG en CSS : le `#` brut tronque l'image** (début du fragment d'URL). `stop-color='#ffb000'` coupait le SVG ; le CSS ne signale rien, l'image est juste absente alors que `background-image` est « correct » dans l'inspecteur. Encoder **tous** les `#` en `%23` (couleurs et `url(#id)`), plus `<` → `%3C`, `>` → `%3E`. **Test rapide** : `new Image()` avec la valeur → `onload` / `onerror`.
+- **Effet hors d'une carte** : rogné par son `overflow:hidden`. Passer en `overflow:visible` sur l'état concerné et redonner l'arrondi à l'enfant qui en dépendait.
+- **Couche `position:absolute; inset:-Npx` plus large que la marge de la page** : défilement horizontal (à droite ; à gauche c'est inoffensif). Garder N inférieur à la marge.
+- **`prefers-reduced-motion` ignoré** si son sélecteur est moins spécifique que la règle qui déclare l'animation : vérifier `getComputedStyle(el).animationName` avec `reduced_motion="reduce"`.
+- **Canvas avec animation continue** : une seule boucle `requestAnimationFrame` partagée, `dt` plafonné, `IntersectionObserver` pour ne pas calculer hors écran, et **nettoyage des éléments détachés du DOM** (l'app re-`render()` tout : sans `isConnected`, la boucle tournerait pour des cartes disparues). Plafonner le `devicePixelRatio` (1,5) pour un effet flou.
+- **Un effet additif sur fond clair** perd son cœur blanc : le tester dans les deux thèmes.
+**Méthode** : prototyper hors de l'app (page de test + Playwright, captures à plusieurs instants) avant de committer — l'iteration visuelle sur un effet se fait en quelques minutes ainsi.
 **Fichiers touchés** : `Muscu/style.css`, `Muscu/app.js`, `Muscu/README.md`
 
 ---
