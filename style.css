@@ -20,6 +20,7 @@
     --gold-dark:#c48e00;
     --green:#12b981;     /* Courses */
     --green-dark:#0d8f64;
+    --danger:#ef4444;    /* reste à vivre négatif */
 
     --r-xs:4px;
     --r-sm:10px;
@@ -57,8 +58,9 @@
     font-family:-apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
     -webkit-font-smoothing:antialiased;
     display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    padding:22px 18px calc(22px + env(safe-area-inset-bottom));
+    align-items:center; justify-content:flex-start;
+    /* viewport-fit=cover : le contenu du haut doit démarrer sous la barre d'état (cf. PROBLEMES_RESOLUS, 20/09/2026) */
+    padding:calc(env(safe-area-inset-top, 0px) + 16px) 18px calc(22px + env(safe-area-inset-bottom));
     position:relative;
     overflow-x:hidden;
   }
@@ -104,24 +106,69 @@
     margin:4px 2px 22px 2px; line-height:1.05;
   }
 
-  .doors{ display:flex; flex-direction:column; gap:14px; }
+  /* ==========================================================================
+     TABLEAU DE BORD (22/09/2026) — une carte par app, cliquable en entier.
+     Les chiffres sont écrits par JS (textContent) à partir de `portail/<app>`.
+     ========================================================================== */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; margin-bottom:6px; }
+  .topbar .app-title{ margin:0; }
+  .dash-titre{ margin:2px 2px 16px; }
+  .dash-titre .big-question{ margin:0; }
+  .dash-date{ margin:4px 0 0; font-size:13px; font-weight:500; color:var(--text-dim); }
+  html.light-mode .app-title-brand{ color:var(--blue-dark); }
 
-  .big-choice-btn{
-    padding:22px 18px; border-radius:var(--r-lg); border:1px solid var(--border);
-    background:var(--card); color:var(--text); font-family:inherit;
-    display:flex; align-items:center; text-align:left; gap:16px;
-    box-shadow: var(--shadow-sm); position:relative;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  .dash{ display:flex; flex-direction:column; gap:14px; }
+  .dash-card{
+    display:block; color:var(--text); text-decoration:none;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    box-shadow:var(--shadow-sm); overflow:hidden;
+    transition: transform .15s ease;
   }
-  .big-choice-btn:active{ transform: scale(0.98); }
+  .dash-card:active{ transform:scale(0.98); }
+  .dash-card:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+  .dash-top{ display:flex; align-items:center; gap:14px; padding:16px 16px 0; min-height:62px; }
+  .dash-body{ display:flex; flex-direction:column; padding:14px 16px 6px; }
+  .dash-label{ display:block; font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--text-dim); }
+  .dash-value{ display:block; font-size:15px; font-weight:700; line-height:1.3; margin-top:3px; }
+  .dash-sub{ display:block; font-size:12.5px; color:var(--text-dim); margin-top:1px; }
+  .dash-sep{ display:block; height:1px; background:var(--border); margin:12px 0; }
+  .dash-rowhead{ display:flex; align-items:center; justify-content:space-between; }
+  .dash-serie{ display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; }
+  .dash-serie[hidden]{ display:none; }
+  .dash-person{ display:flex; align-items:center; gap:10px; margin-top:9px; }
+  .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .dot.corentin{ background:var(--blue); }
+  .dot.lisa{ background:#ff3d7e; }
+  .dash-name{ width:62px; font-size:13px; font-weight:600; }
+  .segs{ flex:1; display:grid; grid-template-columns:repeat(var(--n, 4), minmax(0, 1fr)); gap:5px; }
+  .segs i{ display:block; height:6px; border-radius:3px; background:var(--card-2); }
+  .segs.corentin i.on{ background:var(--blue); }
+  .segs.lisa i.on{ background:#ff3d7e; }
+  .dash-count{ width:30px; text-align:right; font-size:12px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+
+  .dash-big{ display:flex; align-items:baseline; gap:6px; margin-top:2px; }
+  .dash-int{ font-family:var(--f-display); font-size:46px; line-height:1; text-transform:uppercase; }
+  .dash-unit{ font-size:18px; font-weight:700; color:var(--text-dim); }
+  .dash-unit-txt{ font-size:13px; font-weight:500; }
+  .dash-big.neg .dash-int, .dash-big.neg .dash-unit{ color:var(--danger); }
+  .gauge{ display:block; height:8px; border-radius:4px; background:var(--card-2); overflow:hidden; margin-top:12px; }
+  .gauge-fill{ display:block; height:100%; width:0; border-radius:4px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transition:width .4s ease; }
+  .gauge-fill.over{ background:var(--danger); }
+  .dash-meta{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px 10px; margin-top:10px; font-size:12px; color:var(--text-dim); }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .chips:empty{ display:none; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:var(--r-pill); background:var(--card-2); font-size:12.5px; font-weight:600; }
+  .chip::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--green); }
+  .dash-foot{ display:block; padding:6px 16px 14px; font-size:11.5px; color:var(--text-dim); }
+
+  .dash-card.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
+  .dash-card.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
+  .dash-card.green .choice-icon{ background:linear-gradient(150deg, var(--green), var(--green-dark)); }
 
   .choice-icon{
     width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);
     display:flex; align-items:center; justify-content:center; color:#fff;
   }
-  .big-choice-btn.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
-  .big-choice-btn.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
-  .big-choice-btn.green .choice-icon{ background:linear-gradient(150deg, var(--green), var(--green-dark)); }
   .choice-icon svg{ width:20px; height:20px; }
 
   .choice-text{ flex:1; min-width:0; }
@@ -133,17 +180,16 @@
     display:block; font-size:12.5px; color:var(--text-dim); margin-top:2px; font-weight:500;
   }
   .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform .15s ease; }
-  .big-choice-btn:active .choice-chev{ transform: translateX(2px); }
+  .dash-card:active .choice-chev{ transform: translateX(2px); }
 
   @media (prefers-reduced-motion: reduce){
-    .big-choice-btn{ transition:none; }
+    .dash-card, .gauge-fill{ transition:none; }
   }
 
-  /* Bouton de bascule theme (charte UX/UI) */
+  /* Bouton de bascule theme (charte UX/UI) — dans la barre du haut depuis le 22/09/2026 (le tableau de bord défile) */
   .theme-toggle{
-    position:fixed; top:calc(14px + env(safe-area-inset-top, 0px)); right:14px; z-index:25;
-    width:38px; height:38px; border-radius:50%;
-    background:var(--card); border:1px solid var(--border);
+    flex:0 0 auto; width:44px; height:44px; padding:0; border-radius:50%;
+    background:var(--card); border:1px solid var(--border); color:var(--text);
     display:flex; align-items:center; justify-content:center;
     font-size:16px; box-shadow: var(--shadow-sm);
   }
