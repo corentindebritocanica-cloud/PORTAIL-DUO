@@ -107,14 +107,16 @@
   }
 
   /* ==========================================================================
-     TABLEAU DE BORD (22/09/2026) — une carte par app, cliquable en entier.
-     Les chiffres sont écrits par JS (textContent) à partir de `portail/<app>`.
+     TABLEAU DE BORD (22/09/2026, hiérarchie revue après essai sur iPhone)
+     Lecture d'une carte : 1) nom de l'app + « mis à jour il y a… », 2) l'information clé
+     en GROS, 3) une phrase d'explication en gris. Les libellés sont en phrase normale :
+     les petites majuscules espacées de la 1re version rendaient tout au même niveau.
      ========================================================================== */
   .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; margin-bottom:6px; }
   .topbar .app-title{ margin:0; }
   .dash-titre{ margin:2px 2px 16px; }
   .dash-titre .big-question{ margin:0; }
-  .dash-date{ margin:4px 0 0; font-size:13px; font-weight:500; color:var(--text-dim); }
+  .dash-date{ margin:4px 0 0; font-size:14px; font-weight:500; color:var(--text-dim); }
   html.light-mode .app-title-brand{ color:var(--blue-dark); }
 
   .dash{ display:flex; flex-direction:column; gap:14px; }
@@ -126,40 +128,57 @@
   }
   .dash-card:active{ transform:scale(0.98); }
   .dash-card:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+
+  /* 1) En-tête : nom de l'app + fraîcheur des chiffres (à la place de l'ancienne description de l'app) */
   .dash-top{ display:flex; align-items:center; gap:14px; padding:16px 16px 0; min-height:62px; }
-  .dash-body{ display:flex; flex-direction:column; padding:14px 16px 6px; }
-  .dash-label{ display:block; font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--text-dim); }
-  .dash-value{ display:block; font-size:15px; font-weight:700; line-height:1.3; margin-top:3px; }
-  .dash-sub{ display:block; font-size:12.5px; color:var(--text-dim); margin-top:1px; }
-  .dash-sep{ display:block; height:1px; background:var(--border); margin:12px 0; }
-  .dash-rowhead{ display:flex; align-items:center; justify-content:space-between; }
-  .dash-serie{ display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; }
-  .dash-serie[hidden]{ display:none; }
-  .dash-person{ display:flex; align-items:center; gap:10px; margin-top:9px; }
-  .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .dash-card .choice-label{ font-size:22px; }
+  .dash-maj{ font-size:12.5px; color:var(--text-dim); margin-top:1px; }
+  .dash-maj.vieux{ color:var(--gold); }                          /* plus de 24 h : chiffres à prendre avec prudence */
+  html.light-mode .dash-maj.vieux{ color:#8a6200; }
+
+  .dash-body{ display:flex; flex-direction:column; padding:16px 16px 18px; }
+  .dash-label{ display:block; font-size:13px; font-weight:600; color:var(--text-dim); }
+  .dash-label-2{ margin-top:16px; }
+  .dash-label[hidden]{ display:none; }                            /* display:block ci-dessus écrase sinon l'attribut hidden */
+  /* 2) L'information clé */
+  .dash-value{ display:block; font-size:19px; font-weight:800; line-height:1.25; margin-top:4px; }
+  .dash-big{ display:flex; align-items:baseline; gap:8px; margin-top:2px; }
+  .dash-int{ font-family:var(--f-display); font-size:52px; line-height:1; letter-spacing:.01em; }
+  .dash-unit{ font-size:22px; font-weight:700; color:var(--text-dim); }
+  .dash-unit-txt{ font-size:17px; font-weight:600; }
+  .dash-big.neg .dash-int, .dash-big.neg .dash-unit{ color:var(--danger); }
+  /* 3) L'explication */
+  .dash-sub{ display:block; font-size:13.5px; color:var(--text-dim); margin-top:4px; }
+  .dash-sep{ display:block; height:1px; background:var(--border); margin:16px 0 14px; }
+
+  /* Muscu : la semaine de chacun */
+  .dash-person{ display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .dot{ width:9px; height:9px; border-radius:50%; flex:none; }
   .dot.corentin{ background:var(--blue); }
   .dot.lisa{ background:#ff3d7e; }
-  .dash-name{ width:62px; font-size:13px; font-weight:600; }
+  .dash-name{ width:64px; font-size:14px; font-weight:700; }
   .segs{ flex:1; display:grid; grid-template-columns:repeat(var(--n, 4), minmax(0, 1fr)); gap:5px; }
-  .segs i{ display:block; height:6px; border-radius:3px; background:var(--card-2); }
+  .segs i{ display:block; height:9px; border-radius:5px; background:var(--card-2); }
   .segs.corentin i.on{ background:var(--blue); }
   .segs.lisa i.on{ background:#ff3d7e; }
-  .dash-count{ width:30px; text-align:right; font-size:12px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .dash-count{ width:52px; text-align:right; font-size:13px; font-weight:700; white-space:nowrap; }
+  .dash-serie{ display:flex; align-items:center; gap:10px; margin-top:16px; padding:10px 12px; border-radius:var(--r-md); background:var(--card-2); }
+  .dash-serie[hidden]{ display:none; }
+  .dash-serie svg{ flex:none; width:22px; height:22px; }
+  .dash-serie-txt{ display:block; font-size:14px; font-weight:800; }
+  .dash-serie-note{ display:block; font-size:12.5px; color:var(--text-dim); margin-top:1px; }
 
-  .dash-big{ display:flex; align-items:baseline; gap:6px; margin-top:2px; }
-  .dash-int{ font-family:var(--f-display); font-size:46px; line-height:1; text-transform:uppercase; }
-  .dash-unit{ font-size:18px; font-weight:700; color:var(--text-dim); }
-  .dash-unit-txt{ font-size:13px; font-weight:500; }
-  .dash-big.neg .dash-int, .dash-big.neg .dash-unit{ color:var(--danger); }
-  .gauge{ display:block; height:8px; border-radius:4px; background:var(--card-2); overflow:hidden; margin-top:12px; }
-  .gauge-fill{ display:block; height:100%; width:0; border-radius:4px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transition:width .4s ease; }
+  /* Budget : jauge = part du budget déjà dépensée */
+  .gauge{ display:block; height:10px; border-radius:5px; background:var(--card-2); overflow:hidden; margin-top:16px; }
+  .gauge-fill{ display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transition:width .4s ease; }
   .gauge-fill.over{ background:var(--danger); }
-  .dash-meta{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px 10px; margin-top:10px; font-size:12px; color:var(--text-dim); }
-  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .dash-meta{ display:block; margin-top:8px; font-size:13px; color:var(--text-dim); }
+
+  /* Courses : rayons concernés, avec le nombre de produits dans une pastille */
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
   .chips:empty{ display:none; }
-  .chip{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:var(--r-pill); background:var(--card-2); font-size:12.5px; font-weight:600; }
-  .chip::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--green); }
-  .dash-foot{ display:block; padding:6px 16px 14px; font-size:11.5px; color:var(--text-dim); }
+  .chip{ display:inline-flex; align-items:center; gap:8px; min-height:34px; padding:0 6px 0 12px; border-radius:var(--r-pill); background:var(--card-2); font-size:13.5px; font-weight:600; }
+  .chip-n{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--green); color:#04150f; font-size:12px; font-weight:800; }
 
   .dash-card.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
   .dash-card.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
