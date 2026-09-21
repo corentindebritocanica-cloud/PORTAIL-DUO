@@ -216,6 +216,62 @@
             }
         });
 
+        // --- Résumé pour le Portail (22/09/2026) ---
+        // Le Portail (tableau de bord) affiche un aperçu de chaque app. Budget écrit ici un petit
+        // document `portail/budget` dans la base de l'app COURSES (qui sert de « boîte aux lettres »
+        // aux 3 apps : son authentification anonyme n'exige aucun mot de passe). Voir README.
+        // - Deuxième application Firebase, nommée 'portail' : la base et la session de Budget ne sont pas touchées.
+        // - Publié seulement après un snapshot venu du SERVEUR (jamais avec le seul cache local).
+        // - Toute erreur est absorbée : cette fonction ne doit jamais gêner l'app.
+        const CONFIG_BASE_PORTAIL = {
+            apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+            authDomain: "course-app-36e9d.firebaseapp.com",
+            projectId: "course-app-36e9d",
+            storageBucket: "course-app-36e9d.firebasestorage.app",
+            messagingSenderId: "55041357024",
+            appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
+        };
+        let portailPret = null, portailServeurVu = false, portailDernier = '', portailMinuteur = null;
+        const obtenirBasePortail = () => {
+            if (!portailPret) {
+                portailPret = (async () => {
+                    const app = firebase.apps.find(a => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
+                    const a = app.auth();
+                    await new Promise(res => { const off = a.onAuthStateChanged(() => { off(); res(); }); });
+                    if (!a.currentUser) await a.signInAnonymously();
+                    return app.firestore();
+                })().catch(err => { portailPret = null; throw err; }); // on retentera à la prochaine publication
+            }
+            return portailPret;
+        };
+        // Reste à vivre du mois CALENDAIRE en cours, avec exactement la formule de calculerTotauxMensuels().
+        const calculerResumePortail = () => {
+            const now = new Date();
+            const nom = NOMS_MOIS[now.getMonth()] + ' ' + now.getFullYear();
+            const m = state.donnees.find(x => x.nom === nom);
+            if (!m) return { mois: nom, reste: null, budget: null, depense: null, joursRestants: null }; // mois pas encore démarré
+            const report = calculerSoldeReporte(state.donnees.indexOf(m));
+            const budget = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
+            const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions);
+            const r2 = (n) => Math.round(n * 100) / 100;
+            const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate() };
+        };
+        const planifierPublicationPortail = () => {
+            if (!portailServeurVu || !state.donnees.length) return;
+            clearTimeout(portailMinuteur);
+            portailMinuteur = setTimeout(async () => {
+                try {
+                    const resume = calculerResumePortail();
+                    const signature = JSON.stringify(resume);
+                    if (signature === portailDernier) return;
+                    portailDernier = signature;
+                    const base = await obtenirBasePortail();
+                    await base.collection('portail').doc('budget').set(Object.assign({ maj: Date.now() }, resume));
+                } catch (err) { portailDernier = ''; console.warn('Résumé Portail non publié :', err); }
+            }, 2500);
+        };
+
         // --- Logique DB ---
         const attacherEcouteurs = () => {
             unsubMois = colMois().onSnapshot((snap) => {
@@ -232,6 +288,8 @@
                         state.moisActifId = state.donnees[state.donnees.length - 1].id;
                     }
                     gererNouveautes(state.donnees, depuisCache, ecrituresLocales);
+                    if (!depuisCache) portailServeurVu = true;
+                    planifierPublicationPortail();
                     rafraichirTouteLInterface();
                 } else {
                     // Ne jamais créer le mois par défaut sur un snapshot vide issu du cache local
