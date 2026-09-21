@@ -964,20 +964,6 @@ function render(){
       card.classList.toggle('complete', done === ex.sets && ex.sets > 0);
     }
 
-    /* Flammes autour de la carte (21/09/26) : même condition que le badge de
-       record. La couche est créée à la demande, une seule fois par carte ; c'est
-       la classe `pr-fire` sur la carte qui l'affiche (et rejoue l'allumage). */
-    function setRecordFire(on){
-      if(on && !card.querySelector(':scope > .pr-fire-fx')){
-        const fx = document.createElement('div');
-        fx.className = 'pr-fire-fx';
-        fx.setAttribute('aria-hidden', 'true');
-        fx.innerHTML = '<i class="ft"></i><i class="fr"></i><i class="fl"></i>';
-        card.appendChild(fx);
-      }
-      card.classList.toggle('pr-fire', on);
-    }
-
     function refreshRecordBadge(){
       if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
       const d = loadDayData(currentSessionId, currentProfile);
@@ -1001,10 +987,10 @@ function render(){
         if(wasHidden){
           prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
         }
-        setRecordFire(true);
+        recordFireSet(card, true);
       } else {
         prBadge.style.display = 'none';
-        setRecordFire(false);
+        recordFireSet(card, false);
       }
     }
     refreshRecordBadge();
@@ -1854,6 +1840,255 @@ function bestSetByVolume(archive, exerciseName){
 /* Meilleure série jamais faite sur cet exercice, au sens du volume (archives
    uniquement : la séance en cours ne doit pas faire bouger le record pendant
    qu'on la saisit). Retourne { weight, reps, volume } ou null. */
+/* ---------- FLAMMES DE RECORD : système de particules sur canvas (21/09/26) ----------
+   Remplace les tuiles SVG de la première version, qui donnaient des flammes « emoji ».
+   Ici, des centaines de petites bulles de lumière naissent le long du bord de la carte,
+   montent en accélérant, ondulent, rétrécissent et passent du blanc-jaune au orange, puis
+   au rouge sombre avant de s'éteindre. Le mélange additif (`lighter`) fait le reste : là
+   où elles se superposent, ça chauffe vers le blanc, comme une vraie flamme. Quelques
+   étincelles montent plus haut. La zone de la carte est ensuite « gommée » : le feu
+   sort de derrière la carte, il ne la recouvre pas.
+   - Une seule boucle requestAnimationFrame pour toutes les cartes enflammées ; elle
+     s'arrête quand plus aucune ne l'est. Carte hors écran ou détachée du DOM : plus de calcul.
+   - `prefers-reduced-motion: reduce` : une seule image figée, aucune boucle.
+   - Les valeurs PAD doivent rester égales à `inset` de `.pr-fire-fx` dans style.css. */
+var _recordFireEngine = null;
+function recordFireSet(card, on){
+  if(!_recordFireEngine) _recordFireEngine = createRecordFireEngine();
+  _recordFireEngine.set(card, on);
+}
+
+function createRecordFireEngine(){
+  const PAD = { l:17, t:44, r:17, b:14 };
+  const R_CARD = 18;                 /* = --r-lg */
+  const MAX_PARTICLES = 520;
+  const STEPS = 24;
+  const STOPS = [                    /* t, r, g, b, alpha */
+    [0.00, 255, 246, 200, 1.00],
+    [0.16, 255, 212,  80, 0.95],
+    [0.40, 255, 140,  24, 0.82],
+    [0.68, 226,  58,  12, 0.58],
+    [1.00,  96,  20,  10, 0.00]
+  ];
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dprMax = 1.5;                 /* flou volontaire : inutile de payer le plein Retina */
+
+  /* Sprites : une bulle lumineuse par étape de couleur, dessinée une fois. */
+  const sprites = [];
+  function stopColor(t){
+    for(let i = 1; i < STOPS.length; i++){
+      if(t <= STOPS[i][0]){
+        const a = STOPS[i-1], b = STOPS[i], k = (t - a[0]) / (b[0] - a[0]);
+        return [a[1]+(b[1]-a[1])*k, a[2]+(b[2]-a[2])*k, a[3]+(b[3]-a[3])*k, a[4]+(b[4]-a[4])*k];
+      }
+    }
+    const l = STOPS[STOPS.length-1]; return [l[1], l[2], l[3], l[4]];
+  }
+  (function buildSprites(){
+    for(let i = 0; i < STEPS; i++){
+      const c = stopColor(i / (STEPS - 1));
+      const cv = document.createElement('canvas'); cv.width = cv.height = 48;
+      const g = cv.getContext('2d');
+      const gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+      const rgb = Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]);
+      gr.addColorStop(0,    'rgba(' + rgb + ',' + c[3].toFixed(3) + ')');
+      gr.addColorStop(0.42, 'rgba(' + rgb + ',' + (c[3] * 0.55).toFixed(3) + ')');
+      gr.addColorStop(1,    'rgba(' + rgb + ',0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 48, 48);
+      sprites.push(cv);
+    }
+  })();
+
+  const fires = new Set();
+  let raf = 0, last = 0;
+
+  /* Hauteur de flamme le long d'un bord : somme de sinus qui glissent dans le temps →
+     des langues qui naissent, montent et retombent au lieu d'un mur uniforme. */
+  function heat(pos, time){
+    const v = 0.56 + 0.30 * Math.sin(pos * 0.040 + time * 2.3)
+                   + 0.22 * Math.sin(pos * 0.093 - time * 3.1 + 1.7)
+                   + 0.13 * Math.sin(pos * 0.210 + time * 5.3);
+    return v < 0.18 ? 0.18 : (v > 1 ? 1 : v);
+  }
+  /* Descente du bord au niveau des coins arrondis (la flamme épouse l'arrondi). */
+  function cornerDrop(x, w){
+    const d = x < R_CARD ? R_CARD - x : (x > w - R_CARD ? x - (w - R_CARD) : 0);
+    return d > 0 ? R_CARD - Math.sqrt(Math.max(0, R_CARD * R_CARD - d * d)) : 0;
+  }
+
+  function create(card){
+    const box = document.createElement('div');
+    box.className = 'pr-fire-fx';
+    box.setAttribute('aria-hidden', 'true');
+    const cv = document.createElement('canvas');
+    box.appendChild(cv);
+    card.appendChild(box);
+    const ctx = cv.getContext('2d');
+    const f = {
+      card: card, box: box, cv: cv, ctx: ctx,
+      w: 0, h: 0, dpr: 1, cssW: 0, cssH: 0,
+      p: [], time: 0, acc: [0, 0, 0, 0], ramp: 0,
+      emitting: false, visible: true, ro: null, io: null, still: false
+    };
+    function measure(){
+      const w = card.offsetWidth, h = card.offsetHeight;
+      if(!w || !h) return;
+      if(w === f.w && h === f.h && f.cv.width) return;
+      f.w = w; f.h = h;
+      f.dpr = Math.min(dprMax, window.devicePixelRatio || 1);
+      f.cssW = w + PAD.l + PAD.r; f.cssH = h + PAD.t + PAD.b;
+      cv.width = Math.round(f.cssW * f.dpr); cv.height = Math.round(f.cssH * f.dpr);
+      if(f.still) draw(f);
+    }
+    f.measure = measure;
+    measure();
+    if(window.ResizeObserver){ f.ro = new ResizeObserver(measure); f.ro.observe(card); }
+    if(window.IntersectionObserver){
+      f.io = new IntersectionObserver(function(en){ f.visible = en[en.length - 1].isIntersecting; }, { rootMargin: '60px' });
+      f.io.observe(card);
+    }
+    return f;
+  }
+
+  function spawn(f, kind){
+    if(f.p.length >= MAX_PARTICLES) return;
+    const w = f.w, h = f.h;
+    let x, y, vx, vy, life, r0, type = 0;               /* type : 0 flamme, 1 étincelle, 2 lit de braises */
+    if(kind === 0){                                     /* haut */
+      const px = Math.random() * w, k = heat(px, f.time);
+      x = PAD.l + px; y = PAD.t + cornerDrop(px, w) + 3;
+      vx = (Math.random() - 0.5) * 14; vy = -(34 + Math.random() * 24) * k;
+      life = (0.55 + Math.random() * 0.30) * (0.6 + 0.6 * k); r0 = 8 + Math.random() * 6;
+      if(Math.random() < 0.35){ type = 2; vy *= 0.25; life = 0.4 + Math.random() * 0.25; r0 = 11 + Math.random() * 5; }
+    } else if(kind === 1 || kind === 2){                /* côtés */
+      const py = R_CARD * 0.5 + Math.random() * (h - R_CARD * 0.5 - 4), k = heat(py + (kind === 1 ? 0 : 300), f.time);
+      const dir = kind === 1 ? -1 : 1;
+      x = PAD.l + (kind === 1 ? 0 : w) + dir * 2; y = PAD.t + py;
+      vx = dir * (5 + Math.random() * 12); vy = -(26 + Math.random() * 24) * k;
+      life = (0.36 + Math.random() * 0.26) * (0.6 + 0.55 * k); r0 = 6 + Math.random() * 4;
+      if(Math.random() < 0.3){ type = 2; vy *= 0.3; life = 0.32 + Math.random() * 0.2; r0 = 8 + Math.random() * 3; }
+    } else {                                            /* étincelles */
+      const px = Math.random() * w;
+      x = PAD.l + px; y = PAD.t + 3;
+      vx = (Math.random() - 0.5) * 36; vy = -(62 + Math.random() * 64);
+      life = 0.9 + Math.random() * 0.9; r0 = 1.1 + Math.random() * 1.3; type = 1;
+    }
+    f.p.push({ x: x, y: y, vx: vx, vy: vy, age: 0, life: life, r0: r0, seed: Math.random() * 6.283, type: type });
+  }
+
+  function step(f, dt){
+    f.time += dt;
+    if(f.emitting) f.ramp = Math.min(1, f.ramp + dt / 0.45); else f.ramp = Math.max(0, f.ramp - dt / 0.3);
+    if(f.emitting || f.ramp > 0){
+      const w = f.w, h = f.h, I = f.ramp;
+      const rates = [ w * 1.6, h * 0.5, h * 0.5, 7 ];    /* particules / seconde */
+      for(let k = 0; k < 4; k++){
+        f.acc[k] += rates[k] * I * dt;
+        while(f.acc[k] >= 1){ f.acc[k] -= 1; spawn(f, k); }
+      }
+    }
+    const p = f.p;
+    for(let i = p.length - 1; i >= 0; i--){
+      const q = p[i];
+      q.age += dt;
+      if(q.age >= q.life){ p[i] = p[p.length - 1]; p.pop(); continue; }
+      const t = q.age / q.life;
+      q.vy -= (q.type === 1 ? 8 : (q.type === 2 ? 16 : 50)) * dt;                        /* la chaleur accélère la montée */
+      q.x += (q.vx + Math.sin(q.age * 9 + q.seed) * (q.type === 1 ? 10 : 16) * (0.25 + t)) * dt;
+      q.y += q.vy * dt;
+    }
+  }
+
+  function draw(f){
+    const ctx = f.ctx, d = f.dpr;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0, 0, f.cssW, f.cssH);
+    ctx.globalCompositeOperation = 'lighter';
+    const I = f.ramp;
+    /* Particules */
+    const p = f.p;
+    for(let i = 0; i < p.length; i++){
+      const q = p[i], t = q.age / q.life, ty = q.type;
+      const rise = t < 0.1 ? t / 0.1 : 1;
+      if(ty === 1){                                    /* étincelle */
+        const s = sprites[1], sz = q.r0 * (1 - 0.5 * t) * 3;
+        ctx.globalAlpha = rise * Math.pow(1 - t, 0.7);
+        ctx.drawImage(s, q.x - sz / 2, q.y - sz / 2, sz, sz);
+        continue;
+      }
+      const r = q.r0 * (1 - 0.7 * t);
+      const a = rise * Math.pow(1 - t, ty === 2 ? 0.8 : 1.05) * (ty === 2 ? 0.38 : 0.56);
+      const s = sprites[Math.min(STEPS - 1, ((ty === 2 ? t * 0.6 : t) * (STEPS - 1)) | 0)];
+      const sw = r * 2.3, sh = ty === 2 ? sw * 1.1 : sw * 1.9;    /* la flamme s'étire vers le haut */
+      ctx.globalAlpha = a;
+      ctx.drawImage(s, q.x - sw / 2, q.y - sh * 0.62, sw, sh);
+    }
+    /* Fondu dans les 16 px du haut : une flamme n'est jamais coupée net par le bord du canvas. */
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'destination-out';
+    const fade = ctx.createLinearGradient(0, 0, 0, 16);
+    fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = fade; ctx.fillRect(0, 0, f.cssW, 16);
+    /* On gomme la carte : le feu sort de derrière elle. */
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'destination-out';
+    const x0 = PAD.l, y0 = PAD.t, x1 = PAD.l + f.w, y1 = PAD.t + f.h, R = R_CARD;
+    ctx.beginPath();
+    ctx.moveTo(x0 + R, y0); ctx.lineTo(x1 - R, y0); ctx.arcTo(x1, y0, x1, y0 + R, R);
+    ctx.lineTo(x1, y1 - R); ctx.arcTo(x1, y1, x1 - R, y1, R);
+    ctx.lineTo(x0 + R, y1); ctx.arcTo(x0, y1, x0, y1 - R, R);
+    ctx.lineTo(x0, y0 + R); ctx.arcTo(x0, y0, x0 + R, y0, R); ctx.closePath();
+    ctx.fillStyle = '#000'; ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function finish(f){
+    fires.delete(f);
+    if(f.ro) f.ro.disconnect();
+    if(f.io) f.io.disconnect();
+    f.card.classList.remove('pr-fire');
+    f.card._recFire = null;
+    if(f.box.parentNode) f.box.parentNode.removeChild(f.box);
+  }
+
+  function frame(ts){
+    raf = 0;
+    const dt = Math.min(0.05, Math.max(0.001, (ts - last) / 1000)); last = ts;
+    fires.forEach(function(f){
+      if(!f.card.isConnected){ finish(f); return; }
+      if(!f.visible) return;
+      step(f, dt); draw(f);
+      if(!f.emitting && f.ramp === 0 && f.p.length === 0) finish(f);
+    });
+    if(fires.size) raf = requestAnimationFrame(frame);
+  }
+  function kick(){ if(!raf && fires.size){ last = performance.now(); raf = requestAnimationFrame(frame); } }
+
+  return {
+    set: function(card, on){
+      let f = card._recFire;
+      if(on){
+        if(!f) f = card._recFire = create(card);
+        card.classList.add('pr-fire');
+        f.measure();
+        if(f.emitting) return;
+        f.emitting = true;
+        if(reduced){                     /* image figée : on « pré-cuit » 1 s de feu puis on dessine une fois */
+          f.still = true; f.ramp = 1;
+          for(let i = 0; i < 40; i++) step(f, 0.025);
+          draw(f);
+        } else { fires.add(f); kick(); }
+      } else if(f && f.emitting){
+        f.emitting = false;
+        if(reduced || !f.card.isConnected){ finish(f); }
+        else { fires.add(f); kick(); }   /* s'éteint en douceur : les dernières particules finissent leur vie */
+      }
+    }
+  };
+}
+
 function getPersonalRecord(profile, exerciseName){
   let best = null;
   getArchivesList(profile).forEach(arc => {
