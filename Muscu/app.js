@@ -4692,6 +4692,72 @@ function emptyTrash(){
   setArchivesMode('active');
 }
 
+/* ---------- RÉSUMÉ POUR LE PORTAIL (22/09/26) ----------
+   Le tableau de bord du Portail affiche : la prochaine séance de chaque profil, le nombre de
+   séances de la semaine, et une « série » de semaines. Muscu calcule ces valeurs (il connaît
+   ses archives et ses séances modifiées) et les publie dans `portail/muscu` via `window.__portail`
+   (pont défini dans index.html). Voir README.
+   - Semaine = du lundi 00:00 au dimanche, heure de l'appareil. Une archive = une séance.
+   - Série = semaines d'affilée où Corentin ET Lisa ont fait au moins PORTAIL_SERIE_MIN séances. La
+     semaine en cours compte si c'est déjà atteint, et ne casse pas la série sinon (elle n'est pas finie).
+   - Prochaine séance = celle qui suit, dans l'ordre du programme, la dernière séance FIXE archivée du
+     profil (une séance personnalisée ne décale rien) ; la première du programme s'il n'y a rien. */
+const PORTAIL_OBJECTIF_SEMAINE = 4;
+const PORTAIL_SERIE_MIN = 3;
+function portailDebutSemaine(ts){
+  const d = new Date(ts); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+function portailSemainePrecedente(debut){
+  const d = new Date(debut); d.setDate(d.getDate() - 7);
+  return portailDebutSemaine(d.getTime());
+}
+function calculerResumePortailMuscu(archives, getSessionFn, now){
+  const profils = ['corentin', 'lisa'];
+  const parSemaine = { corentin: {}, lisa: {} };
+  profils.forEach(p => (archives[p] || []).forEach(a => {
+    if(!a.createdAt) return;
+    const k = portailDebutSemaine(a.createdAt);
+    parSemaine[p][k] = (parSemaine[p][k] || 0) + 1;
+  }));
+  const debut = portailDebutSemaine(now);
+  const atteint = k => profils.every(p => (parSemaine[p][k] || 0) >= PORTAIL_SERIE_MIN);
+  let serie = atteint(debut) ? 1 : 0;
+  let k = portailSemainePrecedente(debut);
+  for(let i = 0; i < 520 && atteint(k); i++){ serie++; k = portailSemainePrecedente(k); }
+  const prochaine = {};
+  profils.forEach(p => {
+    const derniere = (archives[p] || []).find(a => isFixedSessionId(a.sessionId));  /* déjà triées de la plus récente à la plus ancienne */
+    const idx = derniere ? SESSIONS.findIndex(s => s.id === derniere.sessionId) : -1;
+    const s = getSessionFn(SESSIONS[(idx + 1) % SESSIONS.length].id);
+    prochaine[p] = { label: String(s.label || ''), title: String(s.title || ''), nbExos: (s.exercises || []).length, cardio: !!s.cardio };
+  });
+  return {
+    objectif: PORTAIL_OBJECTIF_SEMAINE,
+    semaine: { corentin: parSemaine.corentin[debut] || 0, lisa: parSemaine.lisa[debut] || 0 },
+    serie: serie,
+    prochaine: prochaine
+  };
+}
+let portailMuscuMinuteur = null, portailMuscuDernier = '';
+function planifierPublicationPortailMuscu(){
+  /* Seulement quand archives ET séances sont arrivées, et que le dernier snapshot vient du serveur. */
+  if(!window.__portail || !window.__archivesLoaded || !window.__customSessionsLoaded || window.__syncFromCache) return;
+  clearTimeout(portailMuscuMinuteur);
+  portailMuscuMinuteur = setTimeout(async () => {
+    try{
+      const resume = calculerResumePortailMuscu(window.archivesCache || {}, getSession, Date.now());
+      const signature = JSON.stringify(resume);
+      if(signature === portailMuscuDernier) return;
+      portailMuscuDernier = signature;
+      await window.__portail.publish('muscu', Object.assign({ maj: Date.now() }, resume));
+    }catch(err){ portailMuscuDernier = ''; console.warn('Résumé Portail non publié :', err); }
+  }, 3000);
+}
+window.addEventListener('archives-updated', planifierPublicationPortailMuscu);
+window.addEventListener('custom-sessions-updated', planifierPublicationPortailMuscu);
+
 /* réagit en temps réel aux changements Firestore (y compris depuis l'autre téléphone) */
 window.addEventListener('archives-updated', () => {
   const activeView = document.querySelector('.view.active');
