@@ -187,3 +187,14 @@ Audit statique de `app.js`, `style.css` et `index.html`. **Aucun changement de c
 **Prévention côté app** (`app.js`) : « + Nouveau rayon… » **réutilise** un rayon existant du même nom (sans tenir compte des accents ni de la casse) au lieu d'en créer un second.
 **Risque résiduel** : un téléphone qui n'aurait jamais rouvert Course depuis le 19/09 pourrait encore porter l'ancien code en cache. Sur chaque téléphone : ouvrir Course une fois en ligne ; en cas de doute, supprimer le raccourci d'écran d'accueil et le recréer. Piste durable (non faite) : une règle de sécurité Firestore refusant la création d'un produit sans champ `achete`, ce qui bloquerait définitivement l'ancienne fonction.
 **Non vérifié sur iPhone.**
+
+
+## Résumé pour le Portail (22/09/2026)
+
+Courses est la **« boîte aux lettres » du tableau de bord du Portail** : sa base (`course-app-36e9d`, connexion anonyme) reçoit un document `portail/<app>` de chaque app. Architecture, sécurité et décisions : `README.md` du Portail, section « Tableau de bord ».
+
+- **`portail/courses`** (écrit par cette app) : `maj`, `aAcheter` (produits dans la liste), `restants` (dans la liste **et pas encore cochés** en magasin : `aAcheter && !achete`), `rayons` = les 3 rayons qui ont le plus de produits restants (`{nom, n}`).
+- **Code** : bloc « RÉSUMÉ POUR LE PORTAIL » de `app.js` (`calculerResumePortail`, `planifierPublicationPortail`). `dbOnCollection` transmet un 2e argument `fromCache` à son callback (rétro-compatible). Publié **seulement après un premier snapshot SERVEUR des deux collections** (`portailRecu`), regroupé 2,5 s, sans effet si rien n'a changé.
+- ⚠️ **La collection `portail` n'est pas à Courses** : elle contient aussi `portail/muscu` et `portail/budget`, écrits par les autres apps. Ne pas la supprimer, ne pas la « nettoyer » dans un script de remise à zéro du catalogue, et ne pas s'étonner d'y trouver ces documents.
+- **Règles Firestore inchangées** : `request.auth != null` (anonyme compris) couvre déjà `portail`.
+- **Vérifié** (vraie base, connexion anonyme réelle) : l'app publie et met à jour `portail/courses`. **Non vérifié sur iPhone.**
