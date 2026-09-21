@@ -37,18 +37,18 @@
       <p class="dash-date" id="dash-date"></p>
     </div>
 
-    <!-- Tableau de bord (22/09/2026) : chaque carte ouvre son app ; les chiffres viennent de
-         `portail/<app>` dans la base de Courses (voir README). Tout le texte dynamique est
-         écrit avec textContent, jamais innerHTML : ces documents ne sont pas de confiance. -->
+    <!-- Tableau de bord : chaque carte ouvre son app ; les chiffres viennent de `portail/<app>` dans la base
+         de Courses (voir README). Tout le texte dynamique est écrit avec textContent, jamais innerHTML :
+         ces documents ne sont pas de confiance.
+         Lecture d'une carte : 1) nom de l'app + « mis à jour il y a… », 2) l'information clé en GROS,
+         3) une phrase d'explication en gris. -->
     <div class="dash">
       <a class="dash-card blue" href="./Muscu/" id="carte-muscu">
         <span class="dash-top">
-          <span class="choice-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="4" y="7" width="2" height="10" rx="1"/><rect x="6" y="10.5" width="12" height="3"/><rect x="18" y="7" width="2" height="10" rx="1"/><rect x="20" y="9" width="3" height="6" rx="1"/></svg>
-          </span>
+          <span class="choice-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="4" y="7" width="2" height="10" rx="1"/><rect x="6" y="10.5" width="12" height="3"/><rect x="18" y="7" width="2" height="10" rx="1"/><rect x="20" y="9" width="3" height="6" rx="1"/></svg></span>
           <span class="choice-text">
             <span class="choice-label">Musculation</span>
-            <span class="choice-desc">Séances, progressions &amp; coach IA</span>
+            <span class="choice-desc dash-maj" id="mu-maj"></span>
           </span>
           <span class="choice-chev">›</span>
         </span>
@@ -57,52 +57,46 @@
           <span class="dash-value" id="mu-next">—</span>
           <span class="dash-sub" id="mu-next-sub"></span>
           <span class="dash-sep"></span>
-          <span class="dash-rowhead">
-            <span class="dash-label">Cette semaine</span>
-            <span class="dash-serie" id="mu-serie" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ff8a00" d="M12 1.5c.7 3.6 5.3 6.2 5.3 11.3a5.3 5.3 0 0 1-10.6 0c0-2.2 1-3.6 2-4.8.4 1.5 1.1 2.4 1.9 2.7C10.3 7.4 10.9 4.2 12 1.5Z"/><path fill="#ffd23f" d="M12 12.4c.4 1.6 2.3 2.6 2.3 4.6a2.3 2.3 0 0 1-4.6 0c0-1 .5-1.7 1-2.3.3.6.7 1 1 1.1-.1-1.1.1-2.4.3-3.4Z"/></svg><span id="mu-serie-txt"></span></span>
-          </span>
+          <span class="dash-label">Séances faites cette semaine</span>
           <span class="dash-person"><span class="dot corentin"></span><span class="dash-name">Corentin</span><span class="segs" id="mu-segs-corentin"></span><span class="dash-count" id="mu-count-corentin"></span></span>
           <span class="dash-person"><span class="dot lisa"></span><span class="dash-name">Lisa</span><span class="segs" id="mu-segs-lisa"></span><span class="dash-count" id="mu-count-lisa"></span></span>
+          <span class="dash-serie" id="mu-serie" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ff8a00" d="M12 1.5c.7 3.6 5.3 6.2 5.3 11.3a5.3 5.3 0 0 1-10.6 0c0-2.2 1-3.6 2-4.8.4 1.5 1.1 2.4 1.9 2.7C10.3 7.4 10.9 4.2 12 1.5Z"/><path fill="#ffd23f" d="M12 12.4c.4 1.6 2.3 2.6 2.3 4.6a2.3 2.3 0 0 1-4.6 0c0-1 .5-1.7 1-2.3.3.6.7 1 1 1.1-.1-1.1.1-2.4.3-3.4Z"/></svg><span><span class="dash-serie-txt" id="mu-serie-txt"></span><span class="dash-serie-note" id="mu-serie-note"></span></span></span>
         </span>
-        <span class="dash-foot" id="mu-maj"></span>
       </a>
 
       <a class="dash-card gold" href="./Budget/" id="carte-budget">
         <span class="dash-top">
-          <span class="choice-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a11 11 0 1 0 11 11A11 11 0 0 0 12 1Zm.9 16.1v1.4h-1.8v-1.4c-1.7-.3-3-1.3-3.1-3h1.8c.1.8.7 1.4 2 1.4 1.2 0 2-.6 2-1.5 0-.8-.6-1.3-2.2-1.7-2-.5-3.4-1.3-3.4-3.1 0-1.5 1.2-2.6 2.9-2.9V4.5h1.8v1.4c1.6.3 2.7 1.4 2.8 2.9h-1.8c-.1-.8-.6-1.4-1.7-1.4-1.1 0-1.8.5-1.8 1.3 0 .7.6 1.1 2.1 1.5 2.2.5 3.5 1.4 3.5 3.3 0 1.6-1.2 2.7-3.1 3Z"/></svg>
-          </span>
+          <span class="choice-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a11 11 0 1 0 11 11A11 11 0 0 0 12 1Zm.9 16.1v1.4h-1.8v-1.4c-1.7-.3-3-1.3-3.1-3h1.8c.1.8.7 1.4 2 1.4 1.2 0 2-.6 2-1.5 0-.8-.6-1.3-2.2-1.7-2-.5-3.4-1.3-3.4-3.1 0-1.5 1.2-2.6 2.9-2.9V4.5h1.8v1.4c1.6.3 2.7 1.4 2.8 2.9h-1.8c-.1-.8-.6-1.4-1.7-1.4-1.1 0-1.8.5-1.8 1.3 0 .7.6 1.1 2.1 1.5 2.2.5 3.5 1.4 3.5 3.3 0 1.6-1.2 2.7-3.1 3Z"/></svg></span>
           <span class="choice-text">
             <span class="choice-label">Budget</span>
-            <span class="choice-desc">Charges, dépenses &amp; provisions</span>
+            <span class="choice-desc dash-maj" id="bu-maj"></span>
           </span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
-          <span class="dash-label">Reste à vivre</span>
+          <span class="dash-label" id="bu-label">Reste à vivre</span>
           <span class="dash-big" id="bu-big"><span class="dash-int" id="bu-int">—</span><span class="dash-unit" id="bu-dec"></span></span>
+          <span class="dash-sub" id="bu-days"></span>
           <span class="gauge"><span class="gauge-fill" id="bu-fill"></span></span>
-          <span class="dash-meta"><span id="bu-spent"></span><span id="bu-days"></span></span>
+          <span class="dash-meta" id="bu-spent"></span>
         </span>
-        <span class="dash-foot" id="bu-maj"></span>
       </a>
 
       <a class="dash-card green" href="./Course/" id="carte-courses">
         <span class="dash-top">
-          <span class="choice-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1" fill="currentColor" stroke="none"/><circle cx="20" cy="21" r="1" fill="currentColor" stroke="none"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-          </span>
+          <span class="choice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1" fill="currentColor" stroke="none"/><circle cx="20" cy="21" r="1" fill="currentColor" stroke="none"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
           <span class="choice-text">
             <span class="choice-label">Courses</span>
-            <span class="choice-desc">Saisie &amp; liste au supermarché</span>
+            <span class="choice-desc dash-maj" id="co-maj"></span>
           </span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
+          <span class="dash-label">Sur la liste</span>
           <span class="dash-big"><span class="dash-int" id="co-int">—</span><span class="dash-unit dash-unit-txt" id="co-label"></span></span>
+          <span class="dash-label dash-label-2" id="co-chips-label" hidden>Rayons concernés</span>
           <span class="chips" id="co-chips"></span>
         </span>
-        <span class="dash-foot" id="co-maj"></span>
       </a>
     </div>
 
