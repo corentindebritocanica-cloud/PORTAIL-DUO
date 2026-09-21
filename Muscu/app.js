@@ -964,6 +964,20 @@ function render(){
       card.classList.toggle('complete', done === ex.sets && ex.sets > 0);
     }
 
+    /* Flammes autour de la carte (21/09/26) : même condition que le badge de
+       record. La couche est créée à la demande, une seule fois par carte ; c'est
+       la classe `pr-fire` sur la carte qui l'affiche (et rejoue l'allumage). */
+    function setRecordFire(on){
+      if(on && !card.querySelector(':scope > .pr-fire-fx')){
+        const fx = document.createElement('div');
+        fx.className = 'pr-fire-fx';
+        fx.setAttribute('aria-hidden', 'true');
+        fx.innerHTML = '<i class="ft"></i><i class="fr"></i><i class="fl"></i>';
+        card.appendChild(fx);
+      }
+      card.classList.toggle('pr-fire', on);
+    }
+
     function refreshRecordBadge(){
       if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
       const d = loadDayData(currentSessionId, currentProfile);
@@ -987,8 +1001,10 @@ function render(){
         if(wasHidden){
           prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
         }
+        setRecordFire(true);
       } else {
         prBadge.style.display = 'none';
+        setRecordFire(false);
       }
     }
     refreshRecordBadge();
