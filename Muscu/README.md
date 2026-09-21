@@ -457,6 +457,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 
 - **Validation de série** : agrandissement + onde verte (`checkRipple`).
 - **Séance à 100 %** : jauge verte, reflet qui la parcourt **une seule fois** (classe `celebrate`), libellé « Séance complète ».
+- **Record battu** : flammes autour de la carte de l'exercice, en plus du badge doré (voir « Flammes de record (21/09/2026) » en fin de fichier).
 - **Transitions d'écran** : 0,22 s / 16 px.
 - **Micro-animations** : enfoncement des boutons de variante et de duplication, flash de confirmation à la recopie.
 - **Toasts empilables** : 3 maximum, les plus anciens évincés. ⚠️ Le retrait du DOM est **différé** (temps du fondu) : ne jamais faire de `while` sur `stack.children`, ça boucle à l'infini. Filtrer d'abord sur `dataset.leaving`.
@@ -720,3 +721,20 @@ Audit statique de `app.js`, `style.css` et `index.html`, puis retrait de ce qui 
 - **Pour la voir sur iPhone** : l'icône déjà posée sur l'écran d'accueil ne change pas toute seule. Il faut la supprimer, puis refaire « Partager → Sur l'écran d'accueil » (en laissant « Ouvrir en tant qu'app Web » sur ON).
 - **Reste un 404** : `icon-512.png` (lien `rel="icon"` de `index.html`, précache de `sw.js`) est toujours absent. Sans effet sur l'icône iPhone (ce lien ne sert qu'aux onglets de bureau) ; le service worker tolère l'absence fichier par fichier. À supprimer ou à créer plus tard.
 - **Non vérifié sur iPhone.**
+
+
+## Flammes de record (21/09/2026)
+
+Quand une saisie bat le record archivé, la carte de l'exercice s'embrase : halo doré + langues de feu animées sur le **haut et les deux côtés** (le bas reste un simple halo, le feu monte). Demandé par Corentin. **Non vérifié sur iPhone** (prototype validé dans un navigateur de bureau en thème sombre et clair).
+
+- **Déclencheur : exactement la même condition que le badge `.pr-badge`** — `refreshRecordBadge()` appelle `setRecordFire(true/false)` (définie juste au-dessus, dans `render()`). Les flammes suivent donc le badge : elles apparaissent dès que le volume saisi dépasse le record, disparaissent si la saisie repasse dessous, et sont **éphémères** (rien n'est stocké ; elles ne concernent ni les archives ni les circuits).
+- **DOM** : `setRecordFire` crée à la demande, une seule fois par carte, une couche `<div class="pr-fire-fx" aria-hidden="true">` avec trois `<i>` (`.ft` haut, `.fl` gauche, `.fr` droite), puis bascule la classe **`pr-fire`** sur la carte. Sans record, aucun élément supplémentaire n'existe.
+- **Rendu** : les flammes sont des **tuiles SVG en data-URI**, déclarées en variables CSS (`--fl-t/-r/-l/-b` sur `.pr-fire-fx`) et répétées le long des bords (`repeat-x` / `repeat-y`). Chaque côté superpose **deux motifs de tailles différentes** (`::before` / `::after`) animés en décalé : le vacillement paraît irrégulier. La variable `--fl-b` (bas) est définie mais **non utilisée** (des flammes vers le bas ressemblaient à des cœurs).
+- **Performance iPhone** : seuls `transform` et `opacity` sont animés (compositing GPU, pas de repaint). Pas de `filter`, pas de `box-shadow` animé — le halo est un `box-shadow` statique sur la carte.
+- **⚠️ `overflow:hidden` de `.exercise-card`** : les flammes sont **hors** de la carte, donc `.exercise-card.pr-fire` passe en `overflow:visible` le temps du record, et `.exercise-headwrap` reprend l'arrondi du haut (`overflow:hidden` + `border-radius`) pour que son fond teinté et le liseré vert `complete` ne dépassent pas des coins. Ne pas remettre `overflow:hidden` sur la carte enflammée : les flammes disparaîtraient.
+- **⚠️ Largeur de la couche** : `inset:-20px -17px` (17 px < marge latérale de la vue, 18 px). Avec `-20px` de chaque côté, la couche dépassait de 2 px à droite et créait un **défilement horizontal**. Si `.view-inner` change de padding, revoir cette valeur.
+- **Fondu aux extrémités** : `mask-image` en dégradé sur `.ft`, `.fl`, `.fr`, pour ne pas couper une flamme net au niveau des coins arrondis.
+- **`prefers-reduced-motion: reduce`** : flammes figées (visibles, sans vacillement ni animation d'allumage). Le sélecteur de la règle est volontairement plus spécifique (`.exercise-card.pr-fire .pr-fire-fx i`) que les règles d'animation, sans quoi elle est ignorée.
+- **Allumage** : `fxIgnite` (fondu + léger zoom, 0,55 s) se rejoue à chaque passage de `display:none` à `display:block`, donc aussi après un `render()` complet (changement de méthode de charge, par exemple) si le record est toujours battu.
+- **Piège des data-URI** : voir `PROBLEMES_RESOLUS.md` (le `#` des couleurs hexadécimales tronque le SVG).
+- Couleurs en dur (orange/or/rouge feu) dans les tuiles SVG et le halo : volontaire, un feu n'a pas de sens en couleur de profil (même principe que `--gold`).
