@@ -19,6 +19,25 @@
 
 ---
 
+## 🎛️ Portail — un tableau de bord « difficile à comprendre » (22/09/2026)
+
+### 22/09/2026 — Portail — Tout avait le même poids visuel
+**Symptôme** (capture iPhone de Corentin) : « titres, sous-titres, informations : difficile à comprendre ».
+**Cause racine** : (1) libellés en petites majuscules grises espacées **partout**, donc aucun niveau de lecture ; (2) montant coupé en deux tailles (« 0 ,83 € ») ; (3) chiffres sans mot pour les expliquer (« 1/4 », « · 1 », une jauge pleine sans légende) ; (4) une ligne de description d'app qui répétait ce que l'icône disait déjà ; (5) « Mis à jour… » répété en pied de chaque carte.
+**Solution** : une règle de lecture à 3 niveaux — en-tête (nom + fraîcheur), **information clé en gros**, une phrase d'explication en gris — et des libellés en phrase normale. Détail dans le README du Portail, « Lisibilité des cartes ».
+**Leçons réutilisables** :
+- **Écrire les chiffres en français complet** (« 1 sur 4 », « 3 semaines d'affilée », « 2 148 € dépensés sur 2 149 € ») ; un ratio nu n'est pas une information.
+- **Ne jamais couper un nombre en deux tailles** dans un montant : lecture hachée.
+- **Une jauge doit dire ce qu'elle mesure** (ici la part déjà dépensée) dans la ligne qui la suit.
+- **Signaler la fraîcheur là où on regarde en premier** (en-tête) et **alerter** quand elle dépasse le seuil utile (24 h → jaune).
+- **Un attribut `hidden` est écrasé par un `display:` de classe** : ajouter `.classe[hidden]{display:none}` (une carte vide affichait un libellé orphelin).
+- **Le rendu sur l'appareil réel est le seul juge** de la lisibilité : la capture d'écran de l'utilisateur a montré en 10 secondes ce que les captures de bureau ne montraient pas.
+- Outils de test : la visionneuse d'images **garde en cache une capture de même nom** (enregistrer sous un nouveau nom à chaque essai) ; le motif Playwright `**/gstatic.com/**` **ne bloque pas** `www.gstatic.com` (utiliser `**/*gstatic.com/**`), ce qui a fait croire à tort que les données de test étaient ignorées.
+**Observation non traitée** : flou du haut d'écran (ligne « Portail Duo » et bouton de thème) sur la capture iPhone — voir « iOS 26's edge treatment » dans la saga du flou de Courses ; à confirmer avant toute modification.
+**Fichiers touchés** : `style.css`, `index.html`, `app.js` (Portail), `README.md`
+
+---
+
 ## 🧭 Portail — tableau de bord alimenté par 3 bases Firebase (22/09/2026)
 
 ### 22/09/2026 — Portail, Muscu, Budget, Courses — Un aperçu de chaque app sur une seule page, sans 2 mots de passe de plus
