@@ -7,7 +7,7 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 - **Repo** : `corentindebritocanica-cloud/PORTAIL-DUO`
 - **Raw index.html** : https://raw.githubusercontent.com/corentindebritocanica-cloud/PORTAIL-DUO/refs/heads/main/index.html
 
-Aucun compte, aucun cloud, aucune dépendance externe — un seul fichier HTML/CSS/JS avec un manifest PWA.
+Depuis le 22/09/2026, le Portail est un **tableau de bord** : chaque carte ouvre son app et affiche un aperçu du jour (prochaine séance, reste à vivre, produits à acheter). Il lit pour cela un petit résumé écrit par chaque app dans Firebase, en **connexion anonyme** (aucun mot de passe) — voir « Tableau de bord » en fin de fichier. HTML/CSS/JS sans build, avec un manifest PWA.
 
 ---
 
@@ -106,9 +106,7 @@ entièrement retirée.
   reste en police système.
 - Texture de poussière de craie très discrète en fond (`body::before`, dégradés
   radiaux), identique à celle de Muscu, façon tableau noir essuyé.
-- Chaque app est une carte `.big-choice-btn` (fond `--card`, bordure `--border`,
-  rayon 18px) avec icône ronde à dégradé coloré (`.choice-icon`) + libellé Bebas Neue
-  + description + chevron — repris du composant du même nom dans Muscu.
+- Chaque app est une carte `.dash-card` (fond `--card`, bordure `--border`, rayon 18px) avec icône ronde à dégradé coloré (`.choice-icon`) + libellé Bebas Neue + description + chevron. Remplace `.big-choice-btn` (supprimée le 22/09/2026).
 - `theme-color` (meta) = `#0d1014`, aligné sur le nouveau `--bg`.
 - **Bascule clair/sombre ajoutée (18/09/2026)** : bouton `theme-toggle` (cercle
   🌙/☀️ en haut à droite, `env(safe-area-inset-top)` pris en compte), classe
@@ -117,15 +115,8 @@ entièrement retirée.
 
 ## 5. Comportement / fonctionnalités du portail
 
-- **Mise en page (mise à jour le 18/09/2026)** : tout le contenu (titre + 3 cartes +
-  bouton de rechargement) est centré verticalement au milieu de l'écran (`body` en
-  `flex` avec `justify-content:center; align-items:center`), quelle que soit la
-  hauteur du viewport — plus de contenu plaqué en haut de page.
-- 3 cartes pleine largeur, une par app, avec icône ronde à dégradé coloré + nom en
-  Bebas Neue + description courte + chevron (voir section 4).
-- Clic → léger effet d'enfoncement (scale 0.96) puis redirection (`window.location.href`)
-  vers le sous-dossier correspondant, avec un délai de 120 ms pour laisser voir
-  l'animation.
+- **Mise en page (remplace, le 22/09/2026, le centrage vertical du 18/09/2026)** : le contenu est aligné en haut et défile (barre du haut, titre « Aujourd'hui » + date, 3 cartes, bouton de rechargement). `body` démarre sous la barre d'état (`env(safe-area-inset-top) + 16px`, obligatoire avec `viewport-fit=cover`).
+- **3 cartes-liens** (`<a class="dash-card" href="./Muscu/">`, `./Budget/`, `./Course/`) : carte entière cliquable, avec en-tête (icône ronde à dégradé + nom en Bebas Neue + description + chevron) puis aperçu de l'app. L'ancien clic en JS (`data-url`, `scale(0.96)`, délai de 120 ms) est supprimé : un vrai lien suffit, l'enfoncement est en CSS (`:active`).
 - **Bouton de rechargement forcé** (icône ↻) — ajouté le 18/09/2026. **Déplacé le
   18/09/2026** : n'est plus en `position:fixed` en haut à droite de l'écran, mais
   dans le flux normal de la page, centré juste sous la carte Courses (`.reload-row`).
@@ -155,8 +146,7 @@ entièrement retirée.
   du dépôt (voir aussi `Muscu/README.md`, `Course/README.md`, `Budget/README.md`
   — Budget n'avait ni Service Worker ni persistance Firestore, tous deux ajoutés
   ce même jour).
-- Aucune autre logique JS au-delà de la navigation (pas de Firebase, pas d'auth, pas
-  de state persistant).
+- **Depuis le 22/09/2026** : lecture de Firebase (connexion anonyme) pour le tableau de bord, et dernier état connu gardé dans `localStorage` (`portail-resume`). Voir « Tableau de bord ».
 
 ## 6. Historique — barre de statut iOS (résolu le 18/09/2026)
 
@@ -335,3 +325,67 @@ Chaque app (racine pour le Portail, `Budget/`, `Course/`, `Muscu/`) comprend : `
 - Le contrôle est aussi fait **~3 s après chaque lancement** (au cas où un réseau lent aurait fait servir une copie ancienne de la page).
 - **Garde-fou anti-boucle** : au plus 2 rechargements automatiques par session (`sessionStorage`, clé `majRechargements`) ; ensuite le bandeau s'affiche au lieu de recharger.
 **Vérifié** (Chromium headless) : page à jour + simple changement de `sw.js` → aucun bandeau ; vraie nouvelle version → rechargement automatique (bandeau si saisie ou fenêtre ouverte) ; garde-fou ; suite hors ligne / déploiements simulés inchangée. **Non vérifié sur iPhone.**
+
+
+## Tableau de bord — résumés publiés par les apps (22/09/2026)
+
+**But** : voir d'un coup d'œil, depuis le Portail, la prochaine séance et la semaine de Muscu, le reste à vivre de Budget et la liste de Courses. Décision de Corentin : **variante B1, avec les montants en euros** (voir « Sécurité »).
+
+### Architecture — la base de Courses sert de « boîte aux lettres »
+
+```
+Muscu ──┐                                   ┌── Portail (lit portail/*)
+Budget ─┼── écrivent portail/<app> ──►  base Firestore de COURSES  ◄──┘
+Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
+```
+
+- Les 3 apps sont sur **3 projets Firebase distincts** (Muscu et Budget : e-mail + mot de passe ; Courses : anonyme). Un Portail qui lirait les 3 bases demanderait 2 mots de passe et devrait **recalculer** le reste à vivre et la semaine de Muscu (risque de divergence avec les apps).
+- **Courses est le seul projet à l'authentification anonyme** : n'importe quelle app peut donc s'y connecter en silence. Chaque app calcule son propre résumé (elle connaît ses données et sa logique) et l'écrit dans `portail/<app>` ; le Portail ne fait que lire et afficher.
+- Aucune règle Firestore modifiée : `allow read, write: if request.auth != null` de Courses couvre déjà la nouvelle collection `portail` (testé le 22/09/2026 : écriture/lecture anonymes OK, lecture sans connexion refusée).
+- Écartées : **A** (résumés dans `localStorage` de la même origine : pas en direct, un téléphone ne voit pas ce que fait l'autre) et **B2** (le Portail lit les 3 bases : 2 connexions e-mail/mot de passe + calculs dupliqués).
+
+### Les 3 documents
+
+| Document | Champs | Écrit par |
+|---|---|---|
+| `portail/muscu` | `maj`, `objectif` (4), `semaine` `{corentin, lisa}`, `serie`, `prochaine` `{corentin, lisa}` = `{label, title, nbExos, cardio}` | Muscu |
+| `portail/budget` | `maj`, `mois`, `reste`, `budget`, `depense`, `joursRestants` (tous `null` si le mois en cours n'existe pas) | Budget |
+| `portail/courses` | `maj`, `aAcheter`, `restants`, `rayons` = 3 × `{nom, n}` | Courses |
+
+`maj` = `Date.now()` de l'appareil qui a publié. Le Portail l'affiche (« Mis à jour il y a 3 h ») : **un résumé n'est mis à jour que quand l'app correspondante est ouverte** sur l'un des deux téléphones, il n'est donc pas instantané.
+
+### Comment chaque app publie (mêmes garde-fous partout)
+
+- **Après un snapshot venu du SERVEUR, jamais avec le seul cache local** (sinon un téléphone hors ligne au vieux cache écraserait un résumé récent — c'est l'incident Courses du 21/09 en version « résumé »).
+- Regroupé (2,5 s ; 3 s pour Muscu) et **sans effet si le contenu n'a pas changé** (signature JSON). Au plus 1 écriture par ouverture d'app.
+- Toute erreur est absorbée (`console.warn`) : la publication ne doit **jamais** gêner l'app.
+- Muscu et Budget ouvrent une **2e application Firebase nommée `'portail'`** pointant sur la base de Courses (connexion anonyme, session persistante) : leur propre base et leur session e-mail/mot de passe ne sont pas touchées. Rien n'est lancé au démarrage : la connexion se fait à la première publication.
+- Détails par app : sections « Résumé pour le Portail » des README de `Muscu/`, `Budget/` et `Course/`.
+
+### Côté Portail (`app.js`, bloc « TABLEAU DE BORD »)
+
+- **Affichage instantané** depuis `localStorage['portail-resume']` (dernier état connu), puis mise à jour en direct via `onSnapshot` sur la collection `portail` (3 documents = 3 lectures à l'ouverture, ensuite seulement les changements). Fonctionne hors ligne.
+- **Le SDK Firebase (compat 10.12.2) est chargé APRÈS le premier affichage**, par injection de `<script>` : il ne bloque jamais l'ouverture (leçon du 18/09 : un `<script>` de CDN bloquant plante l'ouverture hors ligne). Application nommée `'portail'`, `enablePersistence`, connexion anonyme.
+- `sw.js` met les 3 fichiers du SDK en cache (`FIREBASE_FILES`, **même version que `SDK` dans app.js — à mettre à jour ensemble**). ⚠️ `fetch` + `cache.put`, pas `cache.add` : `add()` rejette une réponse opaque (`no-cors`).
+- **Profil** : « Prochaine séance · Corentin/Lisa » suit `localStorage['duo_profile']` de Muscu (même origine) ; `corentin` par défaut.
+- **Jours restants** recalculés dans le Portail à partir de la date du jour (le document date de la dernière ouverture de Budget) ; « ≈ X €/j » seulement à partir de 1 €/j. Reste négatif : montant et jauge en rouge (`--danger`).
+- Sans données (première fois) : « — » et « En attente des premières données — ouvre l'app une fois ».
+- Pas de raccourcis d'action dans les cartes (« + Dépense », « Démarrer »…) : les apps n'ont pas de lien profond. **Piste non faite** : `./Budget/?action=depense`, `./Course/?action=ajouter`, `./Muscu/?seance=s2`.
+
+### Définitions calculées par Muscu (constantes dans `Muscu/app.js`)
+
+- **Semaine** = du lundi 00:00 au dimanche, heure de l'appareil ; une archive = une séance ; `PORTAIL_OBJECTIF_SEMAINE = 4` (4 séances fixes au programme).
+- **Série** = semaines d'affilée où **Corentin ET Lisa** ont fait au moins `PORTAIL_SERIE_MIN = 3` séances ; la semaine en cours compte si c'est déjà atteint, sans casser la série sinon. *Définition proposée par l'assistant, pas demandée : à ajuster si elle ne convient pas.*
+- **Prochaine séance** = celle qui suit, dans l'ordre du programme, la dernière séance **fixe** archivée du profil (une séance personnalisée ne décale rien), avec les surcharges de séances fixes.
+
+### ⚠️ Sécurité — à lire avant de toucher à quoi que ce soit
+
+- **Le dépôt est public et la base de Courses accepte n'importe quelle connexion anonyme** : quiconque lit la configuration Firebase dans le code peut **lire et écrire** toute cette base — les produits, mais aussi les 3 documents `portail/*` (donc le reste à vivre en euros, choix assumé de Corentin le 22/09/2026).
+- Conséquence côté code : **les documents `portail/*` ne sont pas de confiance.** Le Portail les valide (types, bornes, longueurs) et les écrit **exclusivement avec `textContent`** — **jamais `innerHTML`** : le Portail partage son origine avec Muscu, Budget et Courses, donc avec leur `localStorage` (dont la clé API du coach IA). Vérifié le 22/09/2026 : des documents piégés (`<img onerror=…>`, `<script>`, types faux, valeurs énormes) s'affichent comme du texte inerte.
+- **Durcissements possibles** (non faits) : règle Firestore limitant `portail/{doc}` à un schéma et une taille fixes ; App Check ; ou publier des pourcentages plutôt que des montants.
+
+### Vérifié / non vérifié
+
+- **Vérifié le 22/09/2026** : calculs des 3 résumés sur les vraies données (lecture Admin) ; formule de Budget identique à `calculerTotauxMensuels` ; Courses publie bien (vraie base, connexion anonyme réelle) ; ponts de Muscu et de Budget (SDK réels, écriture puis suppression d'un document de test) ; Portail (vraie base) en sombre et clair, zones de sécurité iPhone simulées (59 px / 34 px), pas de défilement horizontal ; documents piégés ; SDK indisponible ; ouverture hors ligne avec service worker.
+- **Non vérifié sur iPhone.** Et **non vérifié en conditions réelles** : Muscu et Budget ne peuvent pas être lancés sans leur mot de passe — leurs blocs de publication ont été testés isolément, pas dans l'app complète.
+- **Amorçage** : les 3 documents ont été créés une première fois le 22/09/2026 avec l'accès Admin, à partir des vrais calculs, pour que le Portail ne soit pas vide ; les apps les réécrivent dès leur prochaine ouverture.
