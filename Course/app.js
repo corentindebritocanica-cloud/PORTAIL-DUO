@@ -46,7 +46,7 @@ function dbOnCollection(nom, cb){
   colRef(nom).onSnapshot(snap=>{
     const obj = {};
     snap.forEach(doc=> obj[doc.id] = doc.data());
-    cb(obj);
+    cb(obj, snap.metadata.fromCache);   /* 2e argument (22/09/26) : vrai = données du cache local, pas encore du serveur */
   }, err=> console.warn('onSnapshot', nom, err));
 }
 function authListen(cb){ auth.onAuthStateChanged(cb); }
@@ -326,6 +326,44 @@ document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
 });
 
 /* ============================================================
+   RÉSUMÉ POUR LE PORTAIL (22/09/2026)
+   Le Portail (tableau de bord) affiche un aperçu de chaque app. Chaque app écrit
+   un petit document `portail/<app>` ; celui-ci, `portail/courses`, vit dans la base
+   de CETTE app, qui sert aussi de « boîte aux lettres » pour Muscu et Budget (son
+   authentification anonyme n'exige aucun mot de passe). Voir README.
+   - Publié seulement après un premier snapshot venu du SERVEUR (pas du cache local),
+     pour ne pas écraser un résumé récent avec des données périmées.
+   - Regroupé (2,5 s) et sans effet si rien n'a changé.
+   ============================================================ */
+const portailRecu = { produits:false, rayons:false };
+let portailDernier = '', portailMinuteur = null;
+function calculerResumePortail(produits, rayons){
+  const aAcheter = Object.values(produits).filter(p=> p && p.aAcheter);
+  const restants = aAcheter.filter(p=> !p.achete);       /* dans la liste et pas encore coché en magasin */
+  const parRayon = {};
+  restants.forEach(p=>{
+    const nom = (rayons[p.rayonId] && rayons[p.rayonId].nom) || 'Autres';
+    parRayon[nom] = (parRayon[nom] || 0) + 1;
+  });
+  const rayonsTop = Object.entries(parRayon)
+    .sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 3).map(([nom, n])=> ({ nom, n }));
+  return { aAcheter: aAcheter.length, restants: restants.length, rayons: rayonsTop };
+}
+function planifierPublicationPortail(){
+  if(!portailRecu.produits || !portailRecu.rayons) return;
+  clearTimeout(portailMinuteur);
+  portailMinuteur = setTimeout(()=>{
+    const resume = calculerResumePortail(state.produits, state.rayons);
+    const signature = JSON.stringify(resume);
+    if(signature === portailDernier) return;
+    portailDernier = signature;
+    db.collection('portail').doc('courses').set(Object.assign({ maj: Date.now() }, resume))
+      .catch(err=>{ portailDernier = ''; console.warn('Résumé Portail non publié :', err); });
+  }, 2500);
+}
+
+/* ============================================================
    RENDU GLOBAL + DÉMARRAGE
    ============================================================ */
 function render(){
@@ -339,8 +377,8 @@ function escapeHtml(s){
 function demarrer(){
   authListen(user=>{
     if(user){
-      dbOnCollection('produits', obj=>{ state.produits = obj; render(); });
-      dbOnCollection('rayons', obj=>{ state.rayons = obj; render(); });
+      dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); planifierPublicationPortail(); });
+      dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); planifierPublicationPortail(); });
       document.getElementById('app').style.display = 'flex';
     } else {
       auth.signInAnonymously().catch(err=> console.error('Connexion anonyme impossible :', err));
