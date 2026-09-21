@@ -368,8 +368,8 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - **Le SDK Firebase (compat 10.12.2) est chargé APRÈS le premier affichage**, par injection de `<script>` : il ne bloque jamais l'ouverture (leçon du 18/09 : un `<script>` de CDN bloquant plante l'ouverture hors ligne). Application nommée `'portail'`, `enablePersistence`, connexion anonyme.
 - `sw.js` met les 3 fichiers du SDK en cache (`FIREBASE_FILES`, **même version que `SDK` dans app.js — à mettre à jour ensemble**). ⚠️ `fetch` + `cache.put`, pas `cache.add` : `add()` rejette une réponse opaque (`no-cors`).
 - **Profil** : « Prochaine séance · Corentin/Lisa » suit `localStorage['duo_profile']` de Muscu (même origine) ; `corentin` par défaut.
-- **Jours restants** recalculés dans le Portail à partir de la date du jour (le document date de la dernière ouverture de Budget) ; « ≈ X €/j » seulement à partir de 1 €/j. Reste négatif : montant et jauge en rouge (`--danger`).
-- Sans données (première fois) : « — » et « En attente des premières données — ouvre l'app une fois ».
+- **Jours restants** recalculés dans le Portail à partir de la date du jour (le document date de la dernière ouverture de Budget) ; « environ X € par jour » seulement à partir de 1 €/j. Reste négatif : montant et jauge en rouge (`--danger`), « Budget dépassé · … ».
+- Sans données (première fois) : « — » et, dans l'en-tête de la carte, « Ouvre l'app une fois pour remplir cette carte ».
 - Pas de raccourcis d'action dans les cartes (« + Dépense », « Démarrer »…) : les apps n'ont pas de lien profond. **Piste non faite** : `./Budget/?action=depense`, `./Course/?action=ajouter`, `./Muscu/?seance=s2`.
 
 ### Définitions calculées par Muscu (constantes dans `Muscu/app.js`)
@@ -389,3 +389,16 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - **Vérifié le 22/09/2026** : calculs des 3 résumés sur les vraies données (lecture Admin) ; formule de Budget identique à `calculerTotauxMensuels` ; Courses publie bien (vraie base, connexion anonyme réelle) ; ponts de Muscu et de Budget (SDK réels, écriture puis suppression d'un document de test) ; Portail (vraie base) en sombre et clair, zones de sécurité iPhone simulées (59 px / 34 px), pas de défilement horizontal ; documents piégés ; SDK indisponible ; ouverture hors ligne avec service worker.
 - **Non vérifié sur iPhone.** Et **non vérifié en conditions réelles** : Muscu et Budget ne peuvent pas être lancés sans leur mot de passe — leurs blocs de publication ont été testés isolément, pas dans l'app complète.
 - **Amorçage** : les 3 documents ont été créés une première fois le 22/09/2026 avec l'accès Admin, à partir des vrais calculs, pour que le Portail ne soit pas vide ; les apps les réécrivent dès leur prochaine ouverture.
+
+### Lisibilité des cartes — retouche du 22/09/2026 (après essai sur iPhone)
+
+**Retour de Corentin** : « titres, sous-titres, informations : difficile à comprendre ». Diagnostic sur sa capture : tout avait le même poids (petites majuscules grises espacées partout), le montant était coupé en deux (« 0 ,83 € »), la jauge pleine n'était pas expliquée, « 1/4 » et « · 1 » ne voulaient rien dire sans contexte, et la description de chaque app (« Séances, progressions… ») prenait de la place sans rien apprendre.
+
+**Règle de lecture d'une carte, à respecter pour toute nouvelle info** : 1) **en-tête** = nom de l'app + « Mis à jour il y a … » (en jaune au-delà de 24 h : chiffres à prendre avec prudence) ; 2) **l'information clé en gros** (montant, nombre, séance) ; 3) **une phrase d'explication en gris**. Libellés en phrase normale (13 px, gris), jamais en petites majuscules espacées.
+
+- **Muscu** : « Prochaine séance de Corentin » → « Séance 4 · Haut du Corps & Abdos » → « 4 exercices » ; « Séances faites cette semaine » avec des jauges et **« 1 sur 4 »** ; encadré **« 3 semaines d'affilée — Corentin et Lisa : 3 séances ou plus chacun »** (le seuil vient du champ optionnel `serieMin` du document, 3 par défaut = `PORTAIL_SERIE_MIN` de Muscu ; *Muscu ne publie pas encore ce champ*).
+- **Budget** : « Reste à vivre en septembre » → **« 0,83 € »** d'un seul tenant → « 8 jours restants (· environ X € par jour) » → jauge → « 2 148 € dépensés sur 2 149 € (100 %) » : la jauge est la part du budget déjà dépensée.
+- **Courses** : « Sur la liste » → **« 5 produits »** → « Rayons concernés » avec le nombre de produits dans une pastille verte.
+- Les pieds de carte « Mis à jour… » et les descriptions d'app sont supprimés (remplacés par la fraîcheur dans l'en-tête).
+- **Non traité — flou du haut d'écran** : sur la capture iPhone, la ligne « Portail Duo · Corentin & Lisa » et le bouton de thème sont flous. C'est très probablement l'« edge treatment » d'iOS 26 décrit dans la saga du flou de Courses (`PROBLEMES_RESOLUS.md`), pas un défaut de la page. À confirmer (flou aussi sur Muscu et Budget ? présent quand la page est tout en haut ?) avant de déplacer quoi que ce soit.
+- **Vérifié** : rendu sombre et clair, états limites (chiffres de plus de 24 h, budget dépassé, carte vide) ; **non vérifié sur iPhone**.
