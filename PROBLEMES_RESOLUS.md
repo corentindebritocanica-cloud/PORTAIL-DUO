@@ -19,6 +19,22 @@
 
 ---
 
+## 🔥 Toutes apps — data-URI SVG en CSS : le `#` tronque l'image ; effets « hors carte » bloqués par `overflow:hidden` (21/09/2026)
+
+### 21/09/2026 — Muscu — Flammes autour de la carte d'exercice : premier rendu = simple halo, aucune flamme
+**Symptôme** : les flammes SVG (`background:url("data:image/svg+xml,…")`) étaient bien calculées par le navigateur (styles, dimensions et `background-image` corrects dans l'inspecteur) mais **rien ne s'affichait** ; seul le halo `box-shadow` apparaissait.
+**Fausses pistes explorées** : positions/dimensions des bandes (correctes), `display` de la couche (correct), animation ou `opacity` à 0 (non), `z-index`, XML du SVG (valide hors CSS).
+**Cause racine** : dans une data-URI, un **`#` brut est le début du fragment d'URL** : `stop-color='#ffb000'` coupait le SVG à cet endroit, qui devenait invalide (chargé en `Image` : erreur). Le CSS ne signale rien, l'image est juste absente. Les références `url(#gradient)` doivent, elles aussi, s'écrire `url(%23gradient)`.
+**Solution** : encoder **tous** les `#` en `%23` (couleurs et références de dégradés), en plus de `<` → `%3C`, `>` → `%3E` et des guillemets internes en `'`. **Test rapide** : `new Image()` avec la valeur de la variable CSS → `onload` ou `onerror`.
+**Pièges liés, même chantier** :
+- Un effet **en dehors** d'une carte est rogné par son `overflow:hidden` (utile à l'arrondi). Solution : `overflow:visible` sur l'état concerné, et redonner l'arrondi à l'enfant qui en dépendait (fond teinté de l'en-tête).
+- Une couche `position:absolute; inset:-Npx` qui **dépasse de la marge latérale de la page** crée un défilement horizontal (débordement à droite ; à gauche c'est inoffensif). Garder `N` inférieur à la marge.
+- Une règle `prefers-reduced-motion` qui met `animation:none` est **ignorée si son sélecteur est moins spécifique** que celui qui déclare l'animation : vérifier `getComputedStyle(el).animationName` avec `reduced_motion="reduce"`.
+- **Rotation de tuiles SVG** : un `<g transform>` emporte aussi les dégradés en `objectBoundingBox`, donc le sens du dégradé suit la rotation (pratique pour faire des flammes vers la droite, la gauche ou le bas à partir d'un seul dessin).
+**Fichiers touchés** : `Muscu/style.css`, `Muscu/app.js`, `Muscu/README.md`
+
+---
+
 ## 🧬 Course — doublons de rayons/produits : un appareil au vieux cache réinjecte le catalogue (21/09/2026)
 
 ### 21/09/2026 — Course — 25 rayons et 257 produits au lieu de 13 et 133
