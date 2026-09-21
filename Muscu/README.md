@@ -742,3 +742,14 @@ Quand une saisie bat le record archivé, la carte de l'exercice s'embrase : halo
 - **Le haut du canvas passe sur la carte du dessus** (44 px au-dessus, 14 px d'écart entre cartes) : voulu, les flammes sont devant. Pour réduire, baisser `PAD.t` **et** les vitesses (`vy`) ensemble.
 - **Réglages du rendu** (dans `spawn()` / `step()` / `draw()`) : densité `rates` (particules/s par côté), vitesse `vy`, durée de vie `life`, alpha `0.56` (flamme) / `0.38` (braises) — plus haut, le cœur vire au blanc cramé —, palette `STOPS`. Couleurs en dur (feu ≠ couleur de profil, même principe que `--gold`).
 - **Thème clair** : le mélange additif y donne un cœur jaune pâle ; lisible, moins spectaculaire que sur fond sombre.
+
+
+## Résumé pour le Portail (22/09/2026)
+
+Muscu publie sa **prochaine séance, la semaine de chacun et une série** pour le tableau de bord du Portail. Architecture, sécurité et décisions : `README.md` du Portail, section « Tableau de bord ».
+
+- **`portail/muscu`** est écrit dans la base de l'app **COURSES** (`course-app-36e9d`, connexion anonyme), **pas** dans celle de Muscu : `maj`, `objectif`, `semaine` `{corentin, lisa}`, `serie`, `prochaine` `{corentin, lisa}` = `{label, title, nbExos, cardio}`.
+- **`index.html` (script module)** : 2e application Firebase nommée `'portail'` (`getApps().find(...) || initializeApp(portailConfig, 'portail')`), `authStateReady()` puis `signInAnonymously` seulement si nécessaire, exposée par `window.__portail.publish(id, data)`. La base et la session e-mail/mot de passe de Muscu ne sont pas touchées ; rien n'est lancé au démarrage.
+- **`app.js`** (juste avant l'écouteur `archives-updated`) : `calculerResumePortailMuscu`, `planifierPublicationPortailMuscu`, constantes `PORTAIL_OBJECTIF_SEMAINE = 4` et `PORTAIL_SERIE_MIN = 3`. Définitions (semaine du lundi, série, prochaine séance) : README du Portail. Déclenché par `archives-updated` et `custom-sessions-updated`, **seulement quand archives ET séances sont arrivées et que le dernier snapshot vient du serveur** (`window.__syncFromCache`), regroupé 3 s, sans effet si rien n'a changé. Erreurs absorbées.
+- Le Portail lit le profil actif dans `localStorage['duo_profile']` : **ne pas renommer cette clé sans adapter `Portail/app.js`** (`profilActif()`).
+- **Vérifié** : calcul sur les vraies archives (semaines, série et prochaine séance contrôlées à la main) ; pont de connexion anonyme et d'écriture avec le vrai SDK 12.18. **Non vérifié dans l'app complète** (connexion e-mail/mot de passe requise) ni sur iPhone.
