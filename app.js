@@ -20,13 +20,196 @@
     });
   })();
 
-  document.querySelectorAll('.big-choice-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const url = btn.getAttribute('data-url');
-      btn.style.transform = 'scale(0.96)';
-      setTimeout(() => { window.location.href = url; }, 120);
-    });
-  });
+  /* ============================================================
+     TABLEAU DE BORD (22/09/2026)
+     Chaque carte est un simple lien vers son app. Les chiffres viennent de
+     `portail/muscu`, `portail/budget` et `portail/courses`, écrits par les 3 apps dans la
+     base de Courses (connexion anonyme : aucun mot de passe). Voir README.
+     - Affichage instantané depuis le dernier état connu (localStorage), puis mise à jour en
+       direct : le Portail reste utilisable hors ligne et ne dépend jamais du SDK pour s'ouvrir.
+     - ⚠️ Ces documents ne sont PAS de confiance (la base accepte n'importe quelle connexion
+       anonyme, et le dépôt est public) : tout est validé (types, bornes, longueurs) et écrit avec
+       textContent — jamais innerHTML. Ce Portail partage son origine avec les 3 apps.
+     ============================================================ */
+  (function(){
+    const CONFIG_BASE_PORTAIL = {
+      apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+      authDomain: "course-app-36e9d.firebaseapp.com",
+      projectId: "course-app-36e9d",
+      storageBucket: "course-app-36e9d.firebasestorage.app",
+      messagingSenderId: "55041357024",
+      appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
+    };
+    /* ⚠️ Même version que FIREBASE_FILES dans sw.js (mise en cache pour le hors-ligne). */
+    const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
+    const CLE_CACHE = 'portail-resume';
+    const NOMS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const el = (id) => document.getElementById(id);
+    let resume = {};
+
+    /* ---- validation : rien de ce qui vient de la base n'est utilisé tel quel ---- */
+    const nombre = (x, min, max) => (typeof x === 'number' && isFinite(x) && x >= min && x <= max) ? x : null;
+    const entier = (x, min, max) => { const n = nombre(x, min, max); return n === null ? null : Math.round(n); };
+    const texte = (x, max) => (typeof x === 'string') ? x.slice(0, max) : '';
+    const eur0 = (n) => n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+
+    function depuis(ms){
+      const m = Math.floor(Math.max(0, Date.now() - ms) / 60000);
+      if (m < 1) return "à l'instant";
+      if (m < 60) return 'il y a ' + m + ' min';
+      const h = Math.floor(m / 60);
+      if (h < 24) return 'il y a ' + h + ' h';
+      return 'il y a ' + Math.floor(h / 24) + ' j';
+    }
+    function pied(id, d){
+      const maj = nombre(d && d.maj, 1e12, 4e12);
+      el(id).textContent = maj ? 'Mis à jour ' + depuis(maj) : "En attente des premières données — ouvre l'app une fois";
+    }
+    /* Profil actif de Muscu (même origine que le Portail) : sert à choisir « la prochaine séance ». */
+    function profilActif(){
+      try { return localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin'; } catch (e) { return 'corentin'; }
+    }
+
+    function afficherMuscu(d){
+      const p = profilActif();
+      el('mu-next-label').textContent = 'Prochaine séance · ' + (p === 'lisa' ? 'Lisa' : 'Corentin');
+      const pr = d && d.prochaine && d.prochaine[p];
+      if (pr && typeof pr === 'object') {
+        const titre = texte(pr.title, 70), label = texte(pr.label, 30), nb = entier(pr.nbExos, 0, 99);
+        el('mu-next').textContent = titre || label || '—';
+        el('mu-next-sub').textContent = [label, nb === null ? '' : nb + ' exercice' + (nb > 1 ? 's' : '')].filter(Boolean).join(' · ')
+          + (pr.cardio === true ? ' + cardio' : '');
+      } else {
+        el('mu-next').textContent = '—';
+        el('mu-next-sub').textContent = '';
+      }
+      const obj = entier(d && d.objectif, 1, 7) || 4;
+      ['corentin', 'lisa'].forEach((q) => {
+        const n = entier(d && d.semaine && d.semaine[q], 0, 99);
+        const box = el('mu-segs-' + q);
+        box.classList.add(q);
+        box.style.setProperty('--n', obj);
+        box.textContent = '';
+        for (let i = 0; i < obj; i++) {
+          const seg = document.createElement('i');
+          if (n !== null && i < n) seg.className = 'on';
+          box.appendChild(seg);
+        }
+        el('mu-count-' + q).textContent = n === null ? '' : n + '/' + obj;
+      });
+      const serie = entier(d && d.serie, 0, 999);
+      el('mu-serie').hidden = !(serie > 0);
+      if (serie > 0) el('mu-serie-txt').textContent = 'Série · ' + serie + ' sem.';
+      pied('mu-maj', d);
+    }
+
+    function afficherBudget(d){
+      const reste = nombre(d && d.reste, -1e7, 1e7);
+      const budget = nombre(d && d.budget, -1e7, 1e7);
+      const depense = nombre(d && d.depense, -1e7, 1e7);
+      const big = el('bu-big'), fill = el('bu-fill');
+      if (reste === null) {
+        el('bu-int').textContent = '—';
+        el('bu-dec').textContent = '';
+        big.classList.remove('neg');
+        fill.style.width = '0%'; fill.classList.remove('over');
+        el('bu-spent').textContent = d ? 'Mois pas encore démarré' : '';
+        el('bu-days').textContent = '';
+      } else {
+        const neg = reste < 0;
+        const parts = Math.abs(reste).toFixed(2).split('.');
+        el('bu-int').textContent = (neg ? '−' : '') + Number(parts[0]).toLocaleString('fr-FR');
+        el('bu-dec').textContent = ',' + parts[1] + ' €';
+        big.classList.toggle('neg', neg);
+        const pct = (budget !== null && budget > 0 && depense !== null) ? Math.min(100, Math.max(0, depense / budget * 100)) : (neg ? 100 : 0);
+        fill.style.width = pct.toFixed(1) + '%';
+        fill.classList.toggle('over', neg);
+        el('bu-spent').textContent = (depense !== null && budget !== null) ? eur0(depense) + ' dépensés sur ' + eur0(budget) : '';
+        /* Jours restants recalculés ici (le document date de la dernière ouverture de Budget) si c'est bien le mois en cours. */
+        const now = new Date();
+        const courant = NOMS_MOIS[now.getMonth()] + ' ' + now.getFullYear();
+        const mois = texte(d.mois, 30);
+        let jours = null;
+        if (mois === courant) jours = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+        else if (mois) { el('bu-days').textContent = mois; jours = undefined; }
+        if (jours !== undefined) {
+          el('bu-days').textContent = jours === null ? '' :
+            (jours === 0 ? 'Dernier jour' : jours + ' j restants') + (reste > 0 && jours > 0 && reste / jours >= 1 ? ' · ≈ ' + Math.round(reste / jours) + ' €/j' : '');
+        }
+      }
+      pied('bu-maj', d);
+    }
+
+    function afficherCourses(d){
+      const n = entier(d && d.restants, 0, 9999);
+      const chips = el('co-chips');
+      chips.textContent = '';
+      if (n === null) {
+        el('co-int').textContent = '—';
+        el('co-label').textContent = '';
+      } else {
+        el('co-int').textContent = String(n);
+        el('co-label').textContent = n === 0 ? 'rien à acheter' : (n > 1 ? 'produits à acheter' : 'produit à acheter');
+        (Array.isArray(d.rayons) ? d.rayons.slice(0, 3) : []).forEach((r) => {
+          const nom = texte(r && r.nom, 26), k = entier(r && r.n, 0, 9999);
+          if (!nom || k === null) return;
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = nom + ' · ' + k;
+          chips.appendChild(chip);
+        });
+      }
+      pied('co-maj', d);
+    }
+
+    function afficher(){
+      const j = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      el('dash-date').textContent = j.charAt(0).toUpperCase() + j.slice(1);
+      afficherMuscu(resume.muscu);
+      afficherBudget(resume.budget);
+      afficherCourses(resume.courses);
+    }
+
+    /* ---- Firebase : chargé APRÈS le premier affichage, jamais bloquant ---- */
+    function chargerScript(src){
+      return new Promise((ok, ko) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = ok; s.onerror = () => ko(new Error('chargement impossible : ' + src));
+        document.head.appendChild(s);
+      });
+    }
+    async function demarrerBase(){
+      try {
+        await chargerScript(SDK + 'firebase-app-compat.js');
+        await Promise.all([chargerScript(SDK + 'firebase-auth-compat.js'), chargerScript(SDK + 'firebase-firestore-compat.js')]);
+        const app = firebase.apps.find((a) => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
+        const auth = app.auth(), db = app.firestore();
+        try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* repli silencieux sur le cache mémoire */ }
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            db.collection('portail').onSnapshot((snap) => {
+              const obj = {};
+              snap.forEach((doc) => { obj[doc.id] = doc.data(); });
+              resume = obj;
+              try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
+              afficher();
+            }, (err) => console.warn('[portail] lecture impossible :', err));
+          } else {
+            auth.signInAnonymously().catch((err) => console.warn('[portail] connexion anonyme impossible :', err));
+          }
+        });
+      } catch (err) {
+        console.warn('[portail] base indisponible, affichage du dernier état connu :', err);
+      }
+    }
+
+    try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }
+    if (typeof resume !== 'object' || resume === null) resume = {};
+    afficher();
+    window.addEventListener('load', () => setTimeout(demarrerBase, 0));
+    setInterval(afficher, 60000);                       /* « il y a 3 min » reste juste */
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') afficher(); });
+  })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {
     // Confirmation ajoutée le 18/09/2026 : ce bouton est destructif pour le
