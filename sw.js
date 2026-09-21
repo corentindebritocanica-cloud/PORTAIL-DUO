@@ -21,10 +21,28 @@ const SHELL_FILES = [
   './icone-512-maskable.png'
 ];
 
+// SDK Firebase (autre origine, gstatic.com) pour le tableau de bord (22/09/2026) : mis en cache en mode
+// 'no-cors' (réponse opaque, mais utilisable comme source de script) pour que le Portail puisse relire
+// la base même après une ouverture hors ligne. Même version que SDK dans app.js — à tenir à jour ensemble.
+// Ces fichiers sont chargés APRÈS le premier affichage : leur absence ne bloque jamais la page.
+const FIREBASE_FILES = [
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'
+];
+
 // Installation : mise en cache du shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES.map((u) => new Request(u, { cache: 'reload' }))))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(SHELL_FILES.map((u) => new Request(u, { cache: 'reload' })))
+        // Le SDK est facultatif à l'installation : un échec n'empêche jamais celle du shell.
+        // ⚠️ fetch + put, PAS cache.add() : add() rejette une réponse opaque (no-cors, statut 0), put() l'accepte.
+        .then(() => Promise.all(FIREBASE_FILES.map((url) =>
+          fetch(new Request(url, { mode: 'no-cors' })).then((rep) => cache.put(url, rep))
+            .catch((err) => console.warn('[sw] SDK non mis en cache :', url, err))
+        )))
+    )
   );
   self.skipWaiting();
 });
@@ -80,6 +98,21 @@ function reseauPuisCache(requete){
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // SDK Firebase : cache-first, en dehors de toute logique de scope/origine.
+  if (FIREBASE_FILES.includes(event.request.url)) {
+    event.respondWith(
+      caches.match(event.request.url).then((reponseCache) => {
+        if (reponseCache) return reponseCache;
+        return fetch(new Request(event.request.url, { mode: 'no-cors' })).then((reponseReseau) => {
+          const copie = reponseReseau.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request.url, copie));
+          return reponseReseau;
+        });
+      })
+    );
+    return;
+  }
 
   // On ne gère que les requêtes de même origine, à la racine du portail
   // (jamais /Muscu/, /Budget/, /Course/, ni les requêtes cross-origin type Firebase)
