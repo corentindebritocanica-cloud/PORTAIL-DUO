@@ -3,7 +3,7 @@
 // pour qu'il puisse s'ouvrir hors-ligne. Ne touche pas aux sous-apps
 // (Muscu/, Budget/, Course/), qui gèrent leur propre cache indépendamment.
 
-const CACHE_NAME = 'portail-duo-shell-r7';
+const CACHE_NAME = 'portail-duo-shell-r31';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Course, Muscu, Budget inclus), et un
