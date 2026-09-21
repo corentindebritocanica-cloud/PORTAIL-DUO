@@ -61,9 +61,12 @@
       if (h < 24) return 'il y a ' + h + ' h';
       return 'il y a ' + Math.floor(h / 24) + ' j';
     }
+    /* En-tête de carte : fraîcheur des chiffres. Plus de 24 h : affichée en couleur d'alerte. */
     function pied(id, d){
       const maj = nombre(d && d.maj, 1e12, 4e12);
-      el(id).textContent = maj ? 'Mis à jour ' + depuis(maj) : "En attente des premières données — ouvre l'app une fois";
+      const n = el(id);
+      n.textContent = maj ? 'Mis à jour ' + depuis(maj) : "Ouvre l'app une fois pour remplir cette carte";
+      n.classList.toggle('vieux', !!maj && Date.now() - maj > 86400000);
     }
     /* Profil actif de Muscu (même origine que le Portail) : sert à choisir « la prochaine séance ». */
     function profilActif(){
@@ -72,13 +75,15 @@
 
     function afficherMuscu(d){
       const p = profilActif();
-      el('mu-next-label').textContent = 'Prochaine séance · ' + (p === 'lisa' ? 'Lisa' : 'Corentin');
+      el('mu-next-label').textContent = 'Prochaine séance de ' + (p === 'lisa' ? 'Lisa' : 'Corentin');
       const pr = d && d.prochaine && d.prochaine[p];
       if (pr && typeof pr === 'object') {
         const titre = texte(pr.title, 70), label = texte(pr.label, 30), nb = entier(pr.nbExos, 0, 99);
-        el('mu-next').textContent = titre || label || '—';
-        el('mu-next-sub').textContent = [label, nb === null ? '' : nb + ' exercice' + (nb > 1 ? 's' : '')].filter(Boolean).join(' · ')
-          + (pr.cardio === true ? ' + cardio' : '');
+        el('mu-next').textContent = (label && titre) ? label + ' · ' + titre : (titre || label || '—');
+        const morceaux = [];
+        if (nb !== null) morceaux.push(nb + ' exercice' + (nb > 1 ? 's' : ''));
+        if (pr.cardio === true) morceaux.push('cardio');
+        el('mu-next-sub').textContent = morceaux.join(' + ');
       } else {
         el('mu-next').textContent = '—';
         el('mu-next-sub').textContent = '';
@@ -95,11 +100,16 @@
           if (n !== null && i < n) seg.className = 'on';
           box.appendChild(seg);
         }
-        el('mu-count-' + q).textContent = n === null ? '' : n + '/' + obj;
+        el('mu-count-' + q).textContent = n === null ? '' : n + ' sur ' + obj;
       });
+      /* Série : semaines d'affilée où les DEUX ont fait au moins `serieMin` séances (3 par défaut = PORTAIL_SERIE_MIN de Muscu). */
       const serie = entier(d && d.serie, 0, 999);
+      const serieMin = entier(d && d.serieMin, 1, 7) || 3;
       el('mu-serie').hidden = !(serie > 0);
-      if (serie > 0) el('mu-serie-txt').textContent = 'Série · ' + serie + ' sem.';
+      if (serie > 0) {
+        el('mu-serie-txt').textContent = serie + (serie > 1 ? " semaines d'affilée" : " semaine d'affilée");
+        el('mu-serie-note').textContent = 'Corentin et Lisa : ' + serieMin + ' séances ou plus chacun';
+      }
       pied('mu-maj', d);
     }
 
@@ -107,35 +117,39 @@
       const reste = nombre(d && d.reste, -1e7, 1e7);
       const budget = nombre(d && d.budget, -1e7, 1e7);
       const depense = nombre(d && d.depense, -1e7, 1e7);
+      const mois = texte(d && d.mois, 30);
+      const nomMois = mois ? mois.split(' ')[0].toLowerCase() : '';
       const big = el('bu-big'), fill = el('bu-fill');
+      el('bu-label').textContent = nomMois ? 'Reste à vivre en ' + nomMois : 'Reste à vivre';
       if (reste === null) {
         el('bu-int').textContent = '—';
         el('bu-dec').textContent = '';
         big.classList.remove('neg');
         fill.style.width = '0%'; fill.classList.remove('over');
-        el('bu-spent').textContent = d ? 'Mois pas encore démarré' : '';
-        el('bu-days').textContent = '';
+        el('bu-days').textContent = d ? "Ce mois n'est pas encore démarré dans Budget" : '';
+        el('bu-spent').textContent = '';
       } else {
         const neg = reste < 0;
-        const parts = Math.abs(reste).toFixed(2).split('.');
-        el('bu-int').textContent = (neg ? '−' : '') + Number(parts[0]).toLocaleString('fr-FR');
-        el('bu-dec').textContent = ',' + parts[1] + ' €';
+        el('bu-int').textContent = (neg ? '−' : '') + Math.abs(reste).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        el('bu-dec').textContent = '€';
         big.classList.toggle('neg', neg);
         const pct = (budget !== null && budget > 0 && depense !== null) ? Math.min(100, Math.max(0, depense / budget * 100)) : (neg ? 100 : 0);
         fill.style.width = pct.toFixed(1) + '%';
         fill.classList.toggle('over', neg);
-        el('bu-spent').textContent = (depense !== null && budget !== null) ? eur0(depense) + ' dépensés sur ' + eur0(budget) : '';
         /* Jours restants recalculés ici (le document date de la dernière ouverture de Budget) si c'est bien le mois en cours. */
         const now = new Date();
         const courant = NOMS_MOIS[now.getMonth()] + ' ' + now.getFullYear();
-        const mois = texte(d.mois, 30);
-        let jours = null;
-        if (mois === courant) jours = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
-        else if (mois) { el('bu-days').textContent = mois; jours = undefined; }
-        if (jours !== undefined) {
-          el('bu-days').textContent = jours === null ? '' :
-            (jours === 0 ? 'Dernier jour' : jours + ' j restants') + (reste > 0 && jours > 0 && reste / jours >= 1 ? ' · ≈ ' + Math.round(reste / jours) + ' €/j' : '');
+        let phrase = '';
+        if (mois === courant) {
+          const jours = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+          phrase = jours === 0 ? 'Dernier jour du mois' : jours + (jours > 1 ? ' jours restants' : ' jour restant');
+          if (!neg && jours > 0 && reste / jours >= 1) phrase += ' · environ ' + Math.round(reste / jours) + ' € par jour';
+        } else if (mois) {
+          phrase = "Chiffres d'un mois passé : ouvre Budget pour actualiser";
         }
+        el('bu-days').textContent = (neg ? 'Budget dépassé' + (phrase ? ' · ' : '') : '') + phrase;
+        el('bu-spent').textContent = (depense !== null && budget !== null)
+          ? eur0(depense) + ' dépensés sur ' + eur0(budget) + ' (' + Math.round(pct) + ' %)' : '';
       }
       pied('bu-maj', d);
     }
@@ -144,20 +158,24 @@
       const n = entier(d && d.restants, 0, 9999);
       const chips = el('co-chips');
       chips.textContent = '';
+      el('co-chips-label').hidden = true;
       if (n === null) {
         el('co-int').textContent = '—';
         el('co-label').textContent = '';
       } else {
         el('co-int').textContent = String(n);
-        el('co-label').textContent = n === 0 ? 'rien à acheter' : (n > 1 ? 'produits à acheter' : 'produit à acheter');
+        el('co-label').textContent = n === 0 ? 'rien à acheter' : (n > 1 ? 'produits' : 'produit');
         (Array.isArray(d.rayons) ? d.rayons.slice(0, 3) : []).forEach((r) => {
           const nom = texte(r && r.nom, 26), k = entier(r && r.n, 0, 9999);
           if (!nom || k === null) return;
           const chip = document.createElement('span');
           chip.className = 'chip';
-          chip.textContent = nom + ' · ' + k;
+          const t = document.createElement('span'); t.textContent = nom;
+          const c = document.createElement('span'); c.className = 'chip-n'; c.textContent = String(k);
+          chip.appendChild(t); chip.appendChild(c);
           chips.appendChild(chip);
         });
+        el('co-chips-label').hidden = chips.children.length === 0;
       }
       pied('co-maj', d);
     }
