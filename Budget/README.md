@@ -228,3 +228,33 @@ Budget publie le **reste à vivre du mois en cours** pour le tableau de bord du 
 - **Une 2e application Firebase nommée `'portail'`** (`CONFIG_BASE_PORTAIL`, connexion anonyme) : la base et la session e-mail/mot de passe de Budget ne sont pas touchées. Créée à la première publication seulement (`obtenirBasePortail`), en SDK compat comme le reste de l'app.
 - **Déclenchement** : à chaque snapshot de `mois` (`planifierPublicationPortail`), **seulement après un snapshot venu du serveur** (`portailServeurVu`, indépendant de `state.serveurVu` qui ne se met pas à jour en arrière-plan), regroupé 2,5 s, sans effet si le contenu n'a pas changé. Erreurs absorbées.
 - **Vérifié** : calcul sur les vrais mois (identique à la formule de l'app) ; pont de connexion anonyme et d'écriture avec les vrais SDK. **Non vérifié dans l'app complète** (connexion e-mail/mot de passe requise) ni sur iPhone.
+
+
+## Suivi Espèces (report cumulatif) + paiement partiel carte/espèces sur les Dépenses (22/09/2026)
+
+**Contexte** : Corentin/Lisa vont avoir une somme d'espèces à écouler sur plusieurs mois, en plus du Revolut. Jusqu'ici, une dépense payée en espèces (icône 💵) était simplement exclue du total Revolut, sans qu'aucune cagnotte espèces ne soit suivie dans l'app.
+
+**Décisions prises avec Corentin avant implémentation** :
+- Le solde d'espèces non dépensé **se reporte automatiquement** d'un mois sur l'autre, exactement comme le Revolut.
+- Le paiement en espèces (et le partiel carte/espèces) ne concerne **que la carte Dépenses** (courses) — Charges fixes et Provisions restent 100% Revolut, non concernées.
+- Les anciennes lignes déjà marquées 🎟️ Ticket Resto (mode `TR`) sont **laissées à part** : toujours exclues des deux totaux (Revolut et Espèces) tant qu'on n'y touche pas, comme avant cette fonctionnalité.
+
+**Nouveau champ mensuel** : `especes_add` (« Espèces ajoutées »), en 2 lignes dans la carte revenus de la vue Mensuelle, sur le même principe que le Revolut :
+- **Espèces reportées** (`solde_reporte_especes`, lecture seule) : somme cumulative de tous les mois précédents (`especes_add − dépenses payées en espèces`), calculée par la nouvelle fonction `calculerSoldeReporteEspeces()` (miroir de `calculerSoldeReporte()`, mais scopée aux Dépenses uniquement).
+- **Espèces ajoutées** (`especes_add`, éditable) : l'apport du mois en cours, saisi manuellement (ex. pour étaler une somme reçue en espèces sur plusieurs mois).
+
+**Carte « Reste à vivre »** : titre simplifié (`Reste à vivre (Revolut)` → `Reste à vivre`), le montant affiché est désormais **Revolut + Espèces combinés**. Une ligne de détail (`detail-reste`) affiche la répartition : `💳 X € · 💵 Y €`.
+
+**Mode de paiement d'une dépense** (`item.moyenPaiement`) : le bouton-icône cycle désormais **💳 Carte → 💵 Espèces → 🔀 Mixte** (le Ticket Resto n'est plus proposé pour les nouvelles lignes). En mode Mixte, un nouveau champ apparaît sous la ligne (`.item-mixte`) pour saisir le montant payé en espèces (`item.montantEspeces`, borné entre 0 et le montant total par le listener d'input) ; la part carte (`montant − montantEspeces`) est recalculée et affichée automatiquement. Une ancienne ligne 🎟️ Ticket Resto sur laquelle on clique quitte définitivement ce statut et repart de Carte (premier tap), pour ne jamais sauter une étape du nouveau cycle.
+
+**Fonctions modifiées/ajoutées** (`app.js`) :
+- `sommeCB(arr)` : gère désormais le cas `MIXTE` (ne compte que `montant − montantEspeces` côté carte) ; `ESPECES`/`TR` toujours exclus.
+- `sommeEspeces(arr)` *(nouvelle)* : symétrique de `sommeCB`, calcule la part espèces d'une liste de dépenses.
+- `calculerSoldeReporteEspeces(cibleIdx)` *(nouvelle)* : report cumulatif de la cagnotte espèces, même principe que `calculerSoldeReporte`.
+- `calculerTotauxMensuels(m, report, reportEspeces)` : signature étendue (3e paramètre), calcule `resteRevolut`/`resteEspeces` séparément puis leur somme (`reste`), affichée dans `#reste-a-vivre` et détaillée dans `#detail-reste`. Les jauges de la carte Répartition (`bar-reste-m`) utilisent ce `reste` combiné.
+- `normaliserMois()` : ajout de `especes_add: m.especes_add || 0` (même traitement que `revenus_add`).
+- ⚠️ **`calculerResumePortail()` mis à jour à l'identique**, comme l'exige la règle du pont Portail (section précédente de ce README) : `budget` = Revolut + Espèces (report + apports des deux), `depense` = charges + provisions + part carte des dépenses + part espèces des dépenses. Le `reste` publié au Portail reste donc rigoureusement identique à celui affiché dans l'app.
+
+**Non modifié** : Charges fixes, Provisions, jauges de répartition (structure inchangée, seul `reste` devient la somme Revolut+Espèces), Bilan Annuel (les totaux `charges`/`depenses`/`provisions` restent sur le montant total de chaque ligne, indépendant du moyen de paiement).
+
+**Vérifié** : logique de calcul (report cumulatif, mode Mixte, exclusion du legacy Ticket Resto) testée par un harnais Node autonome (16 assertions, scénario sur 3 mois enchaînés) — voir le calcul manuel dans le commit. Cohérence des `id` HTML/JS vérifiée par script (aucun id utilisé par `app.js` absent de `index.html`). **Non vérifié dans l'app complète en conditions réelles (Firestore) ni sur iPhone.**
