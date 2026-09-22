@@ -51,7 +51,7 @@
     const nombre = (x, min, max) => (typeof x === 'number' && isFinite(x) && x >= min && x <= max) ? x : null;
     const entier = (x, min, max) => { const n = nombre(x, min, max); return n === null ? null : Math.round(n); };
     const texte = (x, max) => (typeof x === 'string') ? x.slice(0, max) : '';
-    const eur0 = (n) => n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+    const eur2 = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';  /* au centime près (22/09/26) : eur0 arrondissait à l'euro */
 
     function depuis(ms){
       const m = Math.floor(Math.max(0, Date.now() - ms) / 60000);
@@ -88,28 +88,11 @@
         el('mu-next').textContent = '—';
         el('mu-next-sub').textContent = '';
       }
-      const obj = entier(d && d.objectif, 1, 7) || 4;
-      ['corentin', 'lisa'].forEach((q) => {
-        const n = entier(d && d.semaine && d.semaine[q], 0, 99);
-        const box = el('mu-segs-' + q);
-        box.classList.add(q);
-        box.style.setProperty('--n', obj);
-        box.textContent = '';
-        for (let i = 0; i < obj; i++) {
-          const seg = document.createElement('i');
-          if (n !== null && i < n) seg.className = 'on';
-          box.appendChild(seg);
-        }
-        el('mu-count-' + q).textContent = n === null ? '' : n + ' sur ' + obj;
-      });
-      /* Série : semaines d'affilée où les DEUX ont fait au moins `serieMin` séances (3 par défaut = PORTAIL_SERIE_MIN de Muscu). */
-      const serie = entier(d && d.serie, 0, 999);
-      const serieMin = entier(d && d.serieMin, 1, 7) || 3;
-      el('mu-serie').hidden = !(serie > 0);
-      if (serie > 0) {
-        el('mu-serie-txt').textContent = serie + (serie > 1 ? " semaines d'affilée" : " semaine d'affilée");
-        el('mu-serie-note').textContent = 'Corentin et Lisa : ' + serieMin + ' séances ou plus chacun';
-      }
+      /* Phrase motivante du duo (22/09/26) : remplace le compte « X/4 séances », pas représentatif
+         d'un rythme qui n'est pas toujours le même d'une semaine à l'autre. Calculée par Muscu à
+         partir des vraies archives (dernière séance de chacun, série, semaine en cours) ; voir
+         calculerPhraseMuscu dans Muscu/app.js. Une phrase par défaut tant qu'aucune donnée n'est arrivée. */
+      el('mu-phrase').textContent = texte(d && d.phrase, 140) || 'Une nouvelle semaine à deux, à vous de la rendre belle !';
       pied('mu-maj', d);
     }
 
@@ -149,7 +132,7 @@
         }
         el('bu-days').textContent = (neg ? 'Budget dépassé' + (phrase ? ' · ' : '') : '') + phrase;
         el('bu-spent').textContent = (depense !== null && budget !== null)
-          ? eur0(depense) + ' dépensés sur ' + eur0(budget) + ' (' + Math.round(pct) + ' %)' : '';
+          ? eur2(depense) + ' dépensés sur ' + eur2(budget) + ' (' + Math.round(pct) + ' %)' : '';
       }
       pied('bu-maj', d);
     }
