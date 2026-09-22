@@ -129,7 +129,7 @@
         .item-bottom { display: flex; gap: 8px; align-items: center; }
         .item-bottom input[type="date"], .item-bottom select { flex: 1; background: var(--bg-color); font-size: 0.75rem !important; padding: 5px 8px; border-radius: 6px; color: var(--text-muted); }
         /* Panneau de répartition du mode Mixte (carte/espèces) : boutons ±5€ + chiffre glissable, cf. btn-pay-method */
-        .item-mixte { display: flex; flex-direction: column; gap: 8px; background: var(--bg-color); border-radius: 10px; padding: 10px 8px; }
+        .item-mixte { display: flex; flex-direction: column; gap: 8px; background: var(--bg-color); border-radius: 10px; padding: 10px 8px; touch-action: none; }
         .mixte-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
         .mixte-btn { width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 1.1rem; font-weight: 700; cursor: pointer; line-height: 1; }
         .mixte-scrub { min-width: 90px; text-align: center; touch-action: none; cursor: ns-resize; user-select: none; }
