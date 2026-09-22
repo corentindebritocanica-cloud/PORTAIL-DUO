@@ -489,15 +489,19 @@
                             const carte = Math.max((parseFloat(item.montant) || 0) - especes, 0);
                             mixteRow = `
                             <div class="item-mixte">
+                                <div class="mixte-label">💵 Espèces — par paliers de 5 €</div>
                                 <div class="mixte-row">
                                     <button class="mixte-btn" data-mixte-decr="${item.id}" aria-label="Retirer 5 € d'espèces">−</button>
                                     <div class="mixte-scrub" data-mixte-scrub="${item.id}">
                                         <div class="mixte-value">${especes.toFixed(0)} €</div>
-                                        <div class="mixte-hint">💵 espèces · ↕ glisser</div>
                                     </div>
                                     <button class="mixte-btn" data-mixte-incr="${item.id}" aria-label="Ajouter 5 € d'espèces">+</button>
                                 </div>
-                                <div class="mixte-recap">💳 carte (reste) : ${carte.toFixed(2)} €</div>
+                                <div class="mixte-hint">↕ glisser pour ajuster</div>
+                                <div class="mixte-recap">
+                                    <div class="mixte-recap-row"><span>💳 Carte (reste automatique)</span><span>${carte.toFixed(2)} €</span></div>
+                                    <div class="mixte-recap-row"><span>💵 Espèces</span><span>${especes.toFixed(2)} €</span></div>
+                                </div>
                             </div>`;
                         }
                     }
@@ -588,7 +592,7 @@
             document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)}`;
 
             const tdDiff = tdTotal - tdCB;
-            document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small style="font-weight:normal; opacity:0.6;">(dont ${tdDiff.toFixed(0)}€ 🎟️/💵)</small>` : ''}`;
+            document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small style="font-weight:normal; opacity:0.6;">(dont ${tdDiff.toFixed(0)}€ 💵)</small>` : ''}`;
 
             // Jauges
             const globalTotal = tc + tdTotal + tprov + (reste > 0 ? reste : 0);
