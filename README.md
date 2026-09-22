@@ -410,3 +410,18 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - Les pieds de carte « Mis à jour… » et les descriptions d'app sont supprimés (remplacés par la fraîcheur dans l'en-tête).
 - **Non traité — flou du haut d'écran** : sur la capture iPhone, la ligne « Portail Duo · Corentin & Lisa » et le bouton de thème sont flous. C'est très probablement l'« edge treatment » d'iOS 26 décrit dans la saga du flou de Courses (`PROBLEMES_RESOLUS.md`), pas un défaut de la page. À confirmer (flou aussi sur Muscu et Budget ? présent quand la page est tout en haut ?) avant de déplacer quoi que ce soit.
 - **Vérifié** : rendu sombre et clair, états limites (chiffres de plus de 24 h, budget dépassé, carte vide) ; **non vérifié sur iPhone**.
+
+
+## Icône de l'app (22/09/2026)
+
+**Un cercle unique, scindé en deux par une courbe souple** : bleu à gauche (Corentin), rose à droite (Lisa) — les mêmes couleurs que les points de la carte Muscu du tableau de bord. Fond dégradé sombre, cohérent avec `background_color`/`theme_color` du manifest.
+
+**Historique** : deux pistes explorées avant celle-ci, toutes deux écartées par Corentin (« pas ouf », puis « pas si détaillé », « pas dingue ») —
+1. Une arche/porte dorée avec lueur duo à l'intérieur (simple, puis une version plus travaillée avec claveaux et clef de voûte, puis une version à l'éclairage simulé façon pierre sculptée) : jugée trop chargée ou pas assez « réaliste » selon la version, et finalement pas assez personnelle.
+2. Deux cercles superposés (façon Mastercard) et deux points accolés (façon Flickr) : écartés à l'interne, trop proches de logos existants.
+
+**Retenue** : Corentin voulait « une vraie identité, un truc hyper personnel » — un symbole simple du duo plutôt qu'une métaphore (porte, portail). Le cercle scindé reprend l'idée d'« un duo qui n'en fait qu'un », sans ressembler à un logo existant, et reste lisible à la plus petite taille utilisée (60 px).
+
+**Fichiers** : `icone-192.png`, `icone-512.png` (fond plein, sans transparence), `icone-512-maskable.png` (contenu réduit à 72 % et centré, marge de sécurité standard pour les plateformes qui appliquent leur propre découpe). Le SVG source (courbe, couleurs, dégradé de fond) n'est pas versionné : pour retoucher l'icône, repartir de ces mêmes couleurs (`--blue` #1f8fff, rose Lisa #ff3d7e) et de la même idée (une forme, pas deux qui se cognent).
+
+**Non vérifié sur iPhone** (rendu contrôlé en navigateur : taille réelle sur fond d'écran d'accueil simulé, et 60 px).
