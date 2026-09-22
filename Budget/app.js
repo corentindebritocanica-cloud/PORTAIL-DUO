@@ -72,6 +72,10 @@
             popupOuvert: false
         };
 
+        // Suivi du glisser tactile sur le chiffre "espèces" (mode Mixte, voir setupTableListeners) —
+        // volontairement hors de `state` : purement transitoire, jamais persisté ni comparé aux Nouveautés.
+        let mixteDragId = null, mixteDragStartY = 0, mixteDragStartVal = 0, mixteDragLive = null;
+
         // --- Utilitaires ---
         const eur = (n) => (parseFloat(n) || 0).toFixed(2) + " €";
         const genId = () => Math.random().toString(36).substr(2, 9);
@@ -481,11 +485,19 @@
                         const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : '💳';
                         payIcon = `<button class="btn-pay-method" data-pay="${item.id}" title="Mode de paiement">${icon}</button>`;
                         if (meth === 'MIXTE') {
-                            const especes = parseFloat(item.montantEspeces) || 0;
+                            const especes = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
                             const carte = Math.max((parseFloat(item.montant) || 0) - especes, 0);
                             mixteRow = `
                             <div class="item-mixte">
-                                💵 <input type="number" value="${especes}" data-id="${item.id}" data-type="${type}" data-field="montantEspeces" placeholder="0"> € espèces · 💳 ${carte.toFixed(2)} € carte
+                                <div class="mixte-row">
+                                    <button class="mixte-btn" data-mixte-decr="${item.id}" aria-label="Retirer 5 € d'espèces">−</button>
+                                    <div class="mixte-scrub" data-mixte-scrub="${item.id}">
+                                        <div class="mixte-value">${especes.toFixed(0)} €</div>
+                                        <div class="mixte-hint">💵 espèces · ↕ glisser</div>
+                                    </div>
+                                    <button class="mixte-btn" data-mixte-incr="${item.id}" aria-label="Ajouter 5 € d'espèces">+</button>
+                                </div>
+                                <div class="mixte-recap">💳 carte (reste) : ${carte.toFixed(2)} €</div>
                             </div>`;
                         }
                     }
@@ -792,9 +804,6 @@
                     if (field === 'montant') {
                         let val = parseFloat(e.target.value) || 0;
                         item.montant = val;
-                    } else if (field === 'montantEspeces') {
-                        let val = parseFloat(e.target.value) || 0;
-                        item.montantEspeces = Math.min(Math.max(val, 0), parseFloat(item.montant) || 0);
                     } else {
                         item[field] = e.target.value;
                     }
@@ -853,8 +862,62 @@
                     if (item.moyenPaiement === 'MIXTE' && item.montantEspeces === undefined) item.montantEspeces = 0;
                     sauvegarderDonnees();
                     rafraichirTouteLInterface();
+                    return;
+                }
+
+                // Boutons ±5€ du mode Mixte : la part espèces avance par paliers de 5, jamais de saisie libre.
+                const mixteBtn = e.target.closest('[data-mixte-decr], [data-mixte-incr]');
+                if (mixteBtn) {
+                    const id = mixteBtn.dataset.mixteDecr || mixteBtn.dataset.mixteIncr;
+                    const item = getMoisActif().depenses.find(x => x.id === id);
+                    if (item) {
+                        const max = Math.max(parseFloat(item.montant) || 0, 0);
+                        const cur = parseFloat(item.montantEspeces) || 0;
+                        const delta = mixteBtn.dataset.mixteIncr !== undefined ? 5 : -5;
+                        item.montantEspeces = Math.min(Math.max(cur + delta, 0), max);
+                        sauvegarderDonnees();
+                        rafraichirTouteLInterface();
+                    }
                 }
             });
+
+            // Glisser verticalement sur le chiffre pour ajuster la part espèces (mode Mixte), par paliers de 5€.
+            // Mise à jour visuelle immédiate pendant le geste (sans re-render, pour ne pas casser la capture du
+            // pointeur), sauvegarde uniquement au relâchement.
+            document.getElementById(containerId).addEventListener('pointerdown', (e) => {
+                const scrub = e.target.closest('[data-mixte-scrub]');
+                if (!scrub) return;
+                const item = getMoisActif().depenses.find(x => x.id === scrub.dataset.mixteScrub);
+                if (!item) return;
+                mixteDragId = item.id;
+                mixteDragStartY = e.clientY;
+                mixteDragStartVal = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
+                mixteDragLive = mixteDragStartVal;
+                scrub.setPointerCapture(e.pointerId);
+            });
+            document.getElementById(containerId).addEventListener('pointermove', (e) => {
+                if (!mixteDragId) return;
+                const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
+                if (!item) return;
+                const max = Math.max(parseFloat(item.montant) || 0, 0);
+                const deltaY = mixteDragStartY - e.clientY;
+                const steps = Math.round(deltaY / 18);
+                mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), max);
+                const valueEl = document.querySelector(`[data-mixte-scrub="${mixteDragId}"] .mixte-value`);
+                if (valueEl) valueEl.textContent = mixteDragLive.toFixed(0) + ' €';
+            });
+            const finirGlisserMixte = () => {
+                if (!mixteDragId) return;
+                const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
+                if (item && mixteDragLive !== null) {
+                    item.montantEspeces = mixteDragLive;
+                    sauvegarderDonnees();
+                    rafraichirTouteLInterface();
+                }
+                mixteDragId = null; mixteDragLive = null;
+            };
+            document.getElementById(containerId).addEventListener('pointerup', finirGlisserMixte);
+            document.getElementById(containerId).addEventListener('pointercancel', finirGlisserMixte);
         };
 
         setupTableListeners('mois-content-wrapper');
