@@ -157,6 +157,8 @@
         .revenus-box { background: var(--card-bg); padding: 15px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
         .revenus-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .revenus-row:not(:last-child) { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+        /* Début d'un nouveau groupe logique (reportés / à ajouter / ajouts en cours) : séparation plus marquée qu'entre 2 lignes d'un même groupe */
+        .revenus-row.revenus-group-start { margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border); }
         .revenus-row strong { font-size: 0.8rem; flex: 1; padding-right: 10px; }
         .revenus-box input { width: 100px; text-align: right; border: 1px solid var(--border); padding: 6px; border-radius: 8px; font-weight: bold; color: var(--primary); }
         /* Champs en lecture seule (reports Revolut/Espèces) : non interactifs, visuellement neutres pour ne pas les confondre avec les champs éditables. */
