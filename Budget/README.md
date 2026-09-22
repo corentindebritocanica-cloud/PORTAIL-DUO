@@ -260,3 +260,24 @@ Budget publie le **reste à vivre du mois en cours** pour le tableau de bord du 
 **Vérifié** : logique de calcul (report cumulatif, mode Mixte, exclusion du legacy Ticket Resto) testée par un harnais Node autonome (16 assertions, scénario sur 3 mois enchaînés) — voir le calcul manuel dans le commit. Cohérence des `id` HTML/JS vérifiée par script (aucun id utilisé par `app.js` absent de `index.html`). **Non vérifié dans l'app complète en conditions réelles (Firestore) ni sur iPhone.**
 
 **Ajustement UX (retour de Corentin, même jour)** : les 2 champs en lecture seule (« Solde reporté (Revolut) », « Espèces reportées ») regroupés en haut de la carte revenus, avant les 3 champs éditables. Style dédié `.revenus-box input[readonly]` (couleur `--text-muted`, fond `--bg-color`, bordure en pointillés) pour les distinguer visuellement des champs sur lesquels on peut saisir — ils n'étaient jusqu'ici pas différenciés (même couleur `--primary` que les champs éditables), ce qui pouvait laisser croire à tort qu'on pouvait les modifier.
+
+
+## Mode Mixte : boutons ±5 € + glisser tactile, retrait du champ texte (22/09/2026)
+
+**Retour de Corentin** : le petit champ numérique du mode Mixte (taper le montant espèces au clavier) était difficile à manipuler sur iPhone. Une maquette a été proposée et validée avec Corentin (Artifact « Design », itérée en 3 versions) avant implémentation. Décisions actées pendant cette itération :
+- Corentin indique toujours des **montants espèces ronds** (jamais de centimes) — la carte absorbe automatiquement le reste, centimes compris.
+- **Aucune valeur par défaut ni preset** ne doit être suggéré (ni en %, ni en €) : l'espèces part toujours de **0 €**.
+- Ajustement par **paliers de 5 €** (et non 1 €, ajusté après un premier essai).
+
+**Nouvelle interaction** (`rendreLignes()`, remplace l'ancien `<input type="number" data-field="montantEspeces">`) : sur une ligne en mode Mixte, la part espèces se règle avec :
+- deux **boutons ronds ± (`.mixte-btn`)** de part et d'autre du chiffre, qui l'incrémentent/décrémentent de 5 €, bornés entre 0 € et le montant total de la ligne ;
+- ou en **glissant le doigt verticalement sur le chiffre** (`.mixte-scrub`, `touch-action:none`) : haut = +5 €, bas = −5 €, par paliers de 5 € (un palier tous les 18 px parcourus).
+- La **part carte n'est plus saisissable** : elle s'affiche en lecture seule juste en dessous (`.mixte-recap`), calculée automatiquement (`montant − espèces`).
+
+**Détail technique du glisser** (`setupTableListeners()`, écouteurs `pointerdown`/`pointermove`/`pointerup`/`pointercancel` sur le conteneur, en plus de l'existant `input`/`change`/`click`) :
+- `pointerdown` sur `[data-mixte-scrub]` capture le pointeur (`setPointerCapture`) et mémorise la position Y et la valeur de départ dans des variables de module dédiées (`mixteDragId`/`mixteDragStartY`/`mixteDragStartVal`/`mixteDragLive`, **hors de `state`** : purement transitoire).
+- `pointermove` met à jour **uniquement le texte du chiffre affiché**, en DOM direct (`textContent`), **sans appeler `rafraichirTouteLInterface()`** : un re-render pendant le geste reconstruirait le HTML de la ligne (`rendreLignes` fait `container.innerHTML = ''`) et casserait la capture du pointeur en cours de glissement.
+- `pointerup`/`pointercancel` seuls déclenchent l'écriture réelle (`item.montantEspeces = …`), `sauvegarderDonnees()` et le re-render complet — même principe de « live pendant la saisie, commit au relâchement » que le reste de l'app (ex. les champs `montant`/`libelle`, mis à jour sur `input` en mémoire mais sauvegardés seulement au `change`).
+- Couleur du chiffre espèces : `var(--secondary)` (orange `#FF9500`, valeur fixe), volontairement **pas** `--primary`/`--lisa` : ces deux variables changent selon le profil actif (Corentin bleu / Lisa rose, v3.2.0), ce qui aurait pu faire coïncider visuellement carte et espèces selon le profil.
+
+**Vérifié** : syntaxe JS (`node -c`), cohérence des sélecteurs CSS ↔ attributs `data-mixte-*` entre `app.js` et `style.css`. **Non vérifié sur iPhone** (le geste de glissement tactile — `touch-action:none`, `setPointerCapture` — n'a pu être testé qu'en lecture de code, pas en conditions réelles tactiles).
