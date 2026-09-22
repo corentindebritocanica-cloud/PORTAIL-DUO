@@ -889,14 +889,16 @@
                 if (!scrub) return;
                 const item = getMoisActif().depenses.find(x => x.id === scrub.dataset.mixteScrub);
                 if (!item) return;
+                e.preventDefault(); // priorité au drag : empêche tout défilement de la page dès que le doigt se pose sur la zone
                 mixteDragId = item.id;
                 mixteDragStartY = e.clientY;
                 mixteDragStartVal = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
                 mixteDragLive = mixteDragStartVal;
                 scrub.setPointerCapture(e.pointerId);
-            });
+            }, { passive: false });
             document.getElementById(containerId).addEventListener('pointermove', (e) => {
                 if (!mixteDragId) return;
+                e.preventDefault(); // idem : le geste en cours ne doit jamais faire défiler la page en dessous
                 const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
                 if (!item) return;
                 const max = Math.max(parseFloat(item.montant) || 0, 0);
@@ -905,7 +907,7 @@
                 mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), max);
                 const valueEl = document.querySelector(`[data-mixte-scrub="${mixteDragId}"] .mixte-value`);
                 if (valueEl) valueEl.textContent = mixteDragLive.toFixed(0) + ' €';
-            });
+            }, { passive: false });
             const finirGlisserMixte = () => {
                 if (!mixteDragId) return;
                 const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
