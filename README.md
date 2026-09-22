@@ -445,3 +445,18 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - Site réellement publié, avant et après le correctif : visite en ligne puis coupure réseau → contenu correct.
 
 **Non vérifié sur iPhone.** Si le problème revient malgré ce correctif : dans Réglages du Portail (ou en le supprimant de l'écran d'accueil puis le rouvrant depuis Safari), rouvrir une fois **en ligne** pour forcer une nouvelle installation propre — voir aussi le bouton de rechargement forcé (roue en bas de l'écran), qui exige lui aussi d'être en ligne pour redevenir utile hors-ligne ensuite.
+
+
+## Tableau de bord périmé au retour au premier plan (22/09/2026)
+
+**Retour de Corentin** : sur le téléphone de Lisa, le tableau de bord affichait des chiffres périmés alors qu'elle avait internet — il a fallu forcer une actualisation manuelle.
+
+**Cause** : le tableau de bord (section « Tableau de bord » ci-dessus) se met à jour en direct via `db.collection('portail').onSnapshot(...)`, jamais par un minuteur. Sur iPhone, une PWA mise en arrière-plan est **suspendue par iOS** (JS arrêté) ; l'écoute en direct peut rester silencieuse un moment au retour au premier plan, sans se reconnecter tout de suite, même avec une connexion internet qui fonctionne. Le seul mécanisme déjà présent au retour au premier plan (`visibilitychange`, plus bas dans `app.js`) ne fait que réafficher les chiffres déjà en mémoire (pour rafraîchir les « il y a X min ») et vérifier la **version du code** de l'app — jamais relire les documents Firestore.
+
+**Correctif** (`app.js`, bloc « TABLEAU DE BORD ») :
+- `db` (jusque-là une constante locale à `demarrerBase()`) est hissée en variable du module (`let db = null`), pour être réutilisable ailleurs.
+- Nouvelle fonction `rafraichirDepuisServeur()` : relit les 3 documents `portail/*` avec `db.collection('portail').get({ source: 'server' })` — **force une lecture serveur**, jamais le cache local (même garde-fou que la publication côté Muscu/Budget/Course : ne jamais laisser une vieille copie en cache écraser un état plus récent) — puis met à jour `resume`, `localStorage['portail-resume']` et l'affichage.
+- Le gestionnaire `visibilitychange` existant appelle désormais `afficher()` **et** `rafraichirDepuisServeur()` à chaque retour au premier plan, en plus de l'écoute `onSnapshot` déjà en place (qui continue de fonctionner normalement le reste du temps).
+- Si `db` n'est pas encore prêt (chargement du SDK pas terminé, ou base indisponible), la fonction ne fait rien : le prochain `onSnapshot` ou le prochain retour au premier plan prendra le relais. Toute erreur est absorbée (`console.warn`), comme le reste du bloc.
+
+**Non vérifié sur iPhone** (relu via l'API GitHub, pas testé en conditions réelles d'arrière-plan/premier plan sur l'appareil).
