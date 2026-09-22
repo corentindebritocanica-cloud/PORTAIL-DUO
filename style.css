@@ -151,22 +151,10 @@
   .dash-sub{ display:block; font-size:13.5px; color:var(--text-dim); margin-top:4px; }
   .dash-sep{ display:block; height:1px; background:var(--border); margin:16px 0 14px; }
 
-  /* Muscu : la semaine de chacun */
-  .dash-person{ display:flex; align-items:center; gap:10px; margin-top:12px; }
-  .dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .dot.corentin{ background:var(--blue); }
-  .dot.lisa{ background:#ff3d7e; }
-  .dash-name{ width:64px; font-size:14px; font-weight:700; }
-  .segs{ flex:1; display:grid; grid-template-columns:repeat(var(--n, 4), minmax(0, 1fr)); gap:5px; }
-  .segs i{ display:block; height:9px; border-radius:5px; background:var(--card-2); }
-  .segs.corentin i.on{ background:var(--blue); }
-  .segs.lisa i.on{ background:#ff3d7e; }
-  .dash-count{ width:52px; text-align:right; font-size:13px; font-weight:700; white-space:nowrap; }
-  .dash-serie{ display:flex; align-items:center; gap:10px; margin-top:16px; padding:10px 12px; border-radius:var(--r-md); background:var(--card-2); }
-  .dash-serie[hidden]{ display:none; }
-  .dash-serie svg{ flex:none; width:22px; height:22px; }
-  .dash-serie-txt{ display:block; font-size:14px; font-weight:800; }
-  .dash-serie-note{ display:block; font-size:12.5px; color:var(--text-dim); margin-top:1px; }
+  /* Muscu : phrase motivante du duo (22/09/26), à la place du compte hebdomadaire */
+  .dash-phrase{ display:flex; align-items:flex-start; gap:10px; margin-top:16px; padding:12px 14px; border-radius:var(--r-md); background:var(--card-2); }
+  .dash-phrase svg{ flex:none; width:18px; height:18px; margin-top:1px; }
+  .dash-phrase span{ font-size:14.5px; font-weight:700; line-height:1.35; }
 
   /* Budget : jauge = part du budget déjà dépensée */
   .gauge{ display:block; height:10px; border-radius:5px; background:var(--card-2); overflow:hidden; margin-top:16px; }
