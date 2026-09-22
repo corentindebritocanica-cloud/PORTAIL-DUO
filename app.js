@@ -46,6 +46,7 @@
     const NOMS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const el = (id) => document.getElementById(id);
     let resume = {};
+    let db = null; // hissé hors de demarrerBase() pour que rafraichirDepuisServeur() (retour au premier plan) puisse s'en servir
 
     /* ---- validation : rien de ce qui vient de la base n'est utilisé tel quel ---- */
     const nombre = (x, min, max) => (typeof x === 'number' && isFinite(x) && x >= min && x <= max) ? x : null;
@@ -184,7 +185,8 @@
         await chargerScript(SDK + 'firebase-app-compat.js');
         await Promise.all([chargerScript(SDK + 'firebase-auth-compat.js'), chargerScript(SDK + 'firebase-firestore-compat.js')]);
         const app = firebase.apps.find((a) => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
-        const auth = app.auth(), db = app.firestore();
+        const auth = app.auth();
+        db = app.firestore();
         try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* repli silencieux sur le cache mémoire */ }
         auth.onAuthStateChanged((user) => {
           if (user) {
@@ -204,12 +206,35 @@
       }
     }
 
+    /* Relecture forcée depuis le SERVEUR (jamais le cache local) au retour au premier plan.
+       Sur iPhone, une PWA mise en arrière-plan est suspendue par iOS : l'écoute en direct
+       (onSnapshot) peut rester silencieuse un moment au retour, sans se reconnecter tout de
+       suite — le Portail affichait alors de vieilles données malgré une connexion internet
+       fonctionnelle (retour de Corentin, 22/09/2026 : obligé de forcer un rechargement manuel
+       sur le téléphone de Lisa). Ce filet de sécurité force une lecture serveur à chaque retour
+       visible, indépendamment de l'état de l'écoute en direct. */
+    async function rafraichirDepuisServeur(){
+      if (!db) return; // Firestore pas encore prêt (ou base indisponible) : le prochain onSnapshot fera foi
+      try {
+        const snap = await db.collection('portail').get({ source: 'server' });
+        const obj = {};
+        snap.forEach((doc) => { obj[doc.id] = doc.data(); });
+        resume = obj;
+        try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
+        afficher();
+      } catch (err) {
+        console.warn('[portail] relecture au retour au premier plan impossible :', err);
+      }
+    }
+
     try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }
     if (typeof resume !== 'object' || resume === null) resume = {};
     afficher();
     window.addEventListener('load', () => setTimeout(demarrerBase, 0));
     setInterval(afficher, 60000);                       /* « il y a 3 min » reste juste */
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') afficher(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') { afficher(); rafraichirDepuisServeur(); }
+    });
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {
