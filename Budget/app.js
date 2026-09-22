@@ -78,7 +78,20 @@
         const sansAccents = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         
         const somme = (arr) => (arr || []).reduce((s, i) => s + (parseFloat(i.montant) || 0), 0);
-        const sommeCB = (arr) => (arr || []).reduce((s, i) => (!i.moyenPaiement || i.moyenPaiement === 'CB' ? s + (parseFloat(i.montant) || 0) : s), 0);
+        // Part Revolut (carte) d'une liste de dépenses : CB = tout, MIXTE = montant - part espèces, ESPECES/TR = rien.
+        const sommeCB = (arr) => (arr || []).reduce((s, i) => {
+            const meth = i.moyenPaiement || 'CB';
+            if (meth === 'CB') return s + (parseFloat(i.montant) || 0);
+            if (meth === 'MIXTE') return s + Math.max((parseFloat(i.montant) || 0) - (parseFloat(i.montantEspeces) || 0), 0);
+            return s; // ESPECES, TR (legacy, laissée à part comme avant)
+        }, 0);
+        // Part Espèces d'une liste de dépenses : ESPECES = tout, MIXTE = part espèces saisie, CB/TR = rien.
+        const sommeEspeces = (arr) => (arr || []).reduce((s, i) => {
+            const meth = i.moyenPaiement || 'CB';
+            if (meth === 'ESPECES') return s + (parseFloat(i.montant) || 0);
+            if (meth === 'MIXTE') return s + (parseFloat(i.montantEspeces) || 0);
+            return s; // CB, TR (legacy, laissée à part comme avant)
+        }, 0);
 
         const normaliserMois = (m) => ({
             ...(({ epargne, ...reste }) => reste)(m), // le champ « epargne » (carte Projets / Épargne) n'existe plus : on l'écarte, même s'il vient d'une ancienne sauvegarde .json
@@ -87,6 +100,7 @@
             provisions: Array.isArray(m.provisions) ? m.provisions : (m.provisions ? Object.values(m.provisions) : []),
             fixes: Array.isArray(m.fixes) ? m.fixes : (m.fixes ? Object.values(m.fixes) : []), 
             revenus_add: m.revenus_add || 0,
+            especes_add: m.especes_add || 0, // apport d'espèces du mois (report cumulatif séparé, voir calculerSoldeReporteEspeces)
             annee: m.annee || parseInt(m.nom.split(' ')[1])
         });
 
@@ -250,9 +264,11 @@
             const nom = NOMS_MOIS[now.getMonth()] + ' ' + now.getFullYear();
             const m = state.donnees.find(x => x.nom === nom);
             if (!m) return { mois: nom, reste: null, budget: null, depense: null, joursRestants: null }; // mois pas encore démarré
-            const report = calculerSoldeReporte(state.donnees.indexOf(m));
-            const budget = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
-            const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions);
+            const idx = state.donnees.indexOf(m);
+            const budgetRevolut = calculerSoldeReporte(idx) + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
+            const budgetEspeces = calculerSoldeReporteEspeces(idx) + (parseFloat(m.especes_add) || 0);
+            const budget = budgetRevolut + budgetEspeces; // Revolut + Espèces, formule identique à calculerTotauxMensuels
+            const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions) + sommeEspeces(m.depenses);
             const r2 = (n) => Math.round(n * 100) / 100;
             const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate() };
@@ -412,6 +428,18 @@
             return solde;
         };
 
+        // --- Logique du Reste à Vivre (Calcul du report cumulatif Espèces) ---
+        // Même principe que calculerSoldeReporte, mais pour la cagnotte espèces : ne concerne que
+        // les Dépenses (Charges fixes/Provisions restent 100% Revolut, décision explicite de Corentin).
+        const calculerSoldeReporteEspeces = (cibleIdx) => {
+            let solde = 0;
+            for (let i = 0; i < cibleIdx; i++) {
+                const m = state.donnees[i];
+                solde += (parseFloat(m.especes_add) || 0) - sommeEspeces(m.depenses);
+            }
+            return solde;
+        };
+
         // --- Rendu des tableaux ---
         const rendreLignes = (containerId, tableau, type) => {
             const container = document.getElementById(containerId);
@@ -447,10 +475,19 @@
                 // AFFICHAGE CLASSIQUE POUR LES AUTRES ONGLETS
                 else {
                     let payIcon = '';
+                    let mixteRow = '';
                     if (type === 'depenses') {
                         const meth = item.moyenPaiement || 'CB';
-                        const icon = meth === 'TR' ? '🎟️' : (meth === 'ESPECES' ? '💵' : '💳');
-                        payIcon = `<button class="btn-pay-method" data-pay="${item.id}">${icon}</button>`;
+                        const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : '💳';
+                        payIcon = `<button class="btn-pay-method" data-pay="${item.id}" title="Mode de paiement">${icon}</button>`;
+                        if (meth === 'MIXTE') {
+                            const especes = parseFloat(item.montantEspeces) || 0;
+                            const carte = Math.max((parseFloat(item.montant) || 0) - especes, 0);
+                            mixteRow = `
+                            <div class="item-mixte">
+                                💵 <input type="number" value="${especes}" data-id="${item.id}" data-type="${type}" data-field="montantEspeces" placeholder="0"> € espèces · 💳 ${carte.toFixed(2)} € carte
+                            </div>`;
+                        }
                     }
 
                     row.innerHTML = `
@@ -469,6 +506,7 @@
                                     ${state.categories.map(c => `<option value="${c}" ${item.categorie === c ? 'selected' : ''}>${c}</option>`).join('')}
                                 </select>
                             </div>
+                            ${mixteRow}
                         </div>
                         <button class="btn-delete" data-del-type="${type}" data-del-id="${item.id}">✕</button>
                     `;
@@ -505,29 +543,37 @@
             
             const idx = state.donnees.indexOf(mois);
             const report = calculerSoldeReporte(idx);
+            const reportEspeces = calculerSoldeReporteEspeces(idx);
             document.getElementById('solde_reporte').value = report.toFixed(2);
+            document.getElementById('solde_reporte_especes').value = reportEspeces.toFixed(2);
             document.getElementById('revenus').value = mois.revenus || 0;
             document.getElementById('revenus_add').value = mois.revenus_add || 0;
+            document.getElementById('especes_add').value = mois.especes_add || 0;
 
             rendreLignes('conteneur-charges', mois.charges, 'charges');
             rendreLignes('conteneur-depenses', mois.depenses, 'depenses');
             rendreLignes('conteneur-provisions', mois.provisions, 'provisions');
 
-            calculerTotauxMensuels(mois, report);
+            calculerTotauxMensuels(mois, report, reportEspeces);
         };
 
-        const calculerTotauxMensuels = (m, report) => {
+        const calculerTotauxMensuels = (m, report, reportEspeces) => {
             const tc = somme(m.charges);
             const tdTotal = somme(m.depenses);
             const tdCB = sommeCB(m.depenses);
+            const tdEspeces = sommeEspeces(m.depenses);
             const tprov = somme(m.provisions);
             const totalRev = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
+            const totalEspeces = reportEspeces + (parseFloat(m.especes_add) || 0);
 
-            const reste = totalRev - tc - tdCB - tprov;
+            const resteRevolut = totalRev - tc - tdCB - tprov;
+            const resteEspeces = totalEspeces - tdEspeces;
+            const reste = resteRevolut + resteEspeces;
 
             document.getElementById('total-charges').innerText = tc.toFixed(0);
             document.getElementById('total-provisions').innerText = tprov.toFixed(0);
             document.getElementById('reste-a-vivre').innerText = eur(reste);
+            document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)}`;
 
             const tdDiff = tdTotal - tdCB;
             document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small style="font-weight:normal; opacity:0.6;">(dont ${tdDiff.toFixed(0)}€ 🎟️/💵)</small>` : ''}`;
@@ -715,6 +761,7 @@
                 annee: an,
                 revenus: last.revenus,
                 revenus_add: 0,
+                especes_add: 0,
                 charges: last.charges.map(c => ({ ...c, id: genId(), montant: 0 })),
                 depenses: [],
                 provisions: last.provisions.map(p => ({ ...p, id: genId(), montant: 0 })),
@@ -745,6 +792,9 @@
                     if (field === 'montant') {
                         let val = parseFloat(e.target.value) || 0;
                         item.montant = val;
+                    } else if (field === 'montantEspeces') {
+                        let val = parseFloat(e.target.value) || 0;
+                        item.montantEspeces = Math.min(Math.max(val, 0), parseFloat(item.montant) || 0);
                     } else {
                         item[field] = e.target.value;
                     }
@@ -793,8 +843,14 @@
                 const payBtn = e.target.closest('[data-pay]');
                 if (payBtn) {
                     const item = getMoisActif().depenses.find(x => x.id === payBtn.dataset.pay);
-                    const meths = ['CB', 'TR', 'ESPECES'];
-                    item.moyenPaiement = meths[(meths.indexOf(item.moyenPaiement || 'CB') + 1) % 3];
+                    const meths = ['CB', 'ESPECES', 'MIXTE']; // Ticket Resto (legacy) n'est plus proposé
+                    if (item.moyenPaiement === 'TR') {
+                        // Une ancienne ligne Ticket Resto qu'on touche rejoint le nouveau cycle, en repartant de Carte
+                        item.moyenPaiement = 'CB';
+                    } else {
+                        item.moyenPaiement = meths[(meths.indexOf(item.moyenPaiement || 'CB') + 1) % meths.length];
+                    }
+                    if (item.moyenPaiement === 'MIXTE' && item.montantEspeces === undefined) item.montantEspeces = 0;
                     sauvegarderDonnees();
                     rafraichirTouteLInterface();
                 }
