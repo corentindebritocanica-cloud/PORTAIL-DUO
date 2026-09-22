@@ -425,3 +425,23 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 **Fichiers** : `icone-192.png`, `icone-512.png` (fond plein, sans transparence), `icone-512-maskable.png` (contenu réduit à 72 % et centré, marge de sécurité standard pour les plateformes qui appliquent leur propre découpe). Le SVG source (courbe, couleurs, dégradé de fond) n'est pas versionné : pour retoucher l'icône, repartir de ces mêmes couleurs (`--blue` #1f8fff, rose Lisa #ff3d7e) et de la même idée (une forme, pas deux qui se cognent).
 
 **Non vérifié sur iPhone** (rendu contrôlé en navigateur : taille réelle sur fond d'écran d'accueil simulé, et 60 px).
+
+
+## Page noire hors-ligne (22/09/2026)
+
+**Symptôme** (retour de Corentin) : hors-ligne, le Portail reste sur une page noire au lieu de s'ouvrir.
+
+**Cause probable** : `cache.addAll()`, utilisé à l'installation du service worker pour mettre en cache tout le « shell » (`index.html`, `style.css`, `app.js`, `manifest.json`, les 3 icônes), est **tout ou rien** — si UN SEUL fichier échoue (404 passager pendant qu'un déploiement se propage sur GitHub Pages, requête qui traîne…), l'installation entière échoue, et **aucun** fichier n'est mis en cache, pas même `index.html`/`app.js`/`style.css`. Le Portail a été poussé plusieurs fois coup sur coup le 22/09/2026 (tableau de bord, icône) : une installation a pu tomber pile dans une de ces fenêtres. Reproduit et confirmé : un simple 404 sur une icône, pendant l'installation, empêchait bien tout le reste d'être mis en cache (test automatisé, voir plus bas).
+
+À cela s'ajoutait un second problème, plus rare mais plus grave : si jamais le cache n'a **rien** à proposer au moment où `reseauPuisCache()` (réseau d'abord, repli sur le cache après 4 s — voir l'entrée du 20/09/2026 ci-dessous) atteint son délai, l'ancien code **attendait alors l'échec du vrai `fetch()` réseau** avant de se rabattre sur le cache. Hors-ligne dans un navigateur de bureau, ce `fetch()` échoue en une fraction de seconde ; mais sur iPhone en zone de mauvais réseau (pas d'« offline » franc, juste aucune réponse), une requête peut mettre bien plus de 4 secondes à échouer côté OS — le Portail restait alors bloqué sur une page noire, potentiellement très longtemps.
+
+**Corrections** (`sw.js`) :
+1. **Installation résiliente** : les fichiers sont désormais mis en cache un par un (`SHELL_CRITIQUES` puis `SHELL_ANNEXES`), chacun avec son propre `try/catch`. Un 404 sur une icône ne peut plus empêcher `index.html`/`style.css`/`app.js` d'être mis en cache.
+2. **Plus jamais d'attente indéfinie** : `reseauPuisCache()` résout désormais **toujours** au bout de `DELAI_RESEAU_MS` (4 s) — avec le cache s'il a quelque chose, sinon avec une **page de secours** minimale, autonome (aucune dépendance externe, pas même `style.css`), qui explique la situation et propose un bouton « Réessayer ».
+
+**Vérifié** (Playwright + Node, sans navigateur pour le point 2) :
+- Installation avec une icône en échec (404 simulé) → les 3 fichiers critiques finissent quand même en cache → hors-ligne fonctionne.
+- `reseauPuisCache()` testée en isolation dans Node avec un `fetch` qui ne se termine **jamais** (le pire cas réel) : cache vide → page de secours après 4,0 s (avant le correctif : blocage indéfini) ; cache disponible → contenu du cache après 4,0 s (inchangé).
+- Site réellement publié, avant et après le correctif : visite en ligne puis coupure réseau → contenu correct.
+
+**Non vérifié sur iPhone.** Si le problème revient malgré ce correctif : dans Réglages du Portail (ou en le supprimant de l'écran d'accueil puis le rouvrant depuis Safari), rouvrir une fois **en ligne** pour forcer une nouvelle installation propre — voir aussi le bouton de rechargement forcé (roue en bas de l'écran), qui exige lui aussi d'être en ligne pour redevenir utile hors-ligne ensuite.
