@@ -4702,8 +4702,7 @@ function emptyTrash(){
      semaine en cours compte si c'est déjà atteint, et ne casse pas la série sinon (elle n'est pas finie).
    - Prochaine séance = celle qui suit, dans l'ordre du programme, la dernière séance FIXE archivée du
      profil (une séance personnalisée ne décale rien) ; la première du programme s'il n'y a rien. */
-const PORTAIL_OBJECTIF_SEMAINE = 4;
-const PORTAIL_SERIE_MIN = 3;
+const PORTAIL_SERIE_MIN = 3;   /* seuil de séances/semaine chacun pour compter dans la « série » */
 function portailDebutSemaine(ts){
   const d = new Date(ts); d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
@@ -4712,6 +4711,41 @@ function portailDebutSemaine(ts){
 function portailSemainePrecedente(debut){
   const d = new Date(debut); d.setDate(d.getDate() - 7);
   return portailDebutSemaine(d.getTime());
+}
+/* Phrase motivante du duo (22/09/26) : remplace, sur la carte du Portail, le compte
+   « X/4 séances » — pas représentatif d'un rythme qui n'est pas toujours 4 fois par
+   semaine (demande de Corentin). Une seule phrase pour le duo, ton motivant et
+   bienveillant, jamais culpabilisant. Choisie par priorité : séance en duo récente
+   > silence prolongé > série en cours > bonne semaine en cours > phrase neutre.
+   Variante choisie par le jour du mois (stable toute la journée, change le lendemain) :
+   pas aléatoire à chaque calcul, sinon la signature de `resume` changerait sans arrêt
+   et republierait à chaque ouverture pour rien. */
+const PORTAIL_PHRASES = {
+  duoRecent: ["Belle séance en duo récemment, ça donne envie de remettre ça !", "Vous avez transpiré ensemble dernièrement, quel duo !"],
+  silence: (j) => ["Ça fait " + j + " jours sans séance : une reprise en douceur ?", "Le programme vous attend depuis " + j + " jours, prêts à vous y remettre ?"],
+  serie: (n) => [n + " semaines d'affilée à deux, quelle régularité !", n + " semaines de suite : vous tenez le rythme, bravo !"],
+  bonneSemaine: (n) => ["Belle dynamique cette semaine, continuez comme ça !", "Déjà " + n + " séances cette semaine à vous deux, superbe rythme !"],
+  neutre: ["Une nouvelle semaine à deux, à vous de la rendre belle !", "Chaque séance compte : à vous de jouer !"]
+};
+function portailJourCalendaire(ts){
+  const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime();
+}
+function calculerPhraseMuscu(archives, semaineCorentin, semaineLisa, serie, now){
+  const pick = (variantes) => variantes[new Date(now).getDate() % variantes.length];
+  const dernierC = archives.corentin && archives.corentin[0] && archives.corentin[0].createdAt;
+  const dernierL = archives.lisa && archives.lisa[0] && archives.lisa[0].createdAt;
+  if(dernierC && dernierL && portailJourCalendaire(dernierC) === portailJourCalendaire(dernierL) && (now - Math.max(dernierC, dernierL)) < 2 * 86400000){
+    return pick(PORTAIL_PHRASES.duoRecent);
+  }
+  const dernierCommun = Math.max(dernierC || 0, dernierL || 0);
+  if(dernierCommun){
+    const jours = Math.floor((now - dernierCommun) / 86400000);
+    if(jours >= 5) return pick(PORTAIL_PHRASES.silence(jours));
+  }
+  if(serie >= 2) return pick(PORTAIL_PHRASES.serie(serie));
+  const total = semaineCorentin + semaineLisa;
+  if(total >= 3) return pick(PORTAIL_PHRASES.bonneSemaine(total));
+  return pick(PORTAIL_PHRASES.neutre);
 }
 function calculerResumePortailMuscu(archives, getSessionFn, now){
   const profils = ['corentin', 'lisa'];
@@ -4733,11 +4767,10 @@ function calculerResumePortailMuscu(archives, getSessionFn, now){
     const s = getSessionFn(SESSIONS[(idx + 1) % SESSIONS.length].id);
     prochaine[p] = { label: String(s.label || ''), title: String(s.title || ''), nbExos: (s.exercises || []).length, cardio: !!s.cardio };
   });
+  const semaineCorentin = parSemaine.corentin[debut] || 0, semaineLisa = parSemaine.lisa[debut] || 0;
   return {
-    objectif: PORTAIL_OBJECTIF_SEMAINE,
-    semaine: { corentin: parSemaine.corentin[debut] || 0, lisa: parSemaine.lisa[debut] || 0 },
-    serie: serie,
-    prochaine: prochaine
+    prochaine: prochaine,
+    phrase: calculerPhraseMuscu(archives, semaineCorentin, semaineLisa, serie, now)
   };
 }
 let portailMuscuMinuteur = null, portailMuscuDernier = '';
