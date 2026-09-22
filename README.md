@@ -348,7 +348,7 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 
 | Document | Champs | Écrit par |
 |---|---|---|
-| `portail/muscu` | `maj`, `objectif` (4), `semaine` `{corentin, lisa}`, `serie`, `prochaine` `{corentin, lisa}` = `{label, title, nbExos, cardio}` | Muscu |
+| `portail/muscu` | `maj`, `prochaine` `{corentin, lisa}` = `{label, title, nbExos, cardio}`, `phrase` (texte) | Muscu |
 | `portail/budget` | `maj`, `mois`, `reste`, `budget`, `depense`, `joursRestants` (tous `null` si le mois en cours n'existe pas) | Budget |
 | `portail/courses` | `maj`, `aAcheter`, `restants`, `rayons` = 3 × `{nom, n}` | Courses |
 
@@ -368,15 +368,23 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - **Le SDK Firebase (compat 10.12.2) est chargé APRÈS le premier affichage**, par injection de `<script>` : il ne bloque jamais l'ouverture (leçon du 18/09 : un `<script>` de CDN bloquant plante l'ouverture hors ligne). Application nommée `'portail'`, `enablePersistence`, connexion anonyme.
 - `sw.js` met les 3 fichiers du SDK en cache (`FIREBASE_FILES`, **même version que `SDK` dans app.js — à mettre à jour ensemble**). ⚠️ `fetch` + `cache.put`, pas `cache.add` : `add()` rejette une réponse opaque (`no-cors`).
 - **Profil** : « Prochaine séance · Corentin/Lisa » suit `localStorage['duo_profile']` de Muscu (même origine) ; `corentin` par défaut.
-- **Jours restants** recalculés dans le Portail à partir de la date du jour (le document date de la dernière ouverture de Budget) ; « environ X € par jour » seulement à partir de 1 €/j. Reste négatif : montant et jauge en rouge (`--danger`), « Budget dépassé · … ».
+- **Jours restants** recalculés dans le Portail à partir de la date du jour (le document date de la dernière ouverture de Budget) ; « environ X € par jour » seulement à partir de 1 €/j. Reste négatif : montant et jauge en rouge (`--danger`), « Budget dépassé · … ». **Montants au centime près** (`eur2`, deux décimales) — corrigé le 22/09/2026, l'ancien `eur0` arrondissait à l'euro (retour de Corentin : sa somme au centime ne correspondait pas à l'app).
 - Sans données (première fois) : « — » et, dans l'en-tête de la carte, « Ouvre l'app une fois pour remplir cette carte ».
 - Pas de raccourcis d'action dans les cartes (« + Dépense », « Démarrer »…) : les apps n'ont pas de lien profond. **Piste non faite** : `./Budget/?action=depense`, `./Course/?action=ajouter`, `./Muscu/?seance=s2`.
 
 ### Définitions calculées par Muscu (constantes dans `Muscu/app.js`)
 
-- **Semaine** = du lundi 00:00 au dimanche, heure de l'appareil ; une archive = une séance ; `PORTAIL_OBJECTIF_SEMAINE = 4` (4 séances fixes au programme).
-- **Série** = semaines d'affilée où **Corentin ET Lisa** ont fait au moins `PORTAIL_SERIE_MIN = 3` séances ; la semaine en cours compte si c'est déjà atteint, sans casser la série sinon. *Définition proposée par l'assistant, pas demandée : à ajuster si elle ne convient pas.*
 - **Prochaine séance** = celle qui suit, dans l'ordre du programme, la dernière séance **fixe** archivée du profil (une séance personnalisée ne décale rien), avec les surcharges de séances fixes.
+- **Phrase motivante du duo** (remplace, le 22/09/2026, le compte « X/4 séances cette semaine » — retour de Corentin : pas représentatif d'un rythme qui n'est pas toujours 4 fois par semaine). **Une seule phrase pour le duo**, ton **motivant et bienveillant** (jamais culpabilisant), choisie par `calculerPhraseMuscu` selon la première situation qui s'applique :
+  1. **Séance en duo récente** — dernières séances de Corentin et Lisa le même jour calendaire, il y a moins de 2 jours.
+  2. **Silence prolongé** — 5 jours ou plus depuis la plus récente des deux dernières séances.
+  3. **Série en cours** — `serie >= 2` (voir ci-dessous).
+  4. **Bonne semaine en cours** — 3 séances ou plus à eux deux cette semaine.
+  5. **Neutre** — repli si rien de ce qui précède ne s'applique.
+
+  Chaque situation a 2 variantes dans `PORTAIL_PHRASES`, choisies par **le jour du mois** (`new Date(now).getDate() % variantes.length`) : stable toute la journée, change le lendemain — volontairement pas aléatoire à chaque calcul, sinon la signature JSON de `resume` changerait sans arrêt et republierait à chaque ouverture pour rien (voir la garde `signature === portailMuscuDernier`). *Proposée par l'assistant à la demande d'idées de Corentin : les textes exacts sont à ajuster librement dans `PORTAIL_PHRASES`.*
+- **Série** = semaines d'affilée où **Corentin ET Lisa** ont fait au moins `PORTAIL_SERIE_MIN = 3` séances ; la semaine en cours compte si c'est déjà atteint, sans casser la série sinon. N'est plus publiée telle quelle dans `portail/muscu` (elle influence seulement le choix de la phrase, ci-dessus).
+- **Semaine** = du lundi 00:00 au dimanche, heure de l'appareil ; une archive = une séance. Sert au calcul de la série et de la phrase, mais **n'est plus publiée** dans `portail/muscu` (`objectif` et `semaine` retirés le 22/09/2026 avec le compte hebdomadaire).
 
 ### ⚠️ Sécurité — à lire avant de toucher à quoi que ce soit
 
