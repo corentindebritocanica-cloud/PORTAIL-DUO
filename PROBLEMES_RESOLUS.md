@@ -19,6 +19,31 @@
 
 ---
 
+## 💬 Portail/Muscu — d'un chiffre figé à une phrase qui a du sens (22/09/2026)
+
+### 22/09/2026 — Portail — « Séance X/4 » ne voulait rien dire pour un rythme qui varie
+**Retour de Corentin** : le rythme n'est pas toujours de 4 séances par semaine, donc rapporter les séances faites à un objectif fixe de 4 était trompeur.
+**Décision** (après un échange de plusieurs séries d'idées) : remplacer le compte hebdomadaire par **une phrase motivante, unique pour le duo**, ton bienveillant, calculée à partir de signaux réels (séance en duo récente, silence prolongé, série, bonne semaine), pas un texte générique statique.
+**Leçons réutilisables** :
+- **Un contenu texte généré doit rester déterministe à données égales** : la variante est choisie par `new Date().getDate() % n` (change de jour en jour), pas par `Math.random()` — un calcul aléatoire aurait fait varier la signature JSON du résumé à chaque publication et republié pour rien (la garde « sans effet si rien n'a changé » existe justement pour éviter ça).
+- **Une priorité de règles simples bat un score composite** pour ce genre de texte : la première situation qui s'applique (parmi 5, triées de la plus spécifique à la plus générale) donne un résultat prévisible et facile à ajuster, plutôt qu'une formule à pondérations.
+- **Retirer les champs qui ne servent plus le document publié** (`objectif`, `semaine`, `serie` de `portail/muscu`) plutôt que les garder « au cas où » : un document plus petit se relit plus vite, et le champ retiré n'était de toute façon jamais montré nu, seulement à travers la phrase.
+- **Demander d'autres idées plusieurs fois de suite est un signal utile** : aucune des 4 premières pistes ne convenait tout à fait ; les 4 suivantes ont fait émerger la bonne direction (une phrase plutôt qu'un chiffre), confirmée par 10 idées de plus avant que Corentin choisisse. Mieux vaut élargir que remodeler une mauvaise option.
+**Fichiers touchés** : `Muscu/app.js`, `Portail` (`index.html`, `style.css`, `app.js`), `README.md` (Portail et Muscu)
+
+---
+
+## 💶 Portail/Budget — un montant « au centime près » arrondi par erreur (22/09/2026)
+
+### 22/09/2026 — Portail — `eur0` arrondissait à l'euro, retour de Corentin le jour même
+**Symptôme** : la ligne « X € dépensés sur Y € » du Portail affichait des euros ronds (« 2 148 € »), alors que Budget calcule et affiche ses montants au centime.
+**Cause racine** : la fonction de formatage `eur0` (nommée ainsi à dessein, écrite le 22/09/2026 dans le premier jet du tableau de bord) avait `maximumFractionDigits: 0`.
+**Solution** : `eur2`, avec `minimumFractionDigits`/`maximumFractionDigits` à `2`.
+**Leçon réutilisable** : nommer une fonction de formatage par le nombre de décimales qu'elle produit (`eur0`, `eur2`) rend l'erreur visible dans le code au lieu de rester cachée dans un comportement — mais ne dispense pas de vérifier le rendu contre l'app source avant de committer.
+**Fichiers touchés** : `Portail/app.js`, `README.md`
+
+---
+
 ## 🎛️ Portail — un tableau de bord « difficile à comprendre » (22/09/2026)
 
 ### 22/09/2026 — Portail — Tout avait le même poids visuel
