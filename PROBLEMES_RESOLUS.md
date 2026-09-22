@@ -19,6 +19,18 @@
 
 ---
 
+## 📡 Portail — écoute Firestore en direct silencieuse après suspension iOS (22/09/2026)
+
+### 22/09/2026 — Portail — tableau de bord périmé malgré une connexion internet fonctionnelle
+**Symptôme** : sur le téléphone de Lisa, le tableau de bord du Portail affichait des chiffres périmés ; il a fallu forcer une actualisation manuelle alors qu'elle avait internet.
+**Fausses pistes explorées** : aucune — le mécanisme de publication (côté Budget/Muscu/Course, déclenché à l'ouverture de chaque app) fonctionnait normalement ; ce n'était pas un problème d'écriture mais de lecture côté Portail.
+**Cause racine** : le tableau de bord se met à jour uniquement via `db.collection('portail').onSnapshot(...)`, jamais par un minuteur (aucune app ne republie à intervalle fixe, seulement quand elle est ouverte). Sur iPhone, une PWA mise en arrière-plan est **suspendue par iOS** (JS arrêté) ; au retour au premier plan, une écoute en direct déjà ouverte peut rester silencieuse un moment sans se reconnecter tout de suite — indépendamment de la qualité de la connexion internet. Le seul mécanisme déjà présent au retour au premier plan (`visibilitychange`) ne faisait que réafficher les chiffres déjà en mémoire et vérifier la version du code de l'app, jamais relire Firestore.
+**Solution** : ajout d'une relecture forcée **depuis le serveur** (`get({ source: 'server' })`, jamais le cache local) à chaque retour au premier plan (`visibilitychange`), en complément de l'écoute `onSnapshot` existante qui continue de fonctionner le reste du temps.
+**Leçon généralisable** : toute app de cet écosystème qui affiche des données via une écoute Firestore en direct (`onSnapshot`) et qui peut rester ouverte longtemps en arrière-plan sur iPhone doit prévoir un filet de sécurité au retour au premier plan (`visibilitychange` → relecture serveur forcée) — l'écoute en direct seule ne suffit pas à garantir la fraîcheur après une suspension iOS, même avec une bonne connexion.
+**Fichiers touchés** : `Portail` (`app.js`, `README.md`)
+
+---
+
 ## 💬 Portail/Muscu — d'un chiffre figé à une phrase qui a du sens (22/09/2026)
 
 ### 22/09/2026 — Portail — « Séance X/4 » ne voulait rien dire pour un rythme qui varie
@@ -437,4 +449,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 20 septembre 2026
+**Dernière mise à jour de ce fichier** : 22 septembre 2026
