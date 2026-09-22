@@ -299,3 +299,15 @@ Budget publie le **reste à vivre du mois en cours** pour le tableau de bord du 
 - Interaction **inchangée** : le mode se choisit toujours en tapant l'icône (cycle 💳→💵→🔀), pas de contrôle segmenté Carte/Espèces/Mixte permanent sur chaque ligne comme dans la maquette — jugé trop encombrant pour une liste de dépenses avec plusieurs lignes ; à ajouter si Corentin le demande explicitement.
 
 **Non vérifié sur iPhone** (rendu visuel uniquement relu via l'API GitHub, pas testé sur l'appareil).
+
+
+## Carte revenus réorganisée en 3 groupes distincts (22/09/2026)
+
+**Retour de Corentin** : séparer les montants reportés (carte/espèces) des montants à ajouter, et sortir « Ajouts en cours » à part, en dernier.
+
+Nouvel ordre des 5 lignes de `.revenus-box`, en 3 groupes visuellement distincts (classe `.revenus-group-start` : bordure du haut plus marquée que la séparation en pointillés habituelle entre 2 lignes d'un même groupe) :
+1. **Reportés** (lecture seule, inchangé) : Solde reporté (Revolut), Espèces reportées.
+2. **À ajouter** (carte + espèces) : Revenus initiaux, Espèces ajoutées.
+3. **Ajouts en cours** : seul, en dernière position (déplacé — il était auparavant entre Revenus initiaux et Espèces ajoutées).
+
+Aucun changement de logique de calcul ni de `data-field` : uniquement l'ordre d'affichage et la séparation visuelle (`index.html`, `style.css`). **Non vérifié sur iPhone.**
