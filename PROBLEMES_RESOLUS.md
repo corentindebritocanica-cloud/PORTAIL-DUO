@@ -63,6 +63,24 @@
 
 ---
 
+## ⬛ Portail — page noire hors-ligne : `cache.addAll` tout-ou-rien + attente indéfinie (22/09/2026)
+
+### 22/09/2026 — Portail — Retour de Corentin : « quand je n'ai plus de réseau, je reste sur une page noire »
+**Symptôme** : hors-ligne, la page ne s'affiche pas du tout.
+**Cause racine, deux bugs cumulés dans `sw.js`** :
+1. **`cache.addAll(SHELL_FILES...)` est tout-ou-rien.** Un seul fichier en échec (404 passager pendant qu'un déploiement GitHub Pages se propage — plausible ce jour-là, plusieurs pushs coup sur coup sur le Portail) fait échouer **toute** l'installation : même `index.html`/`app.js`/`style.css`, pourtant récupérés sans problème, ne sont jamais mis en cache.
+2. **`reseauPuisCache()`** (réseau d'abord, repli sur le cache après 4 s — voir l'entrée du 20/09/2026) ne gérait que deux issues au bout du délai : le cache a quelque chose (résout avec) ou le vrai `fetch()` finit par échouer (résout alors). Le cas « le cache n'a rien ET le fetch ne répond ni ne rejette avant longtemps » n'était **pas couvert** : la promesse restait ouverte, en attente du fetch réseau — rapide à échouer en simulation « offline » de bureau, mais potentiellement long (bien plus de 4 s) sur iPhone en zone de mauvais réseau, où une requête peut rester en attente côté OS avant d'échouer franchement.
+**Solutions** :
+1. Mise en cache **fichier par fichier**, avec repli individuel (`SHELL_CRITIQUES` essayés en groupe puis un par un si besoin, `SHELL_ANNEXES` toujours un par un) : un fichier secondaire en échec ne peut plus jamais empêcher les fichiers essentiels d'être mis en cache.
+2. `reseauPuisCache()` résout désormais **systématiquement** au bout du délai — cache si possible, sinon une **page de secours** HTML minimale, écrite en dur (aucune dépendance externe : elle doit s'afficher même si rien d'autre n'a pu être mis en cache).
+**Méthode de test réutilisable, sans dépendre de la fidélité de la simulation « offline » d'un navigateur** :
+- Le point 1 se teste bien avec Playwright (serveur local renvoyant un 404 volontaire sur un fichier, installation du SW, vérification du contenu du cache).
+- Le point 2, en revanche, **résiste mal à la simulation offline d'un navigateur** : `context.set_offline(True)` de Playwright fait échouer les `fetch()` quasi instantanément, donc jamais assez lentement pour révéler un bug qui ne se manifeste que si le fetch traîne. **Extraire la fonction dans un fichier `.js` isolé et la tester dans Node**, avec un faux `fetch` qui ne se résout ni ne rejette **jamais** (`new Promise(() => {})`), révèle immédiatement ce genre de bug — et se vérifie en une seconde, sans navigateur.
+- Plus généralement : une fonction avec un délai de repli (« timeout puis secours ») mérite un test qui simule explicitement « le réseau ne répond jamais », pas seulement « le réseau échoue tout de suite » — ce sont deux scénarios différents, et les outils de simulation réseau des navigateurs ne couvrent en général que le second.
+**Fichiers touchés** : `sw.js` (Portail), `README.md`
+
+---
+
 ## 🧭 Portail — tableau de bord alimenté par 3 bases Firebase (22/09/2026)
 
 ### 22/09/2026 — Portail, Muscu, Budget, Courses — Un aperçu de chaque app sur une seule page, sans 2 mots de passe de plus
