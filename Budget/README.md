@@ -285,3 +285,17 @@ Budget publie le **reste à vivre du mois en cours** pour le tableau de bord du 
 **Correctif (retour de Corentin après test sur iPhone, même jour)** : le geste fonctionne, mais le blocage du défilement ne portait que sur le petit chiffre (`.mixte-scrub`) — Corentin veut que **toute la zone** (boutons ± compris) coupe immédiatement le défilement de la page dès que le doigt s'y pose, priorité totale au réglage du montant.
 - `style.css` : `touch-action: none` déplacé du seul `.mixte-scrub` à tout le conteneur `.item-mixte` (boutons ± inclus — un `touch-action:none` sur un bouton n'empêche pas le clic, seulement les gestes de défilement/zoom par défaut du navigateur).
 - `app.js` : `e.preventDefault()` ajouté dans `pointerdown` et `pointermove` du glisser (en plus du CSS, en filet de sécurité), et les deux écouteurs passés en `{ passive: false }` pour que `preventDefault()` soit effectif (un écouteur `pointermove` est passif par défaut sur certains navigateurs, ce qui aurait silencieusement ignoré l'appel).
+
+
+## Alignement visuel du panneau Mixte sur la maquette + retrait de l'icône Ticket Resto (22/09/2026)
+
+**Retour de Corentin** (captures d'écran de l'app à l'appui) : le panneau Mixte en production ne ressemblait pas assez à la maquette validée, et l'icône 🎟️ Ticket Resto traînait encore dans le sous-titre de la carte Dépenses.
+
+- **Sous-titre `🛒 Dépenses (Xé) (dont Yé 🎟️/💵)`** → devient `(dont Yé 💵)` : l'icône Ticket Resto retirée, ce total résiduel (espèces + éventuelles anciennes lignes 🎟️ legacy) s'affiche desormais avec la seule icône 💵. L'icône 🎟️ reste affichée sur les lignes individuelles encore marquées `TR` (mode de paiement, cf. entrée v3.5.0+) — seul ce sous-titre agrégé est concerné.
+- **Panneau Mixte (`.item-mixte`)** restructuré pour suivre la maquette (Artifact « Design » de la conversation) :
+  - ajout d'un en-tête `💵 Espèces — par paliers de 5 €` (`.mixte-label`, majuscules, discret) au-dessus des boutons ± — auparavant cette information était fondue dans le hint sous le chiffre ;
+  - le hint `↕ glisser pour ajuster` (`.mixte-hint`) déplacé sous les boutons ± (au lieu d'être accolé au chiffre avec le libellé « espèces »), plus proche de la mise en page de la maquette ;
+  - le récap passe d'**une seule ligne** (« 💳 carte (reste) : Xé ») à **deux lignes** (`.mixte-recap` > `.mixte-recap-row` ×2) : `💳 Carte (reste automatique)` et `💵 Espèces`, chacune avec son montant aligné à droite — reprend exactement la structure de la maquette.
+- Interaction **inchangée** : le mode se choisit toujours en tapant l'icône (cycle 💳→💵→🔀), pas de contrôle segmenté Carte/Espèces/Mixte permanent sur chaque ligne comme dans la maquette — jugé trop encombrant pour une liste de dépenses avec plusieurs lignes ; à ajouter si Corentin le demande explicitement.
+
+**Non vérifié sur iPhone** (rendu visuel uniquement relu via l'API GitHub, pas testé sur l'appareil).
