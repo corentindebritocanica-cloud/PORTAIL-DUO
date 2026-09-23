@@ -451,11 +451,9 @@
     <p class="finish-sub">La clé reste sur ce téléphone, elle n'est jamais envoyée sur GitHub ni partagée. Crée-la gratuitement sur aistudio.google.com.</p>
     <label class="mini-label">Clé API Google AI Studio</label>
     <input type="text" id="coach-key-input" class="builder-input" placeholder="AIza…" autocomplete="off">
-    <label class="mini-label">Modèle</label>
-    <select id="coach-model-select" class="builder-input" style="display:none"></select>
-    <input type="text" id="coach-model-input" class="builder-input" placeholder="gemini-flash-latest" autocomplete="off">
-    <p class="model-status" id="coach-model-status"></p>
-    <button class="coach-btn" onclick="loadCoachModels()">Charger les modèles disponibles</button>
+    <!-- Choix du modèle retiré le 23/09/26 : géré automatiquement (cascade de
+         repli + auto-correction en base dans app.js, voir callGeminiResilient
+         et persistWorkingModel) pour éviter une mauvaise manipulation manuelle. -->
     <p class="model-status">Le poids de corps utilisé pour les calories vient désormais du suivi dans Progression → Poids &amp; mensurations.</p>
     <div class="finish-actions">
       <button class="finish-btn archive" onclick="saveCoachSettings()">Enregistrer</button>
