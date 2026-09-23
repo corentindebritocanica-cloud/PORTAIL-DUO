@@ -89,6 +89,11 @@
       <span class="choice-label">Build Training</span>
       <span class="choice-chev">›</span>
     </button>
+    <button class="big-choice-btn" onclick="goToTrackingView()">
+      <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="choice-label">Suivi</span>
+      <span class="choice-chev">›</span>
+    </button>
     <button class="big-choice-btn" onclick="goToSettingsView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M17.9 6.1l-1.4 1.4M7.5 16.5l-1.4 1.4M17.9 17.9l-1.4-1.4M7.5 7.5L6.1 6.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
       <span class="choice-label">Réglages</span>
@@ -153,6 +158,32 @@
 </div>
 
 
+
+<!-- SUIVI (23/09/2026) : exports groupés Corentin + Lisa pour coller dans Gemini,
+     remplace l'ancien écran Coach (chat + IA, retiré le même jour). -->
+<div class="view" id="view-tracking">
+  <div class="view-inner">
+    <button class="back-btn" onclick="goToMenuView()">← Menu</button>
+    <h1 class="big-question">Suivi</h1>
+    <p class="setting-desc">Exports prêts à coller dans une conversation Gemini, sans génération dans l'app.</p>
+
+    <div class="progress-section">
+      <span class="section-label">Séances</span>
+      <button class="coach-btn ghost-wide" onclick="exportLatestSessions()">📋 Dernières séances (Corentin + Lisa)</button>
+    </div>
+
+    <div class="progress-section">
+      <span class="section-label">Mensurations</span>
+      <button class="coach-btn ghost-wide" onclick="exportLatestBodyEntries()">⚖️ Dernières mensurations (Corentin + Lisa)</button>
+    </div>
+
+    <div class="progress-section">
+      <span class="section-label">Tout</span>
+      <p class="setting-desc">Export brut complet (toutes les séances, toutes les mensurations) — pour un premier envoi ou une remise à jour complète.</p>
+      <button class="coach-btn ghost-wide" onclick="exportFullDataJSON()">📤 Exporter toute l'app</button>
+    </div>
+  </div>
+</div>
 
 <!-- ÉCRAN 1 : CHOIX DU PROFIL -->
 <div class="view" id="view-profile">
