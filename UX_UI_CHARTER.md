@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 1.1  
+**Version** : 1.2  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **App de référence** : Muscu (Duo Training) — extraite directement de son code source
@@ -467,8 +467,100 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
 | 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course puis Budget. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
+| 23/09/26 | Ajout de la section 11 « Animation & Micro-interactions » (grille de fréquence, règles GPU-safe, springs, principes Apple Fluid Interfaces, clip-path, reduced-motion) — synthèse des skills communautaires `emil-design-eng`/`apple-design` d'Emil Kowalski et de la WWDC 2018. Référentiel de règles, pas encore appliqué aux 4 apps. |
 
 *Cette section doit être mise à jour à chaque évolution majeure de la charte.*
+
+---
+
+## 11. 🎬 Animation & Micro-interactions
+
+> Section ajoutée le 23/09/2026, synthétisée à partir de deux skills communautaires pour agents IA (`emil-design-eng` et `apple-design`, par Emil Kowalski — ex-Vercel/Linear, auteur de Sonner/Vaul) et de la conférence Apple WWDC 2018 *Designing Fluid Interfaces*, dont `apple-design` est la traduction directe pour le web. Elle complète les tokens statiques (couleurs, radius, ombres) des sections précédentes avec des règles de **mouvement**, jusque-là absentes de la charte.
+>
+> **Statut** : référentiel de règles, pas encore audité app par app. La mise en conformité des 4 apps se fera lors d'une passe dédiée ultérieure, section par section, au fur et à mesure des mises à jour de Corentin.
+
+### 11.1 Philosophie directrice
+
+- Le goût en matière de design ne relève pas de la préférence perso : c'est un ensemble de règles apprenables. Les petites erreurs (mauvais easing, bordure pleine au lieu d'une ombre semi-transparente, animation qui démarre de `scale(0)`) sont individuellement invisibles mais s'accumulent et font toute la différence entre une interface "générique" et une interface "premium".
+- **Chaque animation doit répondre à la question "pourquoi ça anime ?"**. Trois raisons valables seulement :
+  1. **Cohérence spatiale** : un toast qui sort et rentre par le même côté, pour que le swipe-to-dismiss reste intuitif.
+  2. **Indication d'état** : un bouton qui change de forme pour montrer un changement d'état (ex: bouton like qui se remplit).
+  3. **Explication** : une animation qui montre comment une fonctionnalité marche (rare dans nos 4 apps, plutôt utile pour un onboarding).
+  Si aucune de ces 3 raisons ne s'applique → pas d'animation.
+
+### 11.2 Grille de décision par fréquence d'usage
+
+C'est le critère le plus important, absent de la charte actuelle. Il faut se demander *à quelle fréquence l'utilisateur déclenche cette action*, pas seulement quel est le type de composant :
+
+| Fréquence dans nos apps | Exemples concrets | Règle |
+|---|---|---|
+| **100+ fois/jour** — actions répétitives | Cocher une série dans Muscu, cocher un produit dans Course | **Aucune animation. Jamais.** Ou transition quasi instantanée (<100ms), sans bounce. |
+| **Dizaines de fois/jour** | Navigation entre onglets de la bottom-bar, hover/tap sur une card de liste | Réduire au minimum : feedback tactile `:active` seulement, pas de transition d'entrée/sortie élaborée |
+| **Occasionnel** | Ouvrir une modale bottom-sheet, ajouter une transaction Budget, afficher un toast | Animation standard (voir §11.3) |
+| **Rare / première fois** | Écran de bienvenue, badge de succès, célébration d'objectif atteint | On peut se permettre plus de "delight" (spring avec un peu de bounce, confettis, etc.) |
+
+**À faire lors de la passe de conformité** : lister les actions fréquentes propres à chaque app (Muscu : validation de série ; Course : coche produit ; Budget : ajout rapide de transaction) et vérifier qu'elles ne sont pas sur-animées.
+
+### 11.3 Durées, easing, propriétés (règles GPU-safe)
+
+- **N'animer que `transform` et `opacity`.** Jamais `width`, `height`, `top`, `left`, `margin` (re-layout coûteux, source de jank sur Safari iOS). Jamais `transition: all` (imprécis, anime des propriétés non désirées) — toujours cibler les propriétés explicitement.
+- **Durées** : 150–300ms pour la majorité des transitions d'interface (proche des `--t-fast`/`--t-mid` déjà définis dans la charte — à documenter précisément en ms si ce n'est pas déjà fait).
+- **Easing** : `ease-out` pour les entrées (l'élément démarre vite, ralentit en arrivant — perçu comme plus réactif). `ease-in` pour les sorties. Un `ease-in` sur une entrée est une erreur fréquente d'agent IA à surveiller : ça donne une impression de lenteur/latence même à durée égale.
+
+### 11.4 Règles d'apparition (scale, origine)
+
+- **Ne jamais partir de `scale(0)`.** Rien dans le monde réel n'apparaît de nulle part. Démarrer à `scale(0.9)` ou plus (0.9–0.95), combiné à `opacity: 0 → 1`.
+- **Les popovers/dropdowns doivent s'agrandir depuis leur point de déclenchement** (le bouton qui les a ouverts), pas depuis leur propre centre — ça garde le lien spatial pour l'utilisateur. **Les modales plein écran/bottom-sheet, elles, restent centrées/ancrées en bas** (ne pas leur appliquer cette règle).
+
+### 11.5 Feedback tactile (boutons, cards, zones tactiles)
+
+```css
+.button, .card-tappable {
+  transition: transform 160ms ease-out;
+}
+.button:active, .card-tappable:active {
+  transform: scale(0.97); /* subtil : entre 0.95 et 0.98 */
+}
+```
+
+- S'applique à tout élément pressable : boutons, cards cliquables, items de liste.
+- **Point important issu du skill `apple-design` (doctrine Apple WWDC)** : le feedback visuel doit se déclencher **au moment où le doigt touche l'écran** (`touchstart`/`pointerdown`), pas seulement à la validation du tap (`touchend`/`click`). Actuellement nos apps utilisent probablement `:active` en CSS pur, ce qui respecte déjà globalement ce principe (le pseudo-état `:active` s'active au toucher) — à vérifier qu'aucun JS ne retarde artificiellement le retour visuel jusqu'au relâchement.
+
+### 11.6 Animations à ressort (springs) — quand et comment
+
+- **Springs vs durée fixe** : une transition à durée fixe (`transition: transform 200ms ease-out`) est prévisible et suffit pour la plupart des cas. Un spring (physique simulée, pas de durée fixe) est préférable pour :
+  - les interactions de glisser-déposer avec inertie (ex: swipe-to-delete sur une ligne Budget/Course)
+  - les éléments qui doivent sembler "vivants" (Dynamic Island-like)
+  - les gestes interruptibles en plein mouvement
+- **Configuration recommandée** (approche Apple, plus simple à régler) : `{ type: "spring", duration: 0.5, bounce: 0.2 }`. Garder le bounce subtil (0.1–0.3). **Éviter le bounce dans la majorité des cas d'interface** — le réserver au drag-to-dismiss et aux interactions ludiques (pas aux boutons/cards du quotidien).
+- **Avantage clé des springs** : ils conservent la vélocité en cas d'interruption, contrairement à une transition CSS classique qui redémarre de zéro. Concrètement : si l'utilisateur retape vite pendant qu'une animation est en cours (ex: changer d'onglet juste après avoir ouvert une modale), l'animation doit repartir de sa position réelle à l'écran, pas sauter brutalement ou recommencer depuis le début.
+
+### 11.7 Principes Apple "Fluid Interfaces" (WWDC 2018) — pertinents car nos apps sont 100% iOS
+
+- **Response (tuer la latence)** : dès qu'un délai perceptible apparaît entre le geste et la réaction visuelle, la sensation de "direct" s'effondre. C'est la base de tout le reste.
+- **Manipulation directe** : sur un geste de glissement (drag d'une modale bottom-sheet pour la fermer, swipe sur une carte), l'élément doit suivre le doigt en 1:1, pas avec un décalage ou un effet de lissage qui donne une sensation de "élastique mou".
+- **Interruptibilité** : toute animation en cours doit pouvoir être reprise/inversée à tout instant à partir de sa position actuelle (voir §11.6).
+- **Projection du momentum** : sur un geste rapide relâché en mouvement (fling), la vélocité du geste doit influencer où l'élément atterrit — pas uniquement une transition à durée fixe qui ignore la vitesse du doigt au relâchement. Pertinent pour un swipe-to-dismiss de modale ou un swipe-to-delete.
+- **Matériaux et profondeur** : le glassmorphism déjà utilisé sur nos bottom-bars va dans ce sens (translucidité = profondeur perçue).
+
+### 11.8 Technique clip-path pour indicateur de navigation glissant
+
+Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se déplace d'un item actif à l'autre : plutôt qu'un simple fondu de couleur de texte (qui passe par un gris disgracieux à mi-chemin), utiliser `clip-path` pour qu'une copie du texte en couleur inversée soit révélée progressivement *au fur et à mesure* que la pilule la traverse. Effet nettement plus soigné qu'un cross-fade classique, pour un coût CSS raisonnable. À évaluer pour la bottom-bar / le profile-switch Corentin/Lisa si un jour ils adoptent un indicateur glissant plutôt qu'un état actif statique.
+
+### 11.9 Accessibilité
+
+- Ajouter un bloc `@media (prefers-reduced-motion: reduce)` qui désactive ou réduit drastiquement toutes les animations non essentielles (garder uniquement les changements d'état instantanés). Absent actuellement de la charte — à ajouter au CSS de base commun aux 4 apps.
+
+### 11.10 Anti-patterns à traquer lors des audits futurs
+
+- ❌ `transition: all` (toujours cibler les propriétés)
+- ❌ Durées > 300ms pour une interaction standard (sensation de lenteur)
+- ❌ `ease-in` sur une animation d'entrée (devrait être `ease-out`)
+- ❌ `scale(0)` en point de départ d'une apparition
+- ❌ Bounce/spring sur une action répétée 100+ fois/jour
+- ❌ Popover qui s'agrandit depuis son propre centre au lieu du point de déclenchement
+- ❌ Animation sans réponse claire à "pourquoi ça anime ?"
+- ❌ Absence de `prefers-reduced-motion`
 
 ---
 
@@ -488,4 +580,4 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ---
 
 **Auteur** : Lead Developer Full-Stack  
-**Dernière mise à jour** : 20 Septembre 2026
+**Dernière mise à jour** : 23 Septembre 2026
