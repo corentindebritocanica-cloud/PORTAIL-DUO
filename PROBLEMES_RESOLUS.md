@@ -19,6 +19,18 @@
 
 ---
 
+## 👇 Portail — « tirer pour actualiser » dans une PWA iOS (23/09/2026)
+
+### 23/09/2026 — Portail — pas de pull-to-refresh natif en mode écran d'accueil
+**Contexte** : Corentin voulait forcer la relecture du tableau de bord en tirant l'écran, le rafraîchissement automatique au retour lui semblant peu fiable.
+**Piège** : une PWA iOS en mode standalone n'a **aucun** pull-to-refresh natif, et toutes nos apps bloquent de toute façon le rebond (`overscroll-behavior:none`). Il faut coder le geste soi-même.
+**Solution** : écouteurs `touchstart/touchmove/touchend` **passifs** (jamais de `preventDefault`, donc le défilement n'est pas gêné), actifs seulement si `scrollY <= 0` et un seul doigt ; distance amortie ×0,5 ; seuil 70 px ; au relâcher, relecture serveur (`get({source:'server'})`) plutôt qu'un rechargement de page (garde le hors-ligne et évite de recharger le SDK). Pastille fixe sous la safe area pour le retour visuel.
+**Leçon généralisable** : un bouton « rafraîchir » ne corrige que la LECTURE. Si la donnée n'a pas été ÉCRITE (ici : publication « au départ » d'une page détruite, avec une Firestore en cache mémoire), aucune relecture ne la fera apparaître — vérifier les deux côtés avant de conclure à un problème d'affichage.
+**Vérifié** : Playwright (vue mobile, gestes tactiles CDP, vraie base). **Non vérifié sur iPhone.**
+**Fichiers touchés** : `index.html`, `style.css`, `app.js`, `README.md` (Portail), `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🔙 Portail — page ressortie du bfcache au geste « retour » : ni rechargement, ni `visibilitychange` (23/09/2026)
 
 ### 23/09/2026 — Portail — obligé de recharger manuellement pour voir les nouveaux « Mis à jour il y a… »
