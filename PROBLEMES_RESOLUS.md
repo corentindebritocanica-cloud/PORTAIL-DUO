@@ -19,6 +19,20 @@
 
 ---
 
+## ⚙️ Workflow auto-version — un push sur 3 apps coup sur coup en « saute » une (23/09/2026)
+
+### 23/09/2026 — Portail (CI/CD) — Muscu jamais rebumpée malgré 2 pushs successifs sur `Muscu/app.js`
+**Contexte** : en corrigeant Course/Muscu/Budget d'affilée (2 séries de 3 commits rapprochés, un par app, dans cet ordre), Muscu s'est retrouvée avec `DERNIERE_MAJ`/`app.js?v=…` jamais mis à jour après les deux séries, alors que Course et Budget l'étaient bien à chaque fois.
+**Fausses pistes explorées** : aucune — le code poussé sur `Muscu/app.js` était correct (vérifié en ligne), le problème était côté CI, pas côté contenu du commit.
+**Cause racine** : `.github/workflows/auto-version.yml` a `concurrency: { group: auto-version, cancel-in-progress: false }`. `cancel-in-progress: false` empêche bien d'annuler une exécution **déjà en cours**, mais GitHub Actions ne garde qu'**une seule exécution en attente** (« queued ») par groupe de concurrence à la fois : si une exécution est en file d'attente et qu'une **nouvelle** est déclenchée avant que la première ait pu démarrer, GitHub annule la plus ancienne en attente et la remplace par la nouvelle. En poussant Course → Muscu → Budget coup sur coup (quelques secondes d'écart), l'exécution de Course tournait déjà, celle de Muscu passait en attente, puis celle de Budget la remplaçait avant qu'elle n'ait pu démarrer — Muscu, toujours au milieu de la séquence, était donc systématiquement la victime.
+**Solution appliquée dans l'immédiat** : déclenchement manuel du workflow (`workflow_dispatch` via l'API, onglet Actions → Run workflow) — traite les 4 apps sans dépendre du diff Git, rattrape n'importe quelle app « sautée ».
+**Non corrigé dans le workflow lui-même** (piste pour plus tard si le problème redevient fréquent) : passer `cancel-in-progress: true` ne résoudrait rien (empêcherait juste l'annulation d'un run *démarré*, pas la perte d'un run en *attente*) ; la vraie correction serait un groupe de concurrence **par app** (`concurrency: group: auto-version-${{ ... }}`, dérivé du chemin modifié) plutôt qu'un seul groupe global pour les 4 apps, ou un `sleep`/lock plus robuste dans le script.
+**Leçon généralisable** : pousser plusieurs commits qui déclenchent le **même** workflow à quelques secondes d'écart peut silencieusement en faire « sauter » un ou plusieurs sans aucune erreur visible (le run annulé n'est pas un run en échec — pas de croix rouge automatique à repérer, juste un run marqué « cancelled » dans l'historique) dès qu'un `concurrency.group` unique est partagé par tous les déclencheurs. **Toujours vérifier `DERNIERE_MAJ` de chaque app concernée après une série de pushs rapprochés** ; en cas de doute, un déclenchement manuel du workflow (traite tout, sans dépendre du diff Git) est le rattrapage le plus sûr.
+**Vérifié** : historique des runs (`/actions/workflows/.../runs`) montrant Muscu marquée « cancelled » aux deux séries ; `DERNIERE_MAJ` des 4 apps identique après le déclenchement manuel.
+**Fichiers concernés** : `.github/workflows/auto-version.yml` (non modifié), `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🕓 Portail/Course/Muscu — publication debouncée perdue si la page est quittée trop vite (23/09/2026)
 
 ### 23/09/2026 — Portail — Budget affichait « à l'instant » après le correctif précédent, pas Course ni Muscu
