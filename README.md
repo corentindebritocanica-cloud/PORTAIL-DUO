@@ -352,12 +352,12 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 | `portail/budget` | `maj`, `mois`, `reste`, `budget`, `depense`, `joursRestants` (tous `null` si le mois en cours n'existe pas) | Budget |
 | `portail/courses` | `maj`, `aAcheter`, `restants`, `rayons` = 3 × `{nom, n}` | Courses |
 
-`maj` = `Date.now()` de l'appareil qui a publié. Le Portail l'affiche (« Mis à jour il y a 3 h ») : **un résumé n'est mis à jour que quand l'app correspondante est ouverte** sur l'un des deux téléphones, il n'est donc pas instantané.
+`maj` = `Date.now()` de l'appareil qui a publié. Le Portail l'affiche (« Mis à jour il y a 3 h ») : **un résumé n'est mis à jour que quand l'app correspondante est ouverte** sur l'un des deux téléphones, il n'est donc pas instantané. Depuis le 23/09/2026, `maj` est republié à **chaque** ouverture confirmée par le serveur, même si le contenu du résumé n'a pas changé (avant cette date, une ouverture sans modification ne republiait rien et laissait un horodatage périmé — voir « Republication systématique » plus bas).
 
 ### Comment chaque app publie (mêmes garde-fous partout)
 
 - **Après un snapshot venu du SERVEUR, jamais avec le seul cache local** (sinon un téléphone hors ligne au vieux cache écraserait un résumé récent — c'est l'incident Courses du 21/09 en version « résumé »).
-- Regroupé (2,5 s ; 3 s pour Muscu) et **sans effet si le contenu n'a pas changé** (signature JSON). Au plus 1 écriture par ouverture d'app.
+- Regroupé (2,5 s ; 3 s pour Muscu). Au plus 1 écriture par ouverture d'app — voir « Republication systématique (23/09/2026) » ci-dessous pour l'historique de cette règle.
 - Toute erreur est absorbée (`console.warn`) : la publication ne doit **jamais** gêner l'app.
 - Muscu et Budget ouvrent une **2e application Firebase nommée `'portail'`** pointant sur la base de Courses (connexion anonyme, session persistante) : leur propre base et leur session e-mail/mot de passe ne sont pas touchées. Rien n'est lancé au démarrage : la connexion se fait à la première publication.
 - Détails par app : sections « Résumé pour le Portail » des README de `Muscu/`, `Budget/` et `Course/`.
@@ -460,3 +460,18 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - Si `db` n'est pas encore prêt (chargement du SDK pas terminé, ou base indisponible), la fonction ne fait rien : le prochain `onSnapshot` ou le prochain retour au premier plan prendra le relais. Toute erreur est absorbée (`console.warn`), comme le reste du bloc.
 
 **Non vérifié sur iPhone** (relu via l'API GitHub, pas testé en conditions réelles d'arrière-plan/premier plan sur l'appareil).
+
+
+## Republication systématique du résumé, même sans changement (23/09/2026)
+
+**Retour de Corentin** : en rentrant dans Courses puis en revenant au Portail, la carte affichait toujours « Mis à jour il y a 1 h », alors que l'app venait d'être ouverte. Il se demandait si c'était normal ou s'il manquait une modification côté Courses.
+
+**Cause** : dans chaque app, `planifierPublicationPortailXxx()` calcule une `signature` (JSON du résumé) et comparait à `portailDernier` : `if(signature === portailDernier) return;` — si le contenu du résumé (prochaine séance, reste à vivre, liste de courses…) était strictement identique à la dernière publication, la fonction s'arrêtait **avant** `db.collection('portail').doc(...).set(...)`, donc `maj` n'était jamais réécrit. Ouvrir une app sans rien changer dedans ne republiait donc rien : comportement voulu à l'origine (« au plus 1 écriture par ouverture d'app », pensé pour éviter des écritures inutiles), mais son effet de bord induisait Corentin en erreur — le champ `maj` était censé représenter « dernière fois que l'app a été ouverte et vérifiée », alors qu'il représentait en réalité « dernière fois que le contenu a réellement changé ».
+
+**Décision de Corentin** : privilégier la lisibilité à l'économie d'écritures — `maj` doit toujours refléter la dernière ouverture vérifiée, même sans changement, « pour éviter de se demander si ça a MAJ ou pas ».
+
+**Correctif** (`Course/app.js`, `Muscu/app.js`, `Budget/app.js`, même bloc dans les 3) : la ligne `if(signature === portailDernier) return;` (et son équivalent Muscu/Budget) est retirée. `portailDernier` reste calculée et assignée (utile si on veut réintroduire une comparaison plus tard) mais ne bloque plus l'écriture. Les autres garde-fous restent inchangés : publication seulement après un snapshot **serveur** (jamais depuis le cache local), regroupement (2,5 s ; 3 s pour Muscu) pour éviter les écritures en rafale, erreurs absorbées.
+
+**Conséquence attendue** : une écriture Firestore de plus à **chaque** ouverture réelle de Course/Muscu/Budget (au lieu de seulement quand le contenu change) — volume négligeable au regard du quota gratuit Firestore pour un usage à 2 personnes.
+
+**Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
