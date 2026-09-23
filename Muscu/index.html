@@ -137,22 +137,9 @@
     </div>
 
     <div class="progress-section">
-      <span class="section-label">Sauvegarde</span>
-      <p class="setting-desc">Génère un export complet et brut de toutes les données (archives des deux profils, corbeille, séances personnalisées, conversations et mensurations). Sert de point de sauvegarde avant une migration du catalogue d'exercices — copie le texte et transmets-le tel quel.</p>
-      <button class="coach-btn ghost-wide" onclick="exportFullDataJSON()">📤 Exporter toutes les données</button>
-    </div>
-
-    <div class="progress-section">
       <span class="section-label">Sauvegarde automatique</span>
       <p class="setting-desc">Le dimanche à minuit, un e-mail avec la sauvegarde complète est envoyé automatiquement. Ce bouton en envoie une à la demande. La clé API du coach n'est jamais incluse.</p>
       <button class="coach-btn ghost-wide" id="btn-sauvegarde-mail" onclick="sendBackupByMail(this)">✉️ Envoyer fichier .json par mail</button>
-    </div>
-
-    <div class="progress-section">
-      <span class="section-label">Import (migration)</span>
-      <p class="setting-desc">Colle ici un JSON préparé pour réimport (issu d'une migration du catalogue). Écrase par id les archives et séances personnalisées déjà présentes, sans toucher aux conversations du coach ni à la clé API.</p>
-      <textarea id="import-text" class="note-input" style="min-height:90px" placeholder="Colle le JSON migré ici…"></textarea>
-      <button class="coach-btn ghost-wide" onclick="askImportFullDataJSON()">📥 Importer ces données</button>
     </div>
   </div>
 </div>
