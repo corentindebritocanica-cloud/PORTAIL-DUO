@@ -448,12 +448,30 @@
 <div class="confirm-overlay" id="coach-settings-modal">
   <div class="confirm-box finish-box">
     <p class="finish-title">Réglages du conseiller</p>
-    <p class="finish-sub">La clé reste sur ce téléphone, elle n'est jamais envoyée sur GitHub ni partagée. Crée-la gratuitement sur aistudio.google.com.</p>
-    <label class="mini-label">Clé API Google AI Studio</label>
+
+    <!-- Fournisseur : phase de test ajoutée le 23/09/26 (voir README). Les
+         deux clés restent enregistrées même quand on bascule -- aucune n'est
+         effacée par le choix de l'autre. -->
+    <label class="mini-label">Fournisseur</label>
+    <div class="segmented" id="coach-provider-toggle">
+      <button type="button" class="segmented-btn" id="coach-provider-gemini" onclick="selectCoachProvider('gemini')">Gemini</button>
+      <button type="button" class="segmented-btn" id="coach-provider-groq" onclick="selectCoachProvider('groq')">Groq</button>
+    </div>
+
+    <p class="finish-sub">La clé reste sur ce téléphone, elle n'est jamais envoyée sur GitHub ni partagée.</p>
+
+    <label class="mini-label">Clé API Google AI Studio (Gemini)</label>
     <input type="text" id="coach-key-input" class="builder-input" placeholder="AIza…" autocomplete="off">
-    <!-- Choix du modèle retiré le 23/09/26 : géré automatiquement (cascade de
-         repli + auto-correction en base dans app.js, voir callGeminiResilient
-         et persistWorkingModel) pour éviter une mauvaise manipulation manuelle. -->
+    <p class="model-status">Gratuite sur aistudio.google.com.</p>
+
+    <label class="mini-label">Clé API Groq</label>
+    <input type="text" id="coach-groq-key-input" class="builder-input" placeholder="gsk_…" autocomplete="off">
+    <p class="model-status">Gratuite sur console.groq.com/keys.</p>
+
+    <!-- Choix du modèle retiré le 23/09/26 : géré automatiquement pour chaque
+         fournisseur (cascade de repli + auto-correction en base dans app.js,
+         voir callGeminiResilient/callGroqResilient) pour éviter une mauvaise
+         manipulation manuelle. -->
     <p class="model-status">Le poids de corps utilisé pour les calories vient désormais du suivi dans Progression → Poids &amp; mensurations.</p>
     <div class="finish-actions">
       <button class="finish-btn archive" onclick="saveCoachSettings()">Enregistrer</button>
