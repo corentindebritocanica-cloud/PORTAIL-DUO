@@ -277,22 +277,31 @@
             const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate() };
         };
+        const publierResumePortail = async () => {
+            try {
+                const resume = calculerResumePortail();
+                const signature = JSON.stringify(resume);
+                portailDernier = signature;
+                // 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir
+                // README Portail, section "Résumé pour le Portail") — sinon `maj` restait
+                // figé après une simple ouverture sans changement de données.
+                const base = await obtenirBasePortail();
+                await base.collection('portail').doc('budget').set(Object.assign({ maj: Date.now() }, resume));
+            } catch (err) { portailDernier = ''; console.warn('Résumé Portail non publié :', err); }
+        };
         const planifierPublicationPortail = () => {
             if (!portailServeurVu || !state.donnees.length) return;
             clearTimeout(portailMinuteur);
-            portailMinuteur = setTimeout(async () => {
-                try {
-                    const resume = calculerResumePortail();
-                    const signature = JSON.stringify(resume);
-                    portailDernier = signature;
-                    // 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir
-                    // README Portail, section "Résumé pour le Portail") — sinon `maj` restait
-                    // figé après une simple ouverture sans changement de données.
-                    const base = await obtenirBasePortail();
-                    await base.collection('portail').doc('budget').set(Object.assign({ maj: Date.now() }, resume));
-                } catch (err) { portailDernier = ''; console.warn('Résumé Portail non publié :', err); }
-            }, 2500);
+            portailMinuteur = setTimeout(() => { portailMinuteur = null; publierResumePortail(); }, 2500);
         };
+        // 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 2,5 s de regroupement
+        // (ex. aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la
+        // page et l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas.
+        const flusherPublicationPortail = () => {
+            if (portailMinuteur) { clearTimeout(portailMinuteur); portailMinuteur = null; publierResumePortail(); }
+        };
+        window.addEventListener('pagehide', flusherPublicationPortail);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flusherPublicationPortail(); });
 
         // --- Logique DB ---
         const attacherEcouteurs = () => {
