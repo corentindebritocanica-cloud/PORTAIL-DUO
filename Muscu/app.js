@@ -3100,14 +3100,32 @@ async function sendCoachMessage(){
   if(threadEl){ threadEl.appendChild(typingEl); scrollChatToBottom(); }
 
   const startedAt = Date.now();
-  const ticker = setInterval(() => {
+  /* Progression visible pendant le chargement (demandé le 23/09/26) : le nom
+     du modèle en cours d'essai, et un mot de transition bref si la cascade
+     est passée d'un modèle à un autre -- UNE seule bulle qui évolue, jamais
+     un deuxième message d'échec empilé par-dessus. */
+  const attemptState = { model: null, switchNote: null };
+  let switchNoteTimer = null;
+  const renderTyping = () => {
     const status = document.getElementById('chat-typing-status');
     if(!status) return;
+    if(attemptState.switchNote){ status.textContent = attemptState.switchNote; return; }
     const elapsed = Math.round((Date.now() - startedAt) / 1000);
+    const modelPart = attemptState.model ? ` (${coachModelShortLabel(attemptState.model)})` : '';
     status.textContent = elapsed < 20
-      ? `Le coach réfléchit… (${elapsed} s)`
-      : `Ça prend plus longtemps que d'habitude (${elapsed} s)…`;
-  }, 1000);
+      ? `Le coach réfléchit${modelPart}… (${elapsed} s)`
+      : `Ça prend plus longtemps que d'habitude${modelPart} (${elapsed} s)…`;
+  };
+  const onAttempt = (model, previousModel) => {
+    attemptState.model = model;
+    if(previousModel){
+      attemptState.switchNote = `${coachModelShortLabel(previousModel)} indisponible, passage à ${coachModelShortLabel(model)}…`;
+      clearTimeout(switchNoteTimer);
+      switchNoteTimer = setTimeout(() => { attemptState.switchNote = null; renderTyping(); }, 1800);
+    }
+    renderTyping(); /* immédiat, sans attendre le prochain tick de la seconde */
+  };
+  const ticker = setInterval(renderTyping, 1000);
 
   /* Filet de sécurité : sans limite, un réseau qui reste bloqué laisserait la
      bulle tourner indéfiniment sans jamais dire que ça a échoué. Les deux
@@ -3121,7 +3139,7 @@ async function sendCoachMessage(){
   const timeoutId = setTimeout(() => controller.abort(), COACH_REQUEST_TIMEOUT_MS);
 
   try{
-    const reply = await withModelRepair(() => callCoachChat(controller.signal));
+    const reply = await withModelRepair(() => callCoachChat(controller.signal, onAttempt));
     saveChatMessage({
       id: 'msg_' + Date.now() + '_c',
       role: 'coach',
@@ -3139,6 +3157,7 @@ async function sendCoachMessage(){
   }finally{
     clearInterval(ticker);
     clearTimeout(timeoutId);
+    clearTimeout(switchNoteTimer);
     coachAbortController = null;
     coachRequestStartedAt = null;
     const bubble = document.getElementById('chat-typing-bubble');
@@ -3163,7 +3182,7 @@ Règles :
 
 Réponds en texte simple, sans JSON ni balises.`;
 
-async function callCoachChat(signal){
+async function callCoachChat(signal, onAttempt){
   const key = coachGetKey();
   if(!key) throw new Error('NO_KEY');
 
@@ -3222,7 +3241,7 @@ async function callCoachChat(signal){
       contents: contents,
       generationConfig: { temperature: 0.7 }
     })
-  }), signal);
+  }), signal, onAttempt);
 
   const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
   const text = parts.map(x => x.text || '').join('').trim();
@@ -3283,84 +3302,26 @@ function renderCoachBlock(state){
 /* Google retire et renomme régulièrement ses modèles : plutôt que de coder un
    nom en dur et de tomber sur un 404, on demande la liste à l'API. Le même appel
    sert de diagnostic pour la clé : s'il échoue, c'est elle qui est en cause. */
-async function loadCoachModels(){
-  const status = document.getElementById('coach-model-status');
-  const select = document.getElementById('coach-model-select');
-  const input = document.getElementById('coach-model-input');
-  const key = document.getElementById('coach-key-input').value.trim();
-
-  status.className = 'model-status';
-  if(!key){ status.textContent = "Renseigne d'abord la clé API."; status.className = 'model-status error'; return; }
-
-  status.textContent = 'Interrogation de Google…';
-  try{
-    /* On lit la clé saisie, pas encore enregistrée : le diagnostic doit pouvoir
-       tester une clé avant de la valider. */
-    const previous = window.coachSettingsCache;
-    window.coachSettingsCache = Object.assign({}, previous || {}, { apiKey: key });
-    let res;
-    try{ res = await geminiFetch('models'); }
-    finally{ window.coachSettingsCache = previous; }
-    if(!res.ok){
-      let detail = '';
-      try{ const e = await res.json(); detail = (e.error && e.error.message) || ''; }catch(err){}
-      throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : ''));
-    }
-    const data = await res.json();
-    /* on ne garde que les modèles capables de générer du texte */
-    const models = (data.models || [])
-      .filter(m => (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1)
-      .map(m => String(m.name || '').replace(/^models\//, ''))
-      .filter(n => n.indexOf('gemini') === 0)
-      .sort();
-
-    if(models.length === 0) throw new Error('Aucun modèle de texte disponible avec cette clé');
-
-    select.innerHTML = '';
-    models.forEach(n => {
-      const opt = document.createElement('option');
-      opt.value = n; opt.textContent = n;
-      select.appendChild(opt);
-    });
-    const current = input.value.trim() || coachGetModel();
-    if(models.indexOf(current) !== -1) select.value = current;
-    select.style.display = 'block';
-    input.style.display = 'none';
-    status.textContent = `${models.length} modèles disponibles. La clé fonctionne.`;
-  }catch(err){
-    console.error('Liste des modèles', err);
-    select.style.display = 'none';
-    input.style.display = 'block';
-    status.className = 'model-status error';
-    status.textContent = 'Échec : ' + err.message;
-  }
-}
-
 function openCoachSettings(){
   document.getElementById('coach-key-input').value = coachGetKey();
-  document.getElementById('coach-model-input').value = coachGetModel();
-  document.getElementById('coach-model-select').style.display = 'none';
-  document.getElementById('coach-model-input').style.display = 'block';
-  document.getElementById('coach-model-status').textContent = '';
-  document.getElementById('coach-model-status').className = 'model-status';
   document.getElementById('coach-settings-modal').classList.add('open');
-}
-function readCoachModelField(){
-  const select = document.getElementById('coach-model-select');
-  if(select && select.style.display !== 'none' && select.value) return select.value;
-  return document.getElementById('coach-model-input').value.trim() || COACH_DEFAULT_MODEL;
 }
 
 function closeCoachSettings(){
   document.getElementById('coach-settings-modal').classList.remove('open');
 }
 function saveCoachSettings(){
-  /* ⚠️ FUSION OBLIGATOIRE. `settings/coach` contient AUSSI la liste des
-     conversations (`threads`). Écrire un objet neuf effaçait ce champ — donc
-     toutes les discussions et leurs rôles — à chaque « Enregistrer ». */
+  /* Le modèle n'est plus choisi manuellement (23/09/26) : callGeminiResilient()
+     gère seul la cascade de repli et corrige tout seul le réglage en base
+     (persistWorkingModel) quand le modèle enregistré s'avère mort. Ne PAS
+     inclure `model` ici : { merge:true } dans saveCoachSettingsRemote()
+     laisserait alors la valeur déjà en base intacte, ce qui est le but --
+     l'écraser ici avec un champ retiré de l'UI la remettrait à zéro à tort.
+     ⚠️ FUSION OBLIGATOIRE par ailleurs : `settings/coach` contient AUSSI la
+     liste des conversations (`threads`). Écrire un objet neuf effaçait ce
+     champ — donc toutes les discussions et leurs rôles — à chaque « Enregistrer ». */
   const next = Object.assign({}, coachSettings(), {
-    apiKey: document.getElementById('coach-key-input').value.trim(),
-    model: readCoachModelField()
+    apiKey: document.getElementById('coach-key-input').value.trim()
   });
   saveCoachSettingsRemote(next).catch(err => {
     console.error('Enregistrement des réglages', err);
@@ -4291,7 +4252,7 @@ function renderBodyOverviewChart(){
 
 /* Alias maintenu par Google et repointé à chaque génération : plus durable
    qu'un numéro de version, qui finit toujours par être retiré du service. */
-const COACH_DEFAULT_MODEL = 'gemini-flash-latest';
+const COACH_DEFAULT_MODEL = 'gemini-3.6-flash'; /* gemini-flash-latest -> gemini-3.6-flash le 23/09/26 : le plus fiable des tests en direct de ce jour-là ; sert seulement s'il n'y a encore aucun réglage en base, la cascade COACH_FALLBACK_MODELS gère tout le reste. */
 
 /* Les réglages vivent dans Firestore (document `settings/coach`) : saisis une
    fois, ils valent pour les deux téléphones. Les anciennes valeurs locales
@@ -4557,6 +4518,12 @@ const COACH_ATTEMPT_TIMEOUT_MS = 20000; /* par tentative, distinct du minuteur g
    où il faut basculer sur le suivant, pas abandonner. Seules les erreurs de CLÉ
    (401/403/BAD_KEY/NO_KEY) restent fatales : ça ne dépend d'aucun modèle. */
 
+/* Nom court pour l'affichage ("gemini-3.6-flash" -> "3.6-flash") : juste assez
+   pour que la progression en direct du chat soit lisible sans être un roman. */
+function coachModelShortLabel(model){
+  return model ? String(model).replace(/^gemini-/, '') : '';
+}
+
 /* Modèle demandé en premier (celui choisi par l'utilisateur ou enregistré),
    puis la liste de repli sans doublon. */
 function coachModelCandidates(model){
@@ -4605,13 +4572,18 @@ function persistWorkingModel(model){
   }catch(err){ console.error('Correction auto du modèle', err); }
 }
 
-async function callGeminiResilient(preferredModel, buildInit, outerSignal){
+async function callGeminiResilient(preferredModel, buildInit, outerSignal, onAttempt){
   const models = coachModelCandidates(preferredModel);
   let lastErr = null;
   let primaryWasBadModel = false;
   for(let i = 0; i < models.length; i++){
     if(outerSignal && outerSignal.aborted) throw new Error('ABORTED');
     const model = models[i];
+    /* Prévient l'appelant AVANT de lancer la tentative (pas après un échec) :
+       l'UI peut ainsi afficher "en cours" dès le départ, pas seulement les
+       transitions. `models[i-1]` est forcément le modèle qui vient d'échouer
+       s'il y en a un, jamais besoin de le suivre séparément. */
+    if(onAttempt){ try{ onAttempt(model, i > 0 ? models[i-1] : null); }catch(e){} }
     try{
       const res = await geminiFetchAttempt(
         `models/${encodeURIComponent(model)}:generateContent`,
