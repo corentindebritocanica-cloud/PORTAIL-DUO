@@ -89,11 +89,6 @@
       <span class="choice-label">Build Training</span>
       <span class="choice-chev">›</span>
     </button>
-    <button class="big-choice-btn" onclick="goToCoachView()">
-      <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 12a8 8 0 1 0-3.2 6.4L20 19.5l-1-3.1A7.9 7.9 0 0 0 20 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 11h6M9 14.5h3.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-      <span class="choice-label">Coach</span>
-      <span class="choice-chev">›</span>
-    </button>
     <button class="big-choice-btn" onclick="goToSettingsView()">
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M17.9 6.1l-1.4 1.4M7.5 16.5l-1.4 1.4M17.9 17.9l-1.4-1.4M7.5 7.5L6.1 6.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
       <span class="choice-label">Réglages</span>
@@ -157,30 +152,7 @@
   </div>
 </div>
 
-<!-- COACH : FIL DE DISCUSSION -->
-<div class="view" id="view-coach">
-  <div class="view-inner">
-    <!-- Barre collante : avec un fil long, changer de conversation ne doit pas
-         obliger à remonter toute la discussion. -->
-    <div class="chat-bar">
-      <button class="chat-icon-btn" onclick="goToMenuView()" title="Menu">←</button>
-      <select id="chat-select" class="chat-select" onchange="setChatThread(this.value)"></select>
-      <button class="chat-icon-btn" onclick="openThreadManager()" title="Gérer les conversations">＋</button>
-      <!-- Badge de fournisseur (23/09/26) : visible en permanence sur l'écran du
-           coach, pas seulement dans la modale de réglages -- pour qu'il soit
-           impossible de se demander "lequel est actif ?" sans ouvrir un menu. -->
-      <span class="model-status" id="coach-provider-badge" onclick="openCoachSettings()" style="cursor:pointer"></span>
-      <button class="chat-icon-btn" onclick="openCoachSettings()" title="Réglages">⚙️</button>
-    </div>
-    <p class="chat-prompt-hint" id="chat-prompt-hint"></p>
-    <div class="chat-thread" id="chat-thread"></div>
-    <!-- Zone de saisie collante en bas, comme dans une messagerie. -->
-    <div class="chat-composer">
-      <textarea id="chat-input" class="note-input" rows="2" placeholder="Pose ta question au coach…"></textarea>
-      <button class="chat-send" id="chat-send" onclick="sendCoachMessage()">Envoyer ↗</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- ÉCRAN 1 : CHOIX DU PROFIL -->
 <div class="view" id="view-profile">
@@ -433,56 +405,7 @@
   </div>
 </div>
 
-<!-- CONVERSATIONS -->
-<div class="confirm-overlay" id="thread-modal">
-  <div class="confirm-box finish-box">
-    <p class="finish-title">Conversations</p>
-    <div class="thread-list" id="thread-list"></div>
-    <p class="finish-sub" style="margin-top:8px">Nouvelle conversation</p>
-    <input type="text" id="thread-name" class="builder-input" placeholder="Nom (ex : Nutrition)" autocomplete="off">
-    <textarea id="thread-prompt" class="builder-input" rows="3" placeholder="Rôle du coach ici (ex : tu es diététicien, on ne parle que d'alimentation)"></textarea>
-    <div class="finish-actions">
-      <button class="finish-btn archive" onclick="createChatThread()">Créer</button>
-      <button class="finish-btn copy" onclick="closeThreadManager()">Fermer</button>
-    </div>
-  </div>
-</div>
 
-<!-- RÉGLAGES DU CONSEILLER -->
-<div class="confirm-overlay" id="coach-settings-modal">
-  <div class="confirm-box finish-box">
-    <p class="finish-title">Réglages du conseiller</p>
-
-    <!-- Fournisseur : phase de test ajoutée le 23/09/26 (voir README). Les
-         deux clés restent enregistrées même quand on bascule -- aucune n'est
-         effacée par le choix de l'autre. -->
-    <label class="mini-label">Fournisseur</label>
-    <div class="segmented" id="coach-provider-toggle">
-      <button type="button" class="segmented-btn" id="coach-provider-gemini" onclick="selectCoachProvider('gemini')">Gemini</button>
-      <button type="button" class="segmented-btn" id="coach-provider-groq" onclick="selectCoachProvider('groq')">Groq</button>
-    </div>
-
-    <p class="finish-sub">La clé reste sur ce téléphone, elle n'est jamais envoyée sur GitHub ni partagée.</p>
-
-    <label class="mini-label">Clé API Google AI Studio (Gemini)</label>
-    <input type="text" id="coach-key-input" class="builder-input" placeholder="AIza…" autocomplete="off">
-    <p class="model-status">Gratuite sur aistudio.google.com.</p>
-
-    <label class="mini-label">Clé API Groq</label>
-    <input type="text" id="coach-groq-key-input" class="builder-input" placeholder="gsk_…" autocomplete="off">
-    <p class="model-status">Gratuite sur console.groq.com/keys.</p>
-
-    <!-- Choix du modèle retiré le 23/09/26 : géré automatiquement pour chaque
-         fournisseur (cascade de repli + auto-correction en base dans app.js,
-         voir callGeminiResilient/callGroqResilient) pour éviter une mauvaise
-         manipulation manuelle. -->
-    <p class="model-status">Le poids de corps utilisé pour les calories vient désormais du suivi dans Progression → Poids &amp; mensurations.</p>
-    <div class="finish-actions">
-      <button class="finish-btn archive" onclick="saveCoachSettings()">Enregistrer</button>
-      <button class="finish-btn copy" onclick="closeCoachSettings()">Annuler</button>
-    </div>
-  </div>
-</div>
 
 <!-- RAPPEL D'ARCHIVAGE (094) -->
 <div class="confirm-overlay" id="leave-modal">
