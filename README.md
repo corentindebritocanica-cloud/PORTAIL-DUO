@@ -475,3 +475,13 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 **Conséquence attendue** : une écriture Firestore de plus à **chaque** ouverture réelle de Course/Muscu/Budget (au lieu de seulement quand le contenu change) — volume négligeable au regard du quota gratuit Firestore pour un usage à 2 personnes.
 
 **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+
+### Suite — flush immédiat au départ de la page (23/09/2026, même jour)
+
+**Retour de Corentin, après test réel** : Budget affichait bien « à l'instant » après une simple ouverture, mais **Course et Muscu non**.
+
+**Cause** : la publication est **regroupée** (`setTimeout` de 2,5 s pour Course/Budget, 3 s pour Muscu) pour éviter des écritures en rafale. Or Course et Muscu sont de **vraies pages HTML séparées** (pas une SPA) : revenir au Portail depuis l'une d'elles est une vraie navigation, qui détruit entièrement le contexte JavaScript de la page quittée — y compris tout `setTimeout` encore en attente. Si Corentin ressortait de l'app avant l'écoulement du délai (ce qui arrive facilement pour un simple coup d'œil sur Course, moins pour Budget dont l'écran de résumé prend un peu plus de temps à consulter), l'écriture prévue n'avait jamais lieu.
+
+**Correctif** (même bloc dans les 3 apps) : la publication elle-même est extraite dans une fonction dédiée (`publierResumePortail[Muscu]`), appelée soit par le `setTimeout` du regroupement, soit **immédiatement** par une fonction de flush déclenchée sur `pagehide` et sur `visibilitychange` (quand `document.visibilityState === 'hidden'`) — les deux écouteurs coexistent avec ceux déjà en place dans chaque app pour d'autres besoins (vérification de version, statut de synchronisation), sans conflit. Le flush n'agit que s'il y a réellement un envoi en attente (sinon rien à faire). Le `set()` Firestore passe par le cache local persistant de chaque app avant le réseau : la mutation est mise en file d'attente durablement dès l'appel, donc l'écriture survit même si la page meurt juste après (elle se synchronisera au prochain accès réseau, exactement comme n'importe quelle autre écriture hors ligne de ces apps).
+
+**Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course ou Muscu, ressortir en moins d'1 s sans rien changer → revenir au Portail → l'horodatage doit quand même afficher « à l'instant »).
