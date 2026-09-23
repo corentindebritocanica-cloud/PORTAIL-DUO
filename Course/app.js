@@ -350,20 +350,28 @@ function calculerResumePortail(produits, rayons){
     .slice(0, 3).map(([nom, n])=> ({ nom, n }));
   return { aAcheter: aAcheter.length, restants: restants.length, rayons: rayonsTop };
 }
+function publierResumePortail(){
+  const resume = calculerResumePortail(state.produits, state.rayons);
+  const signature = JSON.stringify(resume);
+  portailDernier = signature;
+  db.collection('portail').doc('courses').set(Object.assign({ maj: Date.now() }, resume))
+    .catch(err=>{ portailDernier = ''; console.warn('Résumé Portail non publié :', err); });
+}
 function planifierPublicationPortail(){
   if(!portailRecu.produits || !portailRecu.rayons) return;
   clearTimeout(portailMinuteur);
-  portailMinuteur = setTimeout(()=>{
-    const resume = calculerResumePortail(state.produits, state.rayons);
-    const signature = JSON.stringify(resume);
-    portailDernier = signature;
-    /* 23/09/2026 : `maj` est republié à CHAQUE snapshot serveur (même contenu inchangé), sur
-       demande de Corentin — sinon le Portail affichait un horodatage périmé après une simple
-       ouverture sans modification, ce qui semait le doute sur la fraîcheur des données. */
-    db.collection('portail').doc('courses').set(Object.assign({ maj: Date.now() }, resume))
-      .catch(err=>{ portailDernier = ''; console.warn('Résumé Portail non publié :', err); });
-  }, 2500);
+  portailMinuteur = setTimeout(()=>{ portailMinuteur = null; publierResumePortail(); }, 2500);
 }
+/* 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 2,5 s de regroupement
+   (ex. aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la page et
+   l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas, au lieu d'attendre.
+   `set()` passe par le cache local persistant (`enablePersistence`) avant le réseau : la
+   mutation est mise en file d'attente durablement même si la page meurt juste après. */
+function flusherPublicationPortail(){
+  if(portailMinuteur){ clearTimeout(portailMinuteur); portailMinuteur = null; publierResumePortail(); }
+}
+window.addEventListener('pagehide', flusherPublicationPortail);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flusherPublicationPortail(); });
 
 /* ============================================================
    RENDU GLOBAL + DÉMARRAGE
