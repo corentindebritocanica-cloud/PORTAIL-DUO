@@ -3041,7 +3041,7 @@ function saveChatMessage(msg){
 let chatBusy = false;
 let coachRequestStartedAt = null;
 let coachAbortController = null;
-const COACH_REQUEST_TIMEOUT_MS = 75000; /* 45s -> 75s le 23/09/26 : laisse le temps à callGeminiResilient() d'essayer plusieurs modèles avant d'abandonner (voir plus bas) */
+const COACH_REQUEST_TIMEOUT_MS = 100000; /* 45s -> 75s -> 100s le 23/09/26 : 4 candidats x 20s de timeout par tentative + backoff peut légèrement dépasser 75s dans le pire cas -- marge prise pour que callGeminiResilient() ait TOUJOURS le temps d'aller au bout de sa liste avant d'abandonner (voir plus bas) */
 
 /* Si l'app est mise en arrière-plan pendant que le coach répond (l'utilisateur
    change d'écran, verrouille le téléphone…), iOS peut couper la requête réseau
