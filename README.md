@@ -485,3 +485,17 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 **Correctif** (même bloc dans les 3 apps) : la publication elle-même est extraite dans une fonction dédiée (`publierResumePortail[Muscu]`), appelée soit par le `setTimeout` du regroupement, soit **immédiatement** par une fonction de flush déclenchée sur `pagehide` et sur `visibilitychange` (quand `document.visibilityState === 'hidden'`) — les deux écouteurs coexistent avec ceux déjà en place dans chaque app pour d'autres besoins (vérification de version, statut de synchronisation), sans conflit. Le flush n'agit que s'il y a réellement un envoi en attente (sinon rien à faire). Le `set()` Firestore passe par le cache local persistant de chaque app avant le réseau : la mutation est mise en file d'attente durablement dès l'appel, donc l'écriture survit même si la page meurt juste après (elle se synchronisera au prochain accès réseau, exactement comme n'importe quelle autre écriture hors ligne de ces apps).
 
 **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course ou Muscu, ressortir en moins d'1 s sans rien changer → revenir au Portail → l'horodatage doit quand même afficher « à l'instant »).
+
+### Suite — le Portail ne se rafraîchissait pas au retour depuis une app (23/09/2026, même soirée)
+
+**Retour de Corentin** : pour voir le nouvel horodatage d'une app, il devait recharger le Portail avec le bouton du bas.
+
+**Cause** : les apps n'ont pas de lien vers le Portail ; on y revient par le **geste « retour » d'iOS** (historique). Safari ressort alors la page du Portail de son cache « précédent/suivant » (**bfcache**) : pas de rechargement, `visibilitychange` souvent **pas déclenché**, et l'écoute `onSnapshot` dont la connexion a été coupée pendant la pause ne se réveille pas forcément. Seul `pageshow` avec `event.persisted === true` signale ce retour de façon fiable. Deuxième effet : l'app quittée publie son résumé **au moment où on la quitte** (flush `pagehide`, ci-dessus), l'écriture atteint le serveur 1 à 2 s **après** l'arrivée sur le Portail — une relecture immédiate arrive trop tôt.
+
+**Correctif** (`app.js`, bloc « TABLEAU DE BORD ») :
+- L'écoute en direct est extraite dans `ecouter()`, qui **coupe l'ancienne écoute** (`desabonner`) avant d'en ouvrir une nouvelle (jamais deux en parallèle).
+- Nouvelle fonction `auRetour()` : réaffichage, **réabonnement** `ecouter()`, relecture serveur immédiate, puis **2 relectures différées à 3 s et 8 s** (minuteurs précédents annulés si retours rapprochés).
+- Déclenchée par `pageshow` (si `persisted`) **et** par `visibilitychange` (visible) — l'un ou l'autre selon le cas iOS.
+- Coût : environ 3 lectures de 3 documents par retour au Portail, négligeable.
+
+**Non vérifié sur iPhone** (à confirmer : ouvrir Course, ressortir tout de suite par le geste retour → le Portail doit passer à « à l'instant » en quelques secondes, sans bouton de rechargement).
