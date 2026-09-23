@@ -19,6 +19,19 @@
 
 ---
 
+## 🕓 Portail/Course/Muscu — publication debouncée perdue si la page est quittée trop vite (23/09/2026)
+
+### 23/09/2026 — Portail — Budget affichait « à l'instant » après le correctif précédent, pas Course ni Muscu
+**Contexte** : suite directe de l'entrée juste en dessous (`maj` republié à chaque ouverture même sans changement). Corentin a testé le correctif en conditions réelles : Budget marchait, Course et Muscu non.
+**Fausses pistes explorées** : aucune — le correctif précédent était correct en lui-même (vérifié par `grep`), le symptôme était ailleurs.
+**Cause racine** : la publication de chaque app est **regroupée** via `setTimeout` (2,5 s pour Course/Budget, 3 s pour Muscu) pour éviter des écritures Firestore en rafale pendant qu'une collection se charge. Course et Muscu sont de **vraies pages HTML séparées** du Portail (pas une SPA) : quitter l'app pour revenir au Portail est une navigation complète qui **détruit tout le contexte JavaScript** de la page quittée, `setTimeout` en attente compris. Un aller-retour plus rapide que le délai de regroupement tuait donc l'écriture avant qu'elle n'ait lieu — Budget « marchait » simplement parce que Corentin restait naturellement un peu plus longtemps dessus (écran de résumé plus long à consulter) que sur Course (simple coup d'œil).
+**Solution** : dans les 3 apps, extraction de la publication elle-même dans une fonction dédiée, appelée soit par le `setTimeout` du regroupement (cas normal), soit **immédiatement** par une fonction de flush sur `pagehide` **et** `visibilitychange` (`document.visibilityState === 'hidden'`) — les deux événements sont écoutés en parallèle car leur fiabilité relative n'est pas garantie sur tous les cas (iOS Safari PWA vs onglet classique), et le flush ne fait rien s'il n'y a rien en attente. Ces nouveaux écouteurs coexistent avec ceux déjà présents dans chaque app pour d'autres besoins (vérification de version, statut de synchronisation) sans conflit — plusieurs écouteurs sur le même événement DOM s'exécutent tous normalement.
+**Leçon généralisable** : tout mécanisme de **regroupement différé** (`setTimeout`/debounce) dans une page qui peut être quittée par **navigation complète** (pas juste mise en arrière-plan d'une SPA) doit prévoir un flush explicite sur `pagehide`/`visibilitychange` — sinon l'action différée n'a tout simplement jamais lieu si l'utilisateur part avant l'échéance, silencieusement (aucune erreur, juste rien ne se passe). Le filet de sécurité est peu coûteux : appeler la même fonction de publication immédiatement au lieu d'attendre, avec garde-fou pour ne rien faire s'il n'y a rien en attente.
+**Vérifié** : relecture du code des 3 apps confirmant les mêmes deux écouteurs (`pagehide`, `visibilitychange`) et l'extraction de la fonction de publication partout. **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course ou Muscu, ressortir en moins d'1 s sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+**Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Budget/app.js`, `README.md` (racine, Course, Muscu, Budget), `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🕓 Portail/Muscu/Budget/Course — `maj` ne bougeait pas quand une app était ouverte sans rien changer (23/09/2026)
 
 ### 23/09/2026 — Portail — « Mis à jour il y a 1 h » ne changeait pas après avoir rouvert Courses
