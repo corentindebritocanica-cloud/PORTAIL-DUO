@@ -2746,6 +2746,70 @@ function renderCoachBlock(){
   block.appendChild(box);
 }
 
+/* ---------- MENU SUIVI (23/09/2026) ----------
+   Remplace l'ancien écran Coach : plus de génération IA dans l'app, juste des
+   exports groupés Corentin + Lisa prêts à coller dans une conversation Gemini
+   externe. Réutilise la modale de récap déjà existante (export-modal /
+   export-text / motivation-line / Copier) plutôt que d'en créer une nouvelle. */
+function goToTrackingView(){
+  showView('view-tracking', 'fwd');
+}
+
+/* Avertit sans jamais bloquer (demande explicite du 23/09/26 : "ne m'empêche
+   pas de copier quand même si je veux") -- le texte reste copiable tel quel,
+   l'avertissement n'apparaît que dans la ligne au-dessus, jamais une
+   confirmation à valider. */
+function exportLatestSessions(){
+  document.getElementById('coach-block').innerHTML = ''; /* pas de bilan resurgi d'un ancien archivage consulté avant */
+  const today = new Date().toLocaleDateString('fr-FR');
+  const warnings = [];
+  let txt = `📋 DERNIÈRES SÉANCES — Corentin & Lisa\n`;
+  ['corentin', 'lisa'].forEach(p => {
+    const label = p === 'corentin' ? 'Corentin' : 'Lisa';
+    const list = getArchivesList(p).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const last = list[0];
+    txt += `\n==============================\n`;
+    if(!last){
+      txt += `${label} : aucune séance archivée.\n`;
+      return;
+    }
+    txt += last.exportText + '\n';
+    if(last.dateLabel !== today) warnings.push(`${label} : dernière séance le ${last.dateLabel} (pas aujourd'hui)`);
+  });
+  document.getElementById('export-text').value = txt;
+  document.getElementById('motivation-line').textContent = warnings.length
+    ? '⚠️ ' + warnings.join(' — ')
+    : 'Dernières séances des deux profils, à jour';
+  document.getElementById('export-modal').classList.add('open');
+}
+
+function exportLatestBodyEntries(){
+  document.getElementById('coach-block').innerHTML = '';
+  const today = new Date().toLocaleDateString('fr-FR');
+  const warnings = [];
+  let txt = `⚖️ DERNIÈRES MENSURATIONS — Corentin & Lisa\n`;
+  ['corentin', 'lisa'].forEach(p => {
+    const label = p === 'corentin' ? 'Corentin' : 'Lisa';
+    const entry = bodyEntries(p)[0];
+    txt += `\n==============================\n${label}\n`;
+    if(!entry){
+      txt += `Aucune mesure enregistrée.\n`;
+      return;
+    }
+    txt += `Date : ${entry.dateLabel}\n`;
+    BODY_FIELDS.forEach(f => {
+      const v = bodyEntryValue(entry, f.id);
+      if(v) txt += `${bodyFieldLabel(f.id, p)} : ${v} ${f.unit}\n`;
+    });
+    if(entry.dateLabel !== today) warnings.push(`${label} : dernière mesure le ${entry.dateLabel} (pas aujourd'hui)`);
+  });
+  document.getElementById('export-text').value = txt;
+  document.getElementById('motivation-line').textContent = warnings.length
+    ? '⚠️ ' + warnings.join(' — ')
+    : 'Dernières mensurations des deux profils, à jour';
+  document.getElementById('export-modal').classList.add('open');
+}
+
 function exportAllArchives(){
   const archives = getArchivesList(currentProfile);
   if(archives.length === 0){
