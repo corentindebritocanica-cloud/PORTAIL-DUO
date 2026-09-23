@@ -190,13 +190,7 @@
         try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* repli silencieux sur le cache mémoire */ }
         auth.onAuthStateChanged((user) => {
           if (user) {
-            db.collection('portail').onSnapshot((snap) => {
-              const obj = {};
-              snap.forEach((doc) => { obj[doc.id] = doc.data(); });
-              resume = obj;
-              try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
-              afficher();
-            }, (err) => console.warn('[portail] lecture impossible :', err));
+            ecouter();
           } else {
             auth.signInAnonymously().catch((err) => console.warn('[portail] connexion anonyme impossible :', err));
           }
@@ -227,14 +221,49 @@
       }
     }
 
+    /* Écoute en direct de `portail/*`. Peut être relancée (retour au Portail) : l'ancienne
+       écoute est d'abord coupée, pour n'en avoir jamais deux en parallèle. */
+    let desabonner = null;
+    function ecouter(){
+      if (!db) return;
+      if (desabonner) { try { desabonner(); } catch (e) {} desabonner = null; }
+      desabonner = db.collection('portail').onSnapshot((snap) => {
+        const obj = {};
+        snap.forEach((doc) => { obj[doc.id] = doc.data(); });
+        resume = obj;
+        try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
+        afficher();
+      }, (err) => console.warn('[portail] lecture impossible :', err));
+    }
+
+    /* 23/09/2026 — Retour au Portail depuis une app (geste « retour » d'iOS).
+       Les apps n'ont pas de lien vers le Portail : on y revient par l'historique, et Safari
+       ressort alors la page du Portail telle quelle de son cache « précédent/suivant »
+       (bfcache) — sans la recharger, souvent SANS `visibilitychange`, et avec une écoute
+       Firestore dont la connexion a été coupée pendant la mise en pause. Seul `pageshow`
+       (persisted = true) signale ce retour de façon fiable. De plus, l'app quittée publie
+       son résumé AU MOMENT où on la quitte (flush `pagehide`) : l'écriture arrive sur le
+       serveur une à deux secondes APRÈS le retour au Portail — une lecture immédiate
+       arriverait trop tôt. D'où : réabonnement + relecture immédiate + 2 relectures
+       différées (3 s et 8 s). Coût : ~3 lectures de 3 documents par retour, négligeable. */
+    let relectures = [];
+    function auRetour(){
+      afficher();
+      ecouter();
+      rafraichirDepuisServeur();
+      relectures.forEach(clearTimeout);
+      relectures = [3000, 8000].map((ms) => setTimeout(rafraichirDepuisServeur, ms));
+    }
+
     try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }
     if (typeof resume !== 'object' || resume === null) resume = {};
     afficher();
     window.addEventListener('load', () => setTimeout(demarrerBase, 0));
     setInterval(afficher, 60000);                       /* « il y a 3 min » reste juste */
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') { afficher(); rafraichirDepuisServeur(); }
+      if (document.visibilityState === 'visible') auRetour();
     });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) auRetour(); });
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {
