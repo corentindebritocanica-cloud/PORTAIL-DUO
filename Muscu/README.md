@@ -849,3 +849,18 @@ Après cascade Gemini, bug 404 dans la cascade, badge multi-fournisseur, et plaf
 
 **Vérifié** : `node --check` sur `app.js` après retrait ; recherche exhaustive de toute référence orpheline aux ~50 identifiants retirés (aucune trouvée) ; comptage des balises `<div>`/`</div>` dans `index.html` avant/après (108/108, équilibré) ; relecture du fichier réellement publié sur GitHub pour confirmer l'absence de `sendCoachMessage`, `geminiFetch`, `groqFetch`, etc., et la présence de `renderCoachBlock`/`saveCoachSettingsRemote`. **Non testé sur iPhone.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
+
+
+### Écran Suivi — exports groupés Corentin + Lisa (23/09/2026, même jour)
+
+**Demande de Corentin** : après le retrait du coach IA, un moyen rapide de récupérer la dernière séance de chacun (lui + Lisa) et la dernière mensuration de chacun, prêtes à coller dans sa conversation Gemini personnelle — plus un accès direct à l'export complet déjà existant. Avertir si une donnée n'est pas datée d'aujourd'hui (oubli d'archivage), **sans jamais bloquer la copie** : demande explicite, "ne m'empêche pas de copier quand même si je veux".
+
+**Nouvel écran `view-tracking`**, accessible via un bouton "Suivi" au menu principal (à la place laissée par l'ancien "Coach") :
+- **`exportLatestSessions()`** : pour chaque profil, prend l'archive au `createdAt` le plus élevé (tri explicite, pas le premier/dernier élément brut du cache — l'ordre du cache n'est pas garanti ici), réutilise son `exportText` déjà généré (même format que "Séance terminée"). Si la `dateLabel` n'est pas celle du jour, ajoute une ligne d'avertissement dans `motivation-line` au-dessus du texte — le texte lui-même reste identique et copiable normalement.
+- **`exportLatestBodyEntries()`** : même principe sur `bodyEntries(profile)[0]` (déjà trié par `at` décroissant), avec le détail de chaque mesure (poids, tour de taille, etc.).
+- **Bouton "Exporter toute l'app"** : relié à `exportFullDataJSON()`, déjà existante, aucune nouvelle fonction nécessaire.
+
+Les trois réutilisent la modale de récapitulatif déjà existante (`export-modal` / `export-text` / `motivation-line` / bouton Copier) plutôt que d'en créer une nouvelle — `document.getElementById('coach-block').innerHTML` est explicitement vidé à l'ouverture pour ne pas laisser réapparaître un ancien bilan resté affiché d'une consultation d'archive précédente.
+
+**Vérifié** : testé en isolation avec des mocks (deux profils, une séance plus ancienne que l'autre, un profil sans mensuration) — confirmé que le tri prend bien la plus récente par `createdAt` (pas par position dans le tableau), que l'avertissement n'apparaît que lorsque la date diffère d'aujourd'hui, et qu'un profil sans donnée ne fait pas planter l'export. `node --check` sur le fichier publié. Balises `<div>` comptées avant/après (équilibrées). **Non testé sur iPhone.**
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
