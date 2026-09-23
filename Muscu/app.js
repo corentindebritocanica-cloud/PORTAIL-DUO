@@ -2959,10 +2959,20 @@ function renderBodyList(){
   });
 }
 
+/* Badge visible en permanence sur l'écran du coach (23/09/26) : affiché à
+   chaque arrivée sur l'écran et après chaque enregistrement des réglages,
+   pour qu'il soit toujours à jour sans avoir à rouvrir la modale. */
+function renderCoachProviderBadge(){
+  const badge = document.getElementById('coach-provider-badge');
+  if(!badge) return;
+  badge.textContent = coachGetProvider() === 'groq' ? 'Groq ⚡' : 'Gemini';
+}
+
 function goToCoachView(){
   repairChatThreads();
   renderChatSelector();
   renderChatThread();
+  renderCoachProviderBadge();
   setChatThread(currentChatThread);
   showView('view-coach', 'fwd');
   /* On arrive en bas du fil : c'est le dernier message qui intéresse, pas le
@@ -3370,6 +3380,7 @@ function saveCoachSettings(){
     showToast(firestoreErrorMessage(err, "de l'enregistrement"));
   });
   closeCoachSettings();
+  renderCoachProviderBadge();
   showToast('Réglages enregistrés pour les deux téléphones');
   renderCoachBlock();
 }
@@ -3409,17 +3420,26 @@ async function requestCoachFeedback(dateLabel){
   }
 }
 
+/* BUG corrigé le 23/09/26 : ce message disait littéralement "Google" et
+   "l'API Gemini", même quand le fournisseur actif était Groq -- trompeur au
+   point de faire croire à Corentin que le sélecteur n'avait aucun effet,
+   alors que c'était juste le TEXTE qui mentait, pas le comportement réel.
+   coachGetProvider() est déjà lu à chaque appel, donc le message reflète
+   toujours le fournisseur réellement utilisé pour CETTE tentative. */
 function coachErrorMessage(err){
   const m = String(err && err.message);
-  if(m === 'NO_KEY') return 'Aucune clé API enregistrée';
+  const providerLabel = coachGetProvider() === 'groq' ? 'Groq' : 'Google';
+  if(m === 'NO_KEY') return 'Aucune clé API enregistrée pour ' + providerLabel;
   if(m === 'BAD_KEY') return 'Clé API refusée — vérifie-la dans les réglages';
-  if(m.indexOf('KEY_REJECTED') === 0) return "Clé refusée par Google (401) — voir les réglages pour le détail";
-  if(m.indexOf('KEY_FORBIDDEN') === 0) return "Accès refusé (403) — l'API Gemini est peut-être désactivée sur ce projet";
-  if(m === 'BAD_MODEL') return "Ce modèle n'existe pas — ouvre les réglages et charge la liste";
+  if(m.indexOf('KEY_REJECTED') === 0) return `Clé refusée par ${providerLabel} (401) — voir les réglages pour le détail`;
+  if(m.indexOf('KEY_FORBIDDEN') === 0) return `Accès refusé (403) — l'API ${providerLabel} est peut-être désactivée sur ce compte`;
+  if(m === 'BAD_MODEL') return "Ce modèle n'existe pas — réessaie, la correction est automatique";
   if(m === 'QUOTA') return 'Quota atteint — réessaie dans quelques minutes';
-  /* callGeminiResilient a essayé tous les modèles de repli sans succès : Google
-     est vraiment saturé partout, pas la peine de retenter tout de suite. */
-  if(m.indexOf('ALL_MODELS_OVERLOADED') === 0) return 'Google est surchargé sur tous les modèles — réessaie dans quelques minutes';
+  /* callGeminiResilient()/callGroqResilient() ont essayé tous les modèles de
+     repli sans succès : CE fournisseur est saturé partout, pas la peine de
+     retenter tout de suite -- éventuellement basculer sur l'autre dans les
+     réglages en attendant. */
+  if(m.indexOf('ALL_MODELS_OVERLOADED') === 0) return `${providerLabel} est surchargé sur tous les modèles — réessaie dans quelques minutes, ou bascule sur l'autre fournisseur dans les réglages`;
   if(m === 'ABORTED' || m === 'AbortError') return "Le coach ne répond pas — réessaie dans un instant";
   return 'Le bilan a échoué : ' + m;
 }
@@ -4573,7 +4593,7 @@ const COACH_ATTEMPT_TIMEOUT_MS = 20000; /* par tentative, distinct du minuteur g
 /* Nom court pour l'affichage ("gemini-3.6-flash" -> "3.6-flash") : juste assez
    pour que la progression en direct du chat soit lisible sans être un roman. */
 function coachModelShortLabel(model){
-  return model ? String(model).replace(/^gemini-/, '') : '';
+  return model ? String(model).replace(/^gemini-/, '').replace(/^openai\//, '') : '';
 }
 
 /* Modèle demandé en premier (celui choisi par l'utilisateur ou enregistré),
