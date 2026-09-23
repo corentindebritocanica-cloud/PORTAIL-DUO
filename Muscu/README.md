@@ -797,3 +797,20 @@ Muscu publie sa **prochaine séance, la semaine de chacun et une série** pour l
 **Vérifié** : séquence d'événements `onAttempt` testée en isolation dans Node (404 → bascule → 503 → bascule → succès), texte attendu à chaque étape contrôlé à la main. **Non vérifié sur iPhone** (rendu visuel réel de la bulle, timing des transitions).
 
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
+
+
+### Coach — Groq en fournisseur alternatif, phase de test (23/09/2026)
+
+**Demande de Corentin** : ne pas remplacer Gemini, mais pouvoir choisir Gemini OU Groq (gratuit, infrastructure différente, très rapide) dans les réglages, pour comparer en conditions réelles.
+
+**Catalogue Groq vérifié en direct** (avec la vraie clé de Corentin, `console.groq.com`) : `llama-3.3-70b-versatile` et `llama-3.1-8b-instant`, très documentés ailleurs (y compris dans des sources de 2026), **n'existent plus** côté Groq — 404 `model_not_found`. Catalogue réel à date : `openai/gpt-oss-120b` (retenu comme principal) et `openai/gpt-oss-20b` (repli), tous deux testés en direct et fonctionnels (~0,3-0,9s de réponse, contre 6-49s côté Gemini).
+
+**`settings/coach`** : deux nouveaux champs, `provider` (`gemini` par défaut ou `groq`) et `groqApiKey` — séparé de `apiKey` (Gemini), pour que basculer le sélecteur ne fasse jamais perdre l'une ou l'autre clé. `groqModel` suit le même principe que `model` : jamais choisi à la main, auto-géré et auto-corrigé par `callGroqResilient()`/`persistWorkingGroqModel()`, symétriques de leurs équivalents Gemini.
+
+**`app.js`** : `callGroqResilient()` est un miroir quasi exact de `callGeminiResilient()` (même structure de cascade, retry+backoff, timeout par tentative combiné au signal externe, fatal uniquement sur clé invalide) — adapté à l'API Groq, compatible OpenAI : clé en en-tête `Authorization: Bearer …` (pas en paramètre d'URL), modèle dans le corps JSON (pas dans l'URL). `callCoachChat()`/`callCoach()` aiguillent sur `coachSettings().provider` et reconstruisent le même contexte (digest, historique, séances récentes) au format `messages` (system/user/assistant) plutôt que `contents`/`parts`. Le vocabulaire d'erreur (`KEY_REJECTED`, `BAD_MODEL`, `QUOTA`, `ALL_MODELS_OVERLOADED`…) est resté volontairement identique entre les deux fournisseurs : `coachErrorMessage()` sert aux deux sans aucune modification. La barre de progression en direct (`onAttempt`) ajoutée plus haut était déjà générique par modèle, donc fonctionne pour Groq sans y toucher.
+
+**Réglages** : sélecteur segmenté Gemini/Groq (`#coach-provider-toggle`, même style que le reste de l'app), deux champs de clé distincts toujours visibles. État de sélection tenu dans `coachSettingsProviderDraft` le temps que la modale est ouverte, appliqué seulement au clic sur Enregistrer — même principe que les champs de clé, qui ne sont lus qu'à ce moment-là.
+
+**Vérifié** : catalogue de modèles interrogé en direct (`GET /openai/v1/models`) ; 4 scénarios Node sur `callGroqResilient()` (cascade sur 429, clé invalide fatale immédiate, modèle mort 404 → bascule + correction en base, non-régression de `callGeminiResilient()`) ; **et** un appel réel de bout en bout à travers le code extrait tel quel (pas seulement `curl`), avec la vraie clé de Corentin — 900 ms, réponse cohérente. **Non vérifié sur iPhone.**
+
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
