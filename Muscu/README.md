@@ -814,3 +814,12 @@ Muscu publie sa **prochaine séance, la semaine de chacun et une série** pour l
 **Vérifié** : catalogue de modèles interrogé en direct (`GET /openai/v1/models`) ; 4 scénarios Node sur `callGroqResilient()` (cascade sur 429, clé invalide fatale immédiate, modèle mort 404 → bascule + correction en base, non-régression de `callGeminiResilient()`) ; **et** un appel réel de bout en bout à travers le code extrait tel quel (pas seulement `curl`), avec la vraie clé de Corentin — 900 ms, réponse cohérente. **Non vérifié sur iPhone.**
 
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
+
+
+### Correctif de suivi (23/09/2026, même jour) — le message d'erreur mentait sur le fournisseur
+
+**Symptôme** : Corentin a mis sa clé Groq et sélectionné Groq, mais a reçu « Google est surchargé sur tous les modèles » — de quoi croire que le sélecteur n'avait servi à rien.
+**Cause** : `coachErrorMessage()` avait des textes codés en dur ("Google", "l'API Gemini") datant d'avant le support multi-fournisseur — jamais mis à jour pour lire `coachGetProvider()`. Que la cause réelle soit Gemini ou Groq qui échoue, le texte affichait toujours "Google", indépendamment du fournisseur qui avait effectivement été appelé.
+**Correction** : tous les messages (`NO_KEY`, `KEY_REJECTED`, `KEY_FORBIDDEN`, `ALL_MODELS_OVERLOADED`) utilisent désormais un label dynamique selon `coachGetProvider()`. Ajout d'un **badge permanent** sur l'écran du coach (`#coach-provider-badge`, à côté de l'icône réglages) affichant "Gemini" ou "Groq ⚡" — pour vérifier d'un coup d'œil lequel est actif sans ouvrir la modale, plutôt que de dépendre uniquement du texte d'un message d'erreur.
+**Non exclu** : il reste possible que le sélecteur n'ait simplement pas été basculé sur Groq avant l'enregistrement (juste rempli le champ clé sans taper le bouton) — le badge permanent rend ce cas immédiatement visible désormais, sans avoir besoin de rouvrir les réglages pour vérifier.
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
