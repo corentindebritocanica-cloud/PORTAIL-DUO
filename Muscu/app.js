@@ -3063,7 +3063,7 @@ async function sendCoachMessage(){
   const text = input.value.trim();
   if(!text) return;
 
-  if(!coachGetKey()){
+  if(!coachGetActiveKey()){
     showToast('Renseigne la clé API pour commencer');
     openCoachSettings();
     return;
@@ -3183,10 +3183,8 @@ Règles :
 Réponds en texte simple, sans JSON ni balises.`;
 
 async function callCoachChat(signal, onAttempt){
-  const key = coachGetKey();
-  if(!key) throw new Error('NO_KEY');
-
-  const model = coachGetModel();
+  const provider = coachGetProvider();
+  if(!coachGetActiveKey()) throw new Error('NO_KEY');
 
   /* Contexte rappelé à chaque envoi : le modèle n'a aucune mémoire propre. */
   let context = 'CE QUE TU SAIS D\'EUX\n';
@@ -3233,6 +3231,32 @@ async function callCoachChat(signal, onAttempt){
     ? thread.prompt + '\n\n' + CHAT_SYSTEM
     : CHAT_SYSTEM;
 
+  if(provider === 'groq'){
+    /* Même contenu que la branche Gemini juste en dessous, reformaté au
+       format OpenAI (messages system/user/assistant) plutôt que
+       contents/parts. */
+    const messages = [
+      { role: 'system', content: systemText },
+      { role: 'user', content: context },
+      { role: 'assistant', content: "C'est noté, j'ai leur historique en tête." }
+    ];
+    history.forEach(m => {
+      messages.push({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.role === 'user' ? `[${PROFILE_NAMES[m.author] || 'Utilisateur'}] ${m.text}` : m.text
+      });
+    });
+    const data = await callGroqResilient(coachGetGroqModel(), (model) => ({
+      model: model,
+      messages: messages,
+      temperature: 0.7
+    }), signal, onAttempt);
+    const text = (((data.choices || [])[0] || {}).message || {}).content || '';
+    if(!text.trim()) throw new Error('Réponse vide du modèle');
+    return text.trim();
+  }
+
+  const model = coachGetModel();
   const data = await callGeminiResilient(model, () => ({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -3302,8 +3326,22 @@ function renderCoachBlock(state){
 /* Google retire et renomme régulièrement ses modèles : plutôt que de coder un
    nom en dur et de tomber sur un 404, on demande la liste à l'API. Le même appel
    sert de diagnostic pour la clé : s'il échoue, c'est elle qui est en cause. */
+/* Sélection de fournisseur dans la modale : état local le temps qu'elle est
+   ouverte, appliqué seulement au clic sur « Enregistrer » -- comme les deux
+   champs de clé, qui ne sont lus qu'à ce moment-là aussi. */
+let coachSettingsProviderDraft = 'gemini';
+function selectCoachProvider(p){
+  coachSettingsProviderDraft = p;
+  const btnGemini = document.getElementById('coach-provider-gemini');
+  const btnGroq = document.getElementById('coach-provider-groq');
+  if(btnGemini) btnGemini.classList.toggle('selected', p === 'gemini');
+  if(btnGroq) btnGroq.classList.toggle('selected', p === 'groq');
+}
+
 function openCoachSettings(){
   document.getElementById('coach-key-input').value = coachGetKey();
+  document.getElementById('coach-groq-key-input').value = coachGetGroqKey();
+  selectCoachProvider(coachGetProvider());
   document.getElementById('coach-settings-modal').classList.add('open');
 }
 
@@ -3311,17 +3349,21 @@ function closeCoachSettings(){
   document.getElementById('coach-settings-modal').classList.remove('open');
 }
 function saveCoachSettings(){
-  /* Le modèle n'est plus choisi manuellement (23/09/26) : callGeminiResilient()
-     gère seul la cascade de repli et corrige tout seul le réglage en base
-     (persistWorkingModel) quand le modèle enregistré s'avère mort. Ne PAS
-     inclure `model` ici : { merge:true } dans saveCoachSettingsRemote()
-     laisserait alors la valeur déjà en base intacte, ce qui est le but --
-     l'écraser ici avec un champ retiré de l'UI la remettrait à zéro à tort.
+  /* Le modèle (Gemini ET Groq) n'est plus choisi manuellement (23/09/26) :
+     callGeminiResilient()/callGroqResilient() gèrent seuls la cascade de
+     repli et corrigent tout seuls le réglage en base (persistWorkingModel/
+     persistWorkingGroqModel) quand le modèle enregistré s'avère mort. Ne
+     JAMAIS inclure `model`/`groqModel` ici : { merge:true } dans
+     saveCoachSettingsRemote() laisserait alors la valeur déjà en base
+     intacte, ce qui est le but -- l'écraser ici avec un champ retiré de l'UI
+     la remettrait à zéro à tort.
      ⚠️ FUSION OBLIGATOIRE par ailleurs : `settings/coach` contient AUSSI la
      liste des conversations (`threads`). Écrire un objet neuf effaçait ce
      champ — donc toutes les discussions et leurs rôles — à chaque « Enregistrer ». */
   const next = Object.assign({}, coachSettings(), {
-    apiKey: document.getElementById('coach-key-input').value.trim()
+    apiKey: document.getElementById('coach-key-input').value.trim(),
+    groqApiKey: document.getElementById('coach-groq-key-input').value.trim(),
+    provider: coachSettingsProviderDraft
   });
   saveCoachSettingsRemote(next).catch(err => {
     console.error('Enregistrement des réglages', err);
@@ -3336,7 +3378,7 @@ let coachBusy = false;
 
 async function requestCoachFeedback(dateLabel){
   if(coachBusy) return;
-  if(!coachGetKey()){
+  if(!coachGetActiveKey()){
     showToast('Renseigne ta clé API pour commencer');
     openCoachSettings();
     return;
@@ -4262,6 +4304,16 @@ function coachGetKey(){ return coachSettings().apiKey || storage.get('duo_coach_
 function coachGetModel(){ return coachSettings().model || COACH_DEFAULT_MODEL; }
 function coachGetWeights(){ return coachSettings().weights || {}; }
 
+/* ---- Fournisseur du coach : Gemini (par défaut) ou Groq (23/09/26) ----
+   Phase de test demandée par Corentin : Gemini reste le comportement par
+   défaut et n'est pas touché. `groqApiKey`/`groqModel` vivent dans des champs
+   SÉPARÉS de `apiKey`/`model` (Gemini) exprès : basculer le sélecteur ne fait
+   jamais perdre la clé ou le modèle de l'autre fournisseur. */
+function coachGetProvider(){ return coachSettings().provider || 'gemini'; }
+function coachGetGroqKey(){ return coachSettings().groqApiKey || ''; }
+function coachGetGroqModel(){ return coachSettings().groqModel || COACH_GROQ_DEFAULT_MODEL; }
+function coachGetActiveKey(){ return coachGetProvider() === 'groq' ? coachGetGroqKey() : coachGetKey(); }
+
 function saveCoachSettingsRemote(next){
   if(!window.__fb) return Promise.reject(new Error('Cloud indisponible'));
   const { db, doc, setDoc } = window.__fb;
@@ -4617,6 +4669,113 @@ async function callGeminiResilient(preferredModel, buildInit, outerSignal, onAtt
   throw new Error('ALL_MODELS_OVERLOADED:' + (lastErr && lastErr.message || ''));
 }
 
+/* ---- Fournisseur Groq (23/09/26, phase de test) ----
+   API compatible OpenAI (chat/completions), clé en en-tête Authorization
+   (pas en paramètre d'URL comme Gemini). Catalogue vérifié en direct le
+   23/09/26 avec la clé de Corentin : llama-3.3-70b-versatile et
+   llama-3.1-8b-instant, documentés un peu partout, n'existent PLUS chez Groq
+   (404) -- catalogue actuel : openai/gpt-oss-120b (principal, le plus
+   costaud) et openai/gpt-oss-20b (repli, plus léger). À revérifier
+   périodiquement comme pour Gemini, Groq retire aussi des modèles. Groq est
+   rarement surchargé (infrastructure dédiée, pas la même clientèle grand
+   public que l'app Gemini) donc une cascade à 2 modèles suffit largement --
+   même mécanique que côté Gemini (retry+repli, timeout par tentative,
+   auto-correction du modèle en base) pour rester cohérent et déjà éprouvé. */
+const COACH_GROQ_FALLBACK_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+const COACH_GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const COACH_GROQ_ATTEMPT_TIMEOUT_MS = 20000;
+
+function groqModelCandidates(preferredModel){
+  const primary = preferredModel || coachGetGroqModel();
+  const rest = COACH_GROQ_FALLBACK_MODELS.filter(m => m !== primary);
+  return [primary, ...rest];
+}
+
+async function groqFetch(body, signal){
+  const key = coachGetGroqKey();
+  if(!key) throw new Error('NO_KEY');
+  return fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify(body),
+    signal: signal
+  });
+}
+
+/* Vocabulaire d'erreur volontairement IDENTIQUE à geminiError() : coachErrorMessage()
+   sert donc aux deux fournisseurs sans aucune modification. */
+async function groqError(res){
+  let detail = '';
+  try{ const e = await res.json(); detail = (e.error && e.error.message) || ''; }catch(err){}
+  if(res.status === 401) return new Error('KEY_REJECTED:' + detail);
+  if(res.status === 403) return new Error('KEY_FORBIDDEN:' + detail);
+  if(res.status === 404) return new Error('BAD_MODEL');
+  if(res.status === 429) return new Error('QUOTA');
+  return new Error(detail || 'Erreur ' + res.status);
+}
+
+function persistWorkingGroqModel(model){
+  try{
+    const settings = Object.assign({}, coachSettings(), { groqModel: model });
+    saveCoachSettingsRemote(settings).catch(err => console.error('Correction auto du modèle Groq', err));
+  }catch(err){ console.error('Correction auto du modèle Groq', err); }
+}
+
+/* Même logique que callGeminiResilient() (voir plus bas) : cascade avec
+   retry+backoff, timeout par tentative combiné au signal externe, fatal
+   uniquement sur erreur de clé, auto-correction du modèle en base si le
+   modèle enregistré s'avère mort. `buildBody(model)` reçoit le modèle de la
+   tentative en cours -- chez Groq il fait partie du corps JSON, pas de l'URL. */
+async function callGroqResilient(preferredModel, buildBody, outerSignal, onAttempt){
+  const models = groqModelCandidates(preferredModel);
+  let lastErr = null;
+  let primaryWasBadModel = false;
+  for(let i = 0; i < models.length; i++){
+    if(outerSignal && outerSignal.aborted) throw new Error('ABORTED');
+    const model = models[i];
+    if(onAttempt){ try{ onAttempt(model, i > 0 ? models[i-1] : null); }catch(e){} }
+    const controller = new AbortController();
+    const onOuterAbort = () => controller.abort();
+    if(outerSignal){
+      if(outerSignal.aborted) controller.abort();
+      else outerSignal.addEventListener('abort', onOuterAbort);
+    }
+    const timeoutId = setTimeout(() => controller.abort(), COACH_GROQ_ATTEMPT_TIMEOUT_MS);
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      if(outerSignal) outerSignal.removeEventListener('abort', onOuterAbort);
+    };
+    try{
+      const res = await groqFetch(buildBody(model), controller.signal);
+      cleanup();
+      if(res.ok){
+        const data = await res.json();
+        if(i > 0 && primaryWasBadModel) persistWorkingGroqModel(model);
+        return data;
+      }
+      const err = await groqError(res);
+      const msg = String(err && err.message || '');
+      if(i === 0 && msg === 'BAD_MODEL') primaryWasBadModel = true;
+      if(msg === 'NO_KEY' || msg === 'BAD_KEY' || msg.indexOf('KEY_') === 0) throw err;
+      lastErr = err;
+    }catch(err){
+      cleanup();
+      if(err && err.name === 'AbortError'){
+        if(outerSignal && outerSignal.aborted) throw err;
+        lastErr = new Error('TIMEOUT:' + model);
+      }else{
+        const msg = String(err && err.message || '');
+        if(msg === 'NO_KEY' || msg === 'BAD_KEY' || msg.indexOf('KEY_') === 0) throw err;
+        lastErr = err;
+      }
+    }
+    if(i < models.length - 1){
+      await new Promise(r => setTimeout(r, 700 + Math.random() * 500));
+    }
+  }
+  throw new Error('ALL_MODELS_OVERLOADED:' + (lastErr && lastErr.message || ''));
+}
+
 /* ---- Résistance aux changements de modèles ----
    Google retire régulièrement des modèles : un nom figé finit toujours par
    renvoyer un 404. Plutôt que de laisser l'app bloquée, on demande la liste
@@ -4690,8 +4849,35 @@ async function withModelRepair(run){
 /* ---- Appel API ---- */
 
 async function callCoach(dateLabel, signal){
-  const key = coachGetKey();
-  if(!key) throw new Error('NO_KEY');
+  const provider = coachGetProvider();
+  if(!coachGetActiveKey()) throw new Error('NO_KEY');
+
+  /* Le JSON est demandé explicitement des deux côtés, mais on reste tolérant :
+     si le modèle enrobe sa réponse (balises ```json…```), on récupère le texte
+     brut plutôt que d'échouer -- partagé par les deux branches ci-dessous. */
+  const parseBilan = (text) => {
+    try{
+      const parsed = JSON.parse(text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
+      return { bilan: parsed.bilan || text, profil: parsed.profil || '' };
+    }catch(e){
+      return { bilan: text, profil: '' };
+    }
+  };
+
+  if(provider === 'groq'){
+    const data = await callGroqResilient(coachGetGroqModel(), (model) => ({
+      model: model,
+      messages: [
+        { role: 'system', content: COACH_SYSTEM },
+        { role: 'user', content: buildCoachPrompt(dateLabel) }
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' }
+    }), signal);
+    const text = (((data.choices || [])[0] || {}).message || {}).content || '';
+    if(!text.trim()) throw new Error('Réponse vide du modèle');
+    return parseBilan(text);
+  }
 
   const model = coachGetModel();
   const data = await callGeminiResilient(model, () => ({
@@ -4708,15 +4894,7 @@ async function callCoach(dateLabel, signal){
     ? data.candidates[0].content.parts.map(x => x.text || '').join('')
     : '';
   if(!text) throw new Error('Réponse vide du modèle');
-
-  /* Le JSON est demandé explicitement, mais on reste tolérant : si le modèle
-     enrobe sa réponse, on récupère le texte brut plutôt que d'échouer. */
-  try{
-    const parsed = JSON.parse(text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
-    return { bilan: parsed.bilan || text, profil: parsed.profil || '' };
-  }catch(e){
-    return { bilan: text, profil: '' };
-  }
+  return parseBilan(text);
 }
 
 /* ---------- CORBEILLE ----------
