@@ -35,6 +35,15 @@
 **Vérifié** : clé API réelle testée directement (latences et 503 mesurés), 5 scénarios Node passés. **Non testé sur iPhone / réseau Safari réel.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
 
+
+### 23/09/2026 (suite, même jour) — le correctif lui-même avait un bug : 404 traité comme fatal
+**Symptôme** : juste après avoir déployé la cascade de repli ci-dessus, premier test réel → "Google est surchargé sur tous les modèles", du jamais-vu selon Corentin ("y'a toujours un modèle qui fonctionne au moins").
+**Cause** : `COACH_RETRYABLE_STATUS` (la liste des codes HTTP qui font basculer sur le modèle suivant) ne contenait que 429/500/502/503/504 — **le 404 n'y était pas**. Or le modèle enregistré en base (`settings/coach.model`) était `gemini-2.5-flash`, toute la famille Gemini 2.5 étant entre-temps retirée par Google (404 "no longer available to new users"). La cascade s'arrêtait donc **dès la 1re tentative**, sans jamais essayer `gemini-3.6-flash` — qui répondait pourtant normalement en 6s au même moment, vérifié en direct avec la vraie clé. Le message "tous surchargés" était donc faux : un seul modèle était en cause, mort et non surchargé.
+**Leçon généralisable, au-delà de ce cas précis** : une liste blanche de codes "à retenter" (`COACH_RETRYABLE_STATUS`) est un piège classique — il est plus sûr de raisonner en liste NOIRE ("qu'est-ce qui doit vraiment arrêter la cascade ?", ici : uniquement les erreurs de clé, indépendantes de tout modèle) que de deviner à l'avance tous les codes qui doivent la laisser continuer. Une liste blanche oubliée d'un cas fait échouer silencieusement le mécanisme entier qu'elle est censée renforcer.
+**Correction** : seules `BAD_KEY`/`NO_KEY`/`KEY_*` restent fatales ; tout le reste (404 inclus) bascule sur le modèle suivant. Ajout de `persistWorkingModel()` : auto-correction en base du modèle mort vers le premier qui répond, en tâche de fond.
+**Vérifié** : scénario exact reproduit dans le harnais de test Node (modèle primaire 404 → bascule → succès → correction persistée). **Non testé sur iPhone.**
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
 ---
 
 ## 📡 Portail — écoute Firestore en direct silencieuse après suspension iOS (22/09/2026)
