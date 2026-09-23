@@ -356,8 +356,10 @@ function planifierPublicationPortail(){
   portailMinuteur = setTimeout(()=>{
     const resume = calculerResumePortail(state.produits, state.rayons);
     const signature = JSON.stringify(resume);
-    if(signature === portailDernier) return;
     portailDernier = signature;
+    /* 23/09/2026 : `maj` est republié à CHAQUE snapshot serveur (même contenu inchangé), sur
+       demande de Corentin — sinon le Portail affichait un horodatage périmé après une simple
+       ouverture sans modification, ce qui semait le doute sur la fraîcheur des données. */
     db.collection('portail').doc('courses').set(Object.assign({ maj: Date.now() }, resume))
       .catch(err=>{ portailDernier = ''; console.warn('Résumé Portail non publié :', err); });
   }, 2500);
