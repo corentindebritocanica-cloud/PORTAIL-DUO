@@ -3041,7 +3041,7 @@ function saveChatMessage(msg){
 let chatBusy = false;
 let coachRequestStartedAt = null;
 let coachAbortController = null;
-const COACH_REQUEST_TIMEOUT_MS = 45000;
+const COACH_REQUEST_TIMEOUT_MS = 75000; /* 45s -> 75s le 23/09/26 : laisse le temps à callGeminiResilient() d'essayer plusieurs modèles avant d'abandonner (voir plus bas) */
 
 /* Si l'app est mise en arrière-plan pendant que le coach répond (l'utilisateur
    change d'écran, verrouille le téléphone…), iOS peut couper la requête réseau
@@ -3132,9 +3132,10 @@ async function sendCoachMessage(){
     });
   }catch(err){
     console.error('Coach', err);
-    showToast(err && err.name === 'AbortError'
-      ? "Le coach ne répond pas — réessaie dans un instant"
-      : coachErrorMessage(err));
+    /* coachErrorMessage() distingue déjà ALL_MODELS_OVERLOADED (cascade de
+       repli épuisée) d'un simple AbortError du minuteur global -- ne pas
+       écraser ce détail avec un message générique ici. */
+    showToast(coachErrorMessage(err && err.name === 'AbortError' ? new Error('ABORTED') : err));
   }finally{
     clearInterval(ticker);
     clearTimeout(timeoutId);
@@ -3213,20 +3214,16 @@ async function callCoachChat(signal){
     ? thread.prompt + '\n\n' + CHAT_SYSTEM
     : CHAT_SYSTEM;
 
-  const res = await geminiFetch(`models/${encodeURIComponent(model)}:generateContent`, {
+  const data = await callGeminiResilient(model, () => ({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemText }] },
       contents: contents,
       generationConfig: { temperature: 0.7 }
-    }),
-    signal: signal
-  });
+    })
+  }), signal);
 
-  if(!res.ok) throw await geminiError(res);
-
-  const data = await res.json();
   const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
   const text = parts.map(x => x.text || '').join('').trim();
   if(!text) throw new Error('Réponse vide du modèle');
@@ -3389,14 +3386,21 @@ async function requestCoachFeedback(dateLabel){
   }
   coachBusy = true;
   renderCoachBlock('loading');
+  /* Avant le 23/09/26 ce bilan n'avait AUCUN minuteur de secours : un socket
+     qui pend (comportement documenté de l'API Gemini sous forte charge)
+     laissait l'écran de chargement tourner indéfiniment. Même filet de
+     sécurité que sendCoachMessage(). */
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), COACH_REQUEST_TIMEOUT_MS);
   try{
-    const result = await withModelRepair(() => callCoach(dateLabel));
+    const result = await withModelRepair(() => callCoach(dateLabel, controller.signal));
     saveCoachFeedback(dateLabel, result);
     showToast('Bilan reçu 🤖');
   }catch(err){
     console.error('Conseiller', err);
     showToast(coachErrorMessage(err));
   }finally{
+    clearTimeout(timeoutId);
     coachBusy = false;
     renderCoachBlock();
   }
@@ -3410,6 +3414,10 @@ function coachErrorMessage(err){
   if(m.indexOf('KEY_FORBIDDEN') === 0) return "Accès refusé (403) — l'API Gemini est peut-être désactivée sur ce projet";
   if(m === 'BAD_MODEL') return "Ce modèle n'existe pas — ouvre les réglages et charge la liste";
   if(m === 'QUOTA') return 'Quota atteint — réessaie dans quelques minutes';
+  /* callGeminiResilient a essayé tous les modèles de repli sans succès : Google
+     est vraiment saturé partout, pas la peine de retenter tout de suite. */
+  if(m.indexOf('ALL_MODELS_OVERLOADED') === 0) return 'Google est surchargé sur tous les modèles — réessaie dans quelques minutes';
+  if(m === 'ABORTED' || m === 'AbortError') return "Le coach ne répond pas — réessaie dans un instant";
   return 'Le bilan a échoué : ' + m;
 }
 
@@ -4513,6 +4521,105 @@ async function geminiError(res){
   return new Error(detail || 'Erreur ' + res.status);
 }
 
+/* ---- Résilience face à la surcharge Google (503 "model overloaded") ----
+   Recherche du 23/09/26 (forum officiel Google, issues GitHub gemini-cli,
+   PR de correctifs communautaires) : un 503 "The model is overloaded" est
+   un problème de capacité serveur PARTAGÉE côté Google, gratuit et payant
+   confondus. Rien côté client ne peut l'empêcher à coup sûr -- seule une
+   offre à débit provisionné (payante) donnerait une capacité garantie.
+   Ce qui ramène le taux d'échec visible à quasi zéro, retrouvé à l'identique
+   dans plusieurs projets réels (ex. PR "Gemini 503 retry, model fallback
+   cascade" sur GitHub) : cascade de modèles de repli + retry avec backoff
+   sur les erreurs retryable, timeout propre À CHAQUE tentative (un socket
+   qui pend indéfiniment sous forte charge est un comportement documenté de
+   l'API Gemini, distinct du 503 classique).
+
+   Corentin est en tier GRATUIT sur cette clé (facturation Cloud refusée
+   sciemment le 23/09/26 -- l'abonnement Google AI payant de l'app Gemini
+   grand public ne compte pas comme facturation API, ce sont deux produits
+   séparés). Le tier gratuit est celui qui encaisse le plus de 503 : cette
+   cascade est donc la seule mitigation disponible ici. */
+
+/* Liste à réviser périodiquement : Google renomme/retire des modèles
+   régulièrement (voir repairCoachModel plus bas pour la détection d'un
+   modèle totalement mort). Ordre choisi d'après des tests réels du 23/09/26
+   (gemini-3.6-flash et gemini-3.5-flash rapides et stables, gemini-3.5-flash-lite
+   et gemini-flash-latest plus chargés). */
+const COACH_FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+const COACH_ATTEMPT_TIMEOUT_MS = 20000; /* par tentative, distinct du minuteur global du chat */
+const COACH_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+/* Modèle demandé en premier (celui choisi par l'utilisateur ou enregistré),
+   puis la liste de repli sans doublon. */
+function coachModelCandidates(model){
+  const primary = model || coachGetModel();
+  const rest = COACH_FALLBACK_MODELS.filter(m => m !== primary);
+  return [primary, ...rest];
+}
+
+/* Une tentative HTTP avec SON PROPRE timeout, tout en respectant un signal
+   d'annulation externe (le minuteur global de sendCoachMessage/requestCoachFeedback).
+   Pas de AbortSignal.any() : non supporté sur les anciennes versions de Safari iOS,
+   la cible de l'app -- on combine les deux signaux à la main. */
+function geminiFetchAttempt(path, init, outerSignal){
+  const controller = new AbortController();
+  const onOuterAbort = () => controller.abort();
+  if(outerSignal){
+    if(outerSignal.aborted) controller.abort();
+    else outerSignal.addEventListener('abort', onOuterAbort);
+  }
+  const timeoutId = setTimeout(() => controller.abort(), COACH_ATTEMPT_TIMEOUT_MS);
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    if(outerSignal) outerSignal.removeEventListener('abort', onOuterAbort);
+  };
+  const mergedInit = Object.assign({}, init, { signal: controller.signal });
+  return geminiFetch(path, mergedInit).then(
+    res => { cleanup(); return res; },
+    err => { cleanup(); throw err; }
+  );
+}
+
+/* Essaie coachModelCandidates() dans l'ordre. Sur 429/500/502/503/504 (ou
+   timeout d'une tentative), passe au modèle suivant après un court backoff
+   avec jitter. N'essaie PAS un autre modèle sur une erreur de clé (401/403)
+   ou NO_KEY/BAD_KEY : ça ne dépend pas du modèle, inutile d'insister.
+   `buildInit` est une fonction (pas un objet) : le corps de la requête est
+   reconstruit à chaque tentative, au cas où un modèle attendrait un format
+   légèrement différent un jour. */
+async function callGeminiResilient(preferredModel, buildInit, outerSignal){
+  const models = coachModelCandidates(preferredModel);
+  let lastErr = null;
+  for(let i = 0; i < models.length; i++){
+    if(outerSignal && outerSignal.aborted) throw new Error('ABORTED');
+    const model = models[i];
+    try{
+      const res = await geminiFetchAttempt(
+        `models/${encodeURIComponent(model)}:generateContent`,
+        buildInit(),
+        outerSignal
+      );
+      if(res.ok) return await res.json();
+      const err = await geminiError(res);
+      if(!COACH_RETRYABLE_STATUS.has(res.status)) throw err;
+      lastErr = err;
+    }catch(err){
+      if(err && err.name === 'AbortError'){
+        if(outerSignal && outerSignal.aborted) throw err; /* minuteur global écoulé : on arrête tout de suite */
+        lastErr = new Error('TIMEOUT:' + model);
+      }else{
+        const msg = String(err && err.message || '');
+        if(msg === 'NO_KEY' || msg === 'BAD_KEY' || msg.indexOf('KEY_') === 0) throw err;
+        lastErr = err;
+      }
+    }
+    if(i < models.length - 1){
+      await new Promise(r => setTimeout(r, 700 + Math.random() * 500));
+    }
+  }
+  throw new Error('ALL_MODELS_OVERLOADED:' + (lastErr && lastErr.message || ''));
+}
+
 /* ---- Résistance aux changements de modèles ----
    Google retire régulièrement des modèles : un nom figé finit toujours par
    renvoyer un 404. Plutôt que de laisser l'app bloquée, on demande la liste
@@ -4585,12 +4692,12 @@ async function withModelRepair(run){
 
 /* ---- Appel API ---- */
 
-async function callCoach(dateLabel){
+async function callCoach(dateLabel, signal){
   const key = coachGetKey();
   if(!key) throw new Error('NO_KEY');
 
   const model = coachGetModel();
-  const res = await geminiFetch(`models/${encodeURIComponent(model)}:generateContent`, {
+  const data = await callGeminiResilient(model, () => ({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -4598,11 +4705,8 @@ async function callCoach(dateLabel){
       contents: [{ role: 'user', parts: [{ text: buildCoachPrompt(dateLabel) }] }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
     })
-  });
+  }), signal);
 
-  if(!res.ok) throw await geminiError(res);
-
-  const data = await res.json();
   const text = (((data.candidates || [])[0] || {}).content || {}).parts
     ? data.candidates[0].content.parts.map(x => x.text || '').join('')
     : '';
