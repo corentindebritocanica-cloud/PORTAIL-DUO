@@ -3771,24 +3771,33 @@ function calculerResumePortailMuscu(archives, getSessionFn, now){
   };
 }
 let portailMuscuMinuteur = null, portailMuscuDernier = '';
+async function publierResumePortailMuscu(){
+  try{
+    const resume = calculerResumePortailMuscu(window.archivesCache || {}, getSession, Date.now());
+    const signature = JSON.stringify(resume);
+    portailMuscuDernier = signature;
+    /* 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir README
+       Portail, section "Résumé pour le Portail") — sinon `maj` restait figé après une simple
+       ouverture sans changement de données. */
+    await window.__portail.publish('muscu', Object.assign({ maj: Date.now() }, resume));
+  }catch(err){ portailMuscuDernier = ''; console.warn('Résumé Portail non publié :', err); }
+}
 function planifierPublicationPortailMuscu(){
   /* Seulement quand archives ET séances sont arrivées, et que le dernier snapshot vient du serveur. */
   if(!window.__portail || !window.__archivesLoaded || !window.__customSessionsLoaded || window.__syncFromCache) return;
   clearTimeout(portailMuscuMinuteur);
-  portailMuscuMinuteur = setTimeout(async () => {
-    try{
-      const resume = calculerResumePortailMuscu(window.archivesCache || {}, getSession, Date.now());
-      const signature = JSON.stringify(resume);
-      portailMuscuDernier = signature;
-      /* 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir README
-         Portail, section "Résumé pour le Portail") — sinon `maj` restait figé après une simple
-         ouverture sans changement de données. */
-      await window.__portail.publish('muscu', Object.assign({ maj: Date.now() }, resume));
-    }catch(err){ portailMuscuDernier = ''; console.warn('Résumé Portail non publié :', err); }
-  }, 3000);
+  portailMuscuMinuteur = setTimeout(()=>{ portailMuscuMinuteur = null; publierResumePortailMuscu(); }, 3000);
 }
 window.addEventListener('archives-updated', planifierPublicationPortailMuscu);
 window.addEventListener('custom-sessions-updated', planifierPublicationPortailMuscu);
+/* 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 3 s de regroupement (ex.
+   aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la page et
+   l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas, au lieu d'attendre. */
+function flusherPublicationPortailMuscu(){
+  if(portailMuscuMinuteur){ clearTimeout(portailMuscuMinuteur); portailMuscuMinuteur = null; publierResumePortailMuscu(); }
+}
+window.addEventListener('pagehide', flusherPublicationPortailMuscu);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flusherPublicationPortailMuscu(); });
 
 /* réagit en temps réel aux changements Firestore (y compris depuis l'autre téléphone) */
 window.addEventListener('archives-updated', () => {
