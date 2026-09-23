@@ -499,3 +499,19 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - Coût : environ 3 lectures de 3 documents par retour au Portail, négligeable.
 
 **Non vérifié sur iPhone** (à confirmer : ouvrir Course, ressortir tout de suite par le geste retour → le Portail doit passer à « à l'instant » en quelques secondes, sans bouton de rechargement).
+
+
+## Tirer pour actualiser (23/09/2026)
+
+**Demande de Corentin** : le rafraîchissement automatique au retour sur le Portail ne lui paraissait pas assez fiable ; il voulait pouvoir forcer la mise à jour en tirant l'écran vers le bas.
+
+**Fonctionnement** (`app.js`, bloc « TIRER POUR ACTUALISER » ; `index.html`, élément `#ptr` ; `style.css`, section du même nom) :
+- Geste codé à la main : il n'existe pas en PWA iOS, et le rebond natif est bloqué exprès (`overscroll-behavior:none`, voir `GUIDE_PWA_IOS.md`).
+- Ne démarre que si la page est tout en haut, avec un seul doigt. Course du doigt amortie de moitié ; seuil 70 px.
+- Relâcher au-delà du seuil : réabonnement de l'écoute (`ecouter()`) + relecture **serveur** des 3 documents (`rafraichirDepuisServeur()`, qui renvoie désormais `true`/`false`). **Pas** de rechargement de page : rapide, et le hors-ligne reste intact (contrairement au bouton du bas, qui vide le cache).
+- Pastille en haut, sous l'encoche : « Tirer pour actualiser » → « Relâcher pour actualiser » → « Actualisation… » → « À jour · HH:MM » (ou « Hors ligne — dernier état affiché »), puis disparaît après 1,4 s. Animations coupées si « Réduire les animations » est activé.
+- Écouteurs tactiles `passive` : le défilement normal n'est jamais bloqué ; un tirage qui commence sur une carte n'ouvre pas l'app (iOS annule le clic dès que le doigt bouge).
+
+**Limite importante** : tirer relit ce qui est **sur le serveur**. Si l'app quittée n'a pas eu le temps d'y écrire, tirer n'y change rien. Or le flush au départ (`pagehide`) n'est pas garanti : dans Muscu et Budget, la 2e application Firebase `'portail'` utilise un cache **en mémoire** — une écriture lancée au moment où la page est détruite peut être perdue ; dans Course, elle est gardée sur le téléphone mais n'est envoyée qu'à la **prochaine ouverture de Courses**. Piste de fiabilisation (non faite) : publier dès la première réponse du serveur à l'ouverture de l'app, sans attendre les 2,5–3 s de regroupement.
+
+**Vérifié** (Chromium, vue mobile 390 px, gestes tactiles simulés, vraie base) : tirage au-delà du seuil → relecture et « À jour » ; tirage court → rien. **Non vérifié sur iPhone.**
