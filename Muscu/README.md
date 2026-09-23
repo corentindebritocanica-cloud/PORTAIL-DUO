@@ -833,3 +833,8 @@ Muscu publie sa **prochaine séance, la semaine de chacun et une série** pour l
 **`coachErrorMessage()` distingue désormais** un vrai plafond de débit (429/QUOTA — se résout tout seul en ~1 minute, propre au tier gratuit) d'une vraie panne serveur (503) : les deux étaient confondus sous le même message "surchargé sur tous les modèles" avant ce correctif, ce qui rendait le diagnostic impossible depuis l'app elle-même.
 **Vérifié** : test direct avec la vraie clé, contexte de taille réaliste reproduit (35 répétitions d'une note de séance ≈ 1500 tokens), à travers le code extrait tel quel (pas seulement `curl`) — 693ms, réponse cohérente, 1595 tokens au total. **Non testé sur iPhone.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`
+
+
+### Décision (23/09/2026, même jour) — abandon du coach conversationnel intégré
+
+Après cascade Gemini, bug 404 dans la cascade, badge multi-fournisseur, et plafond de tokens/minute Groq pris pour une panne (toutes les entrées juste au-dessus, même journée), Corentin a décidé d'abandonner le coach IA intégré (chat + bilans + choix Gemini/Groq) au profit d'un flux manuel : copier/coller les données pertinentes dans l'app Gemini grand public sur iPhone après chaque séance. Détail complet de la décision : `PROBLEMES_RESOLUS.md`. L'écran "Coach" est en cours de transformation en écran d'export de données (deux boutons : données neuves / export complet) — cette section sera mise à jour avec le détail technique une fois l'implémentation faite.
