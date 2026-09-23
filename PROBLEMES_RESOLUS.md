@@ -19,6 +19,17 @@
 
 ---
 
+## 🛑 Muscu — abandon du coach IA intégré, décision de repli sur Gemini manuel (23/09/2026)
+
+### 23/09/2026 — Muscu — Après cascade Gemini, badge multi-fournisseur et correctif Groq, décision d'arrêter
+**Contexte** : même journée que les trois entrées juste en dessous (cascade de repli Gemini, bug 404 qui coupait la cascade, confusion "Google" affiché avec Groq actif, plafond de tokens/minute Groq pris pour une panne). Malgré une résolution technique réelle à chaque étape, l'empilement d'incidents en une seule session a eu raison de la confiance de Corentin dans la fiabilité du coach intégré.
+**Décision** : abandon du coach conversationnel dans l'app (bilans + chat + choix de fournisseur Gemini/Groq). Remplacé par un flux manuel : Corentin copie/colle les données pertinentes dans une conversation Gemini classique (l'app grand public sur son iPhone, pas l'API) après chaque séance.
+**Ce qui change dans Muscu** : l'écran "Coach" devient un écran d'export de données plutôt qu'un chat — deux boutons prévus, l'un pour les données "neuves" depuis le dernier export (hors ce qui a été donné en une fois au démarrage du nouveau flux), l'autre pour un export complet à la demande. Détail de l'implémentation et de ce qui a été retiré/conservé du code : voir `Muscu/README.md`, section coach, mise à jour au moment du changement de code (peut suivre cette entrée de quelques échanges si l'implémentation est faite en plusieurs temps).
+**Leçon généralisable** : la fiabilité perçue d'une fonctionnalité dépend autant du nombre d'incidents rencontrés PENDANT une session de mise au point que de la fiabilité réelle une fois stabilisée — chaque correctif était individuellement juste et vérifié, mais leur accumulation en une seule journée a suffi à rendre la fonctionnalité inutilisable en pratique aux yeux de l'utilisateur. Vaut aussi pour l'avenir : préférer étaler les changements risqués sur plusieurs sessions courtes plutôt qu'une seule session longue avec plusieurs allers-retours de débogage, quand c'est possible.
+**Fichiers concernés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md` (implémentation à suivre)
+
+---
+
 ## 🔄 Muscu (coach IA) — 503 "model overloaded" Gemini : pas de fix garanti, seulement une cascade de repli (23/09/2026)
 
 ### 23/09/2026 — Muscu — Le coach "réfléchit" ~40s puis "réessaie dans un instant"
