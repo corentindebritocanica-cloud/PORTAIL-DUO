@@ -284,8 +284,10 @@
                 try {
                     const resume = calculerResumePortail();
                     const signature = JSON.stringify(resume);
-                    if (signature === portailDernier) return;
                     portailDernier = signature;
+                    // 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir
+                    // README Portail, section "Résumé pour le Portail") — sinon `maj` restait
+                    // figé après une simple ouverture sans changement de données.
                     const base = await obtenirBasePortail();
                     await base.collection('portail').doc('budget').set(Object.assign({ maj: Date.now() }, resume));
                 } catch (err) { portailDernier = ''; console.warn('Résumé Portail non publié :', err); }
