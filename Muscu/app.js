@@ -3259,7 +3259,17 @@ async function callCoachChat(signal, onAttempt){
     const data = await callGroqResilient(coachGetGroqModel(), (model) => ({
       model: model,
       messages: messages,
-      temperature: 0.7
+      temperature: 0.7,
+      /* CRUCIAL : les modèles gpt-oss de Groq sont des modèles de "raisonnement" --
+         sans ceci, un raisonnement caché de ~2000+ tokens est généré avant même
+         la réponse visible, et consomme le MÊME quota que la réponse elle-même.
+         Le tier gratuit Groq limite à 8000 tokens/minute ; avec le contexte déjà
+         volumineux qu'on envoie (profils, séances, historique), un seul message
+         sans ce réglage peut à lui seul avaler la moitié du quota de la minute,
+         d'où le "surchargé" qui n'en était pas un (23/09/26, voir README).
+         "low" fait chuter le raisonnement caché à ~20 tokens sans perte de
+         qualité constatée sur la réponse visible. */
+      reasoning_effort: 'low'
     }), signal, onAttempt);
     const text = (((data.choices || [])[0] || {}).message || {}).content || '';
     if(!text.trim()) throw new Error('Réponse vide du modèle');
@@ -3436,10 +3446,15 @@ function coachErrorMessage(err){
   if(m === 'BAD_MODEL') return "Ce modèle n'existe pas — réessaie, la correction est automatique";
   if(m === 'QUOTA') return 'Quota atteint — réessaie dans quelques minutes';
   /* callGeminiResilient()/callGroqResilient() ont essayé tous les modèles de
-     repli sans succès : CE fournisseur est saturé partout, pas la peine de
-     retenter tout de suite -- éventuellement basculer sur l'autre dans les
-     réglages en attendant. */
-  if(m.indexOf('ALL_MODELS_OVERLOADED') === 0) return `${providerLabel} est surchargé sur tous les modèles — réessaie dans quelques minutes, ou bascule sur l'autre fournisseur dans les réglages`;
+     repli sans succès. Deux causes très différentes se cachaient sous le même
+     message avant le 23/09/26 : une vraie panne serveur (503, ~ne dépend pas
+     de nous) ET un plafond de débit dépassé (429/QUOTA, ~se résout tout seul
+     en moins d'une minute, cause típique chez Groq en tier gratuit avec un
+     contexte volumineux -- voir README). On distingue les deux ici. */
+  if(m.indexOf('ALL_MODELS_OVERLOADED') === 0){
+    if(m.indexOf('QUOTA') !== -1) return `Limite de débit ${providerLabel} atteinte (trop de messages d'un coup) — patiente environ une minute et réessaie`;
+    return `${providerLabel} est surchargé sur tous les modèles — réessaie dans quelques minutes, ou bascule sur l'autre fournisseur dans les réglages`;
+  }
   if(m === 'ABORTED' || m === 'AbortError') return "Le coach ne répond pas — réessaie dans un instant";
   return 'Le bilan a échoué : ' + m;
 }
@@ -4892,7 +4907,8 @@ async function callCoach(dateLabel, signal){
         { role: 'user', content: buildCoachPrompt(dateLabel) }
       ],
       temperature: 0.7,
-      response_format: { type: 'json_object' }
+      response_format: { type: 'json_object' },
+      reasoning_effort: 'low' /* voir le commentaire détaillé dans callCoachChat() plus haut */
     }), signal);
     const text = (((data.choices || [])[0] || {}).message || {}).content || '';
     if(!text.trim()) throw new Error('Réponse vide du modèle');
