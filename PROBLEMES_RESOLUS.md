@@ -19,6 +19,18 @@
 
 ---
 
+## 📤 Muscu — écran Suivi : exports groupés Corentin + Lisa pour Gemini externe (23/09/2026)
+
+### 23/09/2026 — Muscu — Après l'abandon du coach IA, un flux d'export manuel simple
+**Contexte** : suite directe de l'entrée juste en dessous (abandon du coach IA intégré). Corentin voulait un accès rapide, après chaque séance, à sa dernière séance ET celle de Lisa (pas juste la sienne) pour coller dans une conversation Gemini classique — plus la dernière mensuration de chacun, plus l'export complet déjà existant.
+**Décision de conception notable** : avertir sans jamais bloquer. Demande explicite : *"Ok pour les message d'avertissement mais ne m'empêche pas de copier quand même si je le veux."* Concrètement : l'avertissement (date de la dernière séance/mensuration différente d'aujourd'hui) s'affiche dans la ligne au-dessus du texte, jamais comme une confirmation à valider ou une modale bloquante — le texte à copier reste toujours intact et accessible.
+**Piège évité** : prendre "la dernière séance" comme premier ou dernier élément brut du tableau d'archives aurait été un bug silencieux si l'ordre du cache changeait un jour (aucune garantie de tri documentée sur `window.archivesCache`) — tri explicite sur `createdAt` à chaque appel plutôt que de faire confiance à l'ordre reçu.
+**Réutilisation** : aucune nouvelle modale — la modale de récapitulatif de fin de séance (`export-modal`, déjà connue de Corentin) sert aux trois exports. Un oubli à surveiller pour la prochaine fois qu'on y touche : `coach-block` (zone qui affichait autrefois un bilan IA) doit être explicitement vidée à l'ouverture de ces nouveaux exports, sinon un bilan consulté juste avant via une archive resterait affiché par erreur en dessous du nouveau texte.
+**Vérifié** : scénarios Node avec mocks (tri par date, avertissement conditionnel, profil sans donnée). **Non testé sur iPhone.**
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🛑 Muscu — abandon du coach IA intégré, décision de repli sur Gemini manuel (23/09/2026)
 
 ### 23/09/2026 — Muscu — Après cascade Gemini, badge multi-fournisseur et correctif Groq, décision d'arrêter
