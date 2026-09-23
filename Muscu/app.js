@@ -4547,7 +4547,15 @@ async function geminiError(res){
    et gemini-flash-latest plus chargés). */
 const COACH_FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
 const COACH_ATTEMPT_TIMEOUT_MS = 20000; /* par tentative, distinct du minuteur global du chat */
-const COACH_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+/* BUG corrigé le 23/09/26 (voir PROBLEMES_RESOLUS.md) : une première version
+   ne considérait comme "à retenter sur un autre modèle" que 429/500/502/503/504,
+   ratant volontairement le 404 (modèle inexistant/retiré, ex. l'ancienne famille
+   Gemini 2.5). Résultat concret observé : le modèle enregistré en base était
+   `gemini-2.5-flash` (404 chez Google), et la cascade s'arrêtait DÈS LA 1re
+   tentative sans jamais essayer gemini-3.6-flash -- qui répondait pourtant
+   normalement au même moment. Un modèle qui n'existe plus est exactement le cas
+   où il faut basculer sur le suivant, pas abandonner. Seules les erreurs de CLÉ
+   (401/403/BAD_KEY/NO_KEY) restent fatales : ça ne dépend d'aucun modèle. */
 
 /* Modèle demandé en premier (celui choisi par l'utilisateur ou enregistré),
    puis la liste de repli sans doublon. */
@@ -4587,9 +4595,20 @@ function geminiFetchAttempt(path, init, outerSignal){
    `buildInit` est une fonction (pas un objet) : le corps de la requête est
    reconstruit à chaque tentative, au cas où un modèle attendrait un format
    légèrement différent un jour. */
+/* Corrige en base le modèle configuré quand il s'avère 404 (retiré par Google)
+   et qu'un autre a répondu : évite de reperdre une tentative dessus la
+   prochaine fois. Fire-and-forget, ne bloque jamais la réponse en cours. */
+function persistWorkingModel(model){
+  try{
+    const settings = Object.assign({}, coachSettings(), { model: model });
+    saveCoachSettingsRemote(settings).catch(err => console.error('Correction auto du modèle', err));
+  }catch(err){ console.error('Correction auto du modèle', err); }
+}
+
 async function callGeminiResilient(preferredModel, buildInit, outerSignal){
   const models = coachModelCandidates(preferredModel);
   let lastErr = null;
+  let primaryWasBadModel = false;
   for(let i = 0; i < models.length; i++){
     if(outerSignal && outerSignal.aborted) throw new Error('ABORTED');
     const model = models[i];
@@ -4599,9 +4618,15 @@ async function callGeminiResilient(preferredModel, buildInit, outerSignal){
         buildInit(),
         outerSignal
       );
-      if(res.ok) return await res.json();
+      if(res.ok){
+        const data = await res.json();
+        if(i > 0 && primaryWasBadModel) persistWorkingModel(model); /* corrige le réglage en base, voir plus haut */
+        return data;
+      }
       const err = await geminiError(res);
-      if(!COACH_RETRYABLE_STATUS.has(res.status)) throw err;
+      const msg = String(err && err.message || '');
+      if(i === 0 && msg === 'BAD_MODEL') primaryWasBadModel = true;
+      if(msg === 'NO_KEY' || msg === 'BAD_KEY' || msg.indexOf('KEY_') === 0) throw err;
       lastErr = err;
     }catch(err){
       if(err && err.name === 'AbortError'){
