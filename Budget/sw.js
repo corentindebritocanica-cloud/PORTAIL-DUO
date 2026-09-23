@@ -8,7 +8,7 @@
 // ce dossier (la racine du portail, /Muscu/, /Course/ ne sont jamais
 // interceptés par ce service worker).
 
-const CACHE_NAME = 'budget-lc-shell-r52';
+const CACHE_NAME = 'budget-lc-shell-r73';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Muscu inclus), et un
