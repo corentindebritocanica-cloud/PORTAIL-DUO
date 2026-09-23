@@ -19,6 +19,19 @@
 
 ---
 
+## 🔙 Portail — page ressortie du bfcache au geste « retour » : ni rechargement, ni `visibilitychange` (23/09/2026)
+
+### 23/09/2026 — Portail — obligé de recharger manuellement pour voir les nouveaux « Mis à jour il y a… »
+**Symptôme** : après être passé dans Course/Muscu/Budget puis revenu au Portail, les horodatages restaient anciens tant que Corentin n'appuyait pas sur le bouton de rechargement du bas.
+**Fausses pistes explorées** : le filet `visibilitychange` → relecture serveur (entrée du 22/09 plus bas) était censé couvrir ce cas — il ne se déclenche pas toujours ici.
+**Cause racine** : les apps n'ont pas de lien vers le Portail, on y revient par le **geste retour d'iOS**. Safari restaure alors la page depuis le **bfcache** (back/forward cache) : pas de rechargement, `visibilitychange` souvent absent, écoute `onSnapshot` coupée pendant la pause et pas forcément reconnectée. Seul `pageshow` avec `event.persisted === true` signale le retour. En plus, l'app quittée publie au moment où on la quitte (flush `pagehide`) : l'écriture arrive au serveur 1–2 s APRÈS le retour, donc une relecture immédiate lit encore l'ancienne valeur (course entre écriture et lecture).
+**Solution** : `auRetour()` sur `pageshow` (persisted) ET `visibilitychange` (visible) → réaffichage, réabonnement de l'écoute (ancienne coupée d'abord), relecture serveur immédiate + relectures différées à 3 s et 8 s.
+**Leçon généralisable** : dans une PWA multi-pages où l'on navigue par l'historique, **toute logique « au retour sur la page » doit écouter `pageshow` (`persisted`)**, pas seulement `visibilitychange` ni `load`. Et quand la page quittée écrit « en partant », la page d'arrivée doit relire **avec un délai**, pas seulement immédiatement.
+**Vérifié** : syntaxe (`node --check`). **Non vérifié sur iPhone.**
+**Fichiers touchés** : `app.js` (Portail), `README.md` (Portail), `PROBLEMES_RESOLUS.md`
+
+---
+
 ## ⚙️ Workflow auto-version — un push sur 3 apps coup sur coup en « saute » une (23/09/2026)
 
 ### 23/09/2026 — Portail (CI/CD) — Muscu jamais rebumpée malgré 2 pushs successifs sur `Muscu/app.js`
