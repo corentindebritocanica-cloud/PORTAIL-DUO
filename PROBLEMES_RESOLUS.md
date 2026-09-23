@@ -19,6 +19,20 @@
 
 ---
 
+## 🕓 Portail/Muscu/Budget/Course — `maj` ne bougeait pas quand une app était ouverte sans rien changer (23/09/2026)
+
+### 23/09/2026 — Portail — « Mis à jour il y a 1 h » ne changeait pas après avoir rouvert Courses
+**Symptôme** : Corentin rentre dans l'app Courses, n'ajoute/ne modifie rien, en ressort, revient sur le Portail → la carte Courses affiche toujours le même « Mis à jour il y a 1 h » qu'avant. Il se demandait si c'était normal ou s'il fallait une modification dans l'app pour déclencher une nouvelle mise à jour.
+**Fausses pistes explorées** : aucune côté Portail — la lecture en direct (`onSnapshot` + relecture serveur au retour au premier plan, voir entrée du 22/09 juste en dessous) fonctionnait normalement ; le problème n'était pas une donnée périmée non relue, mais une donnée qui n'avait tout simplement jamais été réécrite.
+**Cause racine** : dans les 3 apps, `planifierPublicationPortailXxx()` calcule une `signature` (JSON du résumé) et comparait à la dernière signature publiée (`portailDernier`) : `if(signature === portailDernier) return;` — si le contenu recalculé était identique au précédent (rien n'avait changé dans les données), la fonction s'arrêtait **avant** l'écriture Firestore, donc `maj` (`Date.now()`) n'était jamais réécrit. Comportement voulu à l'origine pour limiter les écritures (« au plus 1 écriture par ouverture d'app »), mais son effet de bord trompait Corentin : `maj` était censé représenter « dernière ouverture vérifiée », alors qu'il représentait en réalité « dernier changement réel du contenu ».
+**Décision de Corentin** : privilégier la lisibilité à l'économie d'écritures — il veut voir l'horodatage bouger à chaque ouverture réelle de l'app, même sans changement, « pour éviter de se demander si ça a MAJ ou pas ».
+**Solution** : retrait de la ligne `if(signature === portailDernier) return;` (et son équivalent) dans les 3 blocs de publication (`Course/app.js`, `Muscu/app.js`, `Budget/app.js`). `portailDernier` reste calculée/assignée mais ne bloque plus l'écriture. Les autres garde-fous sont inchangés : publication uniquement après un snapshot **serveur** (jamais depuis le cache local, pour ne jamais écraser un résumé récent avec des données périmées), regroupement en un seul envoi (2,5 s ; 3 s pour Muscu) pour éviter les écritures en rafale, erreurs absorbées (`console.warn`).
+**Leçon généralisable** : un champ nommé « dernière mise à jour » affiché à l'utilisateur doit refléter la dernière **vérification**, pas le dernier **changement** — une optimisation « n'écrire que si le contenu a changé » (très correcte pour économiser des écritures) peut silencieusement transformer la sémantique d'un horodatage affiché, sans qu'aucune erreur ne se produise nulle part. À vérifier chaque fois qu'un timestamp de fraîcheur est calculé à partir d'un point d'écriture conditionnel plutôt que d'un point de lecture/vérification.
+**Vérifié** : relecture du code des 3 apps confirmant le même garde-fou partout (`grep` ciblé). **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+**Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Budget/app.js`, `README.md` (racine, Course, Muscu, Budget), `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 📤 Muscu — écran Suivi : exports groupés Corentin + Lisa pour Gemini externe (23/09/2026)
 
 ### 23/09/2026 — Muscu — Après l'abandon du coach IA, un flux d'export manuel simple
