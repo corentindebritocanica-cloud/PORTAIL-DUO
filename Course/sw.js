@@ -5,7 +5,7 @@
 // incidents du 18/09/2026 (voir README) : pas d'import() dynamique
 // cross-origin, pas de logique de réinjection de données.
 
-const CACHE_NAME = 'courses-lc-shell-r77';
+const CACHE_NAME = 'courses-lc-shell-r82';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app. caches.keys() renvoie tous les caches du domaine (Portail,
 // Muscu, Budget inclus) : ne jamais utiliser un filtre qui ne se base pas

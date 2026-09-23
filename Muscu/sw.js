@@ -38,7 +38,7 @@
    lister nommément. Firestore gère déjà sa propre persistance hors-ligne ;
    ce service worker n'a pas à s'en mêler. */
 
-const CACHE_NAME = 'muscu-shell-r77';
+const CACHE_NAME = 'muscu-shell-r82';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app au moment de l'activation. Sans ça, caches.keys() renvoie tous
 // les caches de tout le domaine (Portail, Course, Budget inclus), et un
