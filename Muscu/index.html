@@ -166,6 +166,10 @@
       <button class="chat-icon-btn" onclick="goToMenuView()" title="Menu">←</button>
       <select id="chat-select" class="chat-select" onchange="setChatThread(this.value)"></select>
       <button class="chat-icon-btn" onclick="openThreadManager()" title="Gérer les conversations">＋</button>
+      <!-- Badge de fournisseur (23/09/26) : visible en permanence sur l'écran du
+           coach, pas seulement dans la modale de réglages -- pour qu'il soit
+           impossible de se demander "lequel est actif ?" sans ouvrir un menu. -->
+      <span class="model-status" id="coach-provider-badge" onclick="openCoachSettings()" style="cursor:pointer"></span>
       <button class="chat-icon-btn" onclick="openCoachSettings()" title="Réglages">⚙️</button>
     </div>
     <p class="chat-prompt-hint" id="chat-prompt-hint"></p>
