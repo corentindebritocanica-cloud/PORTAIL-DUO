@@ -19,6 +19,19 @@
 
 ---
 
+## 🧊 Course — `fromCache` bloqué à `true` : le serveur ne prévient pas si rien n'a changé (24/09/2026)
+
+### 24/09/2026 — Course — résumé Portail jamais publié alors que Muscu et Budget marchaient
+**Symptôme** : après le correctif « secours keepalive », le Portail affichait « à l'instant » pour Muscu et Budget, mais « il y a 8 h » pour Courses, même en restant dans l'app.
+**Fausses pistes explorées** : tests de la veille au vert — mais tous faits avec un **navigateur neuf** (cache vide), où le 1er snapshot vient directement du serveur.
+**Cause racine** : `onSnapshot` **sans** `includeMetadataChanges`. Avec un cache persistant rempli, le 1er snapshot vient du cache (`fromCache: true`). Quand le serveur confirme ensuite que le cache est déjà à jour, seules les **métadonnées** changent → **aucun événement** sans cette option. L'app croit n'avoir que du cache pour toujours, et tout ce qui attend « données du serveur » reste bloqué (ici la publication du résumé). Muscu utilisait déjà l'option, d'où la différence.
+**Solution** : `onSnapshot({ includeMetadataChanges: true }, …)`, en filtrant pour ne rappeler le traitement qu'à la 1re réception, sur changement réel de documents, ou au passage cache → serveur ; `fromCache` suivi en continu.
+**Leçon généralisable** : toute logique qui attend `metadata.fromCache === false` **exige** `includeMetadataChanges: true`, sinon elle ne se déclenche que si les données ont changé depuis la dernière visite. Et **tester avec un cache rempli** (Playwright : `launch_persistent_context` + 2 ouvertures), pas seulement avec un navigateur neuf.
+**Vérifié** : WebKit 26, profil persistant, 3 essais : ancien code 0/3, nouveau code 3/3. **Non vérifié sur iPhone.**
+**Fichiers touchés** : `Course/app.js`, `Course/README.md`, `README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 📮 Portail/Course/Muscu/Budget — écriture perdue au départ de la page : secours `fetch keepalive` (23/09/2026)
 
 ### 23/09/2026 — Portail — horodatages toujours périmés malgré flush au `pagehide` et relectures du Portail

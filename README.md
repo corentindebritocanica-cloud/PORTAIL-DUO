@@ -525,3 +525,7 @@ Un geste « tirer vers le bas pour actualiser » a été ajouté puis retiré le
 - Muscu et Budget : leurs vrais blocs de code, branchés sur des documents de test (`portail/_test_*`, supprimés ensuite), page détruite → arrivée par le secours (WebKit).
 - **Attention** : dans Chromium (Chrome), le secours est **annulé** (requête `keepalive` avec pré-vérification CORS). Sans importance ici (apps utilisées uniquement sur iPhone), mais à savoir si un jour elles tournent sur Android/Chrome.
 - **Non vérifié sur iPhone réel.**
+
+### Suite — Courses ne publiait pas avec un cache rempli (24/09/2026)
+
+Muscu et Budget fonctionnaient après la v2, pas Courses : son écoute Firestore n'avait pas `includeMetadataChanges`, donc la confirmation « cache déjà à jour » du serveur ne lui parvenait jamais, et le garde-fou « jamais depuis le cache » bloquait la publication. Corrigé dans `Course/app.js` (`dbOnCollection`). Détails : `Course/README.md` et `PROBLEMES_RESOLUS.md`. Leçon pour les tests : **toujours tester aussi avec un cache déjà rempli** (profil de navigateur persistant), pas seulement depuis un navigateur neuf.

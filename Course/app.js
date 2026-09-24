@@ -42,11 +42,23 @@ function docRef(nom, id){ return db.collection(nom).doc(id); }
 function dbUpdateDoc(nom, id, val){ return docRef(nom, id).update(val); }
 function dbAddDoc(nom, val){ return colRef(nom).add(val); }
 function dbDeleteDoc(nom, id){ return docRef(nom, id).delete(); }
+/* 24/09/2026 : `includeMetadataChanges: true`. Sans cette option, quand le serveur confirme
+   que le cache local est déjà à jour (aucune modification depuis la dernière ouverture),
+   Firestore n'envoie AUCUN nouvel événement : l'app restait sur `fromCache = true` pour
+   toujours, et le résumé du Portail n'était jamais publié. On ne rappelle `cb` que si
+   c'est la 1re fois, si des documents ont changé, ou au passage cache → serveur (pas à
+   chaque petit changement de métadonnées, pour ne pas redessiner la liste pour rien). */
 function dbOnCollection(nom, cb){
-  colRef(nom).onSnapshot(snap=>{
+  let premier = true, etaitCache = true;
+  colRef(nom).onSnapshot({ includeMetadataChanges: true }, snap=>{
+    const cache = snap.metadata.fromCache;
+    const passageServeur = etaitCache && !cache;
+    etaitCache = cache;   /* toujours suivi, même quand on ne rappelle pas `cb` (coupure réseau puis retour) */
+    if(!premier && !passageServeur && snap.docChanges().length === 0) return;
+    premier = false;
     const obj = {};
     snap.forEach(doc=> obj[doc.id] = doc.data());
-    cb(obj, snap.metadata.fromCache);   /* 2e argument (22/09/26) : vrai = données du cache local, pas encore du serveur */
+    cb(obj, cache);   /* 2e argument (22/09/26) : vrai = données du cache local, pas encore du serveur */
   }, err=> console.warn('onSnapshot', nom, err));
 }
 function authListen(cb){ auth.onAuthStateChanged(cb); }

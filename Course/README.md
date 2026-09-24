@@ -198,3 +198,11 @@ Courses est la **« boîte aux lettres » du tableau de bord du Portail** : sa b
 - ⚠️ **La collection `portail` n'est pas à Courses** : elle contient aussi `portail/muscu` et `portail/budget`, écrits par les autres apps. Ne pas la supprimer, ne pas la « nettoyer » dans un script de remise à zéro du catalogue, et ne pas s'étonner d'y trouver ces documents.
 - **Règles Firestore inchangées** : `request.auth != null` (anonyme compris) couvre déjà `portail`.
 - **Vérifié** (vraie base, connexion anonyme réelle) : l'app publie et met à jour `portail/courses`. **Non vérifié sur iPhone.**
+
+
+### Détection de la confirmation serveur — `includeMetadataChanges` (24/09/2026)
+
+**Symptôme** : après le correctif « publication fiable v2 », Muscu et Budget mettaient bien le Portail à jour, **pas Courses**.
+**Cause** : `dbOnCollection` écoutait sans `includeMetadataChanges`. À l'ouverture, Firestore livre d'abord le cache local (`fromCache = true`) ; si le serveur confirme ensuite que rien n'a changé, **aucun nouvel événement n'est émis**. `portailRecu` restait à `false`, et le garde-fou « jamais publier depuis le cache » bloquait tout. Invisible avec un cache vide (1re ouverture), systématique ensuite.
+**Correctif** : `onSnapshot({ includeMetadataChanges: true }, …)`. Pour ne pas redessiner la liste à chaque petit changement de métadonnées, `cb` n'est rappelé qu'à la 1re réception, quand des documents changent (`docChanges().length > 0`), ou au passage cache → serveur. `fromCache` est suivi en continu (coupure réseau puis retour).
+**Vérifié** (WebKit 26, profil persistant = cache rempli comme sur iPhone, 3 essais) : ancien code, jamais publié ; nouveau code, publié à chaque fois. **Non vérifié sur iPhone.**
