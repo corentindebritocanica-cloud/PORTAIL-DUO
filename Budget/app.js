@@ -635,7 +635,7 @@
             const fmt = (n) => { const v = parseFloat(n) || 0; return parseFloat(v.toFixed(2)).toString().replace('.', ','); };
             const setBar = (id, val) => {
                 const p = globalTotal > 0 ? Math.round((val / globalTotal) * 100) : 0;
-                document.getElementById(`bar-${id}-m`).style.width = p + '%';
+                document.getElementById(`bar-${id}-m`).style.transform = 'scaleX(' + (p / 100) + ')'; // scaleX (GPU) au lieu de width — charte §11.3
                 document.getElementById(`pct-${id}-m`).innerText = fmt(val) + ' € · ' + p + '%';
             };
             setBar('charges', tc); setBar('depenses', tdTotal); setBar('provisions', tprov); setBar('reste', reste > 0 ? reste : 0);

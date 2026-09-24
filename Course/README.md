@@ -206,3 +206,12 @@ Courses est la **« boîte aux lettres » du tableau de bord du Portail** : sa b
 **Cause** : `dbOnCollection` écoutait sans `includeMetadataChanges`. À l'ouverture, Firestore livre d'abord le cache local (`fromCache = true`) ; si le serveur confirme ensuite que rien n'a changé, **aucun nouvel événement n'est émis**. `portailRecu` restait à `false`, et le garde-fou « jamais publier depuis le cache » bloquait tout. Invisible avec un cache vide (1re ouverture), systématique ensuite.
 **Correctif** : `onSnapshot({ includeMetadataChanges: true }, …)`. Pour ne pas redessiner la liste à chaque petit changement de métadonnées, `cb` n'est rappelé qu'à la 1re réception, quand des documents changent (`docChanges().length > 0`), ou au passage cache → serveur. `fromCache` est suivi en continu (coupure réseau puis retour).
 **Vérifié** (WebKit 26, profil persistant = cache rempli comme sur iPhone, 3 essais) : ancien code, jamais publié ; nouveau code, publié à chaque fois. **✅ Vérifié sur iPhone par Corentin le 24/09/2026**.
+
+
+## Animations — conformité charte §11 (24/09/2026)
+
+Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTER.md` : Course était déjà quasi conforme (3 transitions, toutes ciblées). Ajouts :
+- bloc `@media (prefers-reduced-motion: reduce)` global en fin de `style.css` (durées de transition/animation ramenées à 0) ;
+- `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3).
+
+La modale produit s'affiche toujours sans transition : laissé tel quel (option possible plus tard : entrée courte depuis le bas, action « occasionnelle » au sens du §11.2). **Non vérifié sur iPhone.**

@@ -33,7 +33,7 @@
     --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
     --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
 
-    --t-fast:.14s;
+    --t-fast:.15s;
     --t-mid:.22s;
 
     --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -158,7 +158,10 @@
 
   /* Budget : jauge = part du budget déjà dépensée */
   .gauge{ display:block; height:10px; border-radius:5px; background:var(--card-2); overflow:hidden; margin-top:16px; }
-  .gauge-fill{ display:block; height:100%; width:0; border-radius:5px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transition:width .4s ease; }
+  .gauge-fill{ display:block; height:100%; width:100%; border-radius:5px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transform:translateX(-100%); transition:transform .35s ease-out; }
+  /* Remplissage piloté en translateX (charte §11.3 : transform/opacity seulement)
+     depuis app.js, au lieu de width : la barre garde sa forme (bout arrondi),
+     elle glisse simplement depuis la gauche. -100% = vide, 0 = pleine. */
   .gauge-fill.over{ background:var(--danger); }
   .dash-meta{ display:block; margin-top:8px; font-size:13px; color:var(--text-dim); }
 

@@ -544,3 +544,14 @@ Muscu et Budget fonctionnaient après la v2, pas Courses : son écoute Firestore
 **Coût** : 3 lectures toutes les 3 s d'écran allumé sur le Portail (60/min) ; quelques minutes par jour restent très loin du quota gratuit de 50 000 lectures/jour (partagé avec Courses).
 
 **Vérifié** (WebKit 26, vraie base) : écoute en direct **coupée exprès**, horodatage de Courses vieilli de 2 h puis remis à maintenant côté serveur → la carte passe de « il y a 2 h » à « à l'instant » en 2,3 s. **✅ Vérifié sur iPhone par Corentin le 24/09/2026** : retour d'une app → « à l'instant » sans rechargement.
+
+
+## Animations mises en conformité avec la charte §11 (24/09/2026)
+
+Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTER.md` (Portail déjà proche : `prefers-reduced-motion` présent).
+
+- **Jauge « Reste à vivre »** : `width` animée → `transform: translateX()` (0,35 s ease-out). La barre fait toujours 100 % de large et glisse depuis la gauche (`translateX(-100%)` = vide, `0` = pleine), ce qui garde son bout arrondi intact (un `scaleX` l'aurait écrasé). Pilotée dans `app.js` (bloc tableau de bord, `fill.style.transform`). Seule différence visible : sur une jauge partielle, on voit la fin du dégradé or plutôt que son début.
+- **Bouton recharger** : rotation de 0,5 s conservée volontairement — c'est un indicateur d'activité, pas une transition d'interface.
+- **Token** : `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3).
+
+**Non vérifié sur iPhone.**

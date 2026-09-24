@@ -455,7 +455,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 
 ## Animations et retours d'état
 
-- **Validation de série** : agrandissement + onde verte (`checkRipple`).
+- **Validation de série** : léger agrandissement (1,08, sans rebond, 0,2 s) + onde verte courte (`checkRipple`, 0,28 s). Adouci le 24/09/2026, voir en fin de fichier.
 - **Séance à 100 %** : jauge verte, reflet qui la parcourt **une seule fois** (classe `celebrate`), libellé « Séance complète ».
 - **Record battu** : flammes autour de la carte de l'exercice, en plus du badge doré (voir « Flammes de record (21/09/2026) » en fin de fichier).
 - **Transitions d'écran** : 0,22 s / 16 px.
@@ -892,3 +892,16 @@ Les trois réutilisent la modale de récapitulatif déjà existante (`export-mod
 **Vérifié** : test en isolation (Node, `vm`, fonctions réelles) — deux archives du même exercice (haltères le 21/09, machine le 23/09) : `getLastPerformance(..., 'haltere')` renvoie bien la séance du 21/09, `getLastPerformance(..., 'machine')` celle du 23/09, `getLastPerformance(..., null)` (méthode unique) renvoie toujours la plus récente en date peu importe la méthode — comportement inchangé dans ce cas. `node --check` sur `app.js`. **Non testé sur iPhone.**
 
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`
+
+
+## Animations mises en conformité avec la charte §11 (24/09/2026)
+
+Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTER.md`. Muscu respectait déjà l'essentiel (`prefers-reduced-motion` partout, aucun `transition: all`). Retouches :
+
+- **Validation de série adoucie** (décision de Corentin) : c'est l'action la plus répétée de l'app, que la charte (§11.2) classe « sans animation ». Compromis retenu : `checkPulse` passe de 1,22 avec dépassement élastique (`cubic-bezier(.34,1.56,.64,1)`, 0,42 s) à **1,08 sans rebond** (0,2 s ease-out) ; l'onde `checkRipple` passe de 0,5 s / 0,85 → 1,5× / opacité 0,9 à **0,28 s / 0,95 → 1,18× / opacité 0,6**. Ne pas remettre de rebond.
+- **Points du graphique de progression** (`chartDotIn`) : n'apparaissent plus depuis `scale(0)` mais depuis `scale(.9)`, en ease-out sans rebond. Ajout de `transform-box: fill-box` : sans lui, un `transform-origin: center` sur un élément SVG se rapporte au **centre de tout le graphique**, pas du point (les points arrivaient en glissant depuis le milieu du graphe).
+- **Reflet de fin de séance (`trackSweep`) et squelettes de chargement (`skShimmer`)** : animés en `translateX` au lieu de `left` (mêmes positions de départ et d'arrivée, recalculées en % de la largeur de l'élément).
+- **Code mort retiré** : barre « le coach écrit » (`.typing-bar-track`, `.typing-bar-fill`, `@keyframes typingSlide`) — coach IA abandonné le 23/09/2026, plus aucune référence dans `app.js`/`index.html`. Le reste du CSS du chat coach, lui aussi probablement inutilisé, n'a pas été touché.
+- **Token** : `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3, imperceptible).
+
+**Vérifié** : Chromium headless — durées/courbes calculées conformes, point de graphique qui grandit autour de son propre centre, mouvement réduit toujours respecté. **Non vérifié sur iPhone.**

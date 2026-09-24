@@ -23,7 +23,7 @@
     --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
 
     /* Durees d'animation (Muscu) */
-    --t-fast:.14s; --t-mid:.22s;
+    --t-fast:.15s; --t-mid:.22s;
 
     /* Surfaces flottantes (glassmorphism) */
     --glass-bar: rgba(19,24,31,0.86);
@@ -237,4 +237,9 @@
     background:var(--card); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
     font-size:16px; box-shadow: var(--shadow-sm);
+  }
+
+  /* Accessibilite — mouvement reduit (charte UX/UI §11.9, 24/09/2026) */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ transition-duration:0s !important; animation-duration:0s !important; animation-iteration-count:1 !important; }
   }

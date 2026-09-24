@@ -311,3 +311,17 @@ Nouvel ordre des 5 lignes de `.revenus-box`, en 3 groupes visuellement distincts
 3. **Ajouts en cours** : seul, en dernière position (déplacé — il était auparavant entre Revenus initiaux et Espèces ajoutées).
 
 Aucun changement de logique de calcul ni de `data-field` : uniquement l'ordre d'affichage et la séparation visuelle (`index.html`, `style.css`). **Non vérifié sur iPhone.**
+
+
+## Animations mises en conformité avec la charte §11 (24/09/2026)
+
+**Contexte** : audit des 4 apps contre la nouvelle section 11 « Animation & Micro-interactions » de `UX_UI_CHARTER.md`. Budget était l'app la plus éloignée de la charte.
+
+- **Retrait de la transition globale** : `* { transition: var(--transition) }` avec `--transition: all 0.3s …`. Chaque élément de l'app animait **toutes** ses propriétés pendant 300 ms : hauteur des `textarea` à chaque frappe (`autoResize()`), couleurs au changement de thème, bordures, tailles… Le token `--transition` est supprimé, remplacé par `--t-fast` (0,15 s) / `--t-mid` (0,22 s) comme dans les autres apps.
+- **Transitions ciblées à la place**, là où elles ont un sens : onglets de la pilule (fond/couleur + `scale` au tap), pastilles de mois, chevrons des accordéons (`transform`, ease-out), changement de thème sur `body` uniquement (0,25 s, comme Muscu).
+- **Accordéons (`.section-content`)** : l'ancienne `transition: max-height 0.4s` est retirée. Elle **n'avait jamais d'effet** : `max-height` passe de `none` (ouvert) à `0` (replié), valeur non animable. Aucun changement visible.
+- **Jauges du mois (`#bar-*-m`)** : `width` animée sur 0,6 s → `transform: scaleX()` sur 0,3 s ease-out (`setBar()` dans `app.js` pose `style.transform`). Sélecteur CSS `.progress-fill[id^="bar-"]` : les jauges d'objectifs (sans id, largeur inline, jamais animées) ne sont pas concernées.
+- **Toast « Ligne supprimée — Annuler »** : ne glisse plus via `bottom` (-100px → visible) mais en `transform` + `opacity` : entrée 0,25 s ease-out depuis 16 px plus bas et `scale(.96)`, sortie 0,18 s ease-in. Masqué, il est `visibility:hidden` + `pointer-events:none` (le bouton Annuler ne capte plus rien hors écran). Aucun changement dans `app.js` (toujours la classe `.show`).
+- **`prefers-reduced-motion`** ajouté (absent jusque-là) : toutes ces transitions coupées, point de synchro « saving » figé au lieu de clignoter.
+
+**Vérifié** : Chromium headless (390×844) — `transition` calculée à 0 s sur les éléments ordinaires, onglets en 0,22 s ciblé, toast invisible/non cliquable puis visible à sa position habituelle, jauge à 37 % = 37 % de la piste, jauge d'objectif inchangée, mode mouvement réduit OK. `node --check` sur `app.js`. **Non vérifié sur iPhone.**

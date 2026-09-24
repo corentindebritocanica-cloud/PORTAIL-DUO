@@ -19,6 +19,25 @@
 
 ---
 
+## 🎬 Budget/Muscu — animations : `transition: all` global et `transform-origin` des SVG (24/09/2026)
+
+### 24/09/2026 — Budget — toute l'app animait tout, tout le temps
+**Symptôme** : pas de bug signalé, repéré à l'audit contre la charte §11. Effets probables sur iPhone : petits « glissements » ou retards parasites (hauteur des champs de texte qui s'anime à chaque frappe, couleurs qui traînent au changement de thème, re-layouts coûteux sur Safari).
+**Fausses pistes explorées** : aucune.
+**Cause racine** : `* { transition: var(--transition) }` avec `--transition: all 0.3s …`, hérité d'une ancienne version. Appliquée au sélecteur universel, elle anime **toutes** les propriétés de **tous** les éléments, y compris `height`/`width`/marges posées par le JS (ex. `autoResize()` des `textarea`).
+**Solution** : transition globale et token supprimés ; transitions ciblées élément par élément, uniquement sur `transform`/`opacity`/couleurs. Jauges passées de `width` à `scaleX`, toast de `bottom` à `transform`+`opacity` (avec `visibility:hidden`/`pointer-events:none` au repos), `prefers-reduced-motion` ajouté.
+**Leçon généralisable** : ne **jamais** poser de `transition` sur `*` (ni `transition: all` tout court). Chercher `transition: all` et `transition: var(` dans le CSS lors de tout audit. Autre piège repéré au passage : une `transition: max-height` sur un accordéon qui passe de `none` à `0` **ne fait rien** (`none` n'est pas interpolable) — inutile de la « conserver pour ne rien casser ».
+**Fichiers touchés** : `Budget/style.css`, `Budget/app.js`, `Budget/README.md`
+
+### 24/09/2026 — Muscu — points du graphique qui « arrivaient » depuis le milieu du graphe
+**Symptôme** : repéré en test lors de l'audit animations : les `<circle class="chart-dot">` animés en `scale()` avec `transform-origin: center` grandissaient autour du centre du SVG entier, pas du leur.
+**Cause racine** : sur un élément SVG, `transform-box` vaut `view-box` par défaut : `transform-origin` se calcule par rapport au viewport SVG, pas à la boîte de l'élément.
+**Solution** : `transform-box: fill-box` sur `.chart-dot`. Au passage, départ à `scale(.9)` au lieu de `scale(0)` et plus de rebond (charte §11.4).
+**Leçon généralisable** : toute animation `scale`/`rotate` sur un élément SVG (cercle, chemin, icône inline) a besoin de `transform-box: fill-box` pour tourner/grandir sur elle-même.
+**Fichiers touchés** : `Muscu/style.css`, `Muscu/README.md`
+
+---
+
 ## 🏋️ Muscu — un record aux haltères s'affichait comme référence à la machine (24/09/2026)
 
 ### 24/09/2026 — Muscu — le record d'un exercice ne distinguait pas la méthode d'équipement

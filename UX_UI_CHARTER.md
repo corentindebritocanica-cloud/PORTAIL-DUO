@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 1.2  
+**Version** : 1.3  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **App de référence** : Muscu (Duo Training) — extraite directement de son code source
@@ -275,6 +275,7 @@ nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  
 - **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 56px.
 - **Le bouton rond doit être masqué explicitement** sur les onglets où il n'a pas de sens (ex. attribut `data-onglet` sur le conteneur + `#app:not([data-onglet="liste"]) .nav-add{display:none}`) ; le laisser dans une section masquée ne suffit plus une fois déplacé dans la barre.
 - Le blur (`backdrop-filter`) n'est visible que parce que le contenu passe réellement derrière la barre : ne pas la remettre comme ligne flex séparée.
+- **Transition des onglets** (`background`/`color` en `--t-mid`, `transform` en `--t-fast`) : conservée malgré le §11.2 (« navigation fréquente = minimum »), car c'est une indication d'état (couleur de l'onglet actif), pas un déplacement. Ne pas y ajouter d'animation de mouvement (indicateur qui glisse, rebond…) sans passer par le §11.8.
 
 ---
 
@@ -393,8 +394,8 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ### 6.5 Animations & Transitions Standards
 
 ```css
---t-fast: .14s;
---t-mid: .22s;
+--t-fast: .15s;   /* 150 ms — feedback tactile, petits changements d'état (plancher du §11.3) */
+--t-mid: .22s;    /* 220 ms — transitions d'interface standard */
 
 /* Micro-feedback au tap (pattern à reprendre partout) */
 .btn:active { transform: scale(0.97); }
@@ -445,6 +446,12 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 - [ ] Transitions `.14s`/`.22s` ease, feedback tap `scale(0.97)`
 - [ ] Toasts en `--r-pill`, `--card-2`, centrés bas d'écran
 - [ ] Modales en bottom-sheet (`align-items: flex-end`) avec overlay `rgba(0,0,0,0.6)`
+- [ ] **Animations (§11)** : aucune `transition: all`, jamais de `transition` posée sur `*`
+- [ ] Seuls `transform` et `opacity` sont animés (pas `width`/`height`/`top`/`left`/`bottom`/`max-height`) — jauges en `scaleX`/`translateX`, toasts en `transform`
+- [ ] Entrées en `ease-out`, sorties en `ease-in`, durées 150–300 ms ; apparition depuis `scale(.9)` minimum, jamais `scale(0)`
+- [ ] Actions répétées (validation, coche) : feedback bref, sans rebond
+- [ ] `transform-box: fill-box` sur tout élément SVG animé en `scale`/`rotate`
+- [ ] Bloc `@media (prefers-reduced-motion: reduce)` présent
 
 ---
 
@@ -467,6 +474,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
 | 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course puis Budget. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
+| 24/09/26 | Charte v1.3 — Audit des 4 apps contre la section 11 et mise en conformité : Budget (retrait du `transition: all` global, jauges et toast en `transform`, reduced-motion), Muscu (validation de série adoucie à 1,08 sans rebond — exception documentée au §11.2, points de graphique, `left` → `translateX`), Portail (jauge en `translateX`), Course (reduced-motion). `--t-fast` passé de 140 à 150 ms. Checklist §8 complétée. |
 | 23/09/26 | Ajout de la section 11 « Animation & Micro-interactions » (grille de fréquence, règles GPU-safe, springs, principes Apple Fluid Interfaces, clip-path, reduced-motion) — synthèse des skills communautaires `emil-design-eng`/`apple-design` d'Emil Kowalski et de la WWDC 2018. Référentiel de règles, pas encore appliqué aux 4 apps. |
 
 *Cette section doit être mise à jour à chaque évolution majeure de la charte.*
@@ -477,7 +485,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 > Section ajoutée le 23/09/2026, synthétisée à partir de deux skills communautaires pour agents IA (`emil-design-eng` et `apple-design`, par Emil Kowalski — ex-Vercel/Linear, auteur de Sonner/Vaul) et de la conférence Apple WWDC 2018 *Designing Fluid Interfaces*, dont `apple-design` est la traduction directe pour le web. Elle complète les tokens statiques (couleurs, radius, ombres) des sections précédentes avec des règles de **mouvement**, jusque-là absentes de la charte.
 >
-> **Statut** : référentiel de règles, pas encore audité app par app. La mise en conformité des 4 apps se fera lors d'une passe dédiée ultérieure, section par section, au fur et à mesure des mises à jour de Corentin.
+> **Statut** : 4 apps auditées et mises en conformité le 24/09/2026 (détail dans chaque README, section « Animations mises en conformité avec la charte §11 »). Non encore vérifié sur iPhone.
 
 ### 11.1 Philosophie directrice
 
@@ -499,12 +507,15 @@ C'est le critère le plus important, absent de la charte actuelle. Il faut se de
 | **Occasionnel** | Ouvrir une modale bottom-sheet, ajouter une transaction Budget, afficher un toast | Animation standard (voir §11.3) |
 | **Rare / première fois** | Écran de bienvenue, badge de succès, célébration d'objectif atteint | On peut se permettre plus de "delight" (spring avec un peu de bounce, confettis, etc.) |
 
-**À faire lors de la passe de conformité** : lister les actions fréquentes propres à chaque app (Muscu : validation de série ; Course : coche produit ; Budget : ajout rapide de transaction) et vérifier qu'elles ne sont pas sur-animées.
+**Actions fréquentes recensées (audit du 24/09/2026)** :
+- **Muscu — validation de série** : **exception assumée**, décidée par Corentin. Le feedback (léger agrandissement + onde verte) est gardé parce qu'il confirme la saisie en pleine séance, mais **adouci** : `scale(1.08)` sans rebond en 0,2 s, onde de 0,28 s. Ne pas y remettre de rebond ni l'allonger.
+- **Course — coche produit** : aucune animation (conforme).
+- **Budget — ajout/suppression de ligne** : aucune animation sur la ligne ; seul le toast « Annuler » (occasionnel) est animé.
 
 ### 11.3 Durées, easing, propriétés (règles GPU-safe)
 
 - **N'animer que `transform` et `opacity`.** Jamais `width`, `height`, `top`, `left`, `margin` (re-layout coûteux, source de jank sur Safari iOS). Jamais `transition: all` (imprécis, anime des propriétés non désirées) — toujours cibler les propriétés explicitement.
-- **Durées** : 150–300ms pour la majorité des transitions d'interface (proche des `--t-fast`/`--t-mid` déjà définis dans la charte — à documenter précisément en ms si ce n'est pas déjà fait).
+- **Durées** : 150–300ms pour la majorité des transitions d'interface. Tokens : `--t-fast` = 150 ms, `--t-mid` = 220 ms (§6.5). Exception tolérée : indicateurs d'activité (rotation du bouton recharger du Portail, 0,5 s ; squelettes de chargement en boucle).
 - **Easing** : `ease-out` pour les entrées (l'élément démarre vite, ralentit en arrivant — perçu comme plus réactif). `ease-in` pour les sorties. Un `ease-in` sur une entrée est une erreur fréquente d'agent IA à surveiller : ça donne une impression de lenteur/latence même à durée égale.
 
 ### 11.4 Règles d'apparition (scale, origine)
@@ -516,7 +527,7 @@ C'est le critère le plus important, absent de la charte actuelle. Il faut se de
 
 ```css
 .button, .card-tappable {
-  transition: transform 160ms ease-out;
+  transition: transform var(--t-fast) ease-out; /* 150 ms */
 }
 .button:active, .card-tappable:active {
   transform: scale(0.97); /* subtil : entre 0.95 et 0.98 */
@@ -549,7 +560,8 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 ### 11.9 Accessibilité
 
-- Ajouter un bloc `@media (prefers-reduced-motion: reduce)` qui désactive ou réduit drastiquement toutes les animations non essentielles (garder uniquement les changements d'état instantanés). Absent actuellement de la charte — à ajouter au CSS de base commun aux 4 apps.
+- Ajouter un bloc `@media (prefers-reduced-motion: reduce)` qui désactive ou réduit drastiquement toutes les animations non essentielles (garder uniquement les changements d'état instantanés). Présent dans les 4 apps depuis le 24/09/2026.
+- ⚠️ Le sélecteur du bloc reduced-motion doit être **au moins aussi spécifique** que celui qui déclare l'animation, sinon il est ignoré (voir `PROBLEMES_RESOLUS.md`, flammes de record Muscu). Variante radicale acceptable pour une app sobre (Course) : `*, *::before, *::after { transition-duration:0s !important; animation-duration:0s !important; }`.
 
 ### 11.10 Anti-patterns à traquer lors des audits futurs
 
@@ -569,15 +581,15 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 | App | Statut Conformité | Action Requise |
 |-----|-------------------|-----------------|
 | **Muscu** | ✅ Référence | Aucune (source de vérité) |
-| **Budget** | À auditer | Comparer `:root` avec ce document |
-| **Course** | À auditer | Comparer `:root` avec ce document |
-| **Portail** | À auditer | Doit adopter le même système pour la cohérence du hub |
+| **Budget** | ✅ Animations (§11) conformes (24/09/26) · pilule §5.5b adoptée (20/09/26) | Audit statique restant : ses tokens ont d'autres noms (`--primary`, `--card-bg`, `--radius-card: 16px`…) que ceux de Muscu |
+| **Course** | ✅ Animations (§11) conformes (24/09/26) · pilule §5.5b adoptée (20/09/26) | Audit statique `:root` restant |
+| **Portail** | ✅ Animations (§11) conformes (24/09/26) | Audit statique `:root` restant |
 
 ---
 
-**Prochaine étape recommandée** : Auditer Budget et Course pour lister les écarts avec cette charte, puis prioriser les corrections.
+**Prochaine étape recommandée** : vérifier sur iPhone les retouches d'animation du 24/09/26, puis auditer les tokens statiques (`:root`, radius, ombres) de Budget, Course et Portail contre les sections 1 à 5.
 
 ---
 
 **Auteur** : Lead Developer Full-Stack  
-**Dernière mise à jour** : 23 Septembre 2026
+**Dernière mise à jour** : 24 Septembre 2026

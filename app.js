@@ -110,7 +110,7 @@
         el('bu-int').textContent = '—';
         el('bu-dec').textContent = '';
         big.classList.remove('neg');
-        fill.style.width = '0%'; fill.classList.remove('over');
+        fill.style.transform = 'translateX(-100%)'; fill.classList.remove('over');
         el('bu-days').textContent = d ? "Ce mois n'est pas encore démarré dans Budget" : '';
         el('bu-spent').textContent = '';
       } else {
@@ -119,7 +119,7 @@
         el('bu-dec').textContent = '€';
         big.classList.toggle('neg', neg);
         const pct = (budget !== null && budget > 0 && depense !== null) ? Math.min(100, Math.max(0, depense / budget * 100)) : (neg ? 100 : 0);
-        fill.style.width = pct.toFixed(1) + '%';
+        fill.style.transform = 'translateX(' + (pct - 100).toFixed(1) + '%)'; // translateX (GPU) au lieu de width — charte §11.3
         fill.classList.toggle('over', neg);
         /* Jours restants recalculés ici (le document date de la dernière ouverture de Budget) si c'est bien le mois en cours. */
         const now = new Date();
