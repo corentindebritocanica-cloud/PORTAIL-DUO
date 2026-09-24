@@ -19,6 +19,19 @@
 
 ---
 
+## 🏋️ Muscu — un record aux haltères s'affichait comme référence à la machine (24/09/2026)
+
+### 24/09/2026 — Muscu — le record d'un exercice ne distinguait pas la méthode d'équipement
+**Symptôme** : sur un exercice praticable à plusieurs méthodes (ex. Développé incliné : haltères / barre / machine), le record affiché sur la carte d'exercice restait celui de n'importe quelle méthode déjà pratiquée, sans lien avec la méthode réellement sélectionnée dans la séance en cours. Un record fait aux haltères s'affichait donc comme référence même en faisant l'exercice à la machine ce jour-là, alors que les deux charges (poids d'UN haltère vs charge totale affichée sur la machine) ne sont pas comparables.
+**Fausses pistes explorées** : aucune — le mécanisme de comparaison par méthode existait déjà ailleurs dans l'app (voir Cause racine), il suffisait de le réutiliser plutôt que d'en réinventer un.
+**Cause racine** : `getPersonalRecord(profile, exerciseName)` parcourait toutes les archives de l'exercice et gardait la série au plus gros volume, sans jamais regarder avec quelle méthode chaque archive avait été faite (`archive.variants`). Seul le **graphique de progression** avait déjà ce filtrage, ajouté le 14/09/26 (`archiveExerciseMethodId()`, clé de sélection `__method__:nom||méthode`) — le record de la carte d'exercice n'avait jamais reçu le même traitement lors de l'introduction du système de méthodes.
+**Solution** : nouvelle fonction `currentExerciseMethodId(ex, exIdx, data)`, miroir de `archiveExerciseMethodId()` côté séance en cours (renvoie `null` si l'exercice n'a qu'une seule méthode plausible — comportement inchangé dans ce cas). `getPersonalRecord()` accepte un 3ᵉ paramètre `methodId` : non-null, il restreint le calcul aux archives faites avec la même méthode. La carte d'exercice calcule ce `methodId` une fois par rendu et le passe au record ; changer de méthode via le sélecteur relance déjà un `render()` complet (comportement existant), donc la mise à jour est automatique. Le libellé de la méthode est ajouté entre parenthèses à côté du record et du badge « Nouveau record » dès que l'exercice en propose plusieurs, pour qu'il n'y ait plus d'ambiguïté à l'écran.
+**Leçon généralisable** : quand un système de « variantes/méthodes » distinctes existe déjà pour UN usage (ici : la comparabilité des séries, résolue pour le graphique de progression), vérifier que TOUS les autres endroits qui comparent les mêmes séries entre elles (ici : le record) en héritent — sinon la même incohérence de fond réapparaît, non corrigée, ailleurs dans l'app.
+**Vérifié** : `node --check` sur `app.js`. Test en isolation (Node, `vm`, fonctions réelles du fichier chargées telles quelles avec des stubs DOM minimaux) : deux archives du même exercice, une aux haltères (22,5 kg × 10) une à la machine (60 kg × 8) — le record filtré par méthode renvoie bien la bonne série pour chacune (et non la plus grosse des deux par volume, comme avant) ; un exercice à méthode unique (Squat) n'est pas affecté (non-régression). **Non testé sur iPhone.**
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🔁 Portail — relire « par le serveur » via le SDK ne sert à rien si son canal est coincé (24/09/2026)
 
 ### 24/09/2026 — Portail — le résumé publié n'apparaissait qu'après un rechargement
@@ -612,4 +625,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 22 septembre 2026
+**Dernière mise à jour de ce fichier** : 24 septembre 2026
