@@ -30,6 +30,14 @@
 **Vérifié** : `node --check` sur `app.js`. Test en isolation (Node, `vm`, fonctions réelles du fichier chargées telles quelles avec des stubs DOM minimaux) : deux archives du même exercice, une aux haltères (22,5 kg × 10) une à la machine (60 kg × 8) — le record filtré par méthode renvoie bien la bonne série pour chacune (et non la plus grosse des deux par volume, comme avant) ; un exercice à méthode unique (Squat) n'est pas affecté (non-régression). **Non testé sur iPhone.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
 
+### 24/09/2026 — Muscu — même jour, suite : « Dernière fois » avait le même défaut, repéré par Corentin après coup
+**Symptôme** : juste après le correctif ci-dessus, Corentin fait remarquer que « Dernière fois » (la ligne juste au-dessus du record, sur la même carte) affiche le même genre d'incohérence — dernière performance toutes méthodes confondues, alors qu'elle mérite le même filtrage que le record.
+**Cause racine** : identique à l'entrée précédente, sur `getLastPerformance()` cette fois — jamais reliée à `archiveExerciseMethodId()` non plus.
+**Solution** : même patron exactement — `getLastPerformance()` reçoit le même paramètre `methodId` optionnel, filtré via `archiveExerciseMethodId()`. La carte d'exercice calcule `recordMethodId` **une seule fois** et le réutilise pour les deux appels (`getLastPerformance()` et `getPersonalRecord()`), pour qu'un futur changement de méthode ne puisse jamais désynchroniser les deux lignes affichées. Libellé de la méthode ajouté à « Dernière fois » aussi, même format que le record.
+**Leçon généralisable** : quand deux affichages contigus (« Dernière fois » / « Record ») lisent la même donnée sous deux angles différents, corriger l'un sans vérifier l'autre laisse presque toujours la même faille ouverte à côté — les traiter comme un couple, avec un seul calcul de contexte partagé (ici `recordMethodId`), plutôt que deux correctifs isolés à des moments différents.
+**Vérifié** : test en isolation (Node, `vm`) — deux archives du même exercice (haltères le 21/09, machine le 23/09) : filtré par méthode, chacune renvoie bien sa propre date et son propre poids ; sans filtre (méthode unique), toujours la plus récente en date peu importe la méthode — comportement inchangé dans ce cas. `node --check` sur `app.js`. **Non testé sur iPhone.**
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`, `PROBLEMES_RESOLUS.md`
+
 ---
 
 ## 🔁 Portail — relire « par le serveur » via le SDK ne sert à rien si son canal est coincé (24/09/2026)
