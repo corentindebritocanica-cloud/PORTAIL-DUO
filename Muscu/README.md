@@ -864,3 +864,20 @@ Les trois réutilisent la modale de récapitulatif déjà existante (`export-mod
 
 **Vérifié** : testé en isolation avec des mocks (deux profils, une séance plus ancienne que l'autre, un profil sans mensuration) — confirmé que le tri prend bien la plus récente par `createdAt` (pas par position dans le tableau), que l'avertissement n'apparaît que lorsque la date diffère d'aujourd'hui, et qu'un profil sans donnée ne fait pas planter l'export. `node --check` sur le fichier publié. Balises `<div>` comptées avant/après (équilibrées). **Non testé sur iPhone.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
+### Records distincts par méthode d'équipement (24/09/2026)
+
+**Symptôme signalé par Corentin** : sur un exercice praticable à plusieurs méthodes (ex. Développé incliné : haltères, barre, machine), le record affiché reste celui de la dernière méthode qui l'a détenu, quelle que soit la méthode réellement sélectionnée dans la séance en cours — un record fait aux haltères s'affichait donc comme référence même en train de faire l'exercice à la machine, alors que les deux charges ne sont pas comparables (cf. le commentaire déjà présent dans le code à ce sujet, ligne ~2938 de `app.js`, resté sans conséquence pratique jusqu'ici).
+
+**Cause** : `getPersonalRecord(profile, exerciseName)` parcourait toutes les archives de l'exercice sans regarder avec quelle méthode chacune avait été faite (`archive.variants`) — seul le **graphique de progression** avait déjà ce filtrage (`archiveExerciseMethodId()`, ajouté le 14/09/26, clé `__method__:nom||méthode`). Le record de la carte d'exercice n'avait jamais reçu le même traitement.
+
+**Correction** :
+- Nouvelle fonction `currentExerciseMethodId(ex, exIdx, data)` — miroir de `archiveExerciseMethodId()` mais côté séance en cours, où l'objet `ex` est déjà sous la main. Retourne `null` si l'exercice n'a qu'une seule méthode plausible ou aucune (comportement inchangé dans ce cas).
+- `getPersonalRecord()` accepte désormais un 3ᵉ paramètre `methodId` : quand il n'est pas `null`, seules les archives faites avec la même méthode (`archiveExerciseMethodId(arc, exerciseName) === methodId`) entrent dans le calcul du record.
+- Card d'exercice (`view-session`) : `recordMethodId = currentExerciseMethodId(ex, exIdx, data)` calculé une fois par carte, passé à `getPersonalRecord()`. Changer de méthode via le sélecteur relance déjà un `render()` complet de la vue (comportement existant), donc la carte se remet à jour avec le bon record automatiquement.
+- Libellé de la méthode ajouté entre parenthèses à côté du record et du badge « Nouveau record » dès que l'exercice en propose plusieurs (ex. « Record 22,5 kg × 10 (Haltères) ») — sans ça, rien à l'écran ne rappelle qu'un record affiché correspond à une méthode précise.
+
+**Non traité volontairement** : « Dernière fois » (`getLastPerformance()`) n'a pas reçu le même filtrage — reste toutes méthodes confondues, comme avant. Même souci potentiel en théorie, mais pas ce qui a été signalé ; à traiter séparément si besoin un jour.
+
+**Vérifié** : `node --check` sur `app.js`. Test en isolation (Node, `vm`, fonctions réelles du fichier chargées telles quelles avec des stubs DOM minimaux) : deux archives du même exercice, une aux haltères (22,5 kg × 10) une à la machine (60 kg × 8) — `getPersonalRecord(..., 'haltere')` renvoie bien 22,5×10, `getPersonalRecord(..., 'machine')` renvoie bien 60×8 (et non la plus grosse des deux par volume, comme avant), `currentExerciseMethodId()` renvoie `null` pour un exercice à méthode unique (Squat) et son record reste inchangé (pas de régression). **Non testé sur iPhone.**
+
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`
