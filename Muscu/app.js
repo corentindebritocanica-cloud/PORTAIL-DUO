@@ -262,6 +262,21 @@ function equipmentFactor(ex, exIdx, data){
   return info ? info.factor : 1;
 }
 
+/* Identifiant de méthode à isoler pour comparer les RECORDS (24/09/26) : un
+   record aux haltères n'est pas comparable à un record à la machine, même
+   volume soulevé — la charge ne se lit pas pareil. Miroir exact de
+   `archiveExerciseMethodId()` (suivi par méthode du graphique de progression,
+   plus bas dans le fichier) mais côté séance EN COURS, où l'objet `ex` est
+   déjà sous la main. `null` si l'exercice n'a qu'une méthode plausible ou
+   aucune : distinguer les records n'a alors pas de sens, il n'y a jamais eu
+   qu'une seule façon de le faire — même convention que côté archive, pour
+   que les deux se comparent avec la même valeur. */
+function currentExerciseMethodId(ex, exIdx, data){
+  const list = (ex && ex.equipment) || [];
+  if(list.length < 2) return null;
+  return getExerciseEquipmentId(ex, exIdx, data);
+}
+
 /* Même logique que ci-dessus, mais pour un exercice déjà archivé : on ne
    dispose plus de l'objet `ex` d'origine, seulement de son nom. On retrouve
    sa liste de méthodes plausibles via le catalogue courant (séances fixes
@@ -919,7 +934,12 @@ function render(){
     /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
     const isCircuitEx = ex.logType === 'circuit';
     const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name);
-    const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name);
+    /* Le record ne doit comparer que des séances faites avec la MÊME méthode
+       (haltères vs machine, etc.) — voir currentExerciseMethodId(). Change de
+       valeur au clic sur le sélecteur de méthode plus bas, qui relance un
+       render() complet de la vue et recalcule donc cette carte à jour. */
+    const recordMethodId = isCircuitEx ? null : currentExerciseMethodId(ex, exIdx, data);
+    const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name, recordMethodId);
 
     if(lastPerf || record){
       const histRow = document.createElement('div');
@@ -936,10 +956,15 @@ function render(){
         /* Le record affiche la série réellement faite (poids × reps), pas un
            chiffre de volume abstrait : c'est ce qui reste lisible et vérifiable
            d'un coup d'œil en salle. Le volume ne sert qu'en coulisse à décider
-           QUELLE série est le record. */
+           QUELLE série est le record. Méthode ajoutée entre parenthèses dès que
+           l'exercice en propose plusieurs (24/09/26) : sans ça, rien à l'écran
+           ne rappelle qu'un record "Machine" ne veut pas dire grand-chose une
+           fois qu'on est passé aux haltères. */
+        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
         const rec = document.createElement('span');
         rec.className = 'hist-record';
-        rec.textContent = 'Record ' + formatKg(record.weight) + ' × ' + record.reps;
+        rec.textContent = 'Record ' + formatKg(record.weight) + ' × ' + record.reps
+          + (methodInfo ? ' (' + methodInfo.label + ')' : '');
         histRow.appendChild(rec);
       }
       headWrap.appendChild(histRow);
@@ -981,7 +1006,9 @@ function render(){
       }
       if(bestVol > record.volume){
         const wasHidden = prBadge.style.display === 'none';
-        prBadge.textContent = 'Nouveau record : ' + formatKg(bestWeight) + ' × ' + bestReps
+        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
+        prBadge.textContent = 'Nouveau record' + (methodInfo ? ' (' + methodInfo.label + ')' : '') + ' : '
+          + formatKg(bestWeight) + ' × ' + bestReps
           + '  (précédent : ' + formatKg(record.weight) + ' × ' + record.reps + ')';
         prBadge.style.display = 'flex';
         if(wasHidden){
@@ -2089,9 +2116,16 @@ function createRecordFireEngine(){
   };
 }
 
-function getPersonalRecord(profile, exerciseName){
+/* methodId : identifiant de méthode (haltere/machine/...) auquel restreindre
+   la comparaison, ou `null`/absent pour ne pas filtrer (exercice à méthode
+   unique ou fixe, où filtrer n'aurait de toute façon aucun effet). Un exercice
+   fait aux haltères puis à la machine a désormais DEUX records distincts,
+   chacun comparé uniquement à ses propres séances (24/09/26 — voir
+   PROBLEMES_RESOLUS.md et currentExerciseMethodId()/archiveExerciseMethodId()). */
+function getPersonalRecord(profile, exerciseName, methodId){
   let best = null;
   getArchivesList(profile).forEach(arc => {
+    if(methodId != null && archiveExerciseMethodId(arc, exerciseName) !== methodId) return;
     const b = bestSetByVolume(arc, exerciseName);
     if(b && (!best || b.volume > best.volume)) best = b;
   });
