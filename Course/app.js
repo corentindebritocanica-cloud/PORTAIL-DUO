@@ -37,11 +37,18 @@ const dbReady = (async () => {
   await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 })();
 
+/* Écritures différées tant que Firestore n'a pas livré son 1er instantané (24/09/2026).
+   L'interface s'affiche désormais AVANT Firebase, depuis un aperçu local (voir APERÇU
+   plus bas) : un tap très rapide pourrait donc partir avant l'authentification. La valeur
+   écrite est calculée AU MOMENT DU TAP (ce que l'utilisateur voit), seul l'envoi attend. */
+let signalerFirestorePret;
+const firestorePret = new Promise(r=> signalerFirestorePret = r);
+
 function colRef(nom){ return db.collection(nom); }
 function docRef(nom, id){ return db.collection(nom).doc(id); }
-function dbUpdateDoc(nom, id, val){ return docRef(nom, id).update(val); }
-function dbAddDoc(nom, val){ return colRef(nom).add(val); }
-function dbDeleteDoc(nom, id){ return docRef(nom, id).delete(); }
+function dbUpdateDoc(nom, id, val){ return firestorePret.then(()=> docRef(nom, id).update(val)); }
+function dbAddDoc(nom, val){ return firestorePret.then(()=> colRef(nom).add(val)); }
+function dbDeleteDoc(nom, id){ return firestorePret.then(()=> docRef(nom, id).delete()); }
 /* 24/09/2026 : `includeMetadataChanges: true`. Sans cette option, quand le serveur confirme
    que le cache local est déjà à jour (aucune modification depuis la dernière ouverture),
    Firestore n'envoie AUCUN nouvel événement : l'app restait sur `fromCache = true` pour
@@ -221,12 +228,14 @@ function toggleAchete(id){
 document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
   const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
   if(aEffacer.length===0) return;
-  const batch = db.batch();
-  aEffacer.forEach(([id])=> batch.update(docRef('produits', id), {
-    aAcheter:false, achete:false,
-    compteur: firebase.firestore.FieldValue.increment(1)
-  }));
-  batch.commit();
+  firestorePret.then(()=>{
+    const batch = db.batch();
+    aEffacer.forEach(([id])=> batch.update(docRef('produits', id), {
+      aAcheter:false, achete:false,
+      compteur: firebase.firestore.FieldValue.increment(1)
+    }));
+    batch.commit();
+  });
 });
 
 /* ============================================================
@@ -454,12 +463,41 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* ============================================================
+   APERÇU LOCAL — affichage immédiat (24/09/2026)
+   Avant : #app restait masqué jusqu'à l'authentification Firebase (≈ 1 s d'écran vide à
+   chaque ouverture). Désormais l'interface est visible tout de suite et la liste est
+   dessinée depuis la dernière copie connue, gardée dans localStorage.
+   ⚠️ RÈGLE ABSOLUE (incidents de duplication du 18/09/2026) : cet aperçu sert UNIQUEMENT
+   À L'AFFICHAGE. Il n'est JAMAIS écrit dans Firestore, et il est remplacé intégralement
+   dès le 1er instantané Firestore (cache local ou serveur), qui seul fait foi.
+   ============================================================ */
+const CLE_APERCU = 'courses_apercu_v1';
+let firestoreRecu = { produits:false, rayons:false };
+(function afficherApercu(){
+  try {
+    const a = JSON.parse(localStorage.getItem(CLE_APERCU) || 'null');
+    if(a && a.produits && typeof a.produits === 'object' && a.rayons && typeof a.rayons === 'object'){
+      state.produits = a.produits; state.rayons = a.rayons;
+      render();
+    }
+  } catch(e){ /* aperçu illisible : on attend simplement Firestore */ }
+})();
+function memoriserApercu(){
+  if(!firestoreRecu.produits || !firestoreRecu.rayons) return;   /* jamais un état à moitié chargé */
+  try { localStorage.setItem(CLE_APERCU, JSON.stringify({ produits: state.produits, rayons: state.rayons })); } catch(e){}
+}
+function recuDeFirestore(nom){
+  firestoreRecu[nom] = true;
+  if(firestoreRecu.produits && firestoreRecu.rayons) signalerFirestorePret();
+  memoriserApercu();
+}
+
 function demarrer(){
   authListen(user=>{
     if(user){
-      dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); planifierPublicationPortail(); });
-      dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); planifierPublicationPortail(); });
-      document.getElementById('app').style.display = 'flex';
+      dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); });
+      dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); });
     } else {
       auth.signInAnonymously().catch(err=> console.error('Connexion anonyme impossible :', err));
     }

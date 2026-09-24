@@ -19,6 +19,18 @@
 
 ---
 
+## 🐢 Course — ouverture lente depuis le Portail : écran masqué jusqu'à Firebase (24/09/2026)
+
+### 24/09/2026 — Course — ~1 s d'écran vide à chaque ouverture
+**Symptôme** : Courses « met du temps à charger » depuis le Portail. Mesuré (CPU ×4, 4G simulée, cache rempli) : page chargée en ~270 ms, mais rien d'affiché avant ~1 s.
+**Fausses pistes explorées** : aucune — mesure d'abord (marques `performance.mark` injectées dans une copie d'`app.js`), puis correction.
+**Cause racine** : (1) `#app` en `display:none` jusqu'au callback `onAuthStateChanged`, donc jusqu'à la fin de l'exécution du SDK + `enablePersistence` (~300 ms à lui seul) + l'authentification ; (2) SDK chargé en scripts bloquants dans `<head>` ; (3) service worker en réseau d'abord avec 4 s d'attente max ; (4) SDK retéléchargé après chaque déploiement, car rangé dans le cache renommé à chaque push — et en plus jamais précaché à l'installation : `cache.add()` sur une requête `no-cors` échoue toujours (réponse opaque, statut 0), cf. entrée Portail plus bas.
+**Solution** : interface visible d'emblée + liste dessinée depuis un **aperçu `localStorage` réservé à l'affichage** (jamais écrit en base, remplacé par le 1er instantané Firestore) ; écritures mises en attente d'une promesse « Firestore prêt », valeur calculée au tap ; SDK et `app.js` en `defer` ; SDK dans un cache dédié et stable (`<app>-sdk-<version>`) précaché par `fetch` + `put` ; attente réseau 1,5 s. Interface ~3× plus rapide (230–360 ms au lieu de 560–1 050 ms).
+**Leçon généralisable** : (a) ne jamais conditionner l'affichage de l'interface à l'authentification ou à la base : afficher d'abord, remplir ensuite ; un aperçu local accélère encore, **à condition qu'il ne soit jamais réécrit dans la base** ; (b) si l'interface est interactive avant la base, faire attendre les **envois** (pas le calcul de la valeur) ; (c) un fichier qui ne change jamais (SDK en version figée) va dans un cache dont le nom ne change pas à chaque déploiement ; (d) `defer` sur des scripts qui dépendent les uns des autres : TOUS en `defer`, dans le bon ordre (un script classique placé après s'exécuterait AVANT les `defer`). Budget et Muscu ont aussi un délai réseau de 4 s : à évaluer de la même façon.
+**Fichiers touchés** : `Course/index.html`, `Course/app.js`, `Course/sw.js`, `Course/README.md`
+
+---
+
 ## ⏳ Portail — `e.currentTarget` vaut `null` après un `await` (24/09/2026)
 
 ### 24/09/2026 — Portail — piège évité en remplaçant `confirm()` par une boîte de dialogue asynchrone
@@ -339,7 +351,7 @@
 **Pièges et leçons, réutilisables** :
 - **Une base publique + un dépôt public = des données non fiables.** L'authentification anonyme n'empêche personne de lire/écrire ; ces documents alimentent une page qui partage son origine avec les 3 autres apps (donc leur `localStorage`). Règle : tout valider (types, bornes, longueurs) et n'écrire qu'avec `textContent`, **jamais `innerHTML`**. Test : injecter dans le cache `<img onerror=…>`, `<script>`, chaînes à la place de nombres, valeurs énormes, et vérifier qu'aucun code ne s'exécute.
 - **Ne publier un résumé qu'après un snapshot venu du SERVEUR** (`snap.metadata.fromCache === false`). Sinon un téléphone hors ligne au vieux cache écrase un résumé récent avec des chiffres périmés (même famille que l'incident Courses du 21/09).
-- **`cache.add()` rejette une réponse opaque** (`no-cors`, statut 0) dans Chromium : le SDK n'était pas dans le cache. `fetch(new Request(url, {mode:'no-cors'})).then(rep => cache.put(url, rep))` fonctionne. À vérifier sur `Course/sw.js`, qui utilise `cache.add` avec `no-cors` pour son SDK (fonctionne peut-être sur Safari, pas garanti ailleurs).
+- **`cache.add()` rejette une réponse opaque** (`no-cors`, statut 0) dans Chromium : le SDK n'était pas dans le cache. `fetch(new Request(url, {mode:'no-cors'})).then(rep => cache.put(url, rep))` fonctionne. Corrigé dans `Course/sw.js` le 24/09/2026 (vérifié : sous Chromium, le SDK de Course n'était effectivement jamais précaché).
 - **Charger le SDK Firebase après le premier affichage** (injection de `<script>`) : un `<script>` de CDN bloquant plante l'ouverture hors ligne (cf. 18/09). Le Portail s'affiche depuis `localStorage` puis se met à jour.
 - **Deux SDK, deux versions, une même session** : Muscu (modulaire 12.18) et Budget (compat 10.8) ouvrent chacun une application nommée `'portail'` vers la base de Courses ; la clé de session Firebase dépend du nom d'application, ce qui isole ces sessions de celles des apps (les apps gardent leur propre connexion). Ne pas nommer cette 2e application `[DEFAULT]`.
 - **Un `const`/`let` dans un script classique n'est pas sur `window`** ; les blocs de publication de Muscu passent par `window.__portail` (défini dans le module), avec un garde `if(!window.__portail) return`.

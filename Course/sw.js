@@ -11,6 +11,11 @@ const CACHE_NAME = 'courses-lc-shell-r90';
 // Muscu, Budget inclus) : ne jamais utiliser un filtre qui ne se base pas
 // sur ce préfixe, sous peine de supprimer le cache des autres apps.
 const CACHE_PREFIX = 'courses-lc-shell-';
+// Cache à part pour le SDK Firebase (24/09/2026) : il ne change jamais (version figée), il
+// ne doit donc PAS être retéléchargé à chaque déploiement (CACHE_NAME change à chaque push
+// via le workflow auto-version ; ce nom-ci, non). Nettoyé seulement si la version du SDK change.
+const SDK_PREFIX = 'courses-lc-sdk-';
+const CACHE_SDK = SDK_PREFIX + '10.12.2';
 
 const SHELL_FILES = [
   './',
@@ -37,13 +42,23 @@ function requeteExterne(url){
   return new Request(url, { mode: 'no-cors' });
 }
 
+// 24/09/2026 : fetch() + cache.put() au lieu de cache.add(). cache.add() REFUSE toute
+// réponse dont le statut n'est pas 2xx — or une réponse 'no-cors' (opaque) a le statut 0 :
+// le SDK Firebase n'était donc JAMAIS mis en cache à l'installation (échec silencieux,
+// simple console.warn), seulement plus tard par le gestionnaire fetch. cache.put(), lui,
+// accepte les réponses opaques.
 async function mettreEnCacheAvecRetry(cache, url, externe){
   const req = externe ? requeteExterne(url) : new Request(url, { cache: 'reload' });
+  const essai = async () => {
+    const rep = await fetch(req);
+    if (!externe && !rep.ok) throw new Error('HTTP ' + rep.status);
+    await cache.put(externe ? url : req, rep);
+  };
   try {
-    await cache.add(req);
+    await essai();
   } catch (err1) {
     try {
-      await cache.add(req);
+      await essai();
     } catch (err2) {
       console.warn('[sw] échec définitif de mise en cache :', url, err2);
     }
@@ -52,28 +67,38 @@ async function mettreEnCacheAvecRetry(cache, url, externe){
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      Promise.all([
-        ...SHELL_FILES.map((url) => mettreEnCacheAvecRetry(cache, url, false)),
-        ...FIREBASE_FILES.map((url) => mettreEnCacheAvecRetry(cache, url, true)),
-      ])
-    ).then(() => self.skipWaiting())
+    Promise.all([
+      caches.open(CACHE_NAME).then((cache) =>
+        Promise.all(SHELL_FILES.map((url) => mettreEnCacheAvecRetry(cache, url, false)))
+      ),
+      // SDK : seulement ce qui manque (après le 1er passage, rien à télécharger).
+      caches.open(CACHE_SDK).then((cache) =>
+        Promise.all(FIREBASE_FILES.map((url) =>
+          cache.match(url).then((deja) => deja ? null : mettreEnCacheAvecRetry(cache, url, true))
+        ))
+      ),
+    ]).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) =>
+        (k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME) ||
+        (k.startsWith(SDK_PREFIX) && k !== CACHE_SDK)
+      ).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
 // Réseau d'abord pour index.html (20/09/2026) : on tente le serveur en priorité
 // pour toujours servir la dernière version ; si le réseau est absent ou met plus
-// de 4 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
-// Les autres fichiers du shell (icônes, manifest, SDK) restent en cache-first.
-const DELAI_RESEAU_MS = 4000;
+// de 1,5 s à répondre (connexion « fantôme » sur iPhone), on sert la copie en cache.
+// 24/09/2026 : délai réduit de 4 s à 1,5 s (ouverture plus rapide sur réseau faible ;
+// une nouvelle version éventuellement ratée est rattrapée par le contrôle au retour
+// dans l'app, fin de app.js). Les autres fichiers (manifest, SDK) restent en cache-first.
+const DELAI_RESEAU_MS = 1500;
 function cleCache(requete){
   const u = new URL(requete.url);
   u.search = '';   // app.js?v=… et app.js partagent la même entrée de cache
@@ -112,7 +137,7 @@ self.addEventListener('fetch', (event) => {
         if (reponseCache) return reponseCache;
         return fetch(requeteExterne(event.request.url)).then((reponseReseau) => {
           const copie = reponseReseau.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request.url, copie));
+          caches.open(CACHE_SDK).then((cache) => cache.put(event.request.url, copie));
           return reponseReseau;
         });
       })

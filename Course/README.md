@@ -235,3 +235,21 @@ Audit statique contre `UX_UI_CHARTER.md` puis mise en conformité, avec les mêm
 
 **Vérifié** : Chromium headless 390×844, Firebase bouchonné — Liste, Course, Réglages, modale produit, dialogue de suppression (Annuler → rien supprimé ; Supprimer → produit supprimé et modale fermée), bascule de profil (accent rose), mode clair, zone tactile de la case (un tap à 5 px à côté touche bien la case), aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
 
+
+## Ouverture plus rapide, hors-ligne préservé (24/09/2026)
+
+**Constat de Corentin** : Courses met du temps à s'ouvrir depuis le Portail. **Mesure** (vraie app, CPU ×4 + 4G simulée, cache rempli) : page chargée en ~270 ms mais **écran vide jusqu'à ~1 s**, liste à 1,0–1,2 s (3,4 s à la 1re ouverture). Causes : `#app` masqué (`display:none`) tant que Firebase n'avait pas fini de démarrer (exécution du SDK + `enablePersistence` ≈ 300 ms + authentification) ; 3 scripts SDK bloquants dans `<head>` ; `index.html`/`style.css`/`app.js` en réseau d'abord avec jusqu'à 4 s d'attente ; SDK retéléchargé après chaque déploiement.
+
+**Modifications** — contrainte n°1 : ne rien retirer à l'ouverture hors ligne.
+1. **Aperçu local, affichage immédiat** (`app.js`, bloc « APERÇU LOCAL ») : `#app` n'est plus masqué. Au démarrage, la liste est dessinée depuis la dernière copie connue (`localStorage` `courses_apercu_v1`, écrite à chaque instantané Firestore une fois produits ET rayons reçus). ⚠️ **L'aperçu ne sert qu'à l'affichage** : jamais écrit dans Firestore (leçon des duplications du 18/09), remplacé intégralement par le 1er instantané Firestore.
+2. **Écritures différées jusqu'au 1er instantané Firestore** : `dbUpdateDoc`/`dbAddDoc`/`dbDeleteDoc` et le lot « Course terminée » attendent la promesse `firestorePret` (résolue quand produits et rayons sont arrivés, cache local compris — donc aussi hors ligne). La valeur écrite est calculée **au moment du tap**, seul l'envoi attend : un tap pendant la demi-seconde de démarrage n'est ni perdu ni envoyé sans authentification.
+3. **SDK Firebase et `app.js` en `defer`** (`index.html`) : la page s'affiche sans attendre l'exécution des ~600 Ko du SDK. L'ordre SDK → `app.js` est garanti (les scripts `defer` s'exécutent dans l'ordre du document) ; le petit script inline `DERNIERE_MAJ` reste synchrone.
+4. **`sw.js`** :
+   - **SDK dans un cache à part**, `courses-lc-sdk-10.12.2`, qui ne change pas à chaque déploiement (le workflow ne renomme que `CACHE_NAME`). À l'installation, seuls les fichiers manquants sont téléchargés. Nettoyé uniquement si la version du SDK change (préfixe `courses-lc-sdk-`). Les caches des autres apps ne sont jamais touchés.
+   - **Bug corrigé** : le précache du SDK utilisait `cache.add()` sur une requête `no-cors`, or `cache.add()` refuse les réponses opaques (statut 0) → **le SDK n'était jamais mis en cache à l'installation** (échec silencieux), seulement plus tard par le gestionnaire `fetch`. Remplacé par `fetch()` + `cache.put()` (piège déjà signalé dans `PROBLEMES_RESOLUS.md` pour le Portail, « à vérifier sur Course »).
+   - **Attente réseau d'abord : 4 s → 1,5 s.** Mode avion : inchangé (échec immédiat → cache). Réseau faible : on bascule plus vite sur le cache. Contrepartie : sur réseau lent, une nouvelle version peut n'être prise qu'au retour suivant dans l'app (contrôle `DERNIERE_MAJ` existant).
+
+**Mesures après** (même banc, serveur local) : interface visible en **~230–360 ms** au lieu de 560–1 050 ms ; liste en **~300–420 ms** au lieu de 790–1 100 ms.
+
+**Vérifié** (Chromium, vrai service worker, vraie base, cache HTTP du navigateur désactivé) : SDK présent dans son cache dès la 1re installation (3/3) ; rechargement **hors ligne** : 134/134 produits en ~150 ms ; déploiement simulé → ancien cache du shell supprimé, cache SDK conservé (3/3), cache d'une autre app intact ; nouveau rechargement hors ligne OK ; **coche faite hors ligne** puis retour du réseau → visible depuis un autre appareil ; coche annulée ensuite (état réel du produit vérifié en base via l'accès admin : revenu à l'identique). Bouchon Firebase avec authentification lente : liste affichée depuis l'aperçu à 100 ms, tap à 230 ms envoyé seulement après Firestore (900 ms), avec la bonne valeur. **Non vérifié sur iPhone.**
+
