@@ -19,6 +19,19 @@
 
 ---
 
+## 🎨 Budget — refonte sur la charte : classes fantômes et `confirm()` devenu asynchrone (24/09/2026)
+
+### 24/09/2026 — Budget — éléments « non stylés » et remplacement des boîtes natives
+**Symptôme** : à l'audit, les titres de page s'affichaient en 32 px (style navigateur) et le bouton 🗑️ « Supprimer le mois » était un bouton brut de 19 px de haut, alors que le HTML leur donnait des classes (`.header-title-group`, `.btn-icon`).
+**Fausses pistes explorées** : aucune.
+**Cause racine** : ces classes étaient utilisées dans `index.html` mais **n'avaient jamais eu de règle CSS** (probablement perdues lors d'un nettoyage ou d'un découpage de fichiers). Rien ne le signale : le navigateur applique juste ses styles par défaut.
+**Solution** : règles ajoutées. Méthode de détection réutilisable : lister les classes du HTML et des gabarits JS (`class="…"`), puis vérifier que chacune apparaît dans le CSS.
+**Leçon généralisable n°2 — remplacer `confirm()` par une modale maison** : `confirm()` est **bloquant**, une modale ne l'est pas. Tout le code qui suivait la confirmation passe dans un `.then()`. Deux pièges : (1) capturer l'état utile **avant** d'ouvrir la modale (ex. l'id du mois à supprimer : si une mise à jour Firestore change le mois actif pendant que la boîte est ouverte, on supprimerait le mauvais mois) ; (2) donner au fond une classe déjà surveillée par la détection « fenêtre ouverte » (`.overlay-popup`), sinon la mise à jour automatique au retour dans l'app peut recharger la page en pleine confirmation.
+**Leçon n°3 — ordre des classes utilitaires** : `.btn-small` déclaré après `.bg-primary` écrasait son fond (bouton « Ajouter » devenu gris). Avec des classes de même spécificité, c'est l'ordre dans le fichier qui gagne : prévoir la combinaison explicite (`.btn-small.bg-primary`).
+**Fichiers touchés** : `Budget/style.css`, `Budget/index.html`, `Budget/app.js`, `Budget/README.md`
+
+---
+
 ## 🎬 Budget/Muscu — animations : `transition: all` global et `transform-origin` des SVG (24/09/2026)
 
 ### 24/09/2026 — Budget — toute l'app animait tout, tout le temps

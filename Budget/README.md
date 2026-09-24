@@ -325,3 +325,31 @@ Aucun changement de logique de calcul ni de `data-field` : uniquement l'ordre d'
 - **`prefers-reduced-motion`** ajouté (absent jusque-là) : toutes ces transitions coupées, point de synchro « saving » figé au lieu de clignoter.
 
 **Vérifié** : Chromium headless (390×844) — `transition` calculée à 0 s sur les éléments ordinaires, onglets en 0,22 s ciblé, toast invisible/non cliquable puis visible à sa position habituelle, jauge à 37 % = 37 % de la piste, jauge d'objectif inchangée, mode mouvement réduit OK. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+
+
+## Refonte visuelle sur la charte UX/UI — sections 1 à 7 (24/09/2026)
+
+**Contexte** : audit statique de Budget contre `UX_UI_CHARTER.md` (v1.3), puis mise en conformité. Décisions de Corentin : retirer les couleurs purement décoratives (garder celles des catégories), carte « Reste à vivre » en hero sobre, modales conformes à la charte.
+
+**Tokens (`style.css`, `:root`)** — renommés comme Muscu : `--primary` → `--accent` (+ `--accent-rgb`, `--accent-soft`), `--bg-color` → `--bg`, `--card-bg` → `--card` (+ `--card-2`, `--border-strong`), `--text-main` → `--text`, `--text-muted` → `--text-dim`, `--success` → `--done`, `--shadow-card`/`--shadow-nav` → `--shadow-sm`/`--shadow`/`--shadow-lg`, radius `--r-xs` à `--r-xl` + `--r-pill`, `--glass-modal`. Supprimés : `--secondary`, `--info` (violet), `--warn`, `--radius-*`.
+- **Thème** : sombre = `:root` sans classe, clair = `body.light-mode` (charte). Avant : clair par défaut + `body.dark-mode`. `toggleDark()` bascule désormais `light-mode` ; la clé `budgetLC_dark` garde le même sens (`'false'` = clair choisi), donc aucun réglage perdu.
+- **Profil Lisa** : `body.profil-lisa` bascule `--accent`/`--accent-rgb`/`--accent-dark` (tous les dérivés suivent).
+
+**Couleurs** — seules couleurs hors charte conservées : `--cat-depenses` (orange) et `--cat-provisions` (jaune), réservées aux catégories (jauges de Répartition via `.fill-charges/-depenses/-provisions/-reste`, jauges d'objectifs de provisions). Retirées : dégradés orange/rose des cartes Fixes et Bilan annuel, violet du hero, `#5856D6` du bouton de sauvegarde (→ accent), orange du bouton « Forcer le rechargement » (→ neutre `.bg-neutral`), du montant Mixte et du bouton Annuler (→ accent). Point de synchro « en cours » : `--gold`. Les jauges d'objectifs passent d'orange à jaune (couleur de la catégorie Provisions).
+
+**Composants**
+- **Cards** bordées (`--border`), `--r-lg`, `--shadow-sm` ; carte repliée sans filet ni vide sous le titre.
+- **Carte hero** (« Reste à vivre », « Total à diviser », « Total Dépenses ») : dégradé `--card-2` → `--card`, titre en eyebrow, chiffre 34 px en `--accent`.
+- **Titres de page** : 24 px (étaient au style navigateur, 32 px). Classes `.header-title-group`, `.header-actions`, `.btn-icon` **enfin définies** : elles étaient utilisées dans le HTML depuis longtemps sans aucune règle CSS (bouton 🗑️ « Supprimer le mois » brut de 19 px de haut).
+- **Zones tactiles ≥ 44 px** : ✕ supprimer une ligne, moyen de paiement, ±5 € du mode Mixte, date/catégorie, montants, pastilles de mois, en-têtes d'année et de carte, petits boutons, champs de revenus. Les lignes de dépenses sont donc plus hautes qu'avant (conséquence voulue de la charte §6.4). Carte revenus resserrée pour compenser.
+- **Bouton thème** : cercle 38 px (charte §5.7), toujours dans l'en-tête.
+- **Toast** : `--card-2`, pilule, bordure, suit le thème ; bouton Annuler en accent, 44 px.
+- **Modales en bottom-sheet** (charte §5.9) : `.overlay-popup` ancrée en bas, voile `rgba(0,0,0,0.6)`, `--glass-modal` + flou, coins `--r-xl` en haut, marge safe-area en bas, entrée en glissé 0,28 s (coupée en mouvement réduit).
+- **`alert()`/`confirm()` remplacés** par `dialogue({ titre, texte, ok, annuler, danger })` → `Promise<boolean>` (`app.js`, juste avant `autoResize`), rendu dans `#dialogue` (bottom-sheet, `index.html`, hors de `<main>`). Concerne : supprimer le mois, vider la corbeille, restaurer une ligne sans mois actif, sauvegarde mail, import .json. Tap sur le fond = Annuler. ⚠️ Le code après confirmation est devenu **asynchrone** : l'id du mois à supprimer est figé *avant* l'ouverture de la boîte (`idASupprimer`), l'import valide le fichier *avant* de demander confirmation. Le fond porte `.overlay-popup`, donc `utilisateurOccupe()` le compte comme fenêtre ouverte (pas de rechargement auto pendant une confirmation).
+
+**Styles inline** : ~33 retirés de `index.html` et une quinzaine de `app.js` au profit de classes (`.popup-*`, `.admin-desc`, `.obj-form`, `.corb-row`, `.fix-cat`, `.fix-montant`, `.montant-neg`, `.changelog-item`, `.app-version`…). Restent : le bandeau « Nouvelle version » (commun aux 4 apps, volontairement inline) et 3 petits styles de texte.
+
+**Textes** : titre de l'onglet Réglages aligné sur son nom (« Paramètres » → « Réglages »), quelques majuscules de titres normalisées.
+
+**Vérifié** : Chromium headless 390×844 avec Firebase bouchonné (données fictives) — mois, Répartition, dépenses (dont Mixte), Fixes, Bilan annuel, Réglages, thème clair/sombre, toast + Annuler (ligne restaurée), dialogue de suppression du mois (Annuler = rien supprimé), vidage de corbeille via le dialogue, dialogue d'information, fermeture par tap sur le fond, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+

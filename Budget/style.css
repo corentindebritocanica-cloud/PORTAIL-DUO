@@ -1,225 +1,336 @@
-/* style.css — feuille de style de l'app.
-   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
-        /* =====================================================
-           1. DESIGN TOKENS — Variables CSS globales
-           Alignes sur UX_UI_CHARTER.md (accent unique, semantique
-           partagee avec Muscu/Course/Portail). Les 10 themes
-           decoratifs (Garde-robe) ont ete retires le 18/09/2026.
-        ===================================================== */
-        :root {
-            --primary:       #1f8fff;
-            --primary-light: rgba(31,143,255,0.14);
-            --lisa:          #ff3d7e;
-            --lisa-light:    rgba(255,61,126,0.14);
-            --secondary:     #FF9500;
-            --danger:        #ef4444;
-            --success:       #12b981;
-            --info:          #AF52DE;
-            --warn:          #FFCC00;
+/* style.css — feuille de style de l'app Budget.
+   Extraite de l'ancien <style> de index.html le 20/09/2026.
+   Refonte sur la charte UX/UI (UX_UI_CHARTER.md, v1.3) le 24/09/2026 :
+   tokens renommés comme Muscu, échelle de radius à 5 crans, cards bordées,
+   carte hero sobre, modales en bottom-sheet, zones tactiles >= 44px. */
 
-            --bg-color:      #eef1f5;
-            --card-bg:       #ffffff;
-            --text-main:     #131a23;
-            --text-muted:    #5f6c7c;
-            --border:        rgba(23,38,56,0.11);
+/* =====================================================
+   1. DESIGN TOKENS — identiques à la charte §1, §3, §4, §6.5
+   Thème SOMBRE par défaut ; .light-mode (sur body) = thème clair.
+   ===================================================== */
+:root {
+    /* Fonds */
+    --bg:            #0d1014;
+    --card:          #161b22;
+    --card-2:        #1e2530;
+    /* Bordures neutres */
+    --border:        rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.17);
+    /* Texte */
+    --text:          #e9eff6;
+    --text-dim:      #8a97a8;
 
-            --radius-card:   16px;
-            --radius-input:  10px;
-            --shadow-card:   0 6px 14px rgba(20,30,45,0.08);
-            /* Durees d'animation (charte UX/UI §6.5 / §11.3). L'ancien token
-               --transition (all 0.3s, applique a TOUS les elements via *) a ete
-               retire le 24/09/2026 : chaque element anime desormais ses seules
-               proprietes utiles, uniquement transform/opacity/couleurs. */
-            --t-fast:        .15s;
-            --t-mid:         .22s;
+    /* Identité couple */
+    --corentin:      #1f8fff;
+    --corentin-rgb:  31,143,255;
+    --corentin-dark: #1a5fc4;
+    --lisa:          #ff3d7e;
+    --lisa-rgb:      255,61,126;
+    --lisa-dark:     #c4225f;
 
-            /* Barre d'onglets flottante (meme design que Course, cf. charte 5.5b) */
-            --glass-bar:     rgba(255,255,255,0.84);
-            --shadow-nav:    0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
-            --nav-offset:    max(20px, calc(env(safe-area-inset-bottom) - 12px)); /* ~22px sur iPhone (Course : ~4px) */
-            --tabbar-height: calc(62px + var(--nav-offset));
-        }
+    /* États sémantiques */
+    --done:          #12b981;
+    --danger:        #ef4444;
+    --gold:          #ffb800;
 
-        /* Profil actif (Corentin = defaut, Lisa = accent rose) — cf. charte UX/UI,
-           meme principe que Muscu/Course. Preference par appareil (localStorage),
-           purement visuelle : le compte et les donnees restent partages. */
-        body.profil-lisa {
-            --primary:       var(--lisa);
-            --primary-light: var(--lisa-light);
-        }
+    /* Couleurs de CATÉGORIES (seules couleurs hors charte conservées, car elles
+       portent un sens : Répartition du mois, objectifs de provisions).
+       Charges = --danger, Reste = --done. Ne pas les utiliser en décoration. */
+    --cat-depenses:  #FF9500;
+    --cat-provisions:#FFCC00;
 
-        /* 2. MODE SOMBRE — valeur par defaut de l'app (voir init JS section 10) */
-        body.dark-mode {
-            color-scheme: dark;
-            --bg-color:      #0d1014;
-            --card-bg:       #161b22;
-            --text-main:     #e9eff6;
-            --text-muted:    #8a97a8;
-            --border:        rgba(255,255,255,0.09);
-            --shadow-card:   0 6px 16px rgba(0,0,0,0.30);
-            --glass-bar:     rgba(19,24,31,0.86);
-            --shadow-nav:    0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
-        }
+    /* Accent dynamique (profil) */
+    --accent:        var(--corentin);
+    --accent-rgb:    var(--corentin-rgb);
+    --accent-dark:   var(--corentin-dark);
+    --accent-soft:   rgba(var(--accent-rgb), 0.14);
+    --accent-glow:   rgba(var(--accent-rgb), 0.30);
+    --tint:          rgba(var(--accent-rgb), 0.07);
+    --tint-strong:   rgba(var(--accent-rgb), 0.13);
 
-        /* 3. LAYOUT GLOBAL */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: none; transition: background-color .25s ease, color .25s ease; }
+    /* Surfaces flottantes */
+    --glass-bar:     rgba(19,24,31,0.86);
+    --glass-modal:   rgba(22,27,34,0.95);
 
-        /* 7. ECRAN DE CONNEXION */
-        #login-screen { position: fixed; inset: 0; background: var(--bg-color); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-box { background: var(--card-bg); padding: 40px 30px; border-radius: var(--radius-card); box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        .login-box h1 { margin-bottom: 5px; font-size: 1.8rem; }
-        .login-box p { color: var(--text-muted); margin-bottom: 25px; font-size: 0.9rem; }
-        .login-box input { width: 100%; padding: 15px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); }
-        .login-btn { width: 100%; padding: 15px; border-radius: var(--radius-input); border: none; background: var(--primary); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
-        #login-error { color: var(--danger); font-size: 0.9rem; margin-top: 15px; display: none; }
+    /* Radius (5 crans) */
+    --r-xs: 4px;  --r-sm: 10px;  --r-md: 14px;  --r-lg: 18px;  --r-xl: 22px;  --r-pill: 999px;
 
-        /* 8. BARRE DE NAVIGATION HAUTE */
-        .top-nav { background-color: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px; padding-top: calc(23px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-card); }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .nav-header h2 { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .btn-theme { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-main); }
-        
-        /* Barre d'onglets flottante « pilule » (meme design que Course — charte 5.5b).
-           Fixe en bas, PAR-DESSUS le contenu. Le conteneur laisse passer les touches
-           (pointer-events:none), seule la pilule les capte. Le nav garde la classe
-           .tab-buttons : le JS de navigation (delegation de clic) est inchange. */
-        .tabbar-flottante { position: fixed; left: 14px; right: 14px; bottom: var(--nav-offset); z-index: 150; display: flex; pointer-events: none; }
-        .tab-buttons { pointer-events: auto; flex: 1; min-width: 0; display: flex; gap: 4px; height: 62px; padding: 5px; border-radius: 999px;
-            background: var(--glass-bar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
-            border: 1px solid var(--border); box-shadow: var(--shadow-nav); }
-        .btn-tab { flex: 1; min-width: 0; padding: 0; border: none; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-            font-size: 11px; font-weight: 600; white-space: nowrap;
-            transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease-out; }
-        .btn-tab:active { transform: scale(0.97); }
-        .btn-tab.active { background: var(--primary-light); color: var(--primary); }
-        .btn-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
+    /* Ombres */
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow:    0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
 
-        /* 9. LISTE DES MOIS (SIDEBAR) */
-        .year-group { margin-bottom: 8px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-        .year-header { padding: 12px 15px; background: var(--border); font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; font-size: 0.9rem; }
-        .year-header::after { content: '▼'; font-size: 0.6rem; transition: transform var(--t-mid) ease-out; }
-        .year-header.collapsed::after { transform: rotate(-90deg); }
-        .month-sublist { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
-        .month-sublist.hidden { display: none; }
-        .month-pill { padding: 12px; background: var(--card-bg); border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border);
-            transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease; }
-        .month-pill.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    /* Durées (charte §6.5 / §11.3) */
+    --t-fast: .15s;
+    --t-mid:  .22s;
 
-        /* 10. CONTENU PRINCIPAL */
-        .main-content { flex: 1; padding: 15px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: calc(var(--tabbar-height) + 24px); }
-        .hidden { display: none !important; }
+    --f-body: -apple-system, BlinkMacSystemFont, "Roboto", "Segoe UI", sans-serif;
 
-        /* 11. FORMULAIRES & INPUTS */
-        input, select, textarea { font-size: 16px !important; outline: none; background: transparent; color: var(--text-main); border: none; }
-        input[type="number"] { background: var(--bg-color); border-radius: 6px; padding: 4px; }
-        .search-container input { width: 100%; padding: 12px 15px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--card-bg); font-size: 1rem; margin-bottom: 15px; }
+    /* Barre d'onglets flottante (charte §5.5b) */
+    --nav-offset:    max(20px, calc(env(safe-area-inset-bottom) - 12px)); /* ~22px sur iPhone (Course : ~4px) */
+    --tabbar-height: calc(62px + var(--nav-offset));
+}
 
-        /* 12. CARTES ET BOITES */
-        .card { background-color: var(--card-bg); border-radius: var(--radius-card); padding: 15px; box-shadow: var(--shadow-card); margin-bottom: 20px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
-        .card-header h3 { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .card-header::after { content: '▼'; font-size: 0.7rem; color: var(--text-muted); transition: transform var(--t-mid) ease-out; }
-        .card-header.collapsed::after { transform: rotate(-90deg); }
-        .section-content { overflow: hidden; } /* pas de transition : max-height passe de none a 0, non animable (ancienne transition sans effet) */
-        .section-content.collapsed { max-height: 0 !important; }
+/* Profil actif (Corentin = défaut, Lisa = accent rose) — préférence par appareil,
+   purement visuelle : le compte et les données restent partagés. */
+body.profil-lisa {
+    --accent:      var(--lisa);
+    --accent-rgb:  var(--lisa-rgb);
+    --accent-dark: var(--lisa-dark);
+}
 
-        /* 13. LIGNES D'ARTICLES */
-        .item-row { display: flex; align-items: center; background: var(--card-bg); padding: 12px 0; border-bottom: 1px solid var(--border); touch-action: pan-y; }
-        .item-row:last-child { border-bottom: none; }
-        .drag-handle { padding: 10px 10px 10px 0; color: var(--text-muted); cursor: grab; font-size: 1.1rem; touch-action: none; }
-        .item-content { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-        .item-top textarea { flex: 1; font-weight: 600; padding: 0; resize: none; min-height: 24px; overflow: hidden; font-size: 0.95rem; }
-        .item-top input[type="number"] { width: 85px; text-align: right; font-weight: 700; border: none; }
-        .item-bottom { display: flex; gap: 8px; align-items: center; }
-        .item-bottom input[type="date"], .item-bottom select { flex: 1; background: var(--bg-color); font-size: 0.75rem !important; padding: 5px 8px; border-radius: 6px; color: var(--text-muted); }
-        /* Panneau de répartition du mode Mixte (carte/espèces) : boutons ±5€ + chiffre glissable, cf. btn-pay-method */
-        .item-mixte { display: flex; flex-direction: column; gap: 8px; background: var(--bg-color); border-radius: 10px; padding: 12px 10px; touch-action: none; }
-        .mixte-label { text-align: center; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
-        .mixte-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
-        .mixte-btn { width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 1.1rem; font-weight: 700; cursor: pointer; line-height: 1; }
-        .mixte-scrub { min-width: 80px; text-align: center; touch-action: none; cursor: ns-resize; user-select: none; }
-        .mixte-value { font-size: 1.3rem; font-weight: 800; color: var(--secondary); line-height: 1; }
-        .mixte-hint { text-align: center; font-size: 0.65rem; color: var(--text-muted); margin-top: -2px; }
-        .mixte-recap { display: flex; flex-direction: column; gap: 5px; padding-top: 10px; border-top: 1px dashed var(--border); }
-        .mixte-recap-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
-        .mixte-recap-row span:last-child { color: var(--text-main); font-weight: 800; font-size: 0.8rem; }
-        .btn-delete { color: var(--danger); background: none; border: none; font-size: 1.2rem; padding: 0 5px 0 15px; cursor: pointer; }
+/* 2. THÈME CLAIR (charte §1) */
+body.light-mode {
+    color-scheme: light;
+    --bg:            #eef1f5;
+    --card:          #ffffff;
+    --card-2:        #e7ecf2;
+    --border:        rgba(23,38,56,0.11);
+    --border-strong: rgba(23,38,56,0.20);
+    --tint:          rgba(var(--accent-rgb), 0.06);
+    --tint-strong:   rgba(var(--accent-rgb), 0.10);
+    --text:          #131a23;
+    --text-dim:      #5f6c7c;
+    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
+    --shadow:    0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
+    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+    --glass-bar:     rgba(255,255,255,0.84);
+    --glass-modal:   rgba(255,255,255,0.95);
+}
 
-        /* 14. BOUTONS D'ACTION */
-        .btn-action { padding: 14px; color: white; border-radius: var(--radius-input); font-weight: 700; font-size: 1rem; cursor: pointer; border: none; width: 100%; margin-bottom: 10px; }
-        .bg-primary { background: var(--primary); } 
-        .bg-danger  { background: var(--danger); }
-        .btn-small { padding: 6px 12px; border-radius: 8px; border: none; background: var(--bg-color); color: var(--text-main); font-weight: 600; cursor:pointer;}
-        .btn-pay-method { background: var(--bg-color); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.9rem; cursor: pointer; margin-left: 5px; }
+/* 3. LAYOUT GLOBAL (charte §6.2) */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--f-body); -webkit-tap-highlight-color: transparent; }
+body { background-color: var(--bg); color: var(--text); color-scheme: dark; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; -webkit-overflow-scrolling: touch; overscroll-behavior: none; transition: background-color .25s ease, color .25s ease; }
+button { font-family: inherit; color: inherit; }
+.hidden { display: none !important; }
+.txt-dim { color: var(--text-dim); }
 
-        /* 15. RÉSUMÉS ET CHIFFRES CLÉS */
-        .summary-card { background: linear-gradient(135deg, var(--primary), var(--info)); color: white; text-align: center; border-radius: var(--radius-card); padding: 25px 15px; }
-        .total-amount { font-size: 2.4rem; font-weight: 800; margin: 5px 0; letter-spacing: -1px; }
-        .sub-text { font-size: 0.85rem; opacity: 0.9; }
+/* Titres de page (« Septembre 2026 », « Bilan Annuel »…) — échelle charte §2 */
+main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
+.header-title-group { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 16px; }
+.header-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.page-title { margin-bottom: 16px; }
+.view-intro { color: var(--text-dim); font-size: 13.5px; line-height: 1.4; margin: -8px 0 16px; }
 
-        /* 16. REVENUS BOX */
-        .revenus-box { background: var(--card-bg); padding: 15px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .revenus-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .revenus-row:not(:last-child) { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
-        /* Début d'un nouveau groupe logique (reportés / à ajouter / ajouts en cours) : séparation plus marquée qu'entre 2 lignes d'un même groupe */
-        .revenus-row.revenus-group-start { margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border); }
-        .revenus-row strong { font-size: 0.8rem; flex: 1; padding-right: 10px; }
-        .revenus-box input { width: 100px; text-align: right; border: 1px solid var(--border); padding: 6px; border-radius: 8px; font-weight: bold; color: var(--primary); }
-        /* Champs en lecture seule (reports Revolut/Espèces) : non interactifs, visuellement neutres pour ne pas les confondre avec les champs éditables. */
-        .revenus-box input[readonly] { color: var(--text-muted); background: var(--bg-color); border-style: dashed; cursor: default; }
+/* Bouton icône rond (ex. 🗑️ supprimer le mois) — zone tactile 44px */
+.btn-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-size: 17px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-icon:active { transform: scale(0.97); }
+.btn-icon.danger { border-color: rgba(239,68,68,0.35); }
 
-        /* 17. BARRES DE PROGRESSION */
-        .progress-container { margin-bottom: 12px; }
-        .progress-header { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; }
-        .progress-track { background: var(--border); border-radius: 10px; height: 8px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); transform-origin: left center; transition: transform .3s ease-out; }
-        /* Jauges du mois (#bar-*-m) : pilotees par transform:scaleX() depuis app.js
-           (GPU, charte §11.3) au lieu de width. Les jauges d'objectifs (sans id)
-           restent en width inline, statiques. */
-        .progress-fill[id^="bar-"] { width: 100%; transform: scaleX(0); }
+/* 4. ÉCRAN DE CONNEXION */
+#login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-box { background: var(--card); border: 1px solid var(--border); padding: 36px 26px; border-radius: var(--r-xl); box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; }
+.login-box h1 { margin-bottom: 6px; font-size: 24px; font-weight: 700; }
+.login-box p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
+.login-box input { width: 100%; min-height: 48px; padding: 12px 15px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card-2); margin-bottom: 12px; color: var(--text); }
+.login-btn { width: 100%; min-height: 48px; padding: 14px; border-radius: var(--r-md); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.login-btn:active { transform: scale(0.97); }
+#login-error { color: var(--danger); font-size: 13.5px; margin-top: 15px; display: none; }
 
-        /* 18. BULLES FLOTTANTES */
+/* 5. EN-TÊTE (liste des mois) */
+.top-nav { background-color: var(--card); border-bottom: 1px solid var(--border); padding: 15px; padding-top: calc(23px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm); }
+.nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.nav-header h2 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+/* Bascule thème — composant charte §5.7 (cercle 38px), placé dans l'en-tête */
+.btn-theme { width: 38px; height: 38px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-theme:active { transform: scale(0.97); }
 
-        /* 20. POPUPS ET MODALES */
-        .overlay-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .popup-box { background: var(--card-bg); padding: 25px; border-radius: 20px; text-align: center; max-width: 90%; width: 380px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+/* Barre d'onglets flottante « pilule » (charte §5.5b). Fixe en bas, PAR-DESSUS
+   le contenu. Le conteneur laisse passer les touches (pointer-events:none), seule
+   la pilule les capte. Le nav garde la classe .tab-buttons (JS inchangé). */
+.tabbar-flottante { position: fixed; left: 14px; right: 14px; bottom: var(--nav-offset); z-index: 150; display: flex; pointer-events: none; }
+.tab-buttons { pointer-events: auto; flex: 1; min-width: 0; display: flex; gap: 4px; height: 62px; padding: 5px; border-radius: var(--r-pill);
+    background: var(--glass-bar); -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid var(--border); box-shadow: var(--shadow); }
+.btn-tab { flex: 1; min-width: 0; padding: 0; border: none; border-radius: var(--r-pill); background: transparent; color: var(--text-dim); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease-out; }
+.btn-tab:active { transform: scale(0.97); }
+.btn-tab.active { background: var(--accent-soft); color: var(--accent); }
+.btn-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-        /* 21. INDICATEUR SYNC */
-        .status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: var(--success); display: inline-block; margin-left: 5px; }
-        .status-dot.offline { background-color: var(--danger); }
-        .status-dot.saving  { background-color: var(--secondary); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+/* 6. LISTE DES MOIS */
+.year-group { margin-bottom: 8px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+.year-header { min-height: 44px; padding: 12px 15px; background: var(--card-2); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.year-header::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform var(--t-mid) ease-out; }
+.year-header.collapsed::after { transform: rotate(-90deg); }
+.month-sublist { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
+.month-sublist.hidden { display: none; }
+.month-pill { min-height: 44px; display: flex; align-items: center; padding: 10px 12px; background: var(--card); border-radius: var(--r-sm); font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid var(--border);
+    transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease; }
+.month-pill.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
-        /* 22. RESPONSIVE DESKTOP ET ADMIN */
-        .admin-section { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+/* 7. CONTENU PRINCIPAL */
+.main-content { flex: 1; padding: 15px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: calc(var(--tabbar-height) + 24px); }
 
-        /* Selecteur de profil Corentin/Lisa (charte UX/UI) */
-        .profile-switch { display:flex; gap:8px; padding:5px; margin-top:8px; background:var(--bg-color); border:1px solid var(--border); border-radius:var(--radius-input); }
-        .profile-switch-btn { flex:1; padding:11px 8px; border-radius:8px; border:1px solid transparent; background:transparent; color:var(--text-muted); font-size:14.5px; font-weight:700; font-family:inherit; cursor:pointer; }
-        .profile-switch-btn.corentin.selected { background:rgba(31,143,255,0.14); border-color:#1f8fff; color:#1f8fff; }
-        .profile-switch-btn.lisa.selected { background:var(--lisa-light); border-color:var(--lisa); color:var(--lisa); }
+/* 8. FORMULAIRES & CHAMPS (16px minimum : pas de zoom automatique sur iOS) */
+input, select, textarea { font-size: 16px !important; outline: none; background: transparent; color: var(--text); border: none; }
+input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); padding: 4px 8px; }
+.search-container input { width: 100%; min-height: 44px; padding: 10px 15px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); margin-bottom: 15px; }
+.select-annee { min-height: 44px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--border); font-weight: 700; }
 
+/* 9. CARDS (charte §5.1) */
+.card { background-color: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+.card-header { min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.card-header h3 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card-header::after { content: '▼'; font-size: 11px; color: var(--text-dim); transition: transform var(--t-mid) ease-out; }
+.card-header.collapsed::after { transform: rotate(-90deg); }
+.card-header.collapsed { margin-bottom: 0; padding-bottom: 0; border-bottom-color: transparent; } /* carte repliée : pas de filet ni de vide sous le titre */
+.section-content { overflow: hidden; } /* pas de transition : max-height passe de none à 0, non animable */
+.section-content.collapsed { max-height: 0 !important; }
 
-        @media (min-width: 768px) {
-            body { flex-direction: row; }
-            .top-nav { width: 280px; height: 100vh; position: sticky; padding: 25px; border-bottom: none; border-right: 1px solid var(--border); }
-            .main-content { padding: 40px 40px calc(var(--tabbar-height) + 40px); }
-            .tabbar-flottante { left: 50%; right: auto; width: min(520px, calc(100% - 28px)); transform: translateX(-50%); }
-        }
-        
-        /* TOAST */
-        /* Anime en transform/opacity (charte §11.3/§11.4) : plus d'animation de `bottom`.
-           Entree ease-out depuis 16px plus bas, sortie ease-in. Invisible et non
-           cliquable tant qu'il n'a pas la classe .show. */
-        #toast { position: fixed; bottom: calc(var(--tabbar-height) + 12px); left: 50%; transform: translate(-50%, 16px) scale(.96); opacity: 0; visibility: hidden; pointer-events: none; background: #333; color: white; padding: 12px 20px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 15px; white-space: nowrap; transition: opacity .18s ease-in, transform .18s ease-in, visibility 0s linear .18s; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        #toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .25s ease-out, transform .25s cubic-bezier(.32,.72,.3,1), visibility 0s; }
-        #btn-undo { background: var(--secondary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+/* 10. LIGNES D'ARTICLES */
+.item-row { display: flex; align-items: center; background: var(--card); padding: 10px 0; border-bottom: 1px solid var(--border); touch-action: pan-y; }
+.item-row:last-child { border-bottom: none; }
+.drag-handle { min-height: 44px; display: flex; align-items: center; padding: 0 10px 0 0; color: var(--text-dim); cursor: grab; font-size: 17px; touch-action: none; }
+.item-content { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.item-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.item-top textarea { flex: 1; font-weight: 600; padding: 0; resize: none; min-height: 24px; overflow: hidden; font-size: 15px; }
+.item-montant { display: flex; align-items: center; gap: 6px; }
+.item-top input[type="number"] { width: 90px; min-height: 44px; text-align: right; font-weight: 700; border: none; }
+.item-bottom { display: flex; gap: 8px; align-items: center; }
+.item-bottom input[type="date"], .item-bottom select { flex: 1; min-width: 0; min-height: 44px; background: var(--card-2); font-size: 13px !important; padding: 6px 10px; border-radius: var(--r-sm); color: var(--text-dim); }
+/* Onglet Fixes (ligne minimaliste) */
+.fix-content { flex-direction: row; align-items: center; justify-content: space-between; }
+.fix-cat { flex: 1; min-width: 0; min-height: 44px; font-weight: 600; background: none; border: none; padding: 0; }
+.fix-montant { width: 90px; min-height: 44px; text-align: right; font-weight: 700; }
+.montant-neg { color: var(--danger) !important; }
 
-        /* ACCESSIBILITE — mouvement reduit (charte §11.9) */
-        @media (prefers-reduced-motion: reduce) {
-            body, .btn-tab, .month-pill, .year-header::after, .card-header::after, .progress-fill, #toast { transition: none !important; }
-            .status-dot.saving { animation: none; opacity: .6; }
-        }
+/* Panneau de répartition du mode Mixte (carte/espèces) : boutons ±5€ + chiffre glissable */
+.item-mixte { display: flex; flex-direction: column; gap: 8px; background: var(--card-2); border-radius: var(--r-md); padding: 12px 10px; touch-action: none; }
+.mixte-label { text-align: center; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-dim); }
+.mixte-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.mixte-btn { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1; transition: transform var(--t-fast) ease-out; }
+.mixte-btn:active { transform: scale(0.97); }
+.mixte-scrub { min-width: 80px; text-align: center; touch-action: none; cursor: ns-resize; user-select: none; }
+.mixte-value { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; font-variant-numeric: tabular-nums; }
+.mixte-hint { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: -2px; }
+.mixte-recap { display: flex; flex-direction: column; gap: 5px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.mixte-recap-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-dim); font-weight: 600; }
+.mixte-recap-row span:last-child { color: var(--text); font-weight: 800; font-size: 13px; }
+/* Boutons de ligne — zones tactiles 44px (charte §6.4) */
+.btn-delete { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; color: var(--danger); background: none; border: none; font-size: 17px; margin-left: 4px; cursor: pointer; border-radius: var(--r-sm); }
+.btn-delete:active { background: rgba(239,68,68,0.12); }
+.btn-pay-method { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 17px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-pay-method:active { transform: scale(0.97); }
+
+/* 11. BOUTONS D'ACTION (charte §5.3 / §5.4) */
+.btn-action { min-height: 48px; padding: 14px; color: #fff; border-radius: var(--r-md); font-weight: 700; font-size: 15px; cursor: pointer; border: none; width: 100%; margin-bottom: 10px; transition: transform var(--t-fast) ease-out; }
+.btn-action:active { transform: scale(0.97); }
+.card .btn-action { margin: 12px 0 0; }
+.bg-primary { background: var(--accent); color: #fff; }
+.bg-danger  { background: var(--danger); color: #fff; }
+.bg-neutral { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+.btn-small { min-height: 44px; padding: 10px 16px; border-radius: var(--r-sm); border: none; background: var(--card-2); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-small:active { transform: scale(0.97); }
+.btn-small.bg-primary { background: var(--accent); color: #fff; }
+
+/* 12. CARTE HERO « Reste à vivre » / « Total à diviser » / « Total Dépenses » (charte §5.2)
+   Sobre : dégradé --card-2 → --card, l'accent n'est porté que par le chiffre. */
+.summary-card { background: linear-gradient(140deg, var(--card-2), var(--card) 55%); color: var(--text); text-align: center; padding: 18px 16px 20px; }
+.summary-card h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-dim); }
+.total-amount { font-size: 34px; font-weight: 700; margin: 6px 0 4px; letter-spacing: -0.5px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.sub-text { font-size: 13.5px; color: var(--text-dim); }
+.sub-text + .sub-text { margin-top: 2px; }
+.sub-text.strong { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 6px; }
+
+/* 13. REVENUS */
+.revenus-box { background: var(--card); padding: 8px 16px; border-radius: var(--r-lg); display: flex; flex-direction: column; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.revenus-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 0; }
+.revenus-row:not(:last-child) { border-bottom: 1px dashed var(--border); }
+/* Début d'un nouveau groupe logique (reportés / à ajouter / ajouts en cours) */
+.revenus-row.revenus-group-start { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
+.revenus-row strong { font-size: 13.5px; font-weight: 600; flex: 1; padding-right: 10px; }
+.revenus-box input { width: 110px; min-height: 44px; text-align: right; border: 1px solid var(--border); padding: 6px 10px; border-radius: var(--r-sm); font-weight: 700; color: var(--accent); }
+/* Champs en lecture seule (reports Revolut/Espèces) : non interactifs, visuellement neutres. */
+.revenus-box input[readonly] { color: var(--text-dim); background: var(--card-2); border-style: dashed; cursor: default; }
+
+/* 14. BARRES DE PROGRESSION */
+.progress-container { margin-bottom: 12px; }
+.progress-header { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.progress-track { background: var(--card-2); border-radius: var(--r-xs); height: 8px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transform-origin: left center; transition: transform .3s ease-out; }
+/* Jauges du mois (#bar-*-m) : pilotées par transform:scaleX() depuis app.js (charte §11.3).
+   Les jauges d'objectifs (sans id) restent en width inline, statiques. */
+.progress-fill[id^="bar-"] { width: 100%; transform: scaleX(0); }
+.fill-charges    { background: var(--danger); }
+.fill-depenses   { background: var(--cat-depenses); }
+.fill-provisions { background: var(--cat-provisions); }
+.fill-reste      { background: var(--done); }
+.obj-bloc { margin-top: 18px; }
+
+/* 15. MODALES — bottom-sheet (charte §5.9) */
+.overlay-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: flex-end; justify-content: center; animation: fondIn .22s ease-out; }
+.popup-box { width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto; background: var(--glass-modal); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--border); border-bottom: none; border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-lg);
+    padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); text-align: center; animation: feuilleIn .28s cubic-bezier(.32,.72,.3,1); }
+.popup-box h3 { font-size: 19px; font-weight: 700; }
+.popup-box .btn-action { margin: 0; }
+.popup-icon { font-size: 40px; line-height: 1; margin-bottom: 10px; }
+.popup-text { color: var(--text-dim); font-size: 14px; line-height: 1.45; margin: 10px 0 20px; }
+.popup-scroll { display: flex; flex-direction: column; }
+.popup-scroll h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.popup-scroll .popup-text { margin: 4px 0 14px; }
+#changelog-content { flex: 1; overflow-y: auto; text-align: left; font-size: 14.5px; margin-bottom: 18px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 0; }
+.changelog-item { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.changelog-item:last-child { border-bottom: none; }
+/* Boîte de dialogue maison (remplace alert()/confirm() natifs de Safari) */
+.dialogue-actions { display: flex; gap: 10px; }
+.dialogue-actions .btn-action { flex: 1; }
+@keyframes fondIn   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes feuilleIn{ from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* 16. INDICATEUR SYNC */
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: var(--done); display: inline-block; margin-left: 5px; }
+.status-dot.offline { background-color: var(--danger); }
+.status-dot.saving  { background-color: var(--gold); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+/* 17. RÉGLAGES */
+.admin-section { background: var(--card); padding: 16px; border-radius: var(--r-lg); margin-bottom: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.admin-section h3 { font-size: 17px; font-weight: 700; }
+.admin-section h3.danger { color: var(--danger); }
+.admin-section .btn-action { margin-bottom: 0; }
+#btn-vider-corbeille { margin-top: 12px; }
+.admin-desc { font-size: 13.5px; color: var(--text-dim); line-height: 1.4; margin: 6px 0 12px; }
+.admin-desc.strong { color: var(--text); font-weight: 700; }
+.admin-file { margin-top: 4px; font-size: 14px !important; width: 100%; }
+.obj-form { display: flex; gap: 8px; margin-top: 10px; }
+.obj-form input { min-width: 0; min-height: 44px; border: 1px solid var(--border); padding: 10px; border-radius: var(--r-sm); background: var(--card-2); }
+.obj-form input[type="text"] { flex: 1; }
+.obj-form input[type="number"] { width: 80px; }
+.obj-pill { justify-content: space-between; margin-bottom: 6px; }
+.corb-row { font-size: 13.5px; border-bottom: 1px solid var(--border); padding: 6px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.corb-vide { font-size: 13.5px; }
+.app-version { text-align: right; color: var(--text-dim); font-size: 13px; margin-top: 30px; font-weight: 700; padding-bottom: 20px; }
+.app-version span { font-weight: 400; }
+
+/* Sélecteur de profil Corentin/Lisa (charte §5.6) */
+.profile-switch { display: flex; gap: 8px; padding: 5px; margin-top: 2px; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.profile-switch-btn { flex: 1; padding: 11px 8px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; color: var(--text-dim); font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.profile-switch-btn.corentin.selected { background: rgba(31,143,255,0.14); border-color: var(--corentin); color: var(--corentin); }
+.profile-switch-btn.lisa.selected { background: rgba(255,61,126,0.14); border-color: var(--lisa); color: var(--lisa); }
+
+@media (min-width: 768px) {
+    body { flex-direction: row; }
+    .top-nav { width: 280px; height: 100vh; position: sticky; padding: 25px; border-bottom: none; border-right: 1px solid var(--border); }
+    .main-content { padding: 40px 40px calc(var(--tabbar-height) + 40px); }
+    .tabbar-flottante { left: 50%; right: auto; width: min(520px, calc(100% - 28px)); transform: translateX(-50%); }
+}
+
+/* 18. TOAST « Ligne supprimée — Annuler » (charte §5.8, animé en transform/opacity §11.3) */
+#toast { position: fixed; bottom: calc(var(--tabbar-height) + 12px); left: 50%; transform: translate(-50%, 16px) scale(.96); opacity: 0; visibility: hidden; pointer-events: none;
+    background: var(--card-2); color: var(--text); border: 1px solid var(--border); padding: 4px 4px 4px 18px; border-radius: var(--r-pill); font-size: 13.5px; font-weight: 600;
+    display: flex; align-items: center; gap: 12px; white-space: nowrap; box-shadow: var(--shadow-sm); z-index: 1000;
+    transition: opacity .18s ease-in, transform .18s ease-in, visibility 0s linear .18s; }
+#toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .25s ease-out, transform .25s cubic-bezier(.32,.72,.3,1), visibility 0s; }
+#btn-undo { min-height: 44px; background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: var(--r-pill); font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* ACCESSIBILITÉ — mouvement réduit (charte §11.9) */
+@media (prefers-reduced-motion: reduce) {
+    body, .btn-tab, .month-pill, .year-header::after, .card-header::after, .progress-fill, #toast,
+    .btn-action, .btn-small, .btn-icon, .btn-theme, .btn-pay-method, .mixte-btn, .login-btn { transition: none !important; }
+    .overlay-popup, .popup-box { animation: none !important; }
+    .status-dot.saving { animation: none; opacity: .6; }
+}

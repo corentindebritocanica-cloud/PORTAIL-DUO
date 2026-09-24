@@ -42,27 +42,27 @@
 
     <div id="offline-popup" class="overlay-popup hidden">
         <div class="popup-box">
-            <h2 style="color:var(--danger); font-size:3rem; margin-bottom:10px;">📡</h2>
-            <h3>Connexion Perdue</h3>
-            <p style="color:var(--text-muted); margin: 15px 0;">Les modifications ne seront pas enregistrées tant que vous n'êtes pas reconnectés.</p>
+            <div class="popup-icon">📡</div>
+            <h3>Connexion perdue</h3>
+            <p class="popup-text">Les modifications ne seront pas enregistrées tant que vous n'êtes pas reconnectés.</p>
             <button class="btn-action bg-primary" onclick="this.parentElement.parentElement.classList.add('hidden')">Continuer en lecture seule</button>
         </div>
     </div>
 
     <div id="changelog-popup" class="overlay-popup hidden">
-        <div class="popup-box" style="width: 90%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column;">
-            <h2 style="font-size:1.5rem; margin-bottom:5px;">🔔 Nouveautés</h2>
-            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px; line-height:1.4;">Modifications effectuées depuis votre dernière visite :</p>
-            <div id="changelog-content" style="flex:1; overflow-y:auto; text-align:left; font-size:0.95rem; margin-bottom:20px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding: 10px 0;">
+        <div class="popup-box popup-scroll">
+            <h2>🔔 Nouveautés</h2>
+            <p class="popup-text">Modifications effectuées depuis votre dernière visite :</p>
+            <div id="changelog-content">
                 </div>
-            <button class="btn-action bg-primary" id="btn-close-changelog" style="margin-bottom:0;">J'ai compris</button>
+            <button class="btn-action bg-primary" id="btn-close-changelog">J'ai compris</button>
         </div>
     </div>
 
     <nav class="top-nav">
         <div class="nav-header">
             <h2>Budget <span id="sync-dot" class="status-dot"></span></h2>
-            <button class="btn-theme" id="btn-toggle-dark">☀️</button>
+            <button class="btn-theme" id="btn-toggle-dark" aria-label="Changer de thème">🌙</button>
         </div>
         <div id="month-nav-group">
             <div id="month-list"></div>
@@ -98,7 +98,7 @@
             <div class="header-title-group">
                 <h1 id="titre-mois">Chargement...</h1>
                 <div class="header-actions">
-                    <button class="btn-icon danger" id="btn-del-month" title="Supprimer le mois">🗑️</button>
+                    <button class="btn-icon danger" id="btn-del-month" title="Supprimer le mois" aria-label="Supprimer le mois">🗑️</button>
                 </div>
             </div>
 
@@ -121,10 +121,10 @@
                 <div class="card">
                     <div class="card-header collapsed" data-target="repartition-m"><h3>📊 Répartition</h3></div>
                     <div id="repartition-m" class="section-content collapsed">
-                        <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--danger);" id="bar-charges-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--secondary);" id="bar-depenses-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>🛡️ Provisions</span><span id="pct-provisions-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--warn);" id="bar-provisions-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>✅ Reste</span><span id="pct-reste-m">0%</span></div><div class="progress-track"><div class="progress-fill" style="background:var(--success);" id="bar-reste-m"></div></div></div>
+                        <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-charges" id="bar-charges-m"></div></div></div>
+                        <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-depenses" id="bar-depenses-m"></div></div></div>
+                        <div class="progress-container"><div class="progress-header"><span>🛡️ Provisions</span><span id="pct-provisions-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-provisions" id="bar-provisions-m"></div></div></div>
+                        <div class="progress-container"><div class="progress-header"><span>✅ Reste</span><span id="pct-reste-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-reste" id="bar-reste-m"></div></div></div>
                     </div>
                 </div>
 
@@ -149,27 +149,27 @@
         </div>
 
         <div id="vue-fixes" class="hidden">
-            <h1>Charges Fixes Mensuelles</h1>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:15px;">Cet onglet vous aide à calculer le montant à virer sur le compte commun chaque mois.</p>
+            <h1 class="page-title">Charges fixes mensuelles</h1>
+            <p class="view-intro">Cet onglet vous aide à calculer le montant à virer sur le compte commun chaque mois.</p>
             
-            <div class="card summary-card" style="background: linear-gradient(135deg, var(--secondary), var(--warn));">
+            <div class="card summary-card">
                 <h3>Total à diviser</h3>
                 <div class="total-amount" id="total-fixes-calcul">0 €</div>
-                <div class="sub-text" style="font-weight:bold; font-size:1.1rem; margin-top:5px;">Soit <span id="part-individuelle">0</span> € par personne</div>
+                <div class="sub-text strong">Soit <span id="part-individuelle">0</span> € par personne</div>
             </div>
 
             <div class="card">
                 <div id="conteneur-fixes"></div>
-                <button class="btn-action bg-primary" data-add="fixes" style="margin-top:15px;">+ Ajouter une charge fixe</button>
+                <button class="btn-action bg-primary" data-add="fixes">+ Ajouter une charge fixe</button>
             </div>
         </div>
 
         <div id="vue-annuelle" class="hidden">
             <div class="header-title-group">
                 <h1>Bilan Annuel</h1>
-                <select id="select-annee" style="padding:8px; border-radius:8px; background:var(--card-bg); font-weight:bold;"></select>
+                <select id="select-annee" class="select-annee"></select>
             </div>
-            <div class="card summary-card" style="background: linear-gradient(135deg, #FF9500, #FF2D55);">
+            <div class="card summary-card">
                 <h3>Total Dépenses</h3>
                 <div class="total-amount" id="annuel-total-depenses">0 €</div>
                 <div class="sub-text">Courses + charges fixes</div>
@@ -180,28 +180,28 @@
         </div>
 
         <div id="vue-admin" class="hidden">
-            <h1 style="margin-bottom: 20px;">Paramètres</h1>
+            <h1 class="page-title">Réglages</h1>
             
             <div class="admin-section">
                 <h3>🔄 Outils Système</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Forcer la mise à jour de l'application (vide le cache de la page).</p>
-                <button class="btn-action" style="background:var(--secondary); margin-bottom: 0;" onclick="window.location.reload(true)">Forcer le rechargement</button>
+                <p class="admin-desc">Forcer la mise à jour de l'application (vide le cache de la page).</p>
+                <button class="btn-action bg-neutral" onclick="window.location.reload(true)">Forcer le rechargement</button>
             </div>
 
             <div class="admin-section">
                 <h3>🎯 Budgets de Provisions (Annuel)</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Créez des objectifs. Le bilan calculera les lignes dont la catégorie contient le mot-clé.</p>
+                <p class="admin-desc">Créez des objectifs. Le bilan calculera les lignes dont la catégorie contient le mot-clé.</p>
                 <div id="admin-objectifs"></div>
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <input type="text" id="new-obj-nom" placeholder="Mot-clé" style="flex:1; border:1px solid var(--border); padding:10px; border-radius:8px; min-width:0;">
-                    <input type="number" id="new-obj-mnt" placeholder="€" style="width:70px; border:1px solid var(--border); padding:10px; border-radius:8px; min-width:0;">
-                    <button class="btn-small bg-primary" id="btn-add-obj" style="color:white; padding:10px 20px;">Ajouter</button>
+                <div class="obj-form">
+                    <input type="text" id="new-obj-nom" placeholder="Mot-clé">
+                    <input type="number" id="new-obj-mnt" placeholder="€">
+                    <button class="btn-small bg-primary" id="btn-add-obj">Ajouter</button>
                 </div>
             </div>
 
             <div class="admin-section">
                 <h3>👤 Profil</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Qui utilise l'app sur cet appareil ? Change juste la couleur d'accent (bleu/rose), les données restent communes.</p>
+                <p class="admin-desc">Qui utilise l'app sur cet appareil ? Change juste la couleur d'accent (bleu/rose), les données restent communes.</p>
                 <div class="profile-switch">
                     <button type="button" class="profile-switch-btn corentin" id="btn-profil-corentin" data-profil="corentin">Corentin</button>
                     <button type="button" class="profile-switch-btn lisa" id="btn-profil-lisa" data-profil="lisa">Lisa</button>
@@ -210,29 +210,41 @@
 
             <div class="admin-section">
                 <h3>📧 Sauvegarde Automatique</h3>
-                <p style="font-size: 0.9rem; color: var(--text-muted); margin: 10px 0;">Le dimanche à minuit, un e-mail est envoyé automatiquement.</p>
-                <button class="btn-action" id="btn-sauvegarde-mail" style="background:#5856D6; margin-bottom: 0;">✉️ Envoyer fichier .json par mail</button>
+                <p class="admin-desc">Le dimanche à minuit, un e-mail est envoyé automatiquement.</p>
+                <button class="btn-action bg-primary" id="btn-sauvegarde-mail">✉️ Envoyer fichier .json par mail</button>
             </div>
             
             <div class="admin-section">
                 <h3>🗑️ Corbeille (Lignes supprimées)</h3>
                 <div id="admin-corbeille"></div>
-                <button class="btn-action bg-danger" id="btn-vider-corbeille" style="margin-top:15px; font-size:0.9rem; padding:10px; margin-bottom: 0;">Vider définitivement la corbeille</button>
+                <button class="btn-action bg-danger" id="btn-vider-corbeille">Vider définitivement la corbeille</button>
             </div>
 
             <div class="admin-section">
-                <h3 style="color: var(--danger);">⚠️ Restauration Manuelle</h3>
-                <p style="font-size: 0.85rem; margin-top:5px; font-weight:bold;">Écraser les données actuelles avec un .json</p>
-                <input type="file" id="import-json" accept=".json" style="margin-top:10px; font-size: 0.9rem !important; width: 100%;">
+                <h3 class="danger">⚠️ Restauration manuelle</h3>
+                <p class="admin-desc strong">Écraser les données actuelles avec un .json</p>
+                <input type="file" id="import-json" accept=".json" class="admin-file">
             </div>
 
-            <div style="text-align: right; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; font-weight: bold; padding-bottom: 20px;">
+            <div class="app-version">
                 Version 3.5.0 (Nouveautés fiabilisées + mise à jour auto)
-                <br><span id="derniere-maj" style="font-weight:normal;"></span>
+                <br><span id="derniere-maj"></span>
             </div>
         </div>
 
     </main>
+
+    <!-- Boîte de dialogue maison (bottom-sheet) : remplace alert()/confirm() — voir dialogue() dans app.js -->
+    <div id="dialogue" class="overlay-popup hidden" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
+        <div class="popup-box">
+            <h3 id="dialogue-titre"></h3>
+            <p class="popup-text" id="dialogue-texte"></p>
+            <div class="dialogue-actions">
+                <button class="btn-action bg-neutral" id="dialogue-annuler" type="button">Annuler</button>
+                <button class="btn-action bg-primary" id="dialogue-ok" type="button">OK</button>
+            </div>
+        </div>
+    </div>
 
     <div id="toast">Ligne supprimée <button id="btn-undo">Annuler</button></div>
 

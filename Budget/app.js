@@ -122,6 +122,34 @@
             dot.className = 'status-dot ' + (status || '');
         };
 
+        // --- Boîte de dialogue maison (bottom-sheet, charte UX/UI §5.9) — remplace alert()/confirm() de Safari ---
+        // dialogue({ titre, texte, ok, annuler, danger }) → Promise<boolean>.
+        // Sans `annuler` : simple information à un bouton. Tap sur le fond = annuler.
+        // Le fond porte la classe .overlay-popup : la mise à jour auto au retour dans l'app
+        // (utilisateurOccupe) le voit donc comme une fenêtre ouverte et n'interrompt rien.
+        const dialogue = ({ titre = '', texte = '', ok = 'OK', annuler = null, danger = false } = {}) => new Promise((resolve) => {
+            const fond = document.getElementById('dialogue');
+            const bOk = document.getElementById('dialogue-ok');
+            const bAnnuler = document.getElementById('dialogue-annuler');
+            const t = document.getElementById('dialogue-texte');
+            document.getElementById('dialogue-titre').textContent = titre;
+            t.textContent = texte;
+            t.classList.toggle('hidden', !texte);
+            bOk.textContent = ok;
+            bOk.className = 'btn-action ' + (danger ? 'bg-danger' : 'bg-primary');
+            bAnnuler.textContent = annuler || '';
+            bAnnuler.classList.toggle('hidden', !annuler);
+            const fermer = (res) => {
+                fond.classList.add('hidden');
+                bOk.onclick = bAnnuler.onclick = fond.onclick = null;
+                resolve(res);
+            };
+            bOk.onclick = () => fermer(true);
+            bAnnuler.onclick = () => fermer(false);
+            fond.onclick = (e) => { if (e.target === fond) fermer(false); };
+            fond.classList.remove('hidden');
+        });
+
         const autoResize = (el) => {
             el.style.height = '24px';
             el.style.height = el.scrollHeight + 'px';
@@ -164,7 +192,7 @@
         const calculerChangements = (oldData, newData) => {
             const oldItems = extractAllItems(oldData);
             const newItems = extractAllItems(newData);
-            const moisTxt = (it) => `<span style="color:var(--text-muted); font-size:0.8em;">(${esc(it.moisNom)})</span>`;
+            const moisTxt = (it) => `<span class="txt-dim" style="font-size:0.85em;">(${esc(it.moisNom)})</span>`;
             const changes = [];
 
             for (const id in newItems) {
@@ -176,7 +204,7 @@
                 } else {
                     const mOld = parseFloat(o.montant) || 0;
                     if ((mNew !== mOld || n.categorie !== o.categorie) && !(mOld === 0 && mNew === 0)) {
-                        const avant = mOld !== mNew ? `<s style="color:var(--text-muted);">${mOld}€</s> → ` : '';
+                        const avant = mOld !== mNew ? `<s class="txt-dim">${mOld}€</s> → ` : '';
                         changes.push(`✏️ ${avant}<b>${mNew}€</b> ${esc(n.categorie)} ${moisTxt(n)}`);
                     }
                 }
@@ -192,7 +220,7 @@
         };
 
         const afficherNouveautes = (changes) => {
-            document.getElementById('changelog-content').innerHTML = changes.map(d => `<div style="padding: 8px 0; border-bottom: 1px solid var(--border);">${d}</div>`).join('');
+            document.getElementById('changelog-content').innerHTML = changes.map(d => `<div class="changelog-item">${d}</div>`).join('');
             document.getElementById('changelog-popup').classList.remove('hidden');
             state.popupOuvert = true;
         };
@@ -494,19 +522,19 @@
                 row.dataset.id = item.id;
 
                 const isNeg = item.montant < 0;
-                const style = isNeg ? 'color:var(--danger);' : '';
+                const negCls = isNeg ? 'montant-neg' : '';
                 const mntFinal = isNeg ? Math.abs(item.montant || 0) : (item.montant || 0);
 
                 // CONDITION SPECIALE: ONGLET FIXES MINIMALISTE
                 if (type === 'fixes') {
                     row.innerHTML = `
                         <div class="drag-handle">☰</div>
-                        <div class="item-content" style="flex-direction: row; align-items: center; justify-content: space-between;">
-                            <select data-id="${item.id}" data-type="${type}" data-field="categorie" style="flex:1; font-weight:600; background:none; border:none; padding:0; font-size:1rem !important;">
+                        <div class="item-content fix-content">
+                            <select class="fix-cat" data-id="${item.id}" data-type="${type}" data-field="categorie">
                                 ${state.categories.map(c => `<option value="${c}" ${item.categorie === c ? 'selected' : ''}>${c}</option>`).join('')}
                             </select>
-                            <div style="display:flex; align-items:center;">
-                                <input type="number" value="${mntFinal}" style="${style} width:85px; text-align:right; font-weight:700; border:none; background:var(--bg-color); padding:8px; border-radius:8px;" data-id="${item.id}" data-type="${type}" data-field="montant">
+                            <div class="item-montant">
+                                <input type="number" value="${mntFinal}" class="fix-montant ${negCls}" data-id="${item.id}" data-type="${type}" data-field="montant">
                             </div>
                         </div>
                         <button class="btn-delete" data-del-type="${type}" data-del-id="${item.id}">✕</button>
@@ -547,8 +575,8 @@
                         <div class="item-content">
                             <div class="item-top">
                                 <textarea data-id="${item.id}" data-type="${type}" data-field="libelle" placeholder="Note...">${item.libelle || ''}</textarea>
-                                <div style="display:flex; align-items:center;">
-                                    ${isNeg ? '-' : ''}<input type="number" value="${mntFinal}" style="${style}" data-id="${item.id}" data-type="${type}" data-field="montant">
+                                <div class="item-montant">
+                                    ${isNeg ? '-' : ''}<input type="number" value="${mntFinal}" class="${negCls}" data-id="${item.id}" data-type="${type}" data-field="montant">
                                     ${payIcon}
                                 </div>
                             </div>
@@ -628,7 +656,7 @@
             document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)}`;
 
             const tdDiff = tdTotal - tdCB;
-            document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small style="font-weight:normal; opacity:0.6;">(dont ${tdDiff.toFixed(0)}€ 💵)</small>` : ''}`;
+            document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small class="txt-dim" style="font-weight:400;">(dont ${tdDiff.toFixed(0)}€ 💵)</small>` : ''}`;
 
             // Jauges
             const globalTotal = tc + tdTotal + tprov + (reste > 0 ? reste : 0);
@@ -702,9 +730,9 @@
                 });
                 const pct = Math.min(Math.round((totalObj / obj.montant) * 100), 100);
                 bloc.innerHTML += `
-                    <div style="margin-top:20px;">
+                    <div class="obj-bloc">
                         <div class="progress-header"><span>🎯 ${obj.nom}</span><span>${totalObj.toFixed(2)} / ${obj.montant}€</span></div>
-                        <div class="progress-track"><div class="progress-fill" style="background:var(--secondary); width:${pct}%"></div></div>
+                        <div class="progress-track"><div class="progress-fill fill-provisions" style="width:${pct}%"></div></div>
                     </div>
                 `;
             });
@@ -714,18 +742,18 @@
         const rendreAdmin = () => {
             const objDiv = document.getElementById('admin-objectifs');
             objDiv.innerHTML = state.objectifsProvisions.map((o, i) => `
-                <div class="month-pill" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <div class="month-pill obj-pill">
                     <span>${o.nom} (${o.montant}€)</span><button class="btn-delete" data-del-obj="${i}">✕</button>
                 </div>
             `).join('');
 
             const corbDiv = document.getElementById('admin-corbeille');
-            if (!state.corbeille.length) corbDiv.innerHTML = "<p style='color:var(--text-muted); font-size:0.8rem;'>Corbeille vide.</p>";
+            if (!state.corbeille.length) corbDiv.innerHTML = "<p class='txt-dim corb-vide'>Corbeille vide.</p>";
             else {
                 corbDiv.innerHTML = state.corbeille.slice(0,5).map((item, i) => `
-                    <div style="font-size:0.8rem; border-bottom:1px solid var(--border); padding:8px 0; display:flex; justify-content:space-between;">
+                    <div class="corb-row">
                         <span>${item.libelle || item.categorie} (${item.montant}€)</span>
-                        <button class="btn-small bg-primary" data-restore="${i}" style="color:white; font-size:0.7rem; border-radius:4px; padding:2px 6px;">Restaurer</button>
+                        <button class="btn-small bg-primary" data-restore="${i}">Restaurer</button>
                     </div>
                 `).join('');
             }
@@ -737,7 +765,7 @@
             const item = state.corbeille[index];
             if (!item) return;
             const mois = getMoisActif();
-            if (!mois) { alert("Sélectionnez d'abord un mois pour y restaurer cette ligne."); return; }
+            if (!mois) { dialogue({ titre: 'Aucun mois sélectionné', texte: "Sélectionnez d'abord un mois pour y restaurer cette ligne." }); return; }
 
             const { typeOriginal, ...itemPropre } = item;
             if (!Array.isArray(mois[typeOriginal])) mois[typeOriginal] = [];
@@ -751,11 +779,12 @@
 
         const viderCorbeille = () => {
             if (!state.corbeille.length) return;
-            if (confirm("Vider définitivement la corbeille ?")) {
+            dialogue({ titre: 'Vider la corbeille ?', texte: 'Les lignes supprimées seront effacées définitivement.', ok: 'Vider', annuler: 'Annuler', danger: true }).then((oui) => {
+                if (!oui) return;
                 state.corbeille = [];
                 sauvegarderConfig();
                 rendreAdmin();
-            }
+            });
         };
 
         // --- Gestionnaires d'événements (BULLES FLOTTANTES CORRIGÉES) ---
@@ -825,13 +854,15 @@
         };
 
         document.getElementById('btn-del-month').onclick = () => {
-            if (confirm("Supprimer ce mois définitivement ?")) {
-                const idASupprimer = state.moisActifId;
+            const idASupprimer = state.moisActifId; // figé à l'ouverture de la boîte de dialogue
+            const nomMois = (getMoisActif() || {}).nom || 'ce mois';
+            dialogue({ titre: 'Supprimer ' + nomMois + ' ?', texte: 'Le mois et toutes ses lignes seront supprimés définitivement.', ok: 'Supprimer', annuler: 'Annuler', danger: true }).then((oui) => {
+                if (!oui) return;
                 state.donnees = state.donnees.filter(m => m.id !== idASupprimer);
                 state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length - 1].id : null;
                 setSyncDot('saving');
                 refMois(idASupprimer).delete().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); });
-            }
+            });
         };
 
         // 5. Manipulation des lignes (Délégation d'événements)
@@ -996,9 +1027,11 @@
         // 10. Initialisation Thème (sombre par defaut - charte UX/UI du 18/09/2026 ;
         // les 10 themes decoratifs "Garde-robe" ont ete retires, seul le mode
         // sombre/clair subsiste desormais, comme sur Muscu/Course/Portail)
+        // Charte : thème sombre = état par défaut (aucune classe), .light-mode = clair.
+        // La clé LS_DARK garde le même sens ('false' = l'utilisateur a choisi le clair).
         const toggleDark = () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('light-mode');
+            const isDark = !document.body.classList.contains('light-mode');
             localStorage.setItem(LS_DARK, isDark);
             document.getElementById('btn-toggle-dark').innerText = isDark ? '🌙' : '☀️';
             document.getElementById('meta-theme-color').content = isDark ? '#0d1014' : '#eef1f5';
@@ -1007,7 +1040,8 @@
         // Sombre par defaut : active sauf si l'utilisateur a explicitement choisi le clair
         // (ancienne logique : dark uniquement si LS_DARK==='true' ; nouvelle logique :
         // dark sauf si LS_DARK==='false' explicitement enregistre par un clic anterieur).
-        if (localStorage.getItem(LS_DARK) !== 'false') toggleDark();
+        if (localStorage.getItem(LS_DARK) === 'false') toggleDark();
+        else document.getElementById('meta-theme-color').content = '#0d1014';
 
         // 10bis. Profil actif (Corentin/Lisa) — preference par appareil, purement
         // visuelle (couleur d'accent), memorisee dans localStorage. Le compte et
@@ -1040,8 +1074,8 @@
             const originalText = btn.innerText; btn.innerText = "⏳ Envoi..."; btn.disabled = true;
             const urlScript = "https://script.google.com/macros/s/AKfycbwW3w-ScyWzRousgkNA7tdUeifNqB_kr2fXbGH1AqUSduOEdqjegbllEcxkkhVAko3ZIA/exec";
             fetch(urlScript, { method: 'POST', mode: 'no-cors', body: JSON.stringify(state.donnees) })
-            .then(() => { alert("✅ Sauvegarde envoyée !"); btn.innerText = originalText; btn.disabled = false; })
-            .catch(() => { alert("❌ Erreur"); btn.innerText = originalText; btn.disabled = false; });
+            .then(() => { dialogue({ titre: '✅ Sauvegarde envoyée' }); btn.innerText = originalText; btn.disabled = false; })
+            .catch(() => { dialogue({ titre: '❌ Erreur', texte: "La sauvegarde n'a pas pu être envoyée." }); btn.innerText = originalText; btn.disabled = false; });
         };
 
         // Importation manuelle
@@ -1052,16 +1086,17 @@
                 reader.onload = function(evt) {
                     try {
                         const imported = JSON.parse(evt.target.result);
-                        if(confirm("Écraser les données actuelles avec ce fichier ?")) {
-                            const nouvellesDonnees = trierMois(imported.map(normaliserMois));
+                        const nouvellesDonnees = trierMois(imported.map(normaliserMois)); // lève une erreur si le fichier est invalide
+                        dialogue({ titre: 'Écraser les données ?', texte: 'Les données actuelles seront remplacées par celles du fichier.', ok: 'Écraser', annuler: 'Annuler', danger: true }).then((oui) => {
+                            if (!oui) { importInput.value = ''; return; }
                             restaurerCollectionComplete(nouvellesDonnees).then(() => {
                                 state.donnees = nouvellesDonnees;
                                 state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length-1].id : null;
-                                alert("Restauration réussie !");
+                                dialogue({ titre: '✅ Restauration réussie' });
                                 changerVue('mensuelle');
-                            }).catch(() => alert("❌ Erreur lors de la restauration, rien n'a été modifié."));
-                        }
-                    } catch(err) { alert("Fichier invalide."); }
+                            }).catch(() => dialogue({ titre: '❌ Erreur', texte: "Erreur lors de la restauration, rien n'a été modifié." }));
+                        });
+                    } catch(err) { dialogue({ titre: 'Fichier invalide' }); }
                 }; reader.readAsText(file);
             });
         }

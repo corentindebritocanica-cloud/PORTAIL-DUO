@@ -458,6 +458,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ## 9. 🚫 À Éviter
 
 - ❌ Couleurs de marque fixes indépendantes du profil actif (ex: ancien rouge "Fonte & Craie" retiré le 18/09/26)
+  - *Exception tolérée* : couleurs de **catégories de données** qui portent un sens métier (ex. Budget : `--cat-depenses` orange, `--cat-provisions` jaune, à côté de `--danger`/`--done`). Nommées `--cat-*`, jamais utilisées en décoration (fonds, boutons, dégradés).
 - ❌ Bordures teintées bleu-gris froides (remplacées par blanc neutre translucide)
 - ❌ Radius incohérents hors de l'échelle à 5 crans
 - ❌ Boutons/zones tactiles < 44px
@@ -474,6 +475,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
 | 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course puis Budget. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
+| 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
 | 24/09/26 | Charte v1.3 — Audit des 4 apps contre la section 11 et mise en conformité : Budget (retrait du `transition: all` global, jauges et toast en `transform`, reduced-motion), Muscu (validation de série adoucie à 1,08 sans rebond — exception documentée au §11.2, points de graphique, `left` → `translateX`), Portail (jauge en `translateX`), Course (reduced-motion). `--t-fast` passé de 140 à 150 ms. Checklist §8 complétée. |
 | 23/09/26 | Ajout de la section 11 « Animation & Micro-interactions » (grille de fréquence, règles GPU-safe, springs, principes Apple Fluid Interfaces, clip-path, reduced-motion) — synthèse des skills communautaires `emil-design-eng`/`apple-design` d'Emil Kowalski et de la WWDC 2018. Référentiel de règles, pas encore appliqué aux 4 apps. |
 
@@ -581,13 +583,13 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 | App | Statut Conformité | Action Requise |
 |-----|-------------------|-----------------|
 | **Muscu** | ✅ Référence | Aucune (source de vérité) |
-| **Budget** | ✅ Animations (§11) conformes (24/09/26) · pilule §5.5b adoptée (20/09/26) | Audit statique restant : ses tokens ont d'autres noms (`--primary`, `--card-bg`, `--radius-card: 16px`…) que ceux de Muscu |
+| **Budget** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | Écarts assumés : couleurs de catégories `--cat-depenses`/`--cat-provisions` (sens métier, jamais décoratives) ; bouton thème dans l'en-tête plutôt qu'en position fixe |
 | **Course** | ✅ Animations (§11) conformes (24/09/26) · pilule §5.5b adoptée (20/09/26) | Audit statique `:root` restant |
 | **Portail** | ✅ Animations (§11) conformes (24/09/26) | Audit statique `:root` restant |
 
 ---
 
-**Prochaine étape recommandée** : vérifier sur iPhone les retouches d'animation du 24/09/26, puis auditer les tokens statiques (`:root`, radius, ombres) de Budget, Course et Portail contre les sections 1 à 5.
+**Prochaine étape recommandée** : vérifier sur iPhone les retouches du 24/09/26 (Budget en priorité), puis auditer Course et Portail contre les sections 1 à 7.
 
 ---
 
