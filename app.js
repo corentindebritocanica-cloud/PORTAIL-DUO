@@ -207,7 +207,7 @@
        fonctionnelle (retour de Corentin, 22/09/2026 : obligé de forcer un rechargement manuel
        sur le téléphone de Lisa). Ce filet de sécurité force une lecture serveur à chaque retour
        visible, indépendamment de l'état de l'écoute en direct. */
-    /* Renvoie true si la lecture serveur a réussi (utilisé par « tirer pour actualiser »). */
+    /* Renvoie true si la lecture serveur a réussi. */
     async function rafraichirDepuisServeur(){
       if (!db) return false; // Firestore pas encore prêt (ou base indisponible) : le prochain onSnapshot fera foi
       try {
@@ -267,75 +267,6 @@
       if (document.visibilityState === 'visible') auRetour();
     });
     window.addEventListener('pageshow', (e) => { if (e.persisted) auRetour(); });
-
-    /* ---- TIRER POUR ACTUALISER (23/09/2026) ----
-       Demande de Corentin : pouvoir forcer la relecture du tableau de bord en tirant l'écran
-       vers le bas, comme dans les apps natives. N'existe pas en PWA iOS (et le rebond est
-       bloqué exprès par `overscroll-behavior:none`) : geste codé à la main.
-       - Ne démarre que si la page est tout en haut et avec un seul doigt.
-       - Seuil 70 px (course du doigt amortie de moitié) → relâcher déclenche : réabonnement
-         de l'écoute + relecture SERVEUR des 3 documents (pas un rechargement de page : rapide,
-         garde le hors-ligne intact, contrairement au bouton du bas qui vide le cache).
-       - Retour visuel : pastille en haut « Tirer / Relâcher / Actualisation… / À jour · HH:MM »,
-         ou « Hors ligne — dernier état affiché » si le serveur ne répond pas.
-       - Écouteurs `passive` : on ne bloque jamais le défilement normal. */
-    (function tirerPourActualiser(){
-      const ind = document.getElementById('ptr');
-      const txt = document.getElementById('ptr-txt');
-      if (!ind || !txt) return;
-      const SEUIL = 70, MAX = 100;
-      let y0 = null, dist = 0, occupe = false, masquage = null;
-      const enHaut = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
-      function poser(d){
-        ind.classList.remove('anim');
-        ind.style.transform = 'translate(-50%,' + (Math.min(d, SEUIL) - SEUIL - 10) + 'px)';
-        ind.style.opacity = String(Math.min(1, d / SEUIL));
-        ind.querySelector('svg').style.transform = 'rotate(' + Math.round(d * 3) + 'deg)';
-        const pret = d >= SEUIL;
-        ind.classList.toggle('pret', pret);
-        txt.textContent = pret ? 'Relâcher pour actualiser' : 'Tirer pour actualiser';
-      }
-      function cacher(delai){
-        clearTimeout(masquage);
-        masquage = setTimeout(() => {
-          ind.classList.add('anim');
-          ind.classList.remove('pret', 'charge');
-          ind.style.transform = 'translate(-50%,-80px)';
-          ind.style.opacity = '0';
-        }, delai || 0);
-      }
-      document.addEventListener('touchstart', (e) => {
-        if (occupe || e.touches.length !== 1 || !enHaut()) { y0 = null; return; }
-        y0 = e.touches[0].clientY; dist = 0;
-      }, { passive: true });
-      document.addEventListener('touchmove', (e) => {
-        if (y0 === null || occupe) return;
-        const d = (e.touches[0].clientY - y0) * 0.5;
-        if (d <= 0 || !enHaut()) { if (dist > 0) cacher(); dist = 0; return; }
-        dist = Math.min(MAX, d);
-        clearTimeout(masquage);
-        poser(dist);
-      }, { passive: true });
-      async function relacher(){
-        if (y0 === null || occupe) return;
-        y0 = null;
-        if (dist < SEUIL) { dist = 0; cacher(); return; }
-        dist = 0; occupe = true;
-        ind.classList.add('anim', 'charge'); ind.classList.remove('pret');
-        ind.style.transform = 'translate(-50%,0px)'; ind.style.opacity = '1';
-        ind.querySelector('svg').style.transform = '';
-        txt.textContent = 'Actualisation…';
-        ecouter();
-        const ok = await rafraichirDepuisServeur();
-        ind.classList.remove('charge');
-        const h = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        txt.textContent = ok ? 'À jour · ' + h : 'Hors ligne — dernier état affiché';
-        occupe = false;
-        cacher(1400);
-      }
-      document.addEventListener('touchend', relacher, { passive: true });
-      document.addEventListener('touchcancel', () => { y0 = null; dist = 0; cacher(); }, { passive: true });
-    })();
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {

@@ -333,7 +333,7 @@ document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
    authentification anonyme n'exige aucun mot de passe). Voir README.
    - Publié seulement après un premier snapshot venu du SERVEUR (pas du cache local),
      pour ne pas écraser un résumé récent avec des données périmées.
-   - Regroupé (2,5 s) et sans effet si rien n'a changé.
+   - Regroupé (0,3 s), republié à chaque ouverture, secours `keepalive` au départ (voir plus bas).
    ============================================================ */
 const portailRecu = { produits:false, rayons:false };
 let portailDernier = '', portailMinuteur = null;
@@ -350,28 +350,61 @@ function calculerResumePortail(produits, rayons){
     .slice(0, 3).map(([nom, n])=> ({ nom, n }));
   return { aAcheter: aAcheter.length, restants: restants.length, rayons: rayonsTop };
 }
+/* 23/09/2026 (v2) — PUBLICATION FIABLE. Trois changements, après constat que le résumé
+   n'arrivait pas toujours au Portail lors d'un aller-retour rapide :
+   1) Regroupement ramené de 2,5 s à 0,3 s : le résumé part dès que les données du serveur
+      sont là, donc en général AVANT que Corentin ne ressorte de l'app.
+   2) `portailOk` = le serveur a CONFIRMÉ la dernière écriture (la promesse de `set()` ne
+      se résout qu'à l'accusé de réception du serveur).
+   3) Filet de secours au départ (`pagehide` / page cachée) : si la dernière écriture n'est
+      pas confirmée, envoi par l'API REST de Firestore avec `fetch(..., { keepalive: true })`,
+      la seule requête qu'un navigateur laisse finir APRÈS la destruction de la page (une
+      écriture du SDK, elle, serait coupée — ou gardée sur le téléphone jusqu'à la prochaine
+      ouverture de Courses). Jeton = celui de la connexion anonyme, gardé à l'avance
+      (`portailJeton`) car on ne peut plus attendre de promesse au moment du départ. */
+let portailOk = false, portailJeton = null;
+function rafraichirJetonPortail(){
+  const u = auth && auth.currentUser;
+  if(u) u.getIdToken().then(t=>{ portailJeton = t; }).catch(()=>{});
+}
 function publierResumePortail(){
   const resume = calculerResumePortail(state.produits, state.rayons);
-  const signature = JSON.stringify(resume);
-  portailDernier = signature;
+  portailDernier = JSON.stringify(resume);
   db.collection('portail').doc('courses').set(Object.assign({ maj: Date.now() }, resume))
+    .then(()=>{ portailOk = true; })
     .catch(err=>{ portailDernier = ''; console.warn('Résumé Portail non publié :', err); });
 }
 function planifierPublicationPortail(){
   if(!portailRecu.produits || !portailRecu.rayons) return;
+  portailOk = false;
+  rafraichirJetonPortail();
   clearTimeout(portailMinuteur);
-  portailMinuteur = setTimeout(()=>{ portailMinuteur = null; publierResumePortail(); }, 2500);
+  portailMinuteur = setTimeout(()=>{ portailMinuteur = null; publierResumePortail(); }, 300);
 }
-/* 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 2,5 s de regroupement
-   (ex. aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la page et
-   l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas, au lieu d'attendre.
-   `set()` passe par le cache local persistant (`enablePersistence`) avant le réseau : la
-   mutation est mise en file d'attente durablement même si la page meurt juste après. */
-function flusherPublicationPortail(){
-  if(portailMinuteur){ clearTimeout(portailMinuteur); portailMinuteur = null; publierResumePortail(); }
+/* Valeur JS → format « valeur » de l'API REST Firestore. */
+function versValeurFirestore(v){
+  if(v === null || v === undefined) return { nullValue: null };
+  if(typeof v === 'boolean') return { booleanValue: v };
+  if(typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if(typeof v === 'string') return { stringValue: v };
+  if(Array.isArray(v)) return { arrayValue: { values: v.map(versValeurFirestore) } };
+  const f = {}; Object.keys(v).forEach(k=>{ f[k] = versValeurFirestore(v[k]); });
+  return { mapValue: { fields: f } };
 }
-window.addEventListener('pagehide', flusherPublicationPortail);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flusherPublicationPortail(); });
+function secoursPublicationPortail(){
+  if(!portailRecu.produits || !portailRecu.rayons || portailOk || !portailJeton) return;
+  clearTimeout(portailMinuteur); portailMinuteur = null;
+  const data = Object.assign({ maj: Date.now() }, calculerResumePortail(state.produits, state.rayons));
+  try{
+    fetch('https://firestore.googleapis.com/v1/projects/course-app-36e9d/databases/(default)/documents/portail/courses', {
+      method: 'PATCH', keepalive: true,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + portailJeton },
+      body: JSON.stringify({ fields: versValeurFirestore(data).mapValue.fields })
+    }).then(r=>{ if(r.ok) portailOk = true; }).catch(()=>{});
+  }catch(e){}
+}
+window.addEventListener('pagehide', secoursPublicationPortail);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') secoursPublicationPortail(); });
 
 /* ============================================================
    RENDU GLOBAL + DÉMARRAGE

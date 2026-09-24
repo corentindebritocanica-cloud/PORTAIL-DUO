@@ -3770,34 +3770,57 @@ function calculerResumePortailMuscu(archives, getSessionFn, now){
     phrase: calculerPhraseMuscu(archives, semaineCorentin, semaineLisa, serie, now)
   };
 }
-let portailMuscuMinuteur = null, portailMuscuDernier = '';
+/* 23/09/2026 (v2) — PUBLICATION FIABLE (même principe que Courses, voir README du Portail) :
+   regroupement ramené à 0,3 s ; `portailMuscuOk` = écriture CONFIRMÉE par le serveur ;
+   au départ de la page, si rien n'est confirmé, secours par l'API REST de Firestore avec
+   `fetch(..., { keepalive: true })`, la seule requête que Safari laisse finir après la
+   destruction de la page (le SDK, lui, garde sa file d'écriture en mémoire : perdue). */
+let portailMuscuMinuteur = null, portailMuscuDernier = '', portailMuscuOk = false;
+function portailMuscuPret(){
+  return !!(window.__portail && window.__archivesLoaded && window.__customSessionsLoaded && !window.__syncFromCache);
+}
 async function publierResumePortailMuscu(){
   try{
     const resume = calculerResumePortailMuscu(window.archivesCache || {}, getSession, Date.now());
-    const signature = JSON.stringify(resume);
-    portailMuscuDernier = signature;
-    /* 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir README
-       Portail, section "Résumé pour le Portail") — sinon `maj` restait figé après une simple
-       ouverture sans changement de données. */
+    portailMuscuDernier = JSON.stringify(resume);
     await window.__portail.publish('muscu', Object.assign({ maj: Date.now() }, resume));
+    portailMuscuOk = true;
   }catch(err){ portailMuscuDernier = ''; console.warn('Résumé Portail non publié :', err); }
 }
 function planifierPublicationPortailMuscu(){
   /* Seulement quand archives ET séances sont arrivées, et que le dernier snapshot vient du serveur. */
-  if(!window.__portail || !window.__archivesLoaded || !window.__customSessionsLoaded || window.__syncFromCache) return;
+  if(!portailMuscuPret()) return;
+  portailMuscuOk = false;
+  if(window.__portail.rafraichirJeton) window.__portail.rafraichirJeton();
   clearTimeout(portailMuscuMinuteur);
-  portailMuscuMinuteur = setTimeout(()=>{ portailMuscuMinuteur = null; publierResumePortailMuscu(); }, 3000);
+  portailMuscuMinuteur = setTimeout(()=>{ portailMuscuMinuteur = null; publierResumePortailMuscu(); }, 300);
 }
 window.addEventListener('archives-updated', planifierPublicationPortailMuscu);
 window.addEventListener('custom-sessions-updated', planifierPublicationPortailMuscu);
-/* 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 3 s de regroupement (ex.
-   aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la page et
-   l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas, au lieu d'attendre. */
-function flusherPublicationPortailMuscu(){
-  if(portailMuscuMinuteur){ clearTimeout(portailMuscuMinuteur); portailMuscuMinuteur = null; publierResumePortailMuscu(); }
+function versValeurFirestore(v){
+  if(v === null || v === undefined) return { nullValue: null };
+  if(typeof v === 'boolean') return { booleanValue: v };
+  if(typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if(typeof v === 'string') return { stringValue: v };
+  if(Array.isArray(v)) return { arrayValue: { values: v.map(versValeurFirestore) } };
+  const f = {}; Object.keys(v).forEach(k=>{ f[k] = versValeurFirestore(v[k]); });
+  return { mapValue: { fields: f } };
 }
-window.addEventListener('pagehide', flusherPublicationPortailMuscu);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flusherPublicationPortailMuscu(); });
+function secoursPublicationPortailMuscu(){
+  const jeton = window.__portail && window.__portail.jeton && window.__portail.jeton();
+  if(!portailMuscuPret() || portailMuscuOk || !jeton) return;
+  clearTimeout(portailMuscuMinuteur); portailMuscuMinuteur = null;
+  try{
+    const data = Object.assign({ maj: Date.now() }, calculerResumePortailMuscu(window.archivesCache || {}, getSession, Date.now()));
+    fetch('https://firestore.googleapis.com/v1/projects/course-app-36e9d/databases/(default)/documents/portail/muscu', {
+      method: 'PATCH', keepalive: true,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jeton },
+      body: JSON.stringify({ fields: versValeurFirestore(data).mapValue.fields })
+    }).then(r=>{ if(r.ok) portailMuscuOk = true; }).catch(()=>{});
+  }catch(e){}
+}
+window.addEventListener('pagehide', secoursPublicationPortailMuscu);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') secoursPublicationPortailMuscu(); });
 
 /* réagit en temps réel aux changements Firestore (y compris depuis l'autre téléphone) */
 window.addEventListener('archives-updated', () => {

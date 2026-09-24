@@ -19,7 +19,28 @@
 
 ---
 
-## 👇 Portail — « tirer pour actualiser » dans une PWA iOS (23/09/2026)
+## 📮 Portail/Course/Muscu/Budget — écriture perdue au départ de la page : secours `fetch keepalive` (23/09/2026)
+
+### 23/09/2026 — Portail — horodatages toujours périmés malgré flush au `pagehide` et relectures du Portail
+**Symptôme** : après un aller-retour rapide dans une app, le Portail n'affichait pas la nouvelle heure, même en relisant le serveur (tirer pour actualiser inclus).
+**Fausses pistes explorées** : relecture côté Portail (bfcache, `pageshow`, relectures différées, tirer pour actualiser) — la lecture était correcte, **la donnée n'était pas sur le serveur**.
+**Cause racine** : le flush au `pagehide` appelait `set()` du SDK. Or une écriture du SDK n'est garantie qu'une fois **confirmée** par le serveur : Muscu/Budget (2e app Firebase en cache mémoire) perdaient la file d'attente avec la page ; Courses (cache persistant) ne l'envoyait qu'à la prochaine ouverture de Courses. Et le regroupement de 2,5–3 s retardait la première écriture au-delà de la durée d'un simple coup d'œil.
+**Solution** : (1) publier tôt — regroupement 0,3 s, connexion anonyme de la boîte aux lettres ouverte dès le démarrage ; (2) drapeau `portailOk` = promesse de `set()` résolue (accusé serveur) ; (3) au départ, si non confirmé : `fetch(PATCH API REST Firestore, { keepalive: true })` avec l'ID token anonyme préparé à l'avance.
+**Pièges rencontrés en route** :
+- `keepalive` + en-tête `Authorization` déclenche une pré-vérification CORS : **Chromium annule** la requête au départ de la page (`net::ERR_ABORTED`), **WebKit (Safari) la laisse passer**. Tester avec le moteur de la cible (Playwright : `python3 -m playwright install --with-deps webkit`).
+- Firestore REST **n'accepte pas** l'ID token Firebase en paramètre d'URL (`?access_token=` → 403) ni via `?$httpHeaders=` (403) : impossible d'en faire une requête « simple » sans pré-vérification.
+- `navigator.sendBeacon` a la même limite (pas d'en-tête `Authorization`).
+- Au départ de la page on ne peut attendre aucune promesse : le jeton doit être obtenu **avant** (`getIdToken()` à chaque publication planifiée, jeton valable 1 h).
+- Tuer un serveur de test avec `pkill -f "<motif>"` tue aussi le shell dont la ligne de commande contient ce motif.
+**Leçon généralisable** : une écriture lancée « en partant » n'existe que si elle a été **confirmée** ou envoyée par un mécanisme qui survit à la page (`fetch keepalive`). Pour la fraîcheur, **publier tôt** vaut mieux que **publier en partant**. Et avant d'améliorer la lecture, vérifier que la donnée est bien sur le serveur (un simple GET REST suffit).
+**Vérifié** : WebKit 26 + vraie base (séjours 0,8 / 1,5 / 2,5 / 4 s dans Courses ; écriture SDK bloquée ; blocs Muscu/Budget sur documents de test supprimés ensuite). **Non vérifié sur iPhone réel.**
+**Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Muscu/index.html`, `Budget/app.js`, `index.html`/`style.css`/`app.js` (Portail : retrait du tirer pour actualiser), les 4 README, `PROBLEMES_RESOLUS.md`
+
+---
+
+## 👇 Portail — « tirer pour actualiser » dans une PWA iOS (23/09/2026) — RETIRÉ le même soir
+
+> **Retiré** à la demande de Corentin : il ne corrigeait rien (voir l'entrée « écriture perdue au départ de la page » au-dessus). La technique reste valable si le besoin revient.
 
 ### 23/09/2026 — Portail — pas de pull-to-refresh natif en mode écran d'accueil
 **Contexte** : Corentin voulait forcer la relecture du tableau de bord en tirant l'écran, le rafraîchissement automatique au retour lui semblant peu fiable.

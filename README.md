@@ -357,9 +357,9 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 ### Comment chaque app publie (mêmes garde-fous partout)
 
 - **Après un snapshot venu du SERVEUR, jamais avec le seul cache local** (sinon un téléphone hors ligne au vieux cache écraserait un résumé récent — c'est l'incident Courses du 21/09 en version « résumé »).
-- Regroupé (2,5 s ; 3 s pour Muscu). Au plus 1 écriture par ouverture d'app — voir « Republication systématique (23/09/2026) » ci-dessous pour l'historique de cette règle.
+- Regroupé **0,3 s** (depuis le 23/09/2026 v2 ; avant : 2,5 s, 3 s pour Muscu), republié à chaque ouverture, avec **secours `keepalive`** au départ de la page — voir « Publication fiable (v2) » plus bas.
 - Toute erreur est absorbée (`console.warn`) : la publication ne doit **jamais** gêner l'app.
-- Muscu et Budget ouvrent une **2e application Firebase nommée `'portail'`** pointant sur la base de Courses (connexion anonyme, session persistante) : leur propre base et leur session e-mail/mot de passe ne sont pas touchées. Rien n'est lancé au démarrage : la connexion se fait à la première publication.
+- Muscu et Budget ouvrent une **2e application Firebase nommée `'portail'`** pointant sur la base de Courses (connexion anonyme, session persistante) : leur propre base et leur session e-mail/mot de passe ne sont pas touchées. Depuis le 23/09/2026, cette connexion est ouverte **dès le démarrage** de l'app (avant : à la première publication, ce qui retardait l'envoi de 1 à 2 s).
 - Détails par app : sections « Résumé pour le Portail » des README de `Muscu/`, `Budget/` et `Course/`.
 
 ### Côté Portail (`app.js`, bloc « TABLEAU DE BORD »)
@@ -501,17 +501,27 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 **Non vérifié sur iPhone** (à confirmer : ouvrir Course, ressortir tout de suite par le geste retour → le Portail doit passer à « à l'instant » en quelques secondes, sans bouton de rechargement).
 
 
-## Tirer pour actualiser (23/09/2026)
+## Tirer pour actualiser — ajouté puis RETIRÉ (23/09/2026)
 
-**Demande de Corentin** : le rafraîchissement automatique au retour sur le Portail ne lui paraissait pas assez fiable ; il voulait pouvoir forcer la mise à jour en tirant l'écran vers le bas.
+Un geste « tirer vers le bas pour actualiser » a été ajouté puis retiré le même soir, à la demande de Corentin : il ne réglait rien, car le problème n'était pas la LECTURE du Portail mais l'ÉCRITURE des apps (le résumé n'arrivait pas sur le serveur). Voir la section suivante.
 
-**Fonctionnement** (`app.js`, bloc « TIRER POUR ACTUALISER » ; `index.html`, élément `#ptr` ; `style.css`, section du même nom) :
-- Geste codé à la main : il n'existe pas en PWA iOS, et le rebond natif est bloqué exprès (`overscroll-behavior:none`, voir `GUIDE_PWA_IOS.md`).
-- Ne démarre que si la page est tout en haut, avec un seul doigt. Course du doigt amortie de moitié ; seuil 70 px.
-- Relâcher au-delà du seuil : réabonnement de l'écoute (`ecouter()`) + relecture **serveur** des 3 documents (`rafraichirDepuisServeur()`, qui renvoie désormais `true`/`false`). **Pas** de rechargement de page : rapide, et le hors-ligne reste intact (contrairement au bouton du bas, qui vide le cache).
-- Pastille en haut, sous l'encoche : « Tirer pour actualiser » → « Relâcher pour actualiser » → « Actualisation… » → « À jour · HH:MM » (ou « Hors ligne — dernier état affiché »), puis disparaît après 1,4 s. Animations coupées si « Réduire les animations » est activé.
-- Écouteurs tactiles `passive` : le défilement normal n'est jamais bloqué ; un tirage qui commence sur une carte n'ouvre pas l'app (iOS annule le clic dès que le doigt bouge).
 
-**Limite importante** : tirer relit ce qui est **sur le serveur**. Si l'app quittée n'a pas eu le temps d'y écrire, tirer n'y change rien. Or le flush au départ (`pagehide`) n'est pas garanti : dans Muscu et Budget, la 2e application Firebase `'portail'` utilise un cache **en mémoire** — une écriture lancée au moment où la page est détruite peut être perdue ; dans Course, elle est gardée sur le téléphone mais n'est envoyée qu'à la **prochaine ouverture de Courses**. Piste de fiabilisation (non faite) : publier dès la première réponse du serveur à l'ouverture de l'app, sans attendre les 2,5–3 s de regroupement.
+## Publication fiable du résumé — v2 (23/09/2026)
 
-**Vérifié** (Chromium, vue mobile 390 px, gestes tactiles simulés, vraie base) : tirage au-delà du seuil → relecture et « À jour » ; tirage court → rien. **Non vérifié sur iPhone.**
+**Constat** : malgré la republication systématique et le flush au `pagehide`, le Portail restait souvent périmé après un aller-retour rapide dans une app. Cause : l'écriture lancée au départ de la page n'arrivait pas au serveur.
+- Muscu et Budget : la 2e application Firebase `'portail'` garde sa file d'écriture **en mémoire** → perdue quand la page est détruite.
+- Courses : file gardée sur le téléphone (cache persistant) mais envoyée seulement à la **prochaine ouverture de Courses**.
+
+**Correctif, identique dans les 3 apps** (bloc « Résumé pour le Portail » de chaque `app.js`, + `Muscu/index.html` pour `window.__portail`) :
+1. **Publier tôt** : regroupement ramené à **0,3 s** ; Muscu et Budget ouvrent la connexion anonyme à la boîte aux lettres **dès le démarrage**. Le résumé part dès que les données du serveur sont là, donc en général avant que l'on ressorte.
+2. **Savoir si c'est arrivé** : `portailOk` (`portailMuscuOk` dans Muscu) passe à `true` quand la promesse de `set()` se résout, c'est-à-dire à l'accusé de réception du **serveur**. Remis à `false` à chaque nouvelle publication planifiée.
+3. **Secours au départ** (`pagehide` + `visibilitychange` caché) : si la dernière écriture n'est pas confirmée, envoi par l'**API REST de Firestore** (`PATCH …/documents/portail/<app>`) avec `fetch(..., { keepalive: true })`, la seule requête qu'un navigateur laisse finir **après** la destruction de la page. Jeton = ID token de la connexion anonyme, obtenu **à l'avance** (au départ, on ne peut plus attendre de promesse) et rafraîchi à chaque publication planifiée (validité 1 h). Conversion des valeurs JS au format REST par `versValeurFirestore()`.
+
+**Garde-fou conservé** : rien n'est publié tant que l'app n'a pas reçu ses données **du serveur**. Si l'on ressort avant (moins de ~2 s à froid), le Portail n'est volontairement pas mis à jour : l'app n'a rien vérifié, afficher « à l'instant » serait faux.
+
+**Vérifié** :
+- Courses, vraie base, moteur **WebKit 26** (celui de Safari iOS) : séjour 0,8 s et 1,5 s → pas de données serveur → pas de publication (voulu) ; séjour 2,5 s → données reçues, écriture pas encore confirmée, page détruite → **arrivée par le secours** ; 4 s → confirmée normalement.
+- Courses, écriture du SDK bloquée artificiellement + page détruite → arrivée par le secours (WebKit).
+- Muscu et Budget : leurs vrais blocs de code, branchés sur des documents de test (`portail/_test_*`, supprimés ensuite), page détruite → arrivée par le secours (WebKit).
+- **Attention** : dans Chromium (Chrome), le secours est **annulé** (requête `keepalive` avec pré-vérification CORS). Sans importance ici (apps utilisées uniquement sur iPhone), mais à savoir si un jour elles tournent sur Android/Chrome.
+- **Non vérifié sur iPhone réel.**

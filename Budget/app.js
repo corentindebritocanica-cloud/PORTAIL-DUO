@@ -250,18 +250,24 @@
             appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
         };
         let portailPret = null, portailServeurVu = false, portailDernier = '', portailMinuteur = null;
+        let portailAuth = null, portailJeton = null, portailOk = false;
         const obtenirBasePortail = () => {
             if (!portailPret) {
                 portailPret = (async () => {
                     const app = firebase.apps.find(a => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
                     const a = app.auth();
+                    portailAuth = a;
                     await new Promise(res => { const off = a.onAuthStateChanged(() => { off(); res(); }); });
                     if (!a.currentUser) await a.signInAnonymously();
+                    portailJeton = await a.currentUser.getIdToken();
                     return app.firestore();
                 })().catch(err => { portailPret = null; throw err; }); // on retentera à la prochaine publication
             }
             return portailPret;
         };
+        // 23/09/2026 : connexion à la boîte aux lettres ouverte DÈS LE DÉMARRAGE (avant : à la
+        // première publication, ce qui retardait l'envoi du résumé de 1 à 2 s).
+        obtenirBasePortail().catch(() => {});
         // Reste à vivre du mois CALENDAIRE en cours, avec exactement la formule de calculerTotauxMensuels().
         const calculerResumePortail = () => {
             const now = new Date();
@@ -277,31 +283,50 @@
             const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate() };
         };
+        // 23/09/2026 (v2) — PUBLICATION FIABLE (même principe que Courses, voir README du Portail) :
+        // regroupement ramené à 0,3 s ; `portailOk` = écriture CONFIRMÉE par le serveur ; au
+        // départ de la page, si rien n'est confirmé, secours par l'API REST de Firestore avec
+        // `fetch(..., { keepalive: true })`, seule requête que Safari laisse finir après la
+        // destruction de la page (le SDK garde sa file d'écriture en mémoire : perdue).
         const publierResumePortail = async () => {
             try {
                 const resume = calculerResumePortail();
-                const signature = JSON.stringify(resume);
-                portailDernier = signature;
-                // 23/09/2026 : republié à CHAQUE snapshot serveur même sans changement (voir
-                // README Portail, section "Résumé pour le Portail") — sinon `maj` restait
-                // figé après une simple ouverture sans changement de données.
+                portailDernier = JSON.stringify(resume);
                 const base = await obtenirBasePortail();
                 await base.collection('portail').doc('budget').set(Object.assign({ maj: Date.now() }, resume));
+                portailOk = true;
             } catch (err) { portailDernier = ''; console.warn('Résumé Portail non publié :', err); }
         };
         const planifierPublicationPortail = () => {
             if (!portailServeurVu || !state.donnees.length) return;
+            portailOk = false;
+            if (portailAuth && portailAuth.currentUser) portailAuth.currentUser.getIdToken().then(t => { portailJeton = t; }).catch(() => {});
             clearTimeout(portailMinuteur);
-            portailMinuteur = setTimeout(() => { portailMinuteur = null; publierResumePortail(); }, 2500);
+            portailMinuteur = setTimeout(() => { portailMinuteur = null; publierResumePortail(); }, 300);
         };
-        // 23/09/2026 : si la page se cache ou se ferme AVANT la fin des 2,5 s de regroupement
-        // (ex. aller-retour rapide dans l'app), le setTimeout ci-dessus est détruit avec la
-        // page et l'écriture n'a jamais lieu. On publie donc immédiatement dans ce cas.
-        const flusherPublicationPortail = () => {
-            if (portailMinuteur) { clearTimeout(portailMinuteur); portailMinuteur = null; publierResumePortail(); }
+        const versValeurFirestore = (v) => {
+            if (v === null || v === undefined) return { nullValue: null };
+            if (typeof v === 'boolean') return { booleanValue: v };
+            if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+            if (typeof v === 'string') return { stringValue: v };
+            if (Array.isArray(v)) return { arrayValue: { values: v.map(versValeurFirestore) } };
+            const f = {}; Object.keys(v).forEach(k => { f[k] = versValeurFirestore(v[k]); });
+            return { mapValue: { fields: f } };
         };
-        window.addEventListener('pagehide', flusherPublicationPortail);
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flusherPublicationPortail(); });
+        const secoursPublicationPortail = () => {
+            if (!portailServeurVu || !state.donnees.length || portailOk || !portailJeton) return;
+            clearTimeout(portailMinuteur); portailMinuteur = null;
+            try {
+                const data = Object.assign({ maj: Date.now() }, calculerResumePortail());
+                fetch('https://firestore.googleapis.com/v1/projects/course-app-36e9d/databases/(default)/documents/portail/budget', {
+                    method: 'PATCH', keepalive: true,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + portailJeton },
+                    body: JSON.stringify({ fields: versValeurFirestore(data).mapValue.fields })
+                }).then(r => { if (r.ok) portailOk = true; }).catch(() => {});
+            } catch (e) {}
+        };
+        window.addEventListener('pagehide', secoursPublicationPortail);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') secoursPublicationPortail(); });
 
         // --- Logique DB ---
         const attacherEcouteurs = () => {
