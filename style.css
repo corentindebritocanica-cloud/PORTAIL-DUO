@@ -1,5 +1,6 @@
 /* style.css — feuille de style de l'app.
-   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+   Extraite de l'ancien <style> de index.html le 20/09/2026.
+   Alignée sur la charte UX/UI (UX_UI_CHARTER.md, sections 1 à 7) le 24/09/2026. */
   /* ==========================================================================
      JETONS DE DESIGN — repris tels quels de Muscu (thème "Ardoise & Craie")
      pour une cohérence visuelle entre le Portail et les 3 apps.
@@ -14,6 +15,18 @@
     --text:#e9eff6;
     --text-dim:#8a97a8;
 
+    /* Identité couple + accent dynamique (charte §1). Le Portail n'a pas de sélecteur :
+       il suit le profil choisi dans Muscu (localStorage duo_profile, même origine),
+       posé sur <html data-profil> par app.js. */
+    --corentin:#1f8fff; --corentin-rgb:31,143,255; --corentin-dark:#1a5fc4;
+    --lisa:#ff3d7e; --lisa-rgb:255,61,126; --lisa-dark:#c4225f;
+    --accent:var(--corentin); --accent-rgb:var(--corentin-rgb); --accent-dark:var(--corentin-dark);
+    --accent-soft:rgba(var(--accent-rgb),0.14);
+    --glass-modal:rgba(22,27,34,0.95);
+
+    /* Couleurs d'IDENTITÉ DES APPS (icônes et pastilles des cartes) : écart assumé à la
+       charte §9, comme les couleurs de catégories de Budget — elles désignent une app,
+       jamais utilisées en décoration. */
     --blue:#1f8fff;      /* Musculation */
     --blue-dark:#1a5fc4;
     --gold:#ffb800;      /* Budget */
@@ -38,6 +51,7 @@
 
     --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+  html[data-profil="lisa"]{ --accent:var(--lisa); --accent-rgb:var(--lisa-rgb); --accent-dark:var(--lisa-dark); }
   /* Mode clair (charte UX/UI, memes valeurs que Muscu/Course) */
   html.light-mode{
     --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
@@ -46,6 +60,7 @@
     --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
     --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
     --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
+    --glass-modal:rgba(255,255,255,0.95);
   }
   html.light-mode body::before{ display:none; }
 
@@ -83,7 +98,7 @@
 
   .reload-row{ display:flex; justify-content:center; margin-top:18px; }
   .reload-btn{
-    width:38px; height:38px; border-radius:50%;
+    width:44px; height:44px; padding:0; border-radius:50%;
     background:var(--card); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
     color:var(--text-dim);
@@ -91,14 +106,14 @@
     transition: transform .5s cubic-bezier(.2,.7,.3,1), color .15s ease, background .15s ease;
   }
   .reload-btn svg{ width:16px; height:16px; }
-  .reload-btn:active{ background:var(--card-2); color:var(--text); }
+  .reload-btn:active{ background:var(--card-2); color:var(--text); transform:scale(0.97); }
   .reload-btn.spin svg{ transform: rotate(360deg); transition: transform .5s cubic-bezier(.2,.7,.3,1); }
 
   .app-title{
     font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
     color:var(--text-dim); margin:0 0 4px 2px; font-weight:700;
   }
-  .app-title-brand{ color:var(--blue); }
+  .app-title-brand{ color:var(--accent); }
 
   .big-question{
     font-family:var(--f-display); text-transform:uppercase;
@@ -117,17 +132,17 @@
   .dash-titre{ margin:2px 2px 16px; }
   .dash-titre .big-question{ margin:0; }
   .dash-date{ margin:4px 0 0; font-size:14px; font-weight:500; color:var(--text-dim); }
-  html.light-mode .app-title-brand{ color:var(--blue-dark); }
+  html.light-mode .app-title-brand{ color:var(--accent-dark); }
 
   .dash{ display:flex; flex-direction:column; gap:14px; }
   .dash-card{
     display:block; color:var(--text); text-decoration:none;
     background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
     box-shadow:var(--shadow-sm); overflow:hidden;
-    transition: transform .15s ease;
+    transition: transform var(--t-fast) ease-out;
   }
   .dash-card:active{ transform:scale(0.98); }
-  .dash-card:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+  .dash-card:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
   /* 1) En-tête : nom de l'app + fraîcheur des chiffres (à la place de l'ancienne description de l'app) */
   .dash-top{ display:flex; align-items:center; gap:14px; padding:16px 16px 0; min-height:62px; }
@@ -157,8 +172,8 @@
   .dash-phrase span{ font-size:14.5px; font-weight:700; line-height:1.35; }
 
   /* Budget : jauge = part du budget déjà dépensée */
-  .gauge{ display:block; height:10px; border-radius:5px; background:var(--card-2); overflow:hidden; margin-top:16px; }
-  .gauge-fill{ display:block; height:100%; width:100%; border-radius:5px; background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transform:translateX(-100%); transition:transform .35s ease-out; }
+  .gauge{ display:block; height:10px; border-radius:var(--r-pill); background:var(--card-2); overflow:hidden; margin-top:16px; }
+  .gauge-fill{ display:block; height:100%; width:100%; border-radius:var(--r-pill); background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transform:translateX(-100%); transition:transform .35s ease-out; }
   /* Remplissage piloté en translateX (charte §11.3 : transform/opacity seulement)
      depuis app.js, au lieu de width : la barre garde sa forme (bout arrondi),
      elle glisse simplement depuis la gauche. -100% = vide, 0 = pleine. */
@@ -169,7 +184,7 @@
   .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
   .chips:empty{ display:none; }
   .chip{ display:inline-flex; align-items:center; gap:8px; min-height:34px; padding:0 6px 0 12px; border-radius:var(--r-pill); background:var(--card-2); font-size:13.5px; font-weight:600; }
-  .chip-n{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--green); color:#04150f; font-size:12px; font-weight:800; }
+  .chip-n{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border-radius:var(--r-pill); background:var(--green); color:#04150f; font-size:12px; font-weight:800; }
 
   .dash-card.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
   .dash-card.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
@@ -189,11 +204,42 @@
   .choice-desc{
     display:block; font-size:12.5px; color:var(--text-dim); margin-top:2px; font-weight:500;
   }
-  .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform .15s ease; }
+  .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform var(--t-fast) ease-out; }
   .dash-card:active .choice-chev{ transform: translateX(2px); }
 
+  .derniere-maj{ text-align:center; font-size:12px; color:var(--text-dim); margin-top:10px; }
+
+  /* Boîte de dialogue en bottom-sheet (charte §5.9) — remplace window.confirm() */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.6);
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.open{ display:flex; animation:fondIn .22s ease-out; }
+  .modal-sheet{
+    width:100%; max-width:520px; text-align:center;
+    background:var(--glass-modal);
+    -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid var(--border); border-bottom:none; border-radius:var(--r-xl) var(--r-xl) 0 0;
+    box-shadow:var(--shadow-lg);
+    padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+    animation:feuilleIn .28s cubic-bezier(.32,.72,.3,1);
+  }
+  .modal-sheet h2{ margin:0 0 8px; font-size:19px; font-weight:700; }
+  .modal-sheet p{ margin:0 0 20px; font-size:14px; line-height:1.45; color:var(--text-dim); }
+  .modal-actions{ display:flex; gap:10px; }
+  .modal-actions button{
+    flex:1; min-height:48px; padding:14px; border-radius:var(--r-md); font-family:inherit;
+    font-size:15px; font-weight:700; transition:transform var(--t-fast) ease-out;
+  }
+  .modal-actions button:active{ transform:scale(0.97); }
+  .btn-neutre{ background:var(--card-2); color:var(--text); border:1px solid var(--border); }
+  .btn-accent{ background:var(--accent); color:#fff; border:1px solid transparent; }
+  @keyframes fondIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes feuilleIn{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+
   @media (prefers-reduced-motion: reduce){
-    .dash-card, .gauge-fill{ transition:none; }
+    .dash-card, .gauge-fill, .choice-chev, .reload-btn, .theme-toggle, .modal-actions button{ transition:none; }
+    .modal-overlay.open, .modal-sheet{ animation:none; }
   }
 
   /* Bouton de bascule theme (charte UX/UI) — dans la barre du haut depuis le 22/09/2026 (le tableau de bord défile) */
@@ -202,5 +248,7 @@
     background:var(--card); border:1px solid var(--border); color:var(--text);
     display:flex; align-items:center; justify-content:center;
     font-size:16px; box-shadow: var(--shadow-sm);
+    transition:transform var(--t-fast) ease-out;
   }
+  .theme-toggle:active{ transform:scale(0.97); }
 

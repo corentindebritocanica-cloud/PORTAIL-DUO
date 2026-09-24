@@ -110,8 +110,20 @@
         </svg>
       </button>
     </div>
-    <p id="derniere-maj" style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:10px;"></p>
+    <p id="derniere-maj" class="derniere-maj"></p>
   </main>
+
+  <!-- Boîte de dialogue maison (bottom-sheet, charte §5.9) : remplace window.confirm() — voir dialogue() dans app.js -->
+  <div class="modal-overlay" id="dialogue" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
+    <div class="modal-sheet">
+      <h2 id="dialogue-titre"></h2>
+      <p id="dialogue-texte"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-neutre" id="dialogue-annuler">Annuler</button>
+        <button type="button" class="btn-accent" id="dialogue-ok">OK</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 /* Horodatage du dernier déploiement du code (pas des données), mis à jour

@@ -555,3 +555,20 @@ Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTE
 - **Token** : `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3).
 
 **Non vérifié sur iPhone.**
+
+
+## Alignement sur la charte UX/UI — sections 1 à 7 (24/09/2026)
+
+Audit statique contre `UX_UI_CHARTER.md`, dernière des 4 apps. Le Portail était déjà très proche (tokens de Muscu, cards, thème clair). Retouches :
+
+- **Accent dynamique** : le Portail suit maintenant le profil choisi dans Muscu (`localStorage duo_profile`, même origine — déjà lu pour « la prochaine séance ») : `app.js` pose `<html data-profil="corentin|lisa">`, `--accent` passe en rose pour Lisa. Effet visible : « PORTAIL DUO » dans le titre (bleu fixe avant) et le contour de focus des cartes. Tokens ajoutés : `--corentin*`, `--lisa*`, `--accent*`, `--glass-modal`.
+- **Couleurs d'identité des apps conservées** (`--blue` Musculation, `--gold` Budget, `--green` Courses : icônes des cartes, jauge, pastilles) : écart assumé et documenté dans la charte, au même titre que les couleurs de catégories de Budget.
+- **Bouton recharger** : 38 → 44 px, feedback `scale(0.97)` au tap (aussi sur le bouton thème).
+- **Radius hors échelle** (jauge 5 px, pastille 11 px) → `--r-pill`. Transitions des cartes sur `--t-fast` ease-out.
+- **`window.confirm()` remplacé** par `dialogue({ titre, texte, ok, annuler })` → `Promise<boolean>` (`app.js`, en tête), rendu dans `#dialogue` (bottom-sheet charte §5.9 : voile 0,6, verre, coins `--r-xl`, safe-area, entrée animée). ⚠️ Piège évité : le gestionnaire de `#hardReload` lisait `e.currentTarget` **après** la confirmation ; avec une boîte asynchrone, `currentTarget` vaut `null` après le `await` (l'animation du bouton aurait planté). Il est désormais capturé avant.
+- **Style inline** de `#derniere-maj` → classe `.derniere-maj`.
+
+**Non modifié, volontairement** : police Bebas Neue sur les noms d'apps et le chiffre de 52 px (identité « Ardoise & craie » reprise de Muscu, Bebas étant très condensée), poussière de craie en fond.
+
+**Vérifié** : Chromium headless 390×844 — rendu Corentin (bleu) et Lisa (rose), dialogue de rechargement (Annuler → rien ne se passe), bouton à 44 px, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+

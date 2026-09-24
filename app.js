@@ -2,6 +2,40 @@
    Extrait des anciens <script> inline de index.html le 20/09/2026 (contenu inchangé,
    sauf la constante DERNIERE_MAJ, qui reste dans index.html : voir README). */
   /* ============================================================
+     PROFIL / ACCENT (charte UX/UI §1, 24/09/2026)
+     Le Portail n'a pas son propre sélecteur : il suit le profil choisi dans Muscu
+     (localStorage duo_profile, même origine), déjà utilisé plus bas pour « la
+     prochaine séance ». Seul effet visuel : --accent (bleu/rose) via html[data-profil].
+     ============================================================ */
+  (function(){
+    let p = 'corentin';
+    try { if (localStorage.getItem('duo_profile') === 'lisa') p = 'lisa'; } catch (e) {}
+    document.documentElement.setAttribute('data-profil', p);
+  })();
+
+  /* ============================================================
+     BOÎTE DE DIALOGUE (bottom-sheet, charte §5.9) — remplace window.confirm()
+     dialogue({ titre, texte, ok, annuler }) → Promise<boolean>. Tap sur le fond = annuler.
+     Classe .modal-overlay : la mise à jour auto au retour (utilisateurOccupe) la voit
+     comme une fenêtre ouverte et n'interrompt rien.
+     ============================================================ */
+  function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler' } = {}){
+    return new Promise((resolve) => {
+      const fond = document.getElementById('dialogue');
+      const bOk = document.getElementById('dialogue-ok');
+      const bAnnuler = document.getElementById('dialogue-annuler');
+      document.getElementById('dialogue-titre').textContent = titre;
+      document.getElementById('dialogue-texte').textContent = texte;
+      bOk.textContent = ok; bAnnuler.textContent = annuler;
+      const fermer = (res) => { fond.classList.remove('open'); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+      bOk.onclick = () => fermer(true);
+      bAnnuler.onclick = () => fermer(false);
+      fond.onclick = (e) => { if (e.target === fond) fermer(false); };
+      fond.classList.add('open');
+    });
+  }
+
+  /* ============================================================
      THEME CLAIR / SOMBRE (charte UX/UI)
      ============================================================ */
   (function(){
@@ -341,10 +375,15 @@
     // Confirmation ajoutée le 18/09/2026 : ce bouton est destructif pour le
     // hors-ligne du Portail (il faudra le recharger en ligne une fois pour
     // qu'il redevienne disponible sans réseau) — mieux vaut valider le clic.
-    const ok = window.confirm('Vider le cache du Portail et recharger ?\n\nLe Portail ne sera plus disponible hors-ligne tant qu\'il n\'aura pas été rouvert au moins une fois avec une connexion.');
+    // ⚠️ e.currentTarget vaut null après un await : on le capture AVANT la boîte de dialogue.
+    const btn = e.currentTarget;
+    const ok = await dialogue({
+      titre: 'Recharger le Portail ?',
+      texte: "Le cache du Portail sera vidé. Il ne sera plus disponible hors-ligne tant qu'il n'aura pas été rouvert au moins une fois avec une connexion.",
+      ok: 'Recharger'
+    });
     if (!ok) return;
 
-    const btn = e.currentTarget;
     btn.classList.add('spin');
     try {
       // Correctif 18/09/2026 : caches.keys() et getRegistrations() renvoient

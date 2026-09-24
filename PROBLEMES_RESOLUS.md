@@ -19,6 +19,17 @@
 
 ---
 
+## ⏳ Portail — `e.currentTarget` vaut `null` après un `await` (24/09/2026)
+
+### 24/09/2026 — Portail — piège évité en remplaçant `confirm()` par une boîte de dialogue asynchrone
+**Symptôme** (anticipé, pas vécu) : le gestionnaire du bouton « Vider le cache et recharger » faisait `confirm()` puis `const btn = e.currentTarget; btn.classList.add('spin')`. En remplaçant `confirm()` par `await dialogue(...)`, `btn` aurait valu `null` → `TypeError`, bouton sans effet.
+**Cause racine** : `event.currentTarget` n'est défini que **pendant** la propagation synchrone de l'événement. Dès qu'on rend la main (`await`, `setTimeout`, `.then`), le navigateur le remet à `null`. `e.target` reste lisible, mais peut désigner un enfant (ici le `<svg>` ou le `<path>` du bouton).
+**Solution** : capturer `const btn = e.currentTarget;` **avant** le premier `await`.
+**Leçon généralisable** : en convertissant un code synchrone (`confirm`, `alert`, `prompt`) en asynchrone, relire tout ce qui suit le point d'attente : `e.currentTarget`, `e.preventDefault()` (trop tard après un `await`), et tout état qui peut changer entre-temps (id sélectionné, mois actif, élément en cours d'édition) — à figer avant d'attendre. Même patron déjà appliqué dans Budget (`idASupprimer`) et Course (`id` du produit).
+**Fichiers touchés** : `app.js`, `README.md` (Portail)
+
+---
+
 ## 👆 Course — agrandir une zone tactile sans toucher au visuel (24/09/2026)
 
 ### 24/09/2026 — Course — case à cocher de 30 px, sous le minimum de 44 px

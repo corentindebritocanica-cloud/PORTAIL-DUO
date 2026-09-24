@@ -458,6 +458,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ## 9. 🚫 À Éviter
 
 - ❌ Couleurs de marque fixes indépendantes du profil actif (ex: ancien rouge "Fonte & Craie" retiré le 18/09/26)
+  - *Exception tolérée* : couleurs d'**identité des apps** sur le Portail (`--blue` Musculation, `--gold` Budget, `--green` Courses) pour les icônes et pastilles de leur carte.
   - *Exception tolérée* : couleurs de **catégories de données** qui portent un sens métier (ex. Budget : `--cat-depenses` orange, `--cat-provisions` jaune, à côté de `--danger`/`--done`). Nommées `--cat-*`, jamais utilisées en décoration (fonds, boutons, dégradés).
 - ❌ Bordures teintées bleu-gris froides (remplacées par blanc neutre translucide)
 - ❌ Radius incohérents hors de l'échelle à 5 crans
@@ -475,6 +476,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
 | 20/09/26 | Ajout de la variante « barre de navigation flottante en pilule » (§5.5b), adoptée par Course puis Budget. La bottom-bar pleine largeur (§5.5) reste la référence pour les barres d'actions. |
+| 24/09/26 | Portail aligné sur les sections 1 à 7 : accent dynamique suivant le profil de Muscu, bouton recharger 44px, radius dans l'échelle, `confirm()` remplacé par une bottom-sheet. **Les 4 apps sont désormais conformes à la charte (§1–§7 et §11).** |
 | 24/09/26 | Course aligné sur les sections 1 à 7 : couleurs exactes de la charte (bordure bleu-gris opaque retirée), labels de section, cards `--r-lg`, sélecteur de profil §5.6 repris tel quel, zones tactiles 44px (étendues par `::after` sur la case à cocher, sans changement visuel), modales en verre, `confirm()` remplacé. |
 | 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
 | 24/09/26 | Charte v1.3 — Audit des 4 apps contre la section 11 et mise en conformité : Budget (retrait du `transition: all` global, jauges et toast en `transform`, reduced-motion), Muscu (validation de série adoucie à 1,08 sans rebond — exception documentée au §11.2, points de graphique, `left` → `translateX`), Portail (jauge en `translateX`), Course (reduced-motion). `--t-fast` passé de 140 à 150 ms. Checklist §8 complétée. |
@@ -586,11 +588,11 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 | **Muscu** | ✅ Référence | Aucune (source de vérité) |
 | **Budget** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | Écarts assumés : couleurs de catégories `--cat-depenses`/`--cat-provisions` (sens métier, jamais décoratives) ; bouton thème dans l'en-tête plutôt qu'en position fixe |
 | **Course** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | Écart assumé : `status-bar-style` à `black` (chantier du flou de barre de statut du 18/09, à ne pas toucher sans test iPhone) |
-| **Portail** | ✅ Animations (§11) conformes (24/09/26) | Audit statique `:root` restant |
+| **Portail** | ✅ Conforme §1–§7 et §11 (24/09/26) | Écarts assumés : couleurs d'identité des apps (`--blue`/`--gold`/`--green`) ; Bebas Neue sur les noms d'apps ; accent qui suit le profil de Muscu (pas de sélecteur propre) |
 
 ---
 
-**Prochaine étape recommandée** : vérifier sur iPhone les retouches du 24/09/26 (Budget en priorité), puis auditer le Portail contre les sections 1 à 7.
+**Prochaine étape recommandée** : vérifier sur iPhone les retouches du 24/09/26 sur les 4 apps (Budget en priorité, c'est la plus transformée). Toute nouvelle app (Agenda, Recettes…) part de la checklist §8.
 
 ---
 
