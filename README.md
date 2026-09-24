@@ -474,7 +474,7 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 
 **Conséquence attendue** : une écriture Firestore de plus à **chaque** ouverture réelle de Course/Muscu/Budget (au lieu de seulement quand le contenu change) — volume négligeable au regard du quota gratuit Firestore pour un usage à 2 personnes.
 
-**Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+**✅ Vérifié sur iPhone par Corentin le 24/09/2026** (ouverture d'une app sans rien changer → retour au Portail → « Mis à jour à l'instant »).
 
 ### Suite — flush immédiat au départ de la page (23/09/2026, même jour)
 
@@ -484,7 +484,7 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 
 **Correctif** (même bloc dans les 3 apps) : la publication elle-même est extraite dans une fonction dédiée (`publierResumePortail[Muscu]`), appelée soit par le `setTimeout` du regroupement, soit **immédiatement** par une fonction de flush déclenchée sur `pagehide` et sur `visibilitychange` (quand `document.visibilityState === 'hidden'`) — les deux écouteurs coexistent avec ceux déjà en place dans chaque app pour d'autres besoins (vérification de version, statut de synchronisation), sans conflit. Le flush n'agit que s'il y a réellement un envoi en attente (sinon rien à faire). Le `set()` Firestore passe par le cache local persistant de chaque app avant le réseau : la mutation est mise en file d'attente durablement dès l'appel, donc l'écriture survit même si la page meurt juste après (elle se synchronisera au prochain accès réseau, exactement comme n'importe quelle autre écriture hors ligne de ces apps).
 
-**Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course ou Muscu, ressortir en moins d'1 s sans rien changer → revenir au Portail → l'horodatage doit quand même afficher « à l'instant »).
+**Remplacé** par la « Publication fiable du résumé — v2 » ci-dessous (✅ vérifiée sur iPhone par Corentin le 24/09/2026) : ce flush simple ne suffisait pas, c'est ce qui a mené à la v2.
 
 ### Suite — le Portail ne se rafraîchissait pas au retour depuis une app (23/09/2026, même soirée)
 
@@ -498,7 +498,7 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 - Déclenchée par `pageshow` (si `persisted`) **et** par `visibilitychange` (visible) — l'un ou l'autre selon le cas iOS.
 - Coût : environ 3 lectures de 3 documents par retour au Portail, négligeable.
 
-**Non vérifié sur iPhone** (à confirmer : ouvrir Course, ressortir tout de suite par le geste retour → le Portail doit passer à « à l'instant » en quelques secondes, sans bouton de rechargement).
+**✅ Vérifié sur iPhone par Corentin le 24/09/2026**, dans l'ensemble final (retour par le geste d'iOS → cartes à jour, avec la relecture toutes les 3 s).
 
 
 ## Tirer pour actualiser — ajouté puis RETIRÉ (23/09/2026)
@@ -524,7 +524,7 @@ Un geste « tirer vers le bas pour actualiser » a été ajouté puis retiré le
 - Courses, écriture du SDK bloquée artificiellement + page détruite → arrivée par le secours (WebKit).
 - Muscu et Budget : leurs vrais blocs de code, branchés sur des documents de test (`portail/_test_*`, supprimés ensuite), page détruite → arrivée par le secours (WebKit).
 - **Attention** : dans Chromium (Chrome), le secours est **annulé** (requête `keepalive` avec pré-vérification CORS). Sans importance ici (apps utilisées uniquement sur iPhone), mais à savoir si un jour elles tournent sur Android/Chrome.
-- **Non vérifié sur iPhone réel.**
+- **✅ Vérifié sur iPhone par Corentin le 24/09/2026** : Muscu et Budget OK dès la v2 ; Courses OK après le correctif `includeMetadataChanges` (section suivante).
 
 ### Suite — Courses ne publiait pas avec un cache rempli (24/09/2026)
 
@@ -543,4 +543,4 @@ Muscu et Budget fonctionnaient après la v2, pas Courses : son écoute Firestore
 
 **Coût** : 3 lectures toutes les 3 s d'écran allumé sur le Portail (60/min) ; quelques minutes par jour restent très loin du quota gratuit de 50 000 lectures/jour (partagé avec Courses).
 
-**Vérifié** (WebKit 26, vraie base) : écoute en direct **coupée exprès**, horodatage de Courses vieilli de 2 h puis remis à maintenant côté serveur → la carte passe de « il y a 2 h » à « à l'instant » en 2,3 s. **Non vérifié sur iPhone.**
+**Vérifié** (WebKit 26, vraie base) : écoute en direct **coupée exprès**, horodatage de Courses vieilli de 2 h puis remis à maintenant côté serveur → la carte passe de « il y a 2 h » à « à l'instant » en 2,3 s. **✅ Vérifié sur iPhone par Corentin le 24/09/2026** : retour d'une app → « à l'instant » sans rechargement.

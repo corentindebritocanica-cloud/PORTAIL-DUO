@@ -27,7 +27,7 @@
 **Cause racine** : le SDK Firestore web fait passer ses lectures ponctuelles par le **même canal** (WebChannel / flux Listen) que les écoutes `onSnapshot`. Test : en bloquant le flux `Listen`, `get({source:'server'})` n'aboutit plus non plus. Après une mise en pause de la page par iOS (bfcache, arrière-plan), ce canal peut rester coincé : l'écoute ET la relecture sont alors muettes, jusqu'à un rechargement.
 **Solution** : relecture périodique (3 s, seulement page visible) par **API REST** (`fetch GET …/documents/portail` + `Authorization: Bearer <ID token anonyme>`), indépendante du canal du SDK ; décodage des valeurs REST (`integerValue` en chaîne → `Number`, `mapValue`, `arrayValue`…). Repli SDK si pas de jeton.
 **Leçon généralisable** : un « rafraîchir depuis le serveur » via le SDK Firestore web n'est pas un vrai canal de secours. Pour une lecture qui doit marcher même quand le SDK est bloqué, passer par l'API REST (une simple requête HTTP). Et pour tester cette robustesse : bloquer le flux `**/google.firestore.v1.Firestore/Listen/**` dans Playwright.
-**Vérifié** : WebKit 26, flux Listen bloqué, horodatage vieilli de 2 h puis remis à jour côté serveur → affiché « à l'instant » en 2,3 s. **Non vérifié sur iPhone.**
+**Vérifié** : WebKit 26, flux Listen bloqué, horodatage vieilli de 2 h puis remis à jour côté serveur → affiché « à l'instant » en 2,3 s. **✅ Vérifié sur iPhone par Corentin le 24/09/2026**.
 **Fichiers touchés** : `app.js` (Portail), `README.md`, `PROBLEMES_RESOLUS.md`
 
 ---
@@ -40,7 +40,7 @@
 **Cause racine** : `onSnapshot` **sans** `includeMetadataChanges`. Avec un cache persistant rempli, le 1er snapshot vient du cache (`fromCache: true`). Quand le serveur confirme ensuite que le cache est déjà à jour, seules les **métadonnées** changent → **aucun événement** sans cette option. L'app croit n'avoir que du cache pour toujours, et tout ce qui attend « données du serveur » reste bloqué (ici la publication du résumé). Muscu utilisait déjà l'option, d'où la différence.
 **Solution** : `onSnapshot({ includeMetadataChanges: true }, …)`, en filtrant pour ne rappeler le traitement qu'à la 1re réception, sur changement réel de documents, ou au passage cache → serveur ; `fromCache` suivi en continu.
 **Leçon généralisable** : toute logique qui attend `metadata.fromCache === false` **exige** `includeMetadataChanges: true`, sinon elle ne se déclenche que si les données ont changé depuis la dernière visite. Et **tester avec un cache rempli** (Playwright : `launch_persistent_context` + 2 ouvertures), pas seulement avec un navigateur neuf.
-**Vérifié** : WebKit 26, profil persistant, 3 essais : ancien code 0/3, nouveau code 3/3. **Non vérifié sur iPhone.**
+**Vérifié** : WebKit 26, profil persistant, 3 essais : ancien code 0/3, nouveau code 3/3. **✅ Vérifié sur iPhone par Corentin le 24/09/2026**.
 **Fichiers touchés** : `Course/app.js`, `Course/README.md`, `README.md`, `PROBLEMES_RESOLUS.md`
 
 ---
@@ -59,7 +59,7 @@
 - Au départ de la page on ne peut attendre aucune promesse : le jeton doit être obtenu **avant** (`getIdToken()` à chaque publication planifiée, jeton valable 1 h).
 - Tuer un serveur de test avec `pkill -f "<motif>"` tue aussi le shell dont la ligne de commande contient ce motif.
 **Leçon généralisable** : une écriture lancée « en partant » n'existe que si elle a été **confirmée** ou envoyée par un mécanisme qui survit à la page (`fetch keepalive`). Pour la fraîcheur, **publier tôt** vaut mieux que **publier en partant**. Et avant d'améliorer la lecture, vérifier que la donnée est bien sur le serveur (un simple GET REST suffit).
-**Vérifié** : WebKit 26 + vraie base (séjours 0,8 / 1,5 / 2,5 / 4 s dans Courses ; écriture SDK bloquée ; blocs Muscu/Budget sur documents de test supprimés ensuite). **Non vérifié sur iPhone réel.**
+**Vérifié** : WebKit 26 + vraie base (séjours 0,8 / 1,5 / 2,5 / 4 s dans Courses ; écriture SDK bloquée ; blocs Muscu/Budget sur documents de test supprimés ensuite). **✅ Vérifié sur iPhone par Corentin le 24/09/2026** (Muscu et Budget dès cette version ; Courses après le correctif 🧊).
 **Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Muscu/index.html`, `Budget/app.js`, `index.html`/`style.css`/`app.js` (Portail : retrait du tirer pour actualiser), les 4 README, `PROBLEMES_RESOLUS.md`
 
 ---
@@ -86,7 +86,7 @@
 **Cause racine** : les apps n'ont pas de lien vers le Portail, on y revient par le **geste retour d'iOS**. Safari restaure alors la page depuis le **bfcache** (back/forward cache) : pas de rechargement, `visibilitychange` souvent absent, écoute `onSnapshot` coupée pendant la pause et pas forcément reconnectée. Seul `pageshow` avec `event.persisted === true` signale le retour. En plus, l'app quittée publie au moment où on la quitte (flush `pagehide`) : l'écriture arrive au serveur 1–2 s APRÈS le retour, donc une relecture immédiate lit encore l'ancienne valeur (course entre écriture et lecture).
 **Solution** : `auRetour()` sur `pageshow` (persisted) ET `visibilitychange` (visible) → réaffichage, réabonnement de l'écoute (ancienne coupée d'abord), relecture serveur immédiate + relectures différées à 3 s et 8 s.
 **Leçon généralisable** : dans une PWA multi-pages où l'on navigue par l'historique, **toute logique « au retour sur la page » doit écouter `pageshow` (`persisted`)**, pas seulement `visibilitychange` ni `load`. Et quand la page quittée écrit « en partant », la page d'arrivée doit relire **avec un délai**, pas seulement immédiatement.
-**Vérifié** : syntaxe (`node --check`). **Non vérifié sur iPhone.**
+**Vérifié** : syntaxe (`node --check`). **✅ Vérifié sur iPhone par Corentin le 24/09/2026**, dans l'ensemble final (avec la relecture REST toutes les 3 s, entrée 🔁).
 **Fichiers touchés** : `app.js` (Portail), `README.md` (Portail), `PROBLEMES_RESOLUS.md`
 
 ---
@@ -113,7 +113,7 @@
 **Cause racine** : la publication de chaque app est **regroupée** via `setTimeout` (2,5 s pour Course/Budget, 3 s pour Muscu) pour éviter des écritures Firestore en rafale pendant qu'une collection se charge. Course et Muscu sont de **vraies pages HTML séparées** du Portail (pas une SPA) : quitter l'app pour revenir au Portail est une navigation complète qui **détruit tout le contexte JavaScript** de la page quittée, `setTimeout` en attente compris. Un aller-retour plus rapide que le délai de regroupement tuait donc l'écriture avant qu'elle n'ait lieu — Budget « marchait » simplement parce que Corentin restait naturellement un peu plus longtemps dessus (écran de résumé plus long à consulter) que sur Course (simple coup d'œil).
 **Solution** : dans les 3 apps, extraction de la publication elle-même dans une fonction dédiée, appelée soit par le `setTimeout` du regroupement (cas normal), soit **immédiatement** par une fonction de flush sur `pagehide` **et** `visibilitychange` (`document.visibilityState === 'hidden'`) — les deux événements sont écoutés en parallèle car leur fiabilité relative n'est pas garantie sur tous les cas (iOS Safari PWA vs onglet classique), et le flush ne fait rien s'il n'y a rien en attente. Ces nouveaux écouteurs coexistent avec ceux déjà présents dans chaque app pour d'autres besoins (vérification de version, statut de synchronisation) sans conflit — plusieurs écouteurs sur le même événement DOM s'exécutent tous normalement.
 **Leçon généralisable** : tout mécanisme de **regroupement différé** (`setTimeout`/debounce) dans une page qui peut être quittée par **navigation complète** (pas juste mise en arrière-plan d'une SPA) doit prévoir un flush explicite sur `pagehide`/`visibilitychange` — sinon l'action différée n'a tout simplement jamais lieu si l'utilisateur part avant l'échéance, silencieusement (aucune erreur, juste rien ne se passe). Le filet de sécurité est peu coûteux : appeler la même fonction de publication immédiatement au lieu d'attendre, avec garde-fou pour ne rien faire s'il n'y a rien en attente.
-**Vérifié** : relecture du code des 3 apps confirmant les mêmes deux écouteurs (`pagehide`, `visibilitychange`) et l'extraction de la fonction de publication partout. **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course ou Muscu, ressortir en moins d'1 s sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+**Vérifié** : relecture du code des 3 apps confirmant les mêmes deux écouteurs (`pagehide`, `visibilitychange`) et l'extraction de la fonction de publication partout. **Insuffisant seul** : remplacé par le secours `fetch keepalive` (entrée 📮), lui-même ✅ vérifié sur iPhone le 24/09/2026.
 **Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Budget/app.js`, `README.md` (racine, Course, Muscu, Budget), `PROBLEMES_RESOLUS.md`
 
 ---
@@ -127,7 +127,7 @@
 **Décision de Corentin** : privilégier la lisibilité à l'économie d'écritures — il veut voir l'horodatage bouger à chaque ouverture réelle de l'app, même sans changement, « pour éviter de se demander si ça a MAJ ou pas ».
 **Solution** : retrait de la ligne `if(signature === portailDernier) return;` (et son équivalent) dans les 3 blocs de publication (`Course/app.js`, `Muscu/app.js`, `Budget/app.js`). `portailDernier` reste calculée/assignée mais ne bloque plus l'écriture. Les autres garde-fous sont inchangés : publication uniquement après un snapshot **serveur** (jamais depuis le cache local, pour ne jamais écraser un résumé récent avec des données périmées), regroupement en un seul envoi (2,5 s ; 3 s pour Muscu) pour éviter les écritures en rafale, erreurs absorbées (`console.warn`).
 **Leçon généralisable** : un champ nommé « dernière mise à jour » affiché à l'utilisateur doit refléter la dernière **vérification**, pas le dernier **changement** — une optimisation « n'écrire que si le contenu a changé » (très correcte pour économiser des écritures) peut silencieusement transformer la sémantique d'un horodatage affiché, sans qu'aucune erreur ne se produise nulle part. À vérifier chaque fois qu'un timestamp de fraîcheur est calculé à partir d'un point d'écriture conditionnel plutôt que d'un point de lecture/vérification.
-**Vérifié** : relecture du code des 3 apps confirmant le même garde-fou partout (`grep` ciblé). **Non vérifié sur iPhone** (modifié via l'API GitHub ; à confirmer : ouvrir Course sans rien changer → revenir au Portail → l'horodatage doit afficher « à l'instant »).
+**Vérifié** : relecture du code des 3 apps confirmant le même garde-fou partout (`grep` ciblé). **✅ Vérifié sur iPhone par Corentin le 24/09/2026** (ouverture sans modification → « à l'instant » sur le Portail).
 **Fichiers touchés** : `Course/app.js`, `Muscu/app.js`, `Budget/app.js`, `README.md` (racine, Course, Muscu, Budget), `PROBLEMES_RESOLUS.md`
 
 ---
