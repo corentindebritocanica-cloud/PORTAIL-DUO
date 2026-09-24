@@ -864,6 +864,8 @@ Les trois réutilisent la modale de récapitulatif déjà existante (`export-mod
 
 **Vérifié** : testé en isolation avec des mocks (deux profils, une séance plus ancienne que l'autre, un profil sans mensuration) — confirmé que le tri prend bien la plus récente par `createdAt` (pas par position dans le tableau), que l'avertissement n'apparaît que lorsque la date diffère d'aujourd'hui, et qu'un profil sans donnée ne fait pas planter l'export. `node --check` sur le fichier publié. Balises `<div>` comptées avant/après (équilibrées). **Non testé sur iPhone.**
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/README.md`
+
+
 ### Records distincts par méthode d'équipement (24/09/2026)
 
 **Symptôme signalé par Corentin** : sur un exercice praticable à plusieurs méthodes (ex. Développé incliné : haltères, barre, machine), le record affiché reste celui de la dernière méthode qui l'a détenu, quelle que soit la méthode réellement sélectionnée dans la séance en cours — un record fait aux haltères s'affichait donc comme référence même en train de faire l'exercice à la machine, alors que les deux charges ne sont pas comparables (cf. le commentaire déjà présent dans le code à ce sujet, ligne ~2938 de `app.js`, resté sans conséquence pratique jusqu'ici).
@@ -876,8 +878,17 @@ Les trois réutilisent la modale de récapitulatif déjà existante (`export-mod
 - Card d'exercice (`view-session`) : `recordMethodId = currentExerciseMethodId(ex, exIdx, data)` calculé une fois par carte, passé à `getPersonalRecord()`. Changer de méthode via le sélecteur relance déjà un `render()` complet de la vue (comportement existant), donc la carte se remet à jour avec le bon record automatiquement.
 - Libellé de la méthode ajouté entre parenthèses à côté du record et du badge « Nouveau record » dès que l'exercice en propose plusieurs (ex. « Record 22,5 kg × 10 (Haltères) ») — sans ça, rien à l'écran ne rappelle qu'un record affiché correspond à une méthode précise.
 
-**Non traité volontairement** : « Dernière fois » (`getLastPerformance()`) n'a pas reçu le même filtrage — reste toutes méthodes confondues, comme avant. Même souci potentiel en théorie, mais pas ce qui a été signalé ; à traiter séparément si besoin un jour.
-
 **Vérifié** : `node --check` sur `app.js`. Test en isolation (Node, `vm`, fonctions réelles du fichier chargées telles quelles avec des stubs DOM minimaux) : deux archives du même exercice, une aux haltères (22,5 kg × 10) une à la machine (60 kg × 8) — `getPersonalRecord(..., 'haltere')` renvoie bien 22,5×10, `getPersonalRecord(..., 'machine')` renvoie bien 60×8 (et non la plus grosse des deux par volume, comme avant), `currentExerciseMethodId()` renvoie `null` pour un exercice à méthode unique (Squat) et son record reste inchangé (pas de régression). **Non testé sur iPhone.**
+
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`
+
+
+### Correctif de suivi (24/09/2026, même jour) — « Dernière fois » avait le même défaut que le record
+
+**Constat de Corentin** : juste après le correctif ci-dessus, remarque que « Dernière fois » (la ligne juste au-dessus du record) souffre exactement du même problème — elle affiche la dernière performance toutes méthodes confondues, alors qu'elle devrait elle aussi être comparée à méthode égale.
+
+**Correction** : `getLastPerformance()` reçoit le même 3ᵉ paramètre `methodId` que `getPersonalRecord()`, avec la même logique de filtrage via `archiveExerciseMethodId()`. La card d'exercice calcule `recordMethodId` **une seule fois** et le réutilise pour les deux appels (`getLastPerformance()` et `getPersonalRecord()`), pour que les deux lignes de contexte restent forcément cohérentes entre elles. Libellé de la méthode ajouté entre parenthèses à côté de « Dernière fois » aussi, même format que pour le record (ex. « Dernière fois : 22,5 kg × 10 · Lun 21/09 (Haltères) »).
+
+**Vérifié** : test en isolation (Node, `vm`, fonctions réelles) — deux archives du même exercice (haltères le 21/09, machine le 23/09) : `getLastPerformance(..., 'haltere')` renvoie bien la séance du 21/09, `getLastPerformance(..., 'machine')` celle du 23/09, `getLastPerformance(..., null)` (méthode unique) renvoie toujours la plus récente en date peu importe la méthode — comportement inchangé dans ce cas. `node --check` sur `app.js`. **Non testé sur iPhone.**
 
 **Fichiers touchés** : `Muscu/app.js`, `Muscu/README.md`
