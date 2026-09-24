@@ -19,6 +19,19 @@
 
 ---
 
+## 🔁 Portail — relire « par le serveur » via le SDK ne sert à rien si son canal est coincé (24/09/2026)
+
+### 24/09/2026 — Portail — le résumé publié n'apparaissait qu'après un rechargement
+**Symptôme** : Courses publiait bien (vérifié en vidant le cache et rechargeant), mais au simple retour sur le Portail la carte restait périmée.
+**Fausses pistes explorées** : relectures `get({ source: 'server' })` du SDK au retour (23/09) — elles passent par le même mécanisme que l'écoute.
+**Cause racine** : le SDK Firestore web fait passer ses lectures ponctuelles par le **même canal** (WebChannel / flux Listen) que les écoutes `onSnapshot`. Test : en bloquant le flux `Listen`, `get({source:'server'})` n'aboutit plus non plus. Après une mise en pause de la page par iOS (bfcache, arrière-plan), ce canal peut rester coincé : l'écoute ET la relecture sont alors muettes, jusqu'à un rechargement.
+**Solution** : relecture périodique (3 s, seulement page visible) par **API REST** (`fetch GET …/documents/portail` + `Authorization: Bearer <ID token anonyme>`), indépendante du canal du SDK ; décodage des valeurs REST (`integerValue` en chaîne → `Number`, `mapValue`, `arrayValue`…). Repli SDK si pas de jeton.
+**Leçon généralisable** : un « rafraîchir depuis le serveur » via le SDK Firestore web n'est pas un vrai canal de secours. Pour une lecture qui doit marcher même quand le SDK est bloqué, passer par l'API REST (une simple requête HTTP). Et pour tester cette robustesse : bloquer le flux `**/google.firestore.v1.Firestore/Listen/**` dans Playwright.
+**Vérifié** : WebKit 26, flux Listen bloqué, horodatage vieilli de 2 h puis remis à jour côté serveur → affiché « à l'instant » en 2,3 s. **Non vérifié sur iPhone.**
+**Fichiers touchés** : `app.js` (Portail), `README.md`, `PROBLEMES_RESOLUS.md`
+
+---
+
 ## 🧊 Course — `fromCache` bloqué à `true` : le serveur ne prévient pas si rien n'a changé (24/09/2026)
 
 ### 24/09/2026 — Course — résumé Portail jamais publié alors que Muscu et Budget marchaient

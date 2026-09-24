@@ -46,6 +46,7 @@
     const NOMS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const el = (id) => document.getElementById(id);
     let resume = {};
+    let authPortail = null; // connexion anonyme, gardée pour la relecture REST (sonder)
     let db = null; // hissé hors de demarrerBase() pour que rafraichirDepuisServeur() (retour au premier plan) puisse s'en servir
 
     /* ---- validation : rien de ce qui vient de la base n'est utilisé tel quel ---- */
@@ -186,6 +187,7 @@
         await Promise.all([chargerScript(SDK + 'firebase-auth-compat.js'), chargerScript(SDK + 'firebase-firestore-compat.js')]);
         const app = firebase.apps.find((a) => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
         const auth = app.auth();
+        authPortail = auth;
         db = app.firestore();
         try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* repli silencieux sur le cache mémoire */ }
         auth.onAuthStateChanged((user) => {
@@ -249,24 +251,90 @@
        serveur une à deux secondes APRÈS le retour au Portail — une lecture immédiate
        arriverait trop tôt. D'où : réabonnement + relecture immédiate + 2 relectures
        différées (3 s et 8 s). Coût : ~3 lectures de 3 documents par retour, négligeable. */
-    let relectures = [];
+    /* 24/09/2026 — RELECTURE SILENCIEUSE TOUTES LES 3 s tant que le Portail est à l'écran.
+       Demande de Corentin : que « Mis à jour à l'instant » apparaisse à coup sûr au retour
+       d'une app, sans avoir à recharger. Ce n'est PAS un rechargement de page (pas de
+       clignotement, pas de retour en haut, pas de retéléchargement de Firebase) : juste une
+       lecture serveur des 3 petits documents `portail/*`, puis réaffichage si besoin.
+       - S'arrête dès que le Portail est caché (autre app, écran verrouillé) : rien en fond.
+       - Jamais deux lectures en même temps (réseau lent).
+       - Coût : 3 lectures Firestore toutes les 3 s d'écran allumé sur le Portail, soit
+         60/min ; quelques minutes par jour restent très loin du quota gratuit (50 000/jour,
+         partagé avec l'app Courses).
+       Remplace les relectures différées à 3 s et 8 s du 23/09. L'écoute en direct
+       (`ecouter()`) est conservée : elle reste la voie la plus rapide quand elle marche. */
+    const SONDAGE_MS = 3000;
+    let sondage = null, lectureEnCours = false;
+    /* Lecture par l'API REST de Firestore (simple requête HTTP), et non par le SDK : le SDK
+       fait passer ses lectures par le MÊME canal que l'écoute en direct ; si ce canal est
+       coincé après une mise en pause par iOS, relire via le SDK échoue aussi (vérifié en
+       test). La requête REST, elle, est indépendante. Repli sur le SDK si pas encore de jeton. */
+    const URL_REST_PORTAIL = 'https://firestore.googleapis.com/v1/projects/course-app-36e9d/databases/(default)/documents/portail';
+    function depuisValeurFirestore(v){
+      if (!v || typeof v !== 'object') return null;
+      if ('nullValue' in v) return null;
+      if ('booleanValue' in v) return v.booleanValue;
+      if ('integerValue' in v) return Number(v.integerValue);
+      if ('doubleValue' in v) return Number(v.doubleValue);
+      if ('stringValue' in v) return v.stringValue;
+      if ('timestampValue' in v) return v.timestampValue;
+      if ('arrayValue' in v) return (v.arrayValue.values || []).map(depuisValeurFirestore);
+      if ('mapValue' in v) {
+        const o = {}, f = v.mapValue.fields || {};
+        Object.keys(f).forEach((k) => { o[k] = depuisValeurFirestore(f[k]); });
+        return o;
+      }
+      return null;
+    }
+    async function lireParRest(){
+      const u = authPortail && authPortail.currentUser;
+      if (!u) return false;
+      const jeton = await u.getIdToken();                 /* mis en cache par Firebase, renouvelé seul */
+      const rep = await fetch(URL_REST_PORTAIL, { headers: { 'Authorization': 'Bearer ' + jeton }, cache: 'no-store' });
+      if (!rep.ok) return false;
+      const corps = await rep.json();
+      const obj = {};
+      (corps.documents || []).forEach((d) => {
+        const id = d.name.split('/').pop();
+        obj[id] = depuisValeurFirestore({ mapValue: { fields: d.fields || {} } });
+      });
+      const avant = JSON.stringify(resume), apres = JSON.stringify(obj);
+      if (apres !== avant) {                              /* ne redessine que si quelque chose a changé */
+        resume = obj;
+        try { localStorage.setItem(CLE_CACHE, apres); } catch (e) {}
+        afficher();
+      }
+      return true;
+    }
+    async function sonder(){
+      if (lectureEnCours || document.visibilityState !== 'visible') return;
+      lectureEnCours = true;
+      try {
+        let ok = false;
+        try { ok = await lireParRest(); } catch (e) { ok = false; }
+        if (!ok) await rafraichirDepuisServeur();
+      } finally { lectureEnCours = false; }
+    }
+    function demarrerSondage(){ if (!sondage) sondage = setInterval(sonder, SONDAGE_MS); }
+    function arreterSondage(){ clearInterval(sondage); sondage = null; }
     function auRetour(){
       afficher();
       ecouter();
-      rafraichirDepuisServeur();
-      relectures.forEach(clearTimeout);
-      relectures = [3000, 8000].map((ms) => setTimeout(rafraichirDepuisServeur, ms));
+      sonder();
+      demarrerSondage();
     }
 
     try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }
     if (typeof resume !== 'object' || resume === null) resume = {};
     afficher();
     window.addEventListener('load', () => setTimeout(demarrerBase, 0));
+    demarrerSondage();                                   /* sans effet tant que Firestore n'est pas prêt */
     setInterval(afficher, 60000);                       /* « il y a 3 min » reste juste */
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') auRetour();
+      if (document.visibilityState === 'visible') auRetour(); else arreterSondage();
     });
     window.addEventListener('pageshow', (e) => { if (e.persisted) auRetour(); });
+    window.addEventListener('pagehide', arreterSondage);
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {

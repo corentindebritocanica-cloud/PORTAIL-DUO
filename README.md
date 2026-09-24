@@ -529,3 +529,18 @@ Un geste « tirer vers le bas pour actualiser » a été ajouté puis retiré le
 ### Suite — Courses ne publiait pas avec un cache rempli (24/09/2026)
 
 Muscu et Budget fonctionnaient après la v2, pas Courses : son écoute Firestore n'avait pas `includeMetadataChanges`, donc la confirmation « cache déjà à jour » du serveur ne lui parvenait jamais, et le garde-fou « jamais depuis le cache » bloquait la publication. Corrigé dans `Course/app.js` (`dbOnCollection`). Détails : `Course/README.md` et `PROBLEMES_RESOLUS.md`. Leçon pour les tests : **toujours tester aussi avec un cache déjà rempli** (profil de navigateur persistant), pas seulement depuis un navigateur neuf.
+
+
+## Relecture silencieuse toutes les 3 s (24/09/2026)
+
+**Demande de Corentin** : que « Mis à jour à l'instant » apparaisse à coup sûr au retour d'une app. En test, les apps publiaient bien (confirmé en vidant le cache avec le bouton du bas), mais le Portail ne l'affichait pas toujours sans rechargement.
+
+**Choix** : pas de rechargement de page toutes les 3 s (clignotement, retour en haut, retéléchargement de Firebase, appui sur une carte annulé), mais une **relecture silencieuse** des 3 documents `portail/*` toutes les 3 s, **uniquement tant que le Portail est visible** (arrêt sur `visibilitychange` caché et `pagehide`, relance sur retour au premier plan / `pageshow`).
+
+**Point clé — lecture par REST, pas par le SDK** : `sonder()` lit via l'API REST de Firestore (`GET …/documents/portail`, jeton de la connexion anonyme via `getIdToken()`), décodée par `depuisValeurFirestore()`. Raison, vérifiée en test : le SDK fait passer ses lectures (`get({ source: 'server' })`) par le **même canal** que l'écoute en direct ; si ce canal est coincé après une mise en pause d'iOS, la relecture SDK échoue aussi. La requête REST est indépendante. Repli sur `rafraichirDepuisServeur()` (SDK) si pas encore de jeton. Réaffichage seulement si le contenu a changé. Jamais deux lectures en parallèle.
+
+**Remplace** les relectures différées à 3 s et 8 s du 23/09. L'écoute en direct (`ecouter()`) est conservée.
+
+**Coût** : 3 lectures toutes les 3 s d'écran allumé sur le Portail (60/min) ; quelques minutes par jour restent très loin du quota gratuit de 50 000 lectures/jour (partagé avec Courses).
+
+**Vérifié** (WebKit 26, vraie base) : écoute en direct **coupée exprès**, horodatage de Courses vieilli de 2 h puis remis à maintenant côté serveur → la carte passe de « il y a 2 h » à « à l'instant » en 2,3 s. **Non vérifié sur iPhone.**
