@@ -19,6 +19,17 @@
 
 ---
 
+## 👆 Course — agrandir une zone tactile sans toucher au visuel (24/09/2026)
+
+### 24/09/2026 — Course — case à cocher de 30 px, sous le minimum de 44 px
+**Symptôme** : à l'audit charte, la case à cocher des produits (action la plus fréquente de l'app), le ✕ de la recherche et le crayon faisaient 30 à 36 px, sous le minimum Apple de 44 px. Les agrandir aurait alourdi chaque ligne de la liste.
+**Fausses pistes explorées** : aucune.
+**Solution** : garder la taille visuelle et étendre seulement la zone de toucher avec un pseudo-élément transparent : `.case{position:relative}` + `.case::after{content:''; position:absolute; inset:-7px}` (30 + 2×7 = 44 px). Le tap sur le pseudo-élément déclenche le `onclick` du bouton parent. Vérifié par `document.elementFromPoint()` à 5 px à côté de la case : c'est bien la case qui est touchée.
+**Leçon généralisable** : pour une petite icône ou case dans une liste dense, préférer ce patron (`::after` avec `inset` négatif) à un agrandissement réel. Limites : ne marche pas sur un `<input>` (pas de pseudo-élément : lui donner une vraie hauteur), le parent ne doit pas avoir `overflow:hidden` trop serré, et deux zones étendues voisines ne doivent pas se chevaucher (garder au moins 2×inset d'écart entre éléments).
+**Fichiers touchés** : `Course/style.css`, `Course/README.md`
+
+---
+
 ## 🎨 Budget — refonte sur la charte : classes fantômes et `confirm()` devenu asynchrone (24/09/2026)
 
 ### 24/09/2026 — Budget — éléments « non stylés » et remplacement des boîtes natives

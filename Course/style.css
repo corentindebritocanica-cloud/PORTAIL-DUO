@@ -1,18 +1,23 @@
 /* style.css — feuille de style de l'app.
-   Extraite de l'ancien <style> de index.html le 20/09/2026 (contenu inchangé). */
+   Extraite de l'ancien <style> de index.html le 20/09/2026.
+   Alignée sur la charte UX/UI (UX_UI_CHARTER.md, sections 1 à 7) le 24/09/2026. */
   :root{
     /* Identite Corentin/Lisa alignee sur la charte UX/UI (meme hex que Muscu) */
-    --corentin:#1f8fff; --corentin-rgb:31,143,255;
-    --lisa:#ff3d7e; --lisa-rgb:255,61,126;
-    --accent: var(--corentin); --accent-rgb: var(--corentin-rgb);
+    --corentin:#1f8fff; --corentin-rgb:31,143,255; --corentin-dark:#1a5fc4;
+    --lisa:#ff3d7e; --lisa-rgb:255,61,126; --lisa-dark:#c4225f;
+    --accent: var(--corentin); --accent-rgb: var(--corentin-rgb); --accent-dark: var(--corentin-dark);
     --accent-soft: rgba(var(--accent-rgb), 0.14);
+    --tint: rgba(var(--accent-rgb), 0.07);
+    --tint-strong: rgba(var(--accent-rgb), 0.13);
 
-    /* Fonds (nomenclature Muscu : card/card-2, text/text-dim, border) */
-    --bg:#0b0f14; --card:#141a21; --card-2:#1b232c;
-    --text:#f2f5f7; --text-dim:#9aa7b2; --border:#26303a;
+    /* Fonds et texte : valeurs exactes de la charte §1 (avant le 24/09/2026 : teintes
+       propres a Course, et une bordure opaque bleu-gris #26303a, proscrite par la charte §9) */
+    --bg:#0d1014; --card:#161b22; --card-2:#1e2530;
+    --text:#e9eff6; --text-dim:#8a97a8;
+    --border:rgba(255,255,255,0.09); --border-strong:rgba(255,255,255,0.17);
 
     /* Etats semantiques (valeurs Muscu) */
-    --danger:#ef4444;
+    --danger:#ef4444; --done:#12b981; --gold:#ffb800;
 
     /* Rayons : echelle a 5 crans de la charte */
     --r-xs:4px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px; --r-pill:999px;
@@ -27,6 +32,7 @@
 
     /* Surfaces flottantes (glassmorphism) */
     --glass-bar: rgba(19,24,31,0.86);
+    --glass-modal: rgba(22,27,34,0.95);
 
     /* Marge tampon volontaire de 16px en plus de la vraie safe-area iOS :
        l'app ne colle jamais aux bords reels de l'ecran, meme si iOS applique
@@ -45,22 +51,25 @@
     --tabbar-height:calc(62px + var(--nav-offset));
   }
   :root[data-profil="Lisa"]{
-    --accent: var(--lisa); --accent-rgb: var(--lisa-rgb);
+    --accent: var(--lisa); --accent-rgb: var(--lisa-rgb); --accent-dark: var(--lisa-dark);
   }
   /* Mode clair (charte UX/UI) */
   .light-mode{
     --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
-    --border:rgba(23,38,56,0.11);
+    --border:rgba(23,38,56,0.11); --border-strong:rgba(23,38,56,0.20);
+    --tint: rgba(var(--accent-rgb), 0.06); --tint-strong: rgba(var(--accent-rgb), 0.10);
     --text:#131a23; --text-dim:#5f6c7c;
     --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
     --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
     --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
     --glass-bar: rgba(255,255,255,0.84);
+    --glass-modal: rgba(255,255,255,0.95);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; min-height:100%; background:var(--bg); color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    overscroll-behavior:none;}
+    font-family:-apple-system,BlinkMacSystemFont,"Roboto","Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none;}
+  button{font-family:inherit;}
   body{overflow:hidden;}
   /* #app est ancre directement aux bords reels de l'ecran (position:fixed;inset:0)
      plutot que de dependre de body/html en 100dvh : ce dernier a un calcul peu
@@ -81,33 +90,40 @@
   /* Barre de recherche */
   .searchbar{
     margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
-    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
-    padding:10px 14px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+    min-height:44px; padding:4px 6px 4px 14px;
   }
   .searchbar input{flex:1; border:none; background:none; color:var(--text); font-size:16px; outline:none;}
   .searchbar input::placeholder{color:var(--text-dim);}
   .btn-effacer-recherche{
+    position:relative; /* zone tactile etendue a 44px par ::after, sans changer le visuel */
     flex-shrink:0; width:30px; height:30px; border-radius:50%; border:none;
     background:var(--card-2); color:var(--text-dim); font-size:14px;
     display:none; align-items:center; justify-content:center; padding:0; line-height:1;
   }
-  .btn-effacer-recherche:active{background:var(--border);}
+  .btn-effacer-recherche:active{background:var(--border-strong);}
+  .btn-effacer-recherche::after, .case::after, .btn-crayon::after{content:''; position:absolute; inset:-7px;}
+  .btn-crayon::after{inset:-4px;}
 
   .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--add-gap) + var(--add-size) + 16px);}
   .section-rayon{margin-top:22px;}
-  .titre-rayon{font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 8px 4px;}
+  .titre-rayon{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim); margin:0 0 8px 4px;}
   .carte-produit{
     display:flex; align-items:center; gap:12px;
-    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
-    padding:12px 14px; margin-bottom:10px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:10px 12px 10px 14px; margin-bottom:10px;
     box-shadow: var(--shadow-sm);
     transition: border-color var(--t-mid) ease;
   }
+  /* Case a cocher : 30px visuels, zone tactile 44px (::after). Coche = action la plus
+     repetee de l'app (charte §11.2) : feedback :active instantane, sans transition. */
   .case{
+    position:relative; padding:0;
     flex-shrink:0; width:30px; height:30px; border-radius:var(--r-sm); border:2px solid var(--border);
     display:flex; align-items:center; justify-content:center; background:var(--card-2);
   }
   .case.checked{ background:var(--accent); border-color:var(--accent); }
+  .case:active{ transform:scale(0.94); }
   .case svg{width:16px; height:16px; stroke:white; fill:none; stroke-width:3; display:none;}
   .case.checked svg{display:block;}
   .infos-produit{flex:1; min-width:0;}
@@ -115,13 +131,14 @@
   .nom-produit.achete{ text-decoration:line-through; color:var(--text-dim); }
   .rayon-produit{font-size:12px; color:var(--text-dim); margin:2px 0 0;}
   .btn-crayon{
+    position:relative; padding:0;
     flex-shrink:0; width:36px; height:36px; border-radius:50%; border:none;
     background:var(--card-2); color:var(--text-dim); font-size:16px;
     display:flex; align-items:center; justify-content:center;
   }
-  .btn-crayon:active{background:var(--border);}
+  .btn-crayon:active{background:var(--border-strong);}
   .qte-produit{
-    flex-shrink:0; width:64px; min-width:64px; height:36px; border-radius:10px;
+    flex-shrink:0; width:64px; min-width:64px; height:44px; border-radius:var(--r-sm);
     border:1px solid var(--border); background:var(--card-2); color:var(--text);
     text-align:center; font-size:14px; padding:0 4px;
   }
@@ -132,29 +149,34 @@
   .vide h2{color:var(--text); font-size:20px; margin-bottom:8px;}
 
   /* Onglet Course */
+  /* Bouton d'action principal (charte §5.3 / §5.4) */
   .btn-course-terminee{
     display:none;
     position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + 14px);
-    padding:16px; border:none; border-radius:var(--r-md); background:var(--accent);
-    color:white; font-size:16px; font-weight:700; z-index:20;
+    min-height:52px; padding:14px 10px; border:none; border-radius:var(--r-lg); background:var(--accent);
+    color:#fff; font-size:15px; font-weight:700; z-index:20;
+    box-shadow:0 10px 24px rgba(var(--accent-rgb),0.30), var(--shadow-sm);
+    transition:transform var(--t-fast) ease-out;
   }
+  .btn-course-terminee:active{transform:scale(0.97);}
+  #liste-course{padding-top:16px; padding-bottom:calc(var(--tabbar-height) + 90px);}
   .btn-course-terminee.visible{display:block;}
 
-  /* Onglet Paramètres */
+  /* Onglet Réglages */
   .params{padding:20px 18px calc(var(--tabbar-height) + 24px);}
   .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
-  .bloc-param h3{margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim);}
-  .choix-profil{display:flex; gap:10px;}
-  .btn-profil{
-    flex:1; padding:16px; border-radius:var(--r-md); border:2px solid var(--border);
-    background:var(--card-2); color:var(--text); font-size:16px; font-weight:600;
-  }
-  .btn-profil.actif{border-color:var(--accent); background:var(--accent-soft); color:var(--accent);}
+  .bloc-param h3{margin:0 0 12px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim);}
+  /* Selecteur de profil Corentin/Lisa — composant charte §5.6, repris tel quel */
+  .profile-switch{display:flex; gap:8px; padding:5px; margin-top:2px; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);}
+  .profile-switch-btn{flex:1; padding:11px 8px; border-radius:var(--r-sm); border:1px solid transparent; background:transparent; color:var(--text-dim); font-size:14.5px; font-weight:700; font-family:inherit;}
+  .profile-switch-btn.corentin.selected{background:rgba(31,143,255,0.14); border-color:var(--corentin); color:var(--corentin);}
+  .profile-switch-btn.lisa.selected{background:rgba(255,61,126,0.14); border-color:var(--lisa); color:var(--lisa);}
   .btn-large{
-    width:100%; padding:16px; border-radius:var(--r-md); border:1px solid var(--border);
-    background:var(--card-2); color:var(--text); font-size:16px; font-weight:600;
+    width:100%; min-height:48px; padding:14px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:15px; font-weight:700;
+    transition:transform var(--t-fast) ease-out;
   }
-  .btn-large:active{background:var(--border);}
+  .btn-large:active{transform:scale(0.97);}
   .derniere-maj{margin:14px 0 0; font-size:12px; color:var(--text-dim); text-align:center;}
 
   /* Barre d'onglets flottante (style "pilule" + bouton rond a droite).
@@ -210,25 +232,36 @@
   /* Modale ajout/édition produit */
   .modal-fond{
     position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
-    display:flex; align-items:flex-end;
+    display:flex; align-items:flex-end; justify-content:center;
+    animation:fondIn .22s ease-out;
   }
   .modal-carte{
-    width:100%; background:var(--card); border-radius:var(--r-xl) var(--r-xl) 0 0;
+    width:100%; max-width:520px; background:var(--glass-modal);
+    -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid var(--border); border-bottom:none; border-radius:var(--r-xl) var(--r-xl) 0 0;
     padding:22px 20px calc(22px + var(--safe-bottom)); max-height:80vh; overflow-y:auto;
     box-shadow: var(--shadow-lg);
+    animation:feuilleIn .28s cubic-bezier(.32,.72,.3,1);
   }
+  @keyframes fondIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes feuilleIn{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  /* Boite de dialogue maison (remplace window.confirm) : par-dessus la modale produit */
+  #dialogue{z-index:110;}
+  .dialogue-texte{margin:-8px 0 4px; font-size:14px; line-height:1.45; color:var(--text-dim);}
   .modal-carte h2{margin:0 0 18px; font-size:19px;}
   .champ{margin-bottom:16px;}
   .champ label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
   .champ input, .champ select{
-    width:100%; padding:13px 14px; border-radius:var(--r-md); border:1px solid var(--border);
+    width:100%; min-height:48px; padding:12px 14px; border-radius:var(--r-sm); border:1px solid var(--border);
     background:var(--card-2); color:var(--text); font-size:16px;
   }
   .modal-actions{display:flex; gap:10px; margin-top:20px;}
-  .modal-actions button{flex:1; padding:14px; border-radius:var(--r-md); border:none; font-size:16px; font-weight:700;}
-  .btn-annuler{background:var(--card-2); color:var(--text);}
+  .modal-actions button{flex:1; min-height:48px; padding:14px; border-radius:var(--r-md); border:none; font-size:15px; font-weight:700; transition:transform var(--t-fast) ease-out;}
+  .modal-actions button:active{transform:scale(0.97);}
+  .btn-annuler{background:var(--card-2); color:var(--text); border:1px solid var(--border) !important;}
+  .btn-danger{background:var(--danger); color:#fff;}
   .btn-enregistrer{background:var(--accent); color:white;}
-  .btn-supprimer{background:none; color:var(--danger); border:none; width:100%; text-align:center; margin-top:6px; padding:10px; font-size:14px;}
+  .btn-supprimer{background:none; color:var(--danger); border:none; width:100%; min-height:44px; text-align:center; margin-top:6px; padding:10px; font-size:14px; font-weight:600;}
 
   /* Bouton de bascule theme (charte UX/UI) */
   .theme-toggle{
@@ -237,7 +270,9 @@
     background:var(--card); border:1px solid var(--border);
     display:flex; align-items:center; justify-content:center;
     font-size:16px; box-shadow: var(--shadow-sm);
+    transition:transform var(--t-fast) ease-out;
   }
+  .theme-toggle:active{transform:scale(0.97);}
 
   /* Accessibilite — mouvement reduit (charte UX/UI §11.9, 24/09/2026) */
   @media (prefers-reduced-motion: reduce){

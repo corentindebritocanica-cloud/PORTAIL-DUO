@@ -80,8 +80,8 @@ const state = {
    ============================================================ */
 function appliquerProfil(){
   document.documentElement.setAttribute('data-profil', state.profil);
-  document.getElementById('btn-profil-corentin').classList.toggle('actif', state.profil==='Corentin');
-  document.getElementById('btn-profil-lisa').classList.toggle('actif', state.profil==='Lisa');
+  document.getElementById('btn-profil-corentin').classList.toggle('selected', state.profil==='Corentin');
+  document.getElementById('btn-profil-lisa').classList.toggle('selected', state.profil==='Lisa');
 }
 // Appliqué tout de suite (avant même Firebase) pour éviter un flash du mauvais thème.
 appliquerProfil();
@@ -248,6 +248,28 @@ btnEffacerRecherche.addEventListener('click', ()=>{
    MODALE AJOUT / ÉDITION (le même formulaire pour les deux)
    ============================================================ */
 const modal = document.getElementById('modal-produit');
+
+/* Boite de dialogue maison (bottom-sheet, charte UX/UI §5.9) — remplace window.confirm().
+   dialogue({ titre, texte, ok, annuler, danger }) → Promise<boolean>. Tap sur le fond = annuler.
+   Classe .modal-fond : la mise a jour auto au retour dans l'app (utilisateurOccupe) la
+   voit comme une fenetre ouverte et n'interrompt rien. */
+function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', danger = true } = {}){
+  return new Promise((resolve)=>{
+    const fond = document.getElementById('dialogue');
+    const bOk = document.getElementById('dialogue-ok');
+    const bAnnuler = document.getElementById('dialogue-annuler');
+    const t = document.getElementById('dialogue-texte');
+    document.getElementById('dialogue-titre').textContent = titre;
+    t.textContent = texte; t.style.display = texte ? '' : 'none';
+    bOk.textContent = ok; bOk.className = danger ? 'btn-danger' : 'btn-enregistrer';
+    bAnnuler.textContent = annuler || ''; bAnnuler.style.display = annuler ? '' : 'none';
+    const fermer = (res)=>{ fond.style.display = 'none'; bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+    bOk.onclick = ()=> fermer(true);
+    bAnnuler.onclick = ()=> fermer(false);
+    fond.onclick = (e)=>{ if(e.target===fond) fermer(false); };
+    fond.style.display = 'flex';
+  });
+}
 const selectRayon = document.getElementById('modal-rayon');
 const champNouveauRayon = document.getElementById('champ-nouveau-rayon');
 
@@ -309,8 +331,11 @@ document.getElementById('btn-modal-enregistrer').addEventListener('click', async
 
 document.getElementById('btn-modal-supprimer').addEventListener('click', async ()=>{
   if(!state.editionId) return;
-  if(!window.confirm('Supprimer définitivement ce produit ?')) return;
-  await dbDeleteDoc('produits', state.editionId);
+  const id = state.editionId; // fige avant l'attente (la modale pourrait changer d'etat)
+  const nom = (state.produits[id] && state.produits[id].nom) || 'ce produit';
+  const oui = await dialogue({ titre:'Supprimer « ' + nom + ' » ?', texte:'Le produit sera retiré définitivement de la liste.', ok:'Supprimer' });
+  if(!oui) return;
+  await dbDeleteDoc('produits', id);
   fermerModale();
 });
 
@@ -320,7 +345,7 @@ document.getElementById('btn-modal-supprimer').addEventListener('click', async (
    corrigé le 18/09/2026 : jamais toucher aux caches/SW des autres apps).
    ============================================================ */
 document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
-  const ok = window.confirm("Vider le cache de Courses et recharger ?\n\nL'app ne sera plus disponible hors-ligne tant qu'elle n'aura pas été rouverte au moins une fois avec une connexion.");
+  const ok = await dialogue({ titre:"Recharger l'application ?", texte:"Le cache de Courses sera vidé. L'app ne sera plus disponible hors-ligne tant qu'elle n'aura pas été rouverte au moins une fois avec une connexion.", ok:'Recharger', danger:false });
   if(!ok) return;
   try{
     if('caches' in window){

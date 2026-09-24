@@ -215,3 +215,23 @@ Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTE
 - `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3).
 
 La modale produit s'affiche toujours sans transition : laissé tel quel (option possible plus tard : entrée courte depuis le bas, action « occasionnelle » au sens du §11.2). **Non vérifié sur iPhone.**
+
+
+## Alignement sur la charte UX/UI — sections 1 à 7 (24/09/2026)
+
+Audit statique contre `UX_UI_CHARTER.md` puis mise en conformité, avec les mêmes principes que Budget (décidés par Corentin : pas de décoratif hors charte, modales conformes). Course était déjà proche (tokens nommés comme Muscu, pilule §5.5b, bottom-sheet).
+
+- **Couleurs (`:root`)** : fonds et textes passés aux valeurs exactes de la charte (`--bg #0d1014`, `--card #161b22`, `--card-2 #1e2530`, `--text #e9eff6`, `--text-dim #8a97a8` ; avant : teintes propres à Course, légèrement différentes). **Bordure** : `#26303a` opaque bleu-gris (proscrit par la charte §9) → `rgba(255,255,255,0.09)`. Tokens manquants ajoutés (`--border-strong`, `--tint`, `--accent-dark`, `--done`, `--gold`, `--glass-modal`), aussi en mode clair. `theme-color` → `#0d1014`.
+- **Typo** : titres de rayon et titres de blocs Réglages au format « label de section » de la charte (11 px, 800, capitales espacées).
+- **Cards produit** : `--r-lg` (18 px) au lieu de 14 px. Champs de saisie en `--r-sm` (recherche, quantité, modale).
+- **Zones tactiles ≥ 44 px** : la **case à cocher** (30 px visuels) et le ✕ de la recherche reçoivent une zone tactile étendue à 44 px via `::after` (`inset:-7px`), le crayon (36 px) via `inset:-4px` — **aucun changement visuel**. Champ quantité, barre de recherche, champs de la modale, « Supprimer ce produit » : hauteur 44 à 48 px.
+- **Sélecteur de profil** : l'ancien `.btn-profil` maison remplacé par le composant de la charte §5.6 (`.profile-switch` / `.profile-switch-btn corentin|lisa`, classe `.selected`), repris tel quel. `appliquerProfil()` bascule `.selected` au lieu de `.actif`.
+- **Boutons** : « Course terminée » en `--r-lg`, 15 px, ombre teintée d'accent ; feedback `scale(0.97)` au tap sur les boutons (charte §6.5). La case à cocher a un `scale(0.94)` **instantané, sans transition** (action la plus répétée de l'app, charte §11.2).
+- **Modales** : fond en verre (`--glass-modal` + flou), bordure, largeur max 520 px, entrée en glissé 0,28 s (coupée en mouvement réduit).
+- **`window.confirm()` remplacé** par `dialogue({ titre, texte, ok, annuler, danger })` → `Promise<boolean>` (`app.js`, juste après `const modal`), rendu dans `#dialogue` (`.modal-fond`, z-index au-dessus de la modale produit). Concerne « Supprimer ce produit » (l'id est figé avant l'attente) et « Recharger l'application ». Tap sur le fond = Annuler.
+- **Style inline** du conteneur de l'onglet Course déplacé dans `style.css` (`#liste-course`).
+
+**Non modifié, volontairement** : `apple-mobile-web-app-status-bar-style` reste à `black` (la charte dit `black-translucent`) — valeur choisie lors du chantier du flou de barre de statut du 18/09 (voir plus haut et `PROBLEMES_RESOLUS.md`), à ne pas toucher sans retester sur iPhone. Titre d'onglet en couleur d'accent conservé.
+
+**Vérifié** : Chromium headless 390×844, Firebase bouchonné — Liste, Course, Réglages, modale produit, dialogue de suppression (Annuler → rien supprimé ; Supprimer → produit supprimé et modale fermée), bascule de profil (accent rose), mode clair, zone tactile de la case (un tap à 5 px à côté touche bien la case), aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+
