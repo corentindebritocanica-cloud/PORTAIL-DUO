@@ -933,12 +933,12 @@ function render(){
 
     /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
     const isCircuitEx = ex.logType === 'circuit';
-    const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name);
-    /* Le record ne doit comparer que des séances faites avec la MÊME méthode
-       (haltères vs machine, etc.) — voir currentExerciseMethodId(). Change de
-       valeur au clic sur le sélecteur de méthode plus bas, qui relance un
-       render() complet de la vue et recalcule donc cette carte à jour. */
+    /* Méthode actuellement sélectionnée pour CET exercice dans CETTE séance —
+       sert à isoler "Dernière fois" ET le record : voir currentExerciseMethodId().
+       Change de valeur au clic sur le sélecteur de méthode plus bas, qui relance
+       un render() complet de la vue et recalcule donc cette carte à jour. */
     const recordMethodId = isCircuitEx ? null : currentExerciseMethodId(ex, exIdx, data);
+    const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name, recordMethodId);
     const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name, recordMethodId);
 
     if(lastPerf || record){
@@ -946,10 +946,12 @@ function render(){
       histRow.className = 'exercise-history';
       if(lastPerf){
         const best = lastPerf.sets.reduce(function(a, b){ return b.weight > a.weight ? b : a; });
+        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
         const span = document.createElement('span');
         span.className = 'hist-last';
         span.textContent = 'Dernière fois : ' + formatKg(best.weight)
-          + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel;
+          + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel
+          + (methodInfo ? ' (' + methodInfo.label + ')' : '');
         histRow.appendChild(span);
       }
       if(record){
@@ -1809,10 +1811,16 @@ function getSetsForExercise(archive, exerciseName){
   return out.sort((a, b) => a.set - b.set);
 }
 
-/* Dernière séance où l'exercice a été fait, avec au moins un poids saisi. */
-function getLastPerformance(profile, exerciseName){
+/* Dernière séance où l'exercice a été fait, avec au moins un poids saisi.
+   methodId : même convention que getPersonalRecord() (null = ne pas filtrer,
+   exercice à méthode unique ou fixe) — "Dernière fois" a le même défaut que le
+   record avait : afficher une performance faite avec une AUTRE méthode que
+   celle sélectionnée aujourd'hui n'a pas de sens (24/09/26, suite du correctif
+   des records). */
+function getLastPerformance(profile, exerciseName, methodId){
   const archives = getArchivesChrono(profile);
   for(let i = archives.length - 1; i >= 0; i--){
+    if(methodId != null && archiveExerciseMethodId(archives[i], exerciseName) !== methodId) continue;
     const sets = getSetsForExercise(archives[i], exerciseName).filter(x => !isNaN(x.weight));
     if(sets.length > 0) return { dateLabel: archives[i].dateLabel, sets: sets };
   }
