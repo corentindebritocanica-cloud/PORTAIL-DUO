@@ -21,6 +21,8 @@
 
 ## 🪟 Portail/Course — habillage « Verre » : pièges du verre dépoli et d'un fichier partagé entre apps (28/09/2026)
 
+> **Statut** : design Verre **définitif** pour le Portail et Course depuis le 28/09/2026 au soir (classe `html.verre` en dur, interrupteur et curseur d'intensité retirés). Pour migrer Muscu/Budget : check-list dans le README racine, « Design Verre — DÉFINITIF ».
+
 ### 28/09/2026 — Portail, Course — arêtes fantômes, halo invisible, fichier commun hors cache
 **Symptôme** : (1) sur la pile de vitres du Portail, les bords des vitres du fond restaient visibles **à travers** la vitre de devant (translucide) ; (2) un fond décoratif en `position:fixed` risquait de passer par-dessus `#app` (Course) ou d'être caché par le fond du `body` ; (3) une feuille commune à la racine (`verre.css`) chargée par `/Course/` n'est pas gérée par le service worker de Course.
 **Fausses pistes explorées** : s'en remettre au flou (`backdrop-filter`) pour « effacer » les vitres du fond — un filet de 1 px reste lisible même flouté à 30 px.

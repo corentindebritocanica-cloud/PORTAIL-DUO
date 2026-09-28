@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr" data-app="portail">
+<html lang="fr" data-app="portail" class="verre">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -18,10 +18,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap">
 <link rel="stylesheet" href="style.css?v=202609281904280200">
-<!-- Habillage « Verre » commun aux 4 apps (essai, 28/09/2026) : sans effet tant que <html> n'a pas la
-     classe .verre. Classe posée ici, AVANT l'affichage (pas de flash de l'ancien thème), si l'essai
-     est activé (localStorage duo-verre, partagé par les 4 apps). Voir verre.css et README. -->
-<script>try{if(localStorage.getItem('duo-verre')==='1')document.documentElement.classList.add('verre');var f=parseFloat(localStorage.getItem('duo-verre-intensite'));if(f>=0&&f<=2)document.documentElement.style.setProperty('--v-f',String(f));}catch(e){}</script>
+<!-- Design « Verre » DÉFINITIF (28/09/2026) : feuille commune à la racine, appliquée par la classe
+     html.verre posée en dur ci-dessus. style.css garde la base (jetons, structure, thème clair),
+     verre.css l'habille. Voir README, « Design Verre ». -->
 <link rel="stylesheet" href="verre.css?v=202609281904280200">
 </head>
 <body>
@@ -121,14 +120,6 @@
         </svg>
       </button>
     </div>
-    <!-- Curseur « Effet verre » (28/09/2026) : intensité du verre des 4 apps (--v-f), mode Verre seulement. -->
-    <div class="verre-curseur verre-seul">
-      <label for="verre-intensite"><span>Effet verre</span><span id="verre-intensite-txt">100 %</span></label>
-      <input type="range" id="verre-intensite" min="0" max="200" step="5" value="100">
-    </div>
-    <button type="button" class="verre-interrupteur verre-reglage" id="verre-interrupteur" role="switch" aria-checked="false">
-      <span>Essai Verre</span><span class="verre-pastille" aria-hidden="true"></span>
-    </button>
     <p id="derniere-maj" class="derniere-maj"></p>
   </main>
 

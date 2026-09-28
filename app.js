@@ -378,16 +378,13 @@
   })();
 
   /* ============================================================
-     MODE VERRE — ESSAI (28/09/2026)
-     Habillage commun aux 4 apps (verre.css, à la racine). Activé par
-     localStorage duo-verre = '1' (même origine : un seul réglage pour les 4 apps),
-     la classe html.verre étant posée dès le <head> de index.html.
-     PILE : en mode Verre, les 3 cartes sont 3 vitres empilées (data-rang : 0 = devant).
+     DESIGN VERRE — DÉFINITIF (28/09/2026)
+     Habillage commun (verre.css, à la racine), classe html.verre posée en dur dans index.html.
+     PILE : les 3 cartes sont 3 vitres empilées (data-rang : 0 = devant).
      Toucher une vitre du fond la ramène devant (sans ouvrir l'app) ; toucher celle de
      devant ouvre l'app (lien normal) ; glisser la pile vers le haut/bas fait tourner les
      vitres. Ordre mémorisé (portail-verre-pile). La 2e lumière du fond prend la couleur
-     de l'app de devant. Curseur « Effet verre » : intensité du verre des 4 apps.
-     En mode classique, data-rang n'a aucun effet : les cartes restent de simples liens.
+     de l'app de devant.
      ============================================================ */
   (function(){
     const root = document.documentElement;
@@ -463,32 +460,9 @@
     /* Le clic qui suit un glisser ne doit rien faire (ni ouvrir l'app, ni changer de vitre). */
     dash.addEventListener('click', (e) => { if (aGlisse) { e.preventDefault(); e.stopPropagation(); aGlisse = false; } }, true);
 
-    /* CURSEUR « EFFET VERRE » (28/09/2026) : 0 à 200 % → --v-f de 0 à 2 (voir verre.css).
-       Mémorisé dans duo-verre-intensite (lu dès le <head> par chaque app). */
-    const curseur = document.getElementById('verre-intensite');
-    const txt = document.getElementById('verre-intensite-txt');
-    function appliquerIntensite(pct, memoriser){
-      const f = Math.min(2, Math.max(0, pct / 100));
-      root.style.setProperty('--v-f', String(f));
-      curseur.style.setProperty('--pct', (pct / 2) + '%');
-      txt.textContent = Math.round(pct) + ' %';
-      if (memoriser) { try { localStorage.setItem('duo-verre-intensite', String(f)); } catch (e) {} }
-    }
-    let f0 = 1;
-    try { const v = parseFloat(localStorage.getItem('duo-verre-intensite')); if (v >= 0 && v <= 2) f0 = v; } catch (e) {}
-    curseur.value = String(Math.round(f0 * 100));
-    appliquerIntensite(f0 * 100, false);
-    curseur.addEventListener('input', () => appliquerIntensite(parseFloat(curseur.value), true));
-
-    const inter = document.getElementById('verre-interrupteur');
-    const majInter = () => inter.setAttribute('aria-checked', root.classList.contains('verre') ? 'true' : 'false');
-    majInter();
-    inter.addEventListener('click', () => {
-      const actif = !root.classList.contains('verre');
-      root.classList.toggle('verre', actif);
-      try { localStorage.setItem('duo-verre', actif ? '1' : '0'); } catch (e) {}
-      majInter();
-    });
+    /* Nettoyage des réglages de l'essai (interrupteur « Essai Verre » et curseur d'intensité,
+       retirés quand le design est devenu définitif le 28/09/2026). */
+    try { localStorage.removeItem('duo-verre'); localStorage.removeItem('duo-verre-intensite'); localStorage.removeItem('portail-verre-devant'); } catch (e) {}
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {

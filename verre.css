@@ -1,37 +1,36 @@
 /* ==========================================================================
-   verre.css — habillage « Verre » commun aux 4 apps (ESSAI, 28/09/2026)
+   verre.css — design « Verre » commun aux apps de PORTAIL-DUO
    --------------------------------------------------------------------------
-   Une seule feuille pour que Portail, Muscu, Budget et Course ne fassent
-   visuellement qu'une app : fond sombre éclairé par deux halos de lumière
-   (couleur du profil + couleur de l'app), surfaces en verre dépoli, grosse
-   typo large et fine (Unbounded) pour les chiffres.
+   DÉFINITIF pour le Portail et Course depuis le 28/09/2026 (essai validé par
+   Corentin). Muscu et Budget : à migrer plus tard — tant qu'elles ne chargent
+   pas ce fichier et n'ont pas la classe html.verre, elles ne changent pas.
 
-   ACTIVATION : TOUTES les règles sont préfixées par html.verre. Sans cette
-   classe, ce fichier n'a strictement aucun effet (les apps restent telles
-   qu'avant). La classe est posée tôt dans le <head> de chaque app si
-   localStorage['duo-verre'] === '1' (même origine = réglage partagé par les
-   4 apps), et basculée par l'interrupteur « Essai Verre ».
+   Une seule feuille pour que les apps ne fassent visuellement qu'une : fond
+   sombre éclairé par deux halos (couleur du profil + couleur de l'app),
+   surfaces en verre dépoli, police Unbounded pour les grands chiffres.
 
-   Chaque app pose data-app="portail|course|budget|muscu" sur <html> : les
-   règles propres à une app sont préfixées par html.verre[data-app="…"],
-   car plusieurs apps ont des classes homonymes (.theme-toggle, .modal-…).
+   ACTIVATION : classe html.verre posée EN DUR dans le index.html de chaque app
+   migrée. Toutes les règles sont préfixées par html.verre, et par
+   html.verre[data-app="portail|course|budget|muscu"] quand elles sont propres
+   à une app (classes homonymes d'une app à l'autre). style.css de chaque app
+   garde la base (jetons, structure, thème clair) ; ce fichier l'habille.
 
    VERSIONNAGE : chargé en verre.css?v=… ; le workflow auto-version met ce
    numéro à jour dans chaque index.html qui le référence dès que ce fichier
    change (voir .github/workflows/auto-version.yml et README racine).
+   Mis en cache par le service worker de chaque app (hors de son dossier pour
+   les sous-apps : ajouté explicitement, voir Course/sw.js).
 
    PERF : le flou (backdrop-filter) coûte cher sur iPhone. Règle : 2 à 3
    surfaces floutées visibles en même temps au maximum (plaque principale,
    barre d'onglets, bouton flottant) — JAMAIS une par ligne de liste : les
    lignes sont des filets posés sur la plaque, pas des cartes en verre.
+
+   BAS DE PAGE : chaque page doit défiler elle-même (pas d'« écran fixe »
+   avec défilement interne) — voir PROBLEMES_RESOLUS, bande noire de Course.
    ========================================================================== */
 
 html.verre{
-  /* INTENSITÉ DU VERRE (28/09/2026) : --v-f, de 0 (verre clair, presque sans flou) à 2 (verre très
-     dépoli), 1 par défaut. Réglée par le curseur « Effet verre » du Portail, mémorisée dans
-     localStorage duo-verre-intensite (même origine : les 4 apps suivent) et posée dès le <head>.
-     Elle pilote le flou, l'opacité du verre, ses arêtes et son reflet (calc() dans rgba/blur). */
-  --v-f:1;
   /* Couleurs d'identité des vitres (reprises du mockup validé le 28/09/2026) */
   --v-corps:#ff7a59;   /* Musculation */
   --v-argent:#ffb800;  /* Budget */
@@ -42,16 +41,16 @@ html.verre{
   --v-bg:#08080a;
   --v-text:#f5f2ec;
   --v-dim:rgba(245,242,236,0.64);
-  --v-glass:rgba(255,255,255,calc(0.03 + 0.04 * var(--v-f)));   /* plaque de verre (0.07 à --v-f = 1) */
+  --v-glass:rgba(255,255,255,0.07);         /* plaque de verre */
   --v-glass-fort:rgba(22,22,26,0.62);       /* verre posé sur du contenu qui défile (barres, modales) */
   --v-soft:rgba(255,255,255,0.06);          /* éléments posés SUR une plaque (pas de flou) */
   --v-soft-on:rgba(255,255,255,0.16);       /* état actif d'un segment */
-  --v-edge:rgba(255,255,255,calc(0.06 + 0.10 * var(--v-f)));    /* arête du verre (0.16) */
-  --v-hi:rgba(255,255,255,calc(0.10 + 0.20 * var(--v-f)));      /* reflet du haut (0.30) */
+  --v-edge:rgba(255,255,255,0.16);          /* arête du verre */
+  --v-hi:rgba(255,255,255,0.30);            /* reflet du haut */
   --v-hair:rgba(255,255,255,0.08);          /* filet entre deux lignes */
   --v-ombre:rgba(0,0,0,0.55);
   --v-halo-op:0.60;
-  --v-flou:blur(calc(30px * var(--v-f))) saturate(calc(100% + 80% * var(--v-f)));
+  --v-flou:blur(30px) saturate(180%);
   --v-ease:cubic-bezier(.2,.9,.25,1);
   --v-f-chiffres:'Unbounded', -apple-system, BlinkMacSystemFont, sans-serif;
 
@@ -76,12 +75,12 @@ html.verre.light-mode{
   --v-bg:#e6e0d6;
   --v-text:#15120e;
   --v-dim:rgba(21,18,14,0.64);
-  --v-glass:rgba(255,255,255,calc(0.14 + 0.28 * var(--v-f)));
+  --v-glass:rgba(255,255,255,0.42);
   --v-glass-fort:rgba(250,247,242,0.66);
   --v-soft:rgba(255,255,255,0.50);
   --v-soft-on:rgba(255,255,255,0.90);
-  --v-edge:rgba(255,255,255,calc(0.35 + 0.40 * var(--v-f)));
-  --v-hi:rgba(255,255,255,calc(0.55 + 0.40 * var(--v-f)));
+  --v-edge:rgba(255,255,255,0.75);
+  --v-hi:rgba(255,255,255,0.95);
   --v-hair:rgba(21,18,14,0.10);
   --v-ombre:rgba(70,45,20,0.18);
   --v-halo-op:0.50;
@@ -109,7 +108,7 @@ html.verre body::after{
      soit uni et se raccorde sans marche à la bande colorée par iOS sous la page (voir plus bas, Course). */
 }
 
-/* Éléments qui n'existent qu'en mode Verre */
+/* Éléments propres au design Verre (masqués si html.verre est absent) */
 .verre-seul{ display:none !important; }
 html.verre .verre-seul{ display:revert !important; }
 
@@ -122,25 +121,6 @@ html.verre .reload-btn{
   box-shadow:inset 0 1px 0 var(--v-hi), 0 8px 20px var(--v-ombre);
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
 }
-
-/* Interrupteur « Essai Verre » (visible dans les deux modes) */
-.verre-interrupteur{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  width:100%; min-height:48px; padding:0 14px; box-sizing:border-box;
-  border-radius:999px; border:1px solid var(--border, rgba(255,255,255,.12));
-  background:var(--card-2, rgba(255,255,255,.06)); color:var(--text, #fff);
-  font-family:inherit; font-size:15px; font-weight:700; cursor:pointer;
-}
-.verre-interrupteur .verre-pastille{
-  position:relative; width:46px; height:28px; border-radius:999px; flex:none;
-  background:rgba(127,127,127,.35); transition:background .15s ease-out;
-}
-.verre-interrupteur .verre-pastille::after{
-  content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
-  background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.3); transition:transform .15s ease-out;
-}
-.verre-interrupteur[aria-checked="true"] .verre-pastille{ background:var(--accent, #1f8fff); }
-.verre-interrupteur[aria-checked="true"] .verre-pastille::after{ transform:translateX(18px); }
 
 /* ==========================================================================
    PORTAIL — la pile de vitres
@@ -231,24 +211,6 @@ html.verre[data-app="portail"] .chip-n{ background:var(--v-frigo); box-shadow:0 
 html.verre[data-app="portail"] .dash-maj.vieux{ color:var(--v-argent); }
 html.verre[data-app="portail"] .verre-astuce{ text-align:center; font-size:12px; color:var(--v-dim); margin:14px 0 0; }
 html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow-lg); }
-/* Curseur « Effet verre » (Portail, mode Verre seulement) */
-.verre-curseur{ width:100%; box-sizing:border-box; max-width:280px; margin:14px auto 0; padding:10px 16px 6px; border-radius:26px;
-  background:var(--v-soft); border:1px solid var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
-html.verre .verre-curseur{ display:block !important; }
-.verre-curseur label{ display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--v-text); }
-.verre-curseur label span:last-child{ color:var(--v-dim); font-weight:600; }
-.verre-curseur input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:44px; margin:0; background:transparent; }
-.verre-curseur input[type=range]::-webkit-slider-runnable-track{ height:6px; border-radius:999px;
-  background:linear-gradient(90deg, rgba(var(--accent-rgb),.9) 0 var(--pct,50%), var(--v-soft-on) var(--pct,50%) 100%); }
-.verre-curseur input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:28px; height:28px; margin-top:-11px;
-  border-radius:50%; background:#fff; border:none; box-shadow:0 2px 8px rgba(0,0,0,.35), 0 0 0 4px rgba(var(--accent-rgb),.25); }
-.verre-curseur input[type=range]::-moz-range-track{ height:6px; border-radius:999px; background:var(--v-soft-on); }
-.verre-curseur input[type=range]::-moz-range-thumb{ width:28px; height:28px; border-radius:50%; background:#fff; border:none; }
-
-/* Interrupteur du Portail : sous le bouton recharger, dans les deux modes */
-.verre-reglage{ margin:16px auto 0; max-width:280px; }
-
-
 /* ==========================================================================
    COURSE — une plaque de verre, des lignes (pas de cartes)
    ========================================================================== */
@@ -338,6 +300,5 @@ html.verre[data-app="course"] .modal-actions button{ border-radius:999px; }
 
 /* Accessibilité — mouvement réduit (charte §11.9) */
 @media (prefers-reduced-motion: reduce){
-  html.verre .dash-card, html.verre .dash-body, html.verre .verre-peek,
-  .verre-interrupteur .verre-pastille, .verre-interrupteur .verre-pastille::after{ transition:none !important; }
+  html.verre .dash-card, html.verre .dash-body, html.verre .verre-peek{ transition:none !important; }
 }

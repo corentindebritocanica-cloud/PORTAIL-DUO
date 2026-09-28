@@ -322,3 +322,12 @@ Constat de Corentin : Budget et Muscu, **pages qui défilent**, n'ont jamais eu 
 - `--nav-offset` = valeur de Budget, `max(20px, safe-area − 12px)` ≈ 22 pt du **vrai** bord (l'ancienne valeur ≈ 4 pt se mesurait depuis une page coupée : à l'écran, la barre était à ~66 pt du bord).
 - `app.js` : `window.scrollTo(0,0)` à chaque changement d'onglet (le défilement est maintenant celui de la page, partagé par les onglets).
 **Vérifié** (Chromium 390×844, vraie base) : liste longue qui défile jusqu'en bas avec la barre fixe par-dessus, Réglages, changement d'onglet revenant en haut, modes Verre et classique, aucune erreur JS. **À confirmer sur iPhone.** Point à surveiller : en mode Verre, la plaque floutée fait désormais toute la hauteur de la liste — si le défilement saccade sur une longue liste, retirer son `backdrop-filter` (le fond seul suffit).
+
+
+## Design Verre — DÉFINITIF (28/09/2026, 19h15)
+
+Décision de Corentin : le design Verre devient celui de Course (et du Portail). **Plus d'interrupteur** : `<html lang="fr" data-app="course" class="verre">` en dur ; mini-script du `<head>` et carte **Réglages › Apparence** retirés ; bloc « MODE VERRE » d'`app.js` remplacé par le nettoyage des clés de l'essai (`duo-verre`, `duo-verre-intensite`). Le curseur « Effet verre » essayé sur le Portail a été retiré (valeurs fixes du verre).
+
+**État de Course en résumé** : page qui défile (structure de Budget), barre d'onglets en `position:fixed` à ~22 pt du vrai bord, plaque de verre unique pour le contenu, produits en lignes à filets, cases rondes à la couleur du profil, bouton thème qui défile avec l'en-tête, `status-bar-style` `black-translucent`, `../verre.css` en cache (`FICHIER_VERRE` dans `sw.js`). `style.css` reste la base (jetons, structure, thème clair), `verre.css` l'habille.
+
+**Vérifié** (Chromium 390×844, aucune clé en `localStorage`) : ouverture directe en Verre, Liste, Réglages sans « Apparence », aucune erreur JS.

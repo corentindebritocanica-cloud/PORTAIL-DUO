@@ -525,27 +525,10 @@ dbReady.then(demarrer);
   });
 })();
 
-/* ============================================================
-   MODE VERRE — ESSAI (28/09/2026)
-   Habillage commun aux 4 apps (../verre.css). Activé par localStorage duo-verre = '1'
-   (même origine que le Portail et les autres apps : un seul réglage pour les 4) ;
-   la classe html.verre est posée dès le <head> de index.html. L'interrupteur agit
-   tout de suite (pure CSS, pas de rechargement). Retour au Portail : geste retour
-   d'iOS (glisser depuis le bord gauche), comme en mode classique — le lien
-   « ‹ Portail » essayé le 28/09 a été retiré à la demande de Corentin.
-   ============================================================ */
-(function(){
-  const root = document.documentElement;
-  const inter = document.getElementById('verre-interrupteur');
-  const majInter = () => inter.setAttribute('aria-checked', root.classList.contains('verre') ? 'true' : 'false');
-  majInter();
-  inter.addEventListener('click', () => {
-    const actif = !root.classList.contains('verre');
-    root.classList.toggle('verre', actif);
-    try { localStorage.setItem('duo-verre', actif ? '1' : '0'); } catch (e) {}
-    majInter();
-  });
-})();
+/* Design « Verre » définitif depuis le 28/09/2026 (classe html.verre en dur dans index.html, feuille
+   ../verre.css). Retour au Portail : geste retour d'iOS. Nettoyage des réglages de l'essai (interrupteur
+   et curseur d'intensité retirés), partagés par les 4 apps : sans effet sur Muscu et Budget. */
+try { localStorage.removeItem('duo-verre'); localStorage.removeItem('duo-verre-intensite'); } catch (e) {}
 
 /* Horodatage du dernier deploiement de code (pas des donnees) : mise a jour automatiquement (workflow auto-version) a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */

@@ -7,6 +7,8 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 - **Repo** : `corentindebritocanica-cloud/PORTAIL-DUO`
 - **Raw index.html** : https://raw.githubusercontent.com/corentindebritocanica-cloud/PORTAIL-DUO/refs/heads/main/index.html
 
+**Depuis le 28/09/2026, design « Verre » définitif** (pile de vitres, feuille commune `verre.css`) — voir « Design Verre » en fin de fichier.
+
 Depuis le 22/09/2026, le Portail est un **tableau de bord** : chaque carte ouvre son app et affiche un aperçu du jour (prochaine séance, reste à vivre, produits à acheter). Il lit pour cela un petit résumé écrit par chaque app dans Firebase, en **connexion anonyme** (aucun mot de passe) — voir « Tableau de bord » en fin de fichier. HTML/CSS/JS sans build, avec un manifest PWA.
 
 ---
@@ -574,7 +576,7 @@ Audit statique contre `UX_UI_CHARTER.md`, dernière des 4 apps. Le Portail étai
 
 
 
-## Mode « Verre » — ESSAI commun aux 4 apps (28/09/2026)
+## Mode « Verre » — phase d'essai (28/09/2026) — historique, voir « Design Verre — DÉFINITIF » plus bas
 
 **Contexte** : refonte visuelle complète décidée par Corentin après 2 mockups (« Le Fil », rejeté ; « Verre », validé : « surtout l'écran principal du Portail, j'adore »). Pour juger sur iPhone avec les vraies données avant de tout basculer, la refonte est livrée comme un **habillage activable**, sans rien retirer au mode actuel.
 
@@ -592,7 +594,7 @@ Audit statique contre `UX_UI_CHARTER.md`, dernière des 4 apps. Le Portail étai
 
 **Écarts assumés à la charte v1.3** (normal : c'est la future charte v2) : transitions de la pile en 0,4 s (navigation occasionnelle, charte §11.2) ; `clip-path` animé (en plus de `transform`/`opacity`) ; `backdrop-filter` limité aux grandes surfaces (jamais une par ligne de liste).
 
-**Pour revenir en arrière** : couper l'interrupteur (sur chaque appareil). Pour retirer l'essai définitivement : supprimer `verre.css`, les `<link>`/`<script>` « Verre » des `index.html`, les blocs « MODE VERRE » des `app.js`, `.verre-seul` des `index.html`.
+*(Pendant l'essai : interrupteur « Essai Verre » et clé `duo-verre`. Retirés le soir même, voir ci-dessous.)*
 
 **Vérifié** : Chromium headless 390×844 (données de démonstration en `localStorage`, Firebase bouchonné) — Portail pile sombre et clair, vitre du fond ramenée devant, mode classique identique à avant. `node --check` sur `app.js`/`sw.js`. **Non vérifié sur iPhone.**
 
@@ -603,3 +605,27 @@ Demandes de Corentin :
 - **Curseur « Effet verre »** sous le bouton recharger (mode Verre seulement), de 0 à 200 % : variable `--v-f` (0 à 2, 1 par défaut) qui pilote dans `verre.css` le flou (`blur(calc(30px × f))`, saturation), l'opacité du verre, ses arêtes et son reflet. Mémorisé dans `duo-verre-intensite` et appliqué dès le `<head>` du Portail **et de Course** (même origine : les apps suivent le réglage).
 
 **Vérifié** (Chromium 390×844) : glisser haut ×2, bas, petit glisser sans effet et sans ouverture d'app, toucher une vitre du fond, toucher la vitre de devant → ouvre l'app, ordre et intensité conservés après rechargement, curseur à 0 et 200 %, aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Design Verre — DÉFINITIF pour le Portail et Course (28/09/2026, 19h15)
+
+Décision de Corentin après l'essai sur iPhone : **le design Verre devient le design du Portail et de Course**. Muscu et Budget seront migrées plus tard (elles ne chargent pas `verre.css` et restent inchangées d'ici là).
+
+**Ce qui change par rapport à l'essai** :
+- **Plus d'interrupteur** : la classe `verre` est écrite en dur sur `<html>` (`<html lang="fr" data-app="portail" class="verre">`). Mini-script du `<head>` et bouton « Essai Verre » retirés.
+- **Curseur « Effet verre » retiré** (Corentin n'en veut pas) : `--v-f` supprimé, valeurs fixes du verre restaurées dans `verre.css` (flou 30 px, verre 7 %, arête 16 %, reflet 30 %).
+- **Nettoyage** : au chargement, `app.js` efface les clés de l'essai (`duo-verre`, `duo-verre-intensite`, `portail-verre-devant`).
+- **Conservé** : la pile (toucher une vitre du fond → devant ; toucher celle de devant → ouvre l'app ; glisser haut/bas → fait tourner la pile), ordre mémorisé (`portail-verre-pile`), aperçus sur l'arête des vitres (`#mu-peek`, `#bu-peek`, `#co-peek`), thème clair/sombre, accent Corentin/Lisa.
+
+**Architecture** :
+- `style.css` = base (jetons, structure, thème clair) — inchangé ; `verre.css` (racine) = habillage, toutes règles préfixées `html.verre` (+ `[data-app="…"]`). Le code « mode classique » de `style.css` sert désormais de socle sous le verre : ne pas le supprimer sans vérifier ce que le verre en réutilise.
+- `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIER_VERRE` de Course).
+
+**Migrer Muscu ou Budget plus tard** (check-list) :
+1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<link rel="stylesheet" href="../verre.css?v=…">` (le workflow gère le `?v=`).
+2. `sw.js` de l'app : ajouter `../verre.css` au précache et au réseau d'abord, AVANT le filtre de périmètre (modèle : `Course/sw.js`, `FICHIER_VERRE`).
+3. Règles propres à l'app dans `verre.css`, sous `html.verre[data-app="…"]` — une plaque de verre + des lignes à filets, jamais une carte floutée par ligne.
+4. **Bas de page** : la page doit défiler elle-même (pas d'« écran fixe » avec défilement interne), sinon bande de 62 pt en bas (voir `PROBLEMES_RESOLUS.md`). Muscu et Budget sont déjà construites ainsi.
+5. Fond de `<html>` : à la couleur du bas du contenu.
+
+**Vérifié** (Chromium 390×844, sans aucune clé en `localStorage`) : Portail et Course s'ouvrent directement en Verre, pile (glisser, toucher, ouverture d'app, ordre après rechargement), Réglages de Course sans la carte « Apparence », aucune erreur JS.
