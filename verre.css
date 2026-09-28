@@ -123,6 +123,35 @@ html.verre body::after{
   100%{ transform:translate3d(4%, -4%, 0) scale(1.05); }
 }
 
+/* PASTILLE DE CONNEXION À CÔTÉ DU TITRE (28/09/2026, modèle : Budget « Budget ● »)
+   Posée en ::after sur le titre de chaque app (Portail : nom de l'app ; Course : titre de
+   l'onglet ; Muscu : titre de chaque écran et nom du profil sur l'écran des exercices).
+   Un pseudo-élément survit aux textContent = … du JS (titres dynamiques).
+   Couleur pilotée par <html data-sync="ok|envoi|hors-ligne"> posé par chaque app :
+   vert = synchronisé, or = synchronisation en cours, rouge = hors ligne. Budget garde
+   sa propre pastille (.status-dot), stylée plus bas avec le même halo. */
+html.verre[data-app="portail"] .app-title-brand::after,
+html.verre[data-app="course"] #titre-onglet::after,
+html.verre[data-app="muscu"] .big-question::after,
+html.verre[data-app="muscu"] #exercises-profile-label::after{
+  content:''; display:inline-block; width:9px; height:9px; border-radius:50%;
+  margin-left:10px; vertical-align:middle; position:relative; top:-2px;
+  background:#12b981; box-shadow:0 0 8px #12b981;
+  transition:background var(--t-mid, .22s) ease, box-shadow var(--t-mid, .22s) ease;
+}
+html.verre[data-sync="envoi"][data-app] .app-title-brand::after,
+html.verre[data-sync="envoi"][data-app] #titre-onglet::after,
+html.verre[data-sync="envoi"][data-app] .big-question::after,
+html.verre[data-sync="envoi"][data-app] #exercises-profile-label::after{ background:#ffb800; box-shadow:0 0 8px #ffb800; }
+html.verre[data-sync="hors-ligne"][data-app] .app-title-brand::after,
+html.verre[data-sync="hors-ligne"][data-app] #titre-onglet::after,
+html.verre[data-sync="hors-ligne"][data-app] .big-question::after,
+html.verre[data-sync="hors-ligne"][data-app] #exercises-profile-label::after{ background:#ef4444; box-shadow:0 0 8px #ef4444; }
+html.verre[data-app="muscu"] #exercises-profile-label:empty::after{ display:none; }
+html.verre[data-app="muscu"] .sync-badge{ display:none; }     /* remplacé par la pastille à côté du titre */
+html.verre[data-app="course"] header.topbar{ justify-content:flex-start; }
+html.verre[data-app="portail"] .app-title-brand::after{ margin-right:6px; }
+
 /* Éléments propres au design Verre (masqués si html.verre est absent) */
 .verre-seul{ display:none !important; }
 html.verre .verre-seul{ display:revert !important; }

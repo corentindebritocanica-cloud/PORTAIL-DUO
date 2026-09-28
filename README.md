@@ -655,3 +655,10 @@ Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on re
 ### Muscu passe au design Verre — les 4 apps sont unifiées (28/09/2026, 19h50)
 
 Détail dans `Muscu/README.md`. Particularités : chaque écran est une plaque (et la zone des cartes sur l'écran des exercices), rayons agrandis (`--r-lg` 24 px → `R_CARD` des flammes de record mis à jour dans `app.js`), réserve du bas reportée dans les plaques (le `padding-bottom` posé en JS sur `body` est neutralisé). **Le Portail, Course, Budget et Muscu partagent désormais un seul design, défini dans `verre.css`.**
+
+
+## Pastille de connexion à côté du titre (28/09/2026)
+
+Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
+- **Portail** : pastille après « Portail Duo ». `app.js` (tableau de bord) : `statut()` — or au démarrage, vert dès qu'une lecture de `portail/*` réussit (REST, SDK ou écoute en direct servie par le serveur), rouge hors ligne ou si la lecture échoue alors que la base est prête.
+- Course, Budget, Muscu : voir leurs README. **Vérifié** (Chromium) : pastille à côté du titre dans les 4 apps, passage au rouge en coupant le réseau (Muscu), aucune erreur JS.

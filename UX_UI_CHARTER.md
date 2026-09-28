@@ -481,6 +481,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 24/09/26 | Portail aligné sur les sections 1 à 7 : accent dynamique suivant le profil de Muscu, bouton recharger 44px, radius dans l'échelle, `confirm()` remplacé par une bottom-sheet. **Les 4 apps sont désormais conformes à la charte (§1–§7 et §11).** |
 | 24/09/26 | Course aligné sur les sections 1 à 7 : couleurs exactes de la charte (bordure bleu-gris opaque retirée), labels de section, cards `--r-lg`, sélecteur de profil §5.6 repris tel quel, zones tactiles 44px (étendues par `::after` sur la case à cocher, sans changement visuel), modales en verre, `confirm()` remplacé. |
 | 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
+| 28/09/26 (soir) | **Pastille de connexion à côté du titre dans les 4 apps** (modèle Budget), §12. |
 | 28/09/26 (soir) | **Muscu passe au design Verre : les 4 apps sont unifiées** (§12). La référence visuelle n'est plus Muscu mais `verre.css`. |
 | 28/09/26 (soir) | **Thème sombre uniquement sur les 4 apps** : bouton lune/soleil et mode clair retirés (décision de Corentin). §1 « Thème clair » et §5.7 barrés. |
 | 28/09/26 (soir) | **Budget passe au design Verre** (§12) — reste Muscu. |
@@ -601,6 +602,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Verre** : fond `rgba(255,255,255,.07)`, `backdrop-filter: blur(30px) saturate(180%)`, arête `rgba(255,255,255,.16)`, reflet `inset 0 1px 0 rgba(255,255,255,.30)`, rayon **34 px** pour les plaques, pilule pour les contrôles.
 - **Typo** : Unbounded 300 pour les grands chiffres et titres ; police système pour tout le reste.
 - **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app ; glisser haut/bas → fait tourner la pile, la vitre suit le doigt 1:1).
+- **En-tête** : titre à gauche, **pastille de connexion juste à côté** (vert synchronisé / or en cours / rouge hors ligne), pilotée par `<html data-sync>` et dessinée en `::after` par `verre.css` (Budget : `.status-dot`, le modèle).
 - **Retour au Portail** : geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
 - **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
 - **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).

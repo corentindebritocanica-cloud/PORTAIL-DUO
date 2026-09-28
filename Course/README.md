@@ -343,3 +343,9 @@ Les deux lumières du fond dérivent lentement (feuille commune `../verre.css`, 
 
 Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Course : bouton `#theme-toggle` retiré (`index.html`), bloc thème d'`app.js` remplacé par l'effacement de `course-theme` ; règles `.light-mode` et `.theme-toggle` retirées de `style.css` et de `verre.css`.
 **Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Pastille de connexion à côté du titre (28/09/2026)
+
+Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
+Course : pastille après le titre de l'onglet (`#titre-onglet`, l'en-tête passe en `justify-content:flex-start`). `app.js` : `majStatutConnexion()` appelée à chaque instantané Firestore (`dbOnCollection`) — vert quand les données viennent du serveur, or tant qu'elles viennent du cache local, rouge hors ligne (événements `online`/`offline`).

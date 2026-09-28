@@ -55,10 +55,19 @@ function dbDeleteDoc(nom, id){ return firestorePret.then(()=> docRef(nom, id).de
    toujours, et le résumé du Portail n'était jamais publié. On ne rappelle `cb` que si
    c'est la 1re fois, si des documents ont changé, ou au passage cache → serveur (pas à
    chaque petit changement de métadonnées, pour ne pas redessiner la liste pour rien). */
+/* Pastille de connexion à côté du titre (28/09/2026, voir verre.css) : vert = données du serveur,
+   or = encore sur le cache local (synchronisation en cours), rouge = hors ligne. */
+function majStatutConnexion(depuisCache){
+  document.documentElement.dataset.sync = !navigator.onLine ? 'hors-ligne' : (depuisCache ? 'envoi' : 'ok');
+}
+majStatutConnexion(true);
+window.addEventListener('offline', ()=> majStatutConnexion(true));
+window.addEventListener('online', ()=> majStatutConnexion(true));
 function dbOnCollection(nom, cb){
   let premier = true, etaitCache = true;
   colRef(nom).onSnapshot({ includeMetadataChanges: true }, snap=>{
     const cache = snap.metadata.fromCache;
+    majStatutConnexion(cache);
     const passageServeur = etaitCache && !cache;
     etaitCache = cache;   /* toujours suivi, même quand on ne rappelle pas `cb` (coupure réseau puis retour) */
     if(!premier && !passageServeur && snap.docChanges().length === 0) return;

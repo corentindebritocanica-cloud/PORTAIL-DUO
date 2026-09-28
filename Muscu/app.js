@@ -79,6 +79,8 @@ function parseNum(value){
 
 /* ---------- BADGE DE SYNCHRONISATION ---------- */
 function updateSyncBadge(){
+  /* Pastille à côté du titre (design Verre, 28/09/2026, voir verre.css) : même état que le badge. */
+  document.documentElement.dataset.sync = !navigator.onLine ? 'hors-ligne' : (window.__syncPending ? 'envoi' : 'ok');
   const badge = document.getElementById('sync-badge');
   if(!badge) return;
   if(!navigator.onLine){

@@ -384,3 +384,9 @@ Demande de Corentin : même design que le Portail et Course (design Verre défin
 
 Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Budget : bouton `#btn-toggle-dark` retiré de l'en-tête (`index.html`) ; `toggleDark()` et la recopie de `light-mode` sur `<html>` supprimés d'`app.js`, remplacés par l'effacement de la clé `budgetLC_dark` (`LS_DARK`) ; `theme-color` reste `#08080a`. `style.css` : bloc `body.light-mode` et `.btn-theme` retirés ; `verre.css` : redirection des jetons conservée sur `body` seulement (plus de `body.light-mode`).
 **Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Pastille de connexion à côté du titre (28/09/2026)
+
+Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
+Budget : **rien à changer**, c'est le modèle (titre « Budget » + `#sync-dot` à côté, déjà stylé avec un halo en design Verre).

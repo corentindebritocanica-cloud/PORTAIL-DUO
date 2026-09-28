@@ -69,6 +69,12 @@
     let db = null; // hissé hors de demarrerBase() pour que rafraichirDepuisServeur() (retour au premier plan) puisse s'en servir
 
     /* ---- validation : rien de ce qui vient de la base n'est utilisé tel quel ---- */
+    /* Pastille de connexion à côté du titre (28/09/2026, voir verre.css) : or au démarrage,
+       vert dès qu'une lecture de la base a réussi, rouge hors ligne ou si la lecture échoue. */
+    const statut = (etat) => { document.documentElement.dataset.sync = navigator.onLine ? etat : 'hors-ligne'; };
+    statut('envoi');
+    window.addEventListener('offline', () => statut('hors-ligne'));
+    window.addEventListener('online', () => statut('envoi'));
     const nombre = (x, min, max) => (typeof x === 'number' && isFinite(x) && x >= min && x <= max) ? x : null;
     const entier = (x, min, max) => { const n = nombre(x, min, max); return n === null ? null : Math.round(n); };
     const texte = (x, max) => (typeof x === 'string') ? x.slice(0, max) : '';
@@ -258,6 +264,7 @@
       if (!db) return;
       if (desabonner) { try { desabonner(); } catch (e) {} desabonner = null; }
       desabonner = db.collection('portail').onSnapshot((snap) => {
+        if (!snap.metadata.fromCache) statut('ok');
         const obj = {};
         snap.forEach((doc) => { obj[doc.id] = doc.data(); });
         resume = obj;
@@ -337,7 +344,8 @@
       try {
         let ok = false;
         try { ok = await lireParRest(); } catch (e) { ok = false; }
-        if (!ok) await rafraichirDepuisServeur();
+        if (!ok) ok = await rafraichirDepuisServeur();
+        statut(ok ? 'ok' : (db ? 'hors-ligne' : 'envoi'));   /* base pas encore prête : on reste « en cours » */
       } finally { lectureEnCours = false; }
     }
     function demarrerSondage(){ if (!sondage) sondage = setInterval(sonder, SONDAGE_MS); }

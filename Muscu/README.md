@@ -932,3 +932,9 @@ Demande de Corentin : même design que le Portail, Course et Budget (charte §12
 - **Inchangé** : validation de série (exception §11.2), flammes de record, glissement entre écrans, logique et données.
 
 **Vérifié** (Chromium 390×844, Firebase bouchonné, sans données) : Menu principal, Qui s'entraîne ?, Choix de séance, écran des exercices (haut, milieu, fin de liste sous la barre du bas), Suivi Progression, Réglages, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone** — en particulier la fluidité du défilement de l'écran des exercices (plaque floutée haute + en-tête et barre floutés).
+
+
+## Pastille de connexion à côté du titre (28/09/2026)
+
+Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
+Muscu : pastille après le titre de **chaque écran** (`.big-question`) et, sur l'écran des exercices, après le nom du profil (`#exercises-profile-label`). `updateSyncBadge()` (`app.js`) pose aussi `data-sync` sur `<html>` (mêmes règles que l'ancien badge : hors ligne → rouge, écritures en attente → or, sinon vert). L'ancien badge émoji fixe en haut à droite (`#sync-badge`) est masqué par `verre.css` (toujours mis à jour par le code, sans effet visible).
