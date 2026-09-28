@@ -16,6 +16,12 @@
 <!-- Habillage « Verre » commun aux 4 apps (essai, 28/09/2026) : fichier à la RACINE du dépôt, sans effet tant
      que <html> n'a pas la classe .verre, posée ici avant l'affichage si localStorage duo-verre = '1'. -->
 <script>try{if(localStorage.getItem('duo-verre')==='1')document.documentElement.classList.add('verre');}catch(e){}</script>
+<!-- Bug WebKit n°1 (28/09/2026, voir README) : en app écran d'accueil, le viewport peut être plus court que
+     l'écran (la hauteur de la zone du haut est retirée à tort) → bande unie sous la barre d'onglets.
+     On mesure l'écart (écran − viewport) et on le pose dans --manque ; style.css prolonge #app d'autant.
+     Garde-fous : app écran d'accueil seulement, écart entre 1 et 120 pt (au-delà : clavier, rotation…) ; remesuré
+     à 0,5 s et 1,5 s (valeurs parfois fausses juste après le lancement, bug WebKit n°2 du guide). -->
+<script>(function(){function m(){var d=0;try{var s=navigator.standalone||matchMedia('(display-mode: standalone)').matches;if(s){d=Math.round(Math.max(screen.width,screen.height)-window.innerHeight);if(!(d>0&&d<=120))d=0;}}catch(e){}document.documentElement.style.setProperty('--manque',d+'px');}m();setTimeout(m,500);setTimeout(m,1500);addEventListener('resize',m);addEventListener('orientationchange',function(){setTimeout(m,300);});addEventListener('pageshow',m);})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap">
 <link rel="stylesheet" href="../verre.css?v=202609281828440200">
