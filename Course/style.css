@@ -49,13 +49,6 @@
     /* Hauteur totale occupee en bas par la barre (pilule 62px + distance au bord) :
        sert a decaler le contenu et les boutons fixes au-dessus. */
     --tabbar-height:calc(62px + var(--nav-offset));
-    /* Hauteur « volée » par le bug WebKit n°1 (28/09/2026, voir README) : l'écran moins la hauteur
-       réelle du viewport, mesurée en JS dans index.html (0 si pas de bug). #app et les fonds de modale
-       sont prolongés d'autant vers le bas pour couvrir la bande unie qui restait sous la barre ; la
-       barre, elle, est remontée d'autant pour rester EXACTEMENT où elle était (position réglée par
-       Corentin à l'usage). Tout ce qui est en position:fixed par rapport au viewport (bouton « Course
-       terminée », bandeau de mise à jour) ne bouge pas : le viewport, lui, n'a pas changé. */
-    --manque:0px;
   }
   :root[data-profil="Lisa"]{
     --accent: var(--lisa); --accent-rgb: var(--lisa-rgb); --accent-dark: var(--lisa-dark);
@@ -83,7 +76,7 @@
      fiable en PWA standalone sur iOS et laissait un bloc vide non couvert en bas
      de l'ecran (bug constate le 18/09/2026). position:fixed;inset:0 s'aligne
      toujours sur le vrai viewport visuel, sans ce risque. */
-  #app{position:fixed; inset:0 0 calc(-1 * var(--manque)) 0; display:flex; flex-direction:column;}
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
   header.topbar{
     padding: calc(14px + var(--safe-top)) 18px 14px;
     background:var(--card); border-bottom:1px solid var(--border);
@@ -112,7 +105,7 @@
   .btn-effacer-recherche::after, .case::after, .btn-crayon::after{content:''; position:absolute; inset:-7px;}
   .btn-crayon::after{inset:-4px;}
 
-  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--manque) + var(--add-gap) + var(--add-size) + 16px);}
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--add-gap) + var(--add-size) + 16px);}
   .section-rayon{margin-top:22px;}
   .titre-rayon{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim); margin:0 0 8px 4px;}
   .carte-produit{
@@ -166,11 +159,11 @@
     transition:transform var(--t-fast) ease-out;
   }
   .btn-course-terminee:active{transform:scale(0.97);}
-  #liste-course{padding-top:16px; padding-bottom:calc(var(--tabbar-height) + var(--manque) + 90px);}
+  #liste-course{padding-top:16px; padding-bottom:calc(var(--tabbar-height) + 90px);}
   .btn-course-terminee.visible{display:block;}
 
   /* Onglet Réglages */
-  .params{padding:20px 18px calc(var(--tabbar-height) + var(--manque) + 24px);}
+  .params{padding:20px 18px calc(var(--tabbar-height) + 24px);}
   .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
   .bloc-param h3{margin:0 0 12px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim);}
   /* Selecteur de profil Corentin/Lisa — composant charte §5.6, repris tel quel */
@@ -195,7 +188,7 @@
      la zone de geste du home indicator. */
   .tabbar-flottante{
     position:absolute; left:14px; right:14px; z-index:30;
-    bottom:calc(var(--nav-offset) + var(--manque));
+    bottom:var(--nav-offset);
     display:flex; align-items:center; gap:10px;
     pointer-events:none;
   }
@@ -238,7 +231,7 @@
 
   /* Modale ajout/édition produit */
   .modal-fond{
-    position:fixed; inset:0 0 calc(-1 * var(--manque)) 0; background:rgba(0,0,0,0.6); z-index:100;
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
     display:flex; align-items:flex-end; justify-content:center;
     animation:fondIn .22s ease-out;
   }
@@ -246,7 +239,7 @@
     width:100%; max-width:520px; background:var(--glass-modal);
     -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%);
     border:1px solid var(--border); border-bottom:none; border-radius:var(--r-xl) var(--r-xl) 0 0;
-    padding:22px 20px calc(22px + var(--safe-bottom) + var(--manque)); max-height:80vh; overflow-y:auto;
+    padding:22px 20px calc(22px + var(--safe-bottom)); max-height:80vh; overflow-y:auto;
     box-shadow: var(--shadow-lg);
     animation:feuilleIn .28s cubic-bezier(.32,.72,.3,1);
   }

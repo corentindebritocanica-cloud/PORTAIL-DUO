@@ -288,3 +288,13 @@ Retour de Corentin : **bande toujours là**. Le changement de `status-bar-style`
 Retour de Corentin : **toujours là** après le correctif par mesure. Plutôt que d'enchaîner les hypothèses :
 - **Diagnostic temporaire** dans Réglages › Application (sous la date du code, `#diag-ecran`, bloc « Diagnostic TEMPORAIRE » de `app.js`) : taille de l'écran, `innerHeight`, `clientHeight`, viewport visuel, safe-areas haut/bas, `--manque`, bas réel de `#app`, mode app oui/non. **À retirer une fois la bande réglée.**
 - **Filet de sécurité en mode Verre** (`verre.css`) : le fond de `<html>` garde la couleur du fond sur toute la hauteur du viewport (dégradé plein, taille 100 %), et prend la couleur de la plaque de verre (`#171719`, clair : `#ece7df`) pour tout ce qui dépasse — donc la bande, si Safari ne peint que ce fond-là sous le viewport.
+
+### Conclusion (28/09/2026, 18h45) — mesures iPhone : la bande est hors de la page
+
+Mesures relevées par le diagnostic sur l'iPhone de Corentin (écran 440×956 pt) : `innerHeight` = `clientHeight` = viewport visuel = **894**, safe-area haut 62 / bas 34, `#app` prolongé jusqu'à 956 par `--manque`… mais **rien n'est dessiné sous 894**, alors que la bande a pris la couleur de secours de `<html>`.
+**Conclusion** : en app écran d'accueil, la page elle-même ne mesure que 894 pt (956 − 62, la hauteur de l'encoche) ; les 62 pt du bas sont **hors de la page** et iOS les remplit avec la **couleur de fond de `<html>`** (couleur unie seulement : ni dégradé ni élément). Aucun CSS ne peut y dessiner.
+**Donc** :
+- Correctif par mesure (`--manque`) **retiré** (inutile : on ne peut pas peindre là) ; `#app`, barre d'onglets, listes et modales reviennent exactement à leur état d'avant.
+- Diagnostic temporaire **retiré** de Réglages.
+- **Conservé** : `black-translucent` (même réglage que les 3 autres apps) et, en mode Verre, fond de `<html>` à la couleur du bas de la plaque (`#171719`, clair `#f1ede7`) — la bande prolonge la plaque. Le 2e halo (couleur de l'app) est remonté à 60 % de la hauteur pour que le bas de la plaque soit uni et se raccorde sans marche à la bande.
+- La cause profonde (pourquoi iOS retire 62 pt à la page) reste un bug WebKit non contournable côté page à ce jour ; elle touche sans doute aussi les autres apps, où elle ne se voit pas car leur bas de page a déjà la couleur du fond.

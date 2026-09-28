@@ -99,7 +99,9 @@ html.verre body::after{
   background:
     radial-gradient(38% 30% at 12% 30%, rgba(var(--accent-rgb), var(--v-halo-op)), transparent 72%),
     radial-gradient(34% 26% at 92% 6%, rgba(var(--accent-rgb), calc(var(--v-halo-op) * .45)), transparent 72%),
-    radial-gradient(40% 30% at 82% 78%, color-mix(in srgb, var(--v-app) calc(var(--v-halo-op) * 80%), transparent), transparent 72%);
+    radial-gradient(40% 26% at 84% 60%, color-mix(in srgb, var(--v-app) calc(var(--v-halo-op) * 80%), transparent), transparent 72%);
+  /* 2e halo remonté à 60 % (28/09/2026) : il s'éteint avant le bas de l'écran, pour que le bas de la plaque
+     soit uni et se raccorde sans marche à la bande colorée par iOS sous la page (voir plus bas, Course). */
 }
 
 /* Éléments qui n'existent qu'en mode Verre */
@@ -226,11 +228,13 @@ html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border
    COURSE — une plaque de verre, des lignes (pas de cartes)
    ========================================================================== */
 html.verre[data-app="course"] #app{ background:transparent; }
-/* Filet de sécurité (28/09/2026) — bande sous la barre d'onglets (bug WebKit n°1, voir README Course) :
-   sous le viewport, Safari ne peint que le fond de <html>. Le viewport garde la couleur du fond (dégradé
-   plein de la taille du viewport) ; tout ce qui dépasse, donc la bande, prend la couleur de la plaque. */
+/* Bande sous la barre d'onglets (bug iOS, mesuré le 28/09/2026 — voir README Course) : en app écran
+   d'accueil, la page ne fait que 894 pt sur un écran de 956 (les 62 pt de l'encoche manquent) et iOS
+   remplit les 62 pt du bas avec la COULEUR de fond de <html> (couleur unie seulement : ni dégradé, ni
+   élément, même prolongé, n'y est dessiné). On ne peut donc que choisir cette couleur : celle du bas de
+   la plaque de verre. Le dégradé plein garde la vraie couleur de fond à l'intérieur de la page. */
 html.verre[data-app="course"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
-html.verre.light-mode[data-app="course"]{ background:#ece7df linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
+html.verre.light-mode[data-app="course"]{ background:#f1ede7 linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
 html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; }
 html.verre[data-app="course"] header.topbar h1{
   font-family:var(--v-f-chiffres); font-weight:300; font-size:34px; letter-spacing:-1.2px; color:var(--v-text);
