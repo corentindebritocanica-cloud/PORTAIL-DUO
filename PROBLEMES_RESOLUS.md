@@ -48,6 +48,18 @@
 
 ---
 
+## 🪄 Portail → apps — transition inter-pages : image étirée et double animation au retour (28/09/2026)
+
+### 28/09/2026 — Portail, Course, Budget, Muscu — mise au point de la transition « la vitre s'ouvre en app »
+**Symptôme** : (1) 1er essai : pendant la transition, l'image de la vitre était agrandie jusqu'à la taille de la plaque — texte énorme et flou ; (2) risque de deux animations au retour (celle d'iOS pour le geste retour + la transition).
+**Fausses pistes explorées** : `object-fit:cover` sur les images de la transition (c'est lui qui étirait).
+**Cause racine** : (1) les pseudo-éléments `::view-transition-old/new` sont des images redimensionnées à la taille de la boîte qui s'anime ; (2) `@view-transition { navigation:auto }` s'applique aussi aux navigations d'historique.
+**Solution** : (1) `object-fit:none` + `object-position:top center` sur les images, `overflow:hidden` + `border-radius` sur `::view-transition-group(vitre)` : le contenu garde sa taille et c'est la boîte qui découpe ; (2) mini-script `pagereveal` dans le `<head>` de chaque page : `e.viewTransition.skipTransition()` si `navigation.activation.navigationType` vaut `traverse` (repli : `performance.getEntriesByType('navigation')[0].type === 'back_forward'`) ou `reload`.
+**Leçon généralisable** : pour une transition inter-pages entre éléments de tailles très différentes, ne jamais laisser le navigateur étirer les captures ; et toujours exclure les retours arrière sur iOS (le système anime déjà le geste). Pour vérifier une transition hors iPhone : Chromium + `Animation.setPlaybackRate` (CDP) à 0,15 et captures successives.
+**Fichiers touchés** : `verre.css`, `app.js`, `index.html`, `Course/index.html`, `Budget/index.html`, `Muscu/index.html`
+
+---
+
 ## 🔐 Budget — écran de connexion affiché quelques secondes alors que la session est valide (28/09/2026)
 
 ### 28/09/2026 — Budget — « comme s'il cherchait à valider que j'étais connecté »

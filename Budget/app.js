@@ -1031,15 +1031,24 @@
         // 10bis. Profil actif (Corentin/Lisa) — preference par appareil, purement
         // visuelle (couleur d'accent), memorisee dans localStorage. Le compte et
         // les donnees restent partages entre les deux.
-        const LS_PROFIL = 'budgetLC_profil';
+        // PROFIL COMMUN AUX 4 APPS (28/09/2026) : clé duo_profile ('corentin' | 'lisa'), partagée avec
+        // le Portail, Muscu et Course. L'ancienne clé propre à Budget (budgetLC_profil) est reprise une fois
+        // puis effacée.
+        const LS_PROFIL = 'duo_profile';
         const applyProfil = (p) => {
             document.body.classList.toggle('profil-lisa', p === 'lisa');
             document.querySelectorAll('.profile-switch-btn').forEach(b => b.classList.toggle('selected', b.dataset.profil === p));
-            localStorage.setItem(LS_PROFIL, p);
+            try { localStorage.setItem(LS_PROFIL, p); } catch (e) {}
         };
         document.getElementById('btn-profil-corentin').onclick = () => applyProfil('corentin');
         document.getElementById('btn-profil-lisa').onclick = () => applyProfil('lisa');
-        applyProfil(localStorage.getItem(LS_PROFIL) === 'lisa' ? 'lisa' : 'corentin');
+        let profilDepart = null;
+        try {
+            profilDepart = localStorage.getItem(LS_PROFIL);
+            if (profilDepart !== 'corentin' && profilDepart !== 'lisa') profilDepart = localStorage.getItem('budgetLC_profil');
+            localStorage.removeItem('budgetLC_profil');
+        } catch (e) {}
+        applyProfil(profilDepart === 'lisa' ? 'lisa' : 'corentin');
 
         // 11. Auth Listener (attend que Firestore/Auth soient initialisés avec le cache persistant)
         // 28/09/2026 : #login-screen est MASQUÉ par défaut (index.html) et n'apparaît que si Firebase répond

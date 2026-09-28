@@ -670,3 +670,21 @@ Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tê
 Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
 - **Portail** : `body` démarre à `--v-haut` (au lieu de encoche + 32 px), nom « Portail Duo » en 22 px (19 avant), barre du haut sans hauteur minimale (elle servait au bouton de thème retiré).
 - Course, Budget, Muscu : voir leurs README.
+
+
+## Profil Corentin/Lisa commun aux 4 apps (28/09/2026)
+
+Demande de Corentin : un seul choix de profil pour tout (avant : une clé par app — `duo_profile` pour Muscu et le Portail, `profil` pour Course, `budgetLC_profil` pour Budget — donc trois choix à faire sur le téléphone de Lisa). **Clé unique : `localStorage duo_profile` = `'corentin' | 'lisa'`** (même origine, donc partagée). Muscu l'utilisait déjà (écran « Qui s'entraîne ? » et Réglages › « Qui es-tu sur ce téléphone ? »), le Portail la lisait déjà.
+- **Portail** : relit `duo_profile` aussi au retour sur le Portail (`pageshow` depuis le cache précédent/suivant), le profil ayant pu changer dans l'app qu'on vient de quitter.
+- Course et Budget : voir leurs README (anciennes clés reprises une fois puis effacées). Muscu : texte de Réglages mis à jour (« Réglage commun aux 4 apps »).
+- ⚠️ Conséquence voulue : choisir « Lisa » dans « Qui s'entraîne ? » de Muscu sur le téléphone de Corentin passe aussi les 3 autres apps en rose (c'était déjà le cas pour le Portail).
+**Vérifié** (Chromium) : anciennes clés Course=Lisa / Budget=lisa migrées vers `duo_profile`, puis changement dans Budget → suivi par Muscu, changement dans Course → suivi par le Portail ; aucune erreur JS.
+
+
+## Transition « la vitre s'ouvre en app » (28/09/2026)
+
+Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
+- `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
+- Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
+- **Portail** (`app.js`, bloc de la pile) : au toucher de la vitre de devant (et seulement elle, jamais après un glisser), elle reçoit `view-transition-name: vitre` juste avant la navigation ; nom retiré au retour (`pageshow`) pour qu'un seul élément le porte.
+**Vérifié** (Chromium 141, ralenti ×0,15) : Portail → Course, Budget et Muscu : la vitre grandit et devient la plaque ; retour arrière : transition annulée ; aucune erreur JS. **Non vérifié sur iPhone.**

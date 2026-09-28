@@ -21,6 +21,10 @@
      donc continue d'une app à l'autre. Aller-retour = 2 × durée (23 s et 31 s, voir verre.css). À garder identique
      dans chaque app qui charge verre.css. -->
 <script>(function(){function c(){var t=Date.now(),s=document.documentElement.style;s.setProperty('--v-delai-profil',(-(t%46000)/1000)+'s');s.setProperty('--v-delai-app',(-(t%62000)/1000)+'s');}c();addEventListener('pageshow',function(e){if(e.persisted)c();});})();</script>
+<!-- Transition « la vitre s'ouvre en app » (28/09/2026, voir verre.css) : annulée pour les retours (geste retour
+     d'iOS, historique) et les rechargements — seule l'ouverture d'une app depuis le Portail est animée. À garder
+     identique dans chaque app qui charge verre.css. -->
+<script>addEventListener('pagereveal',function(e){if(!e.viewTransition)return;var t='';try{t=navigation.activation.navigationType;}catch(x){}if(!t){try{t=performance.getEntriesByType('navigation')[0].type;}catch(x){}}if(t==='traverse'||t==='back_forward'||t==='reload')e.viewTransition.skipTransition();});</script>
 <link rel="stylesheet" href="../verre.css?v=202609282023190200">
 <!-- SDK Firebase en `defer` (24/09/2026) : ne bloquent plus l'affichage de la page. Les scripts `defer`
      s'exécutent dans l'ordre du document : ces 3 SDK PUIS app.js (lui aussi en defer, en bas). -->
@@ -59,6 +63,7 @@
       <div class="params">
         <div class="bloc-param">
           <h3>Profil</h3>
+          <p class="param-desc">Réglage commun aux 4 apps (Portail, Muscu, Course, Budget) : il change la couleur bleu/rose.</p>
           <div class="profile-switch">
             <button type="button" class="profile-switch-btn corentin" id="btn-profil-corentin" data-profil="Corentin">Corentin</button>
             <button type="button" class="profile-switch-btn lisa" id="btn-profil-lisa" data-profil="Lisa">Lisa</button>

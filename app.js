@@ -3,14 +3,20 @@
    sauf la constante DERNIERE_MAJ, qui reste dans index.html : voir README). */
   /* ============================================================
      PROFIL / ACCENT (charte UX/UI §1, 24/09/2026)
-     Le Portail n'a pas son propre sélecteur : il suit le profil choisi dans Muscu
-     (localStorage duo_profile, même origine), déjà utilisé plus bas pour « la
-     prochaine séance ». Seul effet visuel : --accent (bleu/rose) via html[data-profil].
+     PROFIL COMMUN AUX 4 APPS depuis le 28/09/2026 : une seule clé, localStorage
+     duo_profile ('corentin' | 'lisa', même origine), réglée dans Muscu, Course ou Budget.
+     Le Portail n'a pas de sélecteur : il la lit (accent bleu/rose via html[data-profil],
+     et « la prochaine séance »). Relue au retour sur le Portail (pageshow depuis le cache
+     précédent/suivant) : le profil a pu changer dans l'app qu'on vient de quitter.
      ============================================================ */
   (function(){
-    let p = 'corentin';
-    try { if (localStorage.getItem('duo_profile') === 'lisa') p = 'lisa'; } catch (e) {}
-    document.documentElement.setAttribute('data-profil', p);
+    function appliquer(){
+      let p = 'corentin';
+      try { if (localStorage.getItem('duo_profile') === 'lisa') p = 'lisa'; } catch (e) {}
+      document.documentElement.setAttribute('data-profil', p);
+    }
+    appliquer();
+    window.addEventListener('pageshow', (e) => { if (e.persisted) appliquer(); });
   })();
 
   /* ============================================================
@@ -401,9 +407,20 @@
     }
     empiler();
 
+    /* TRANSITION « LA VITRE S'OUVRE EN APP » (28/09/2026, voir verre.css) : la vitre de devant qu'on
+       touche prend le nom de transition « vitre » juste avant la navigation ; la plaque de l'app porte le
+       même nom, le navigateur passe de l'une à l'autre. Un seul élément nommé à la fois : nom retiré au
+       retour sur le Portail (page ressortie du cache précédent/suivant). */
+    const retirerNomTransition = () => ordre.forEach((k) => carte(k).style.removeProperty('view-transition-name'));
+    window.addEventListener('pageshow', retirerNomTransition);
+
     /* Toucher une vitre du fond : elle passe devant (les autres gardent leur ordre). */
     ordre.forEach((k) => {
       carte(k).addEventListener('click', (e) => {
+        if (root.classList.contains('verre') && k === pile[0] && !e.defaultPrevented) {
+          retirerNomTransition();
+          carte(k).style.setProperty('view-transition-name', 'vitre');
+        }
         if (!root.classList.contains('verre') || k === pile[0]) return;   /* devant (ou mode classique) : ouvre l'app */
         e.preventDefault();
         pile = [k, ...pile.filter((x) => x !== k)];

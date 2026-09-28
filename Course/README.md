@@ -356,3 +356,17 @@ Course : pastille après le titre de l'onglet (`#titre-onglet`, l'en-tête passe
 Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tête dans les 4 apps. Nouvelle variable commune `--v-haut` (`verre.css`) = zone de l'encoche + 18 px (valeur de Budget) : **le titre démarre au même endroit dans toutes les apps**, en **Unbounded 600 22 px** avec la pastille de connexion à côté, et **les plaques de verre commencent sous l'en-tête**, jamais sous la barre d'état.
 Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
 Course : en-tête à `--v-haut` (au lieu de encoche + 30 px), titre de l'onglet en Unbounded 600 22 px (Unbounded 300 34 px avant) ; la plaque remonte d'autant.
+
+
+## Profil Corentin/Lisa commun aux 4 apps (28/09/2026)
+
+Demande de Corentin : un seul choix de profil pour tout (avant : une clé par app — `duo_profile` pour Muscu et le Portail, `profil` pour Course, `budgetLC_profil` pour Budget — donc trois choix à faire sur le téléphone de Lisa). **Clé unique : `localStorage duo_profile` = `'corentin' | 'lisa'`** (même origine, donc partagée). Muscu l'utilisait déjà (écran « Qui s'entraîne ? » et Réglages › « Qui es-tu sur ce téléphone ? »), le Portail la lisait déjà.
+Course : `lireProfilCommun()` / `ecrireProfilCommun()` (`app.js`) — lit `duo_profile`, reprend une fois l'ancienne clé `profil` (`'Corentin' | 'Lisa'`) puis l'efface ; en interne, Course garde `'Corentin' | 'Lisa'` (attribut `html[data-profil]`, boutons). Réglages › Profil : phrase « Réglage commun aux 4 apps ».
+
+
+## Transition « la vitre s'ouvre en app » (28/09/2026)
+
+Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
+- `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
+- Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
+Course : `main` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.

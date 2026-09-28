@@ -82,10 +82,28 @@ function authListen(cb){ auth.onAuthStateChanged(cb); }
 /* ============================================================
    ÉTAT
    ============================================================ */
+/* PROFIL COMMUN AUX 4 APPS (28/09/2026) : clé localStorage duo_profile ('corentin' | 'lisa'),
+   partagée avec le Portail, Muscu et Budget. Ancienne clé propre à Course ('profil', 'Corentin' |
+   'Lisa') reprise une fois puis effacée. En interne, Course garde 'Corentin' / 'Lisa'
+   (attribut html[data-profil] et boutons du sélecteur). */
+function lireProfilCommun(){
+  try {
+    let p = localStorage.getItem('duo_profile');
+    if (p !== 'corentin' && p !== 'lisa') {
+      p = localStorage.getItem('profil') === 'Lisa' ? 'lisa' : 'corentin';
+      localStorage.setItem('duo_profile', p);
+    }
+    localStorage.removeItem('profil');
+    return p === 'lisa' ? 'Lisa' : 'Corentin';
+  } catch (e) { return 'Corentin'; }
+}
+function ecrireProfilCommun(nom){
+  try { localStorage.setItem('duo_profile', nom === 'Lisa' ? 'lisa' : 'corentin'); } catch (e) {}
+}
 const state = {
   produits: {},
   rayons: {},
-  profil: localStorage.getItem('profil') || 'Corentin',
+  profil: lireProfilCommun(),
   ongletActif: 'liste',
   recherche: '',
   editionId: null,   // id du produit en cours d'édition dans la modale (null = ajout)
@@ -103,10 +121,10 @@ function appliquerProfil(){
 appliquerProfil();
 
 document.getElementById('btn-profil-corentin').addEventListener('click', ()=>{
-  state.profil = 'Corentin'; localStorage.setItem('profil','Corentin'); appliquerProfil();
+  state.profil = 'Corentin'; ecrireProfilCommun('Corentin'); appliquerProfil();
 });
 document.getElementById('btn-profil-lisa').addEventListener('click', ()=>{
-  state.profil = 'Lisa'; localStorage.setItem('profil','Lisa'); appliquerProfil();
+  state.profil = 'Lisa'; ecrireProfilCommun('Lisa'); appliquerProfil();
 });
 
 /* ============================================================

@@ -946,3 +946,17 @@ Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tê
 Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
 Muscu : c'était l'écart le plus grand (la plaque de chaque écran démarrait sous la barre d'état, avec le titre dedans). **`index.html`** : dans les 8 écrans à `.view-inner`, tout ce qui suit le titre (`.big-question`) est enveloppé dans un nouveau `<div class="plaque">` — seul changement de structure, aucun `id` déplacé, aucun code JS concerné. **`verre.css`** : `.view-inner` n'est plus la plaque (en-tête « ← retour » + titre posés sur les halos, à `--v-haut`) ; `.plaque` est la plaque de verre, pleine largeur, jusqu'en bas de page ; titres d'écran en Unbounded 600 22 px (300 30 px avant) ; l'intitulé « Duo Training » au-dessus du titre (menu, profil) est masqué, comme Budget qui n'en a pas ; `#builder-hub` passe en colonne (bouton « Créer une séance » au-dessus de « Modifier une séance existante »). L'écran des exercices (en-tête collant) ne change pas.
 **Vérifié** : menu, profil, séances, suivi, Build Training, réglages ; balises HTML équilibrées (analyse automatique) ; aucune erreur JS.
+
+
+## Profil Corentin/Lisa commun aux 4 apps (28/09/2026)
+
+Demande de Corentin : un seul choix de profil pour tout (avant : une clé par app — `duo_profile` pour Muscu et le Portail, `profil` pour Course, `budgetLC_profil` pour Budget — donc trois choix à faire sur le téléphone de Lisa). **Clé unique : `localStorage duo_profile` = `'corentin' | 'lisa'`** (même origine, donc partagée). Muscu l'utilisait déjà (écran « Qui s'entraîne ? » et Réglages › « Qui es-tu sur ce téléphone ? »), le Portail la lisait déjà.
+Muscu : **source historique de la clé** (`currentProfile`, `setProfile()`), rien ne change dans le code ; seul le texte de Réglages › « Qui es-tu sur ce téléphone ? » précise que le réglage vaut pour les 4 apps. Choisir un profil dans « Qui s'entraîne ? » change donc aussi la couleur des autres apps.
+
+
+## Transition « la vitre s'ouvre en app » (28/09/2026)
+
+Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
+- `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
+- Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
+Muscu : `#view-menu .plaque` (plaque du menu, premier écran affiché) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
