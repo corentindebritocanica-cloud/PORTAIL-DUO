@@ -307,3 +307,8 @@ Capture de Budget par Corentin : son contenu et sa barre descendent jusqu'au vra
 - **`--nav-offset` aligné sur Budget** : `max(20px, safe-area − 12px)` ≈ 22 pt (avant : ≈ 4 pt, valeur jamais réellement vue à l'écran à cause de la bande — elle aurait mis la barre dans la zone du geste d'accueil).
 
 ⚠️ **À vérifier sur iPhone** : la barre doit être posée comme celle de Budget. Si elle apparaît **coupée en bas** : le retrait d'`overflow:hidden` ne suffit pas, iOS ne dessine toujours rien sous 894 pt → remettre `--manque` à 0 (retirer le script de `index.html`) le temps de chercher.
+
+### Retour arrière (28/09/2026, 18h50)
+
+Retour iPhone : la barre d'onglets est **coupée** en bas — iOS ne dessine toujours rien sous 894 pt, même sans `body{overflow:hidden}`. `style.css` et `index.html` de Course **remis à l'identique de l'état précédent** (barre visible, même position qu'avant ; `overflow:hidden` et `--nav-offset` ≈ 4 pt restaurés ; `--manque` retiré). Restent en place : `black-translucent` et la couleur de fond de secours du mode Verre.
+**Piste restante** : Budget, lui, a sa pleine hauteur — sa page **défile** (contenu plus haut que l'écran, `body{min-height:100vh}`), celle de Course non (tout est dans `#app` fixé). À tester séparément, en mesurant d'abord la hauteur de page de Budget sur l'iPhone.

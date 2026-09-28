@@ -43,17 +43,12 @@
        de l'ecran = safe-area moins 30px, mais jamais moins de 2px (~4px sur iPhone a
        home indicator). Tres bas : la pilule est dans la zone de geste du home
        indicator (surveiller un declenchement de Siri) et frole les coins de l'ecran. */
-    --nav-offset:max(20px, calc(env(safe-area-inset-bottom) - 12px)); /* 28/09/2026 : même valeur que Budget (~22px). L'ancienne (~4px) n'avait jamais été vue à l'écran : la page s'arrêtait 62 pt au-dessus du bas (voir README, « bande du bas ») */
+    --nav-offset:max(2px, calc(env(safe-area-inset-bottom) - 30px));
     /* Bouton rond « + » pose au-dessus de la pilule, a droite */
     --add-size:56px; --add-gap:12px;
     /* Hauteur totale occupee en bas par la barre (pilule 62px + distance au bord) :
        sert a decaler le contenu et les boutons fixes au-dessus. */
     --tabbar-height:calc(62px + var(--nav-offset));
-    /* 28/09/2026 — bande du bas (voir README) : écart écran − hauteur de page, mesuré en JS dans index.html
-       (0 si la page a sa vraie hauteur). #app et les fonds de modale descendent jusqu'au vrai bas de l'écran ;
-       les éléments en position:fixed calés sur le bas du viewport (« Course terminée », bandeau de mise à jour)
-       retranchent cet écart pour rester au-dessus de la barre. */
-    --manque:0px;
   }
   :root[data-profil="Lisa"]{
     --accent: var(--lisa); --accent-rgb: var(--lisa-rgb); --accent-dark: var(--lisa-dark);
@@ -75,15 +70,13 @@
     font-family:-apple-system,BlinkMacSystemFont,"Roboto","Segoe UI",sans-serif;
     -webkit-font-smoothing:antialiased; overscroll-behavior:none;}
   button{font-family:inherit;}
-  /* body{overflow:hidden} retiré le 28/09/2026 : Budget (sans lui) a une page pleine hauteur, Course (avec)
-     une page coupée 62 pt au-dessus du bas de l'écran. Rien n'est dans le flux normal (tout est dans #app,
-     fixé) : la page ne peut de toute façon pas défiler. */
+  body{overflow:hidden;}
   /* #app est ancre directement aux bords reels de l'ecran (position:fixed;inset:0)
      plutot que de dependre de body/html en 100dvh : ce dernier a un calcul peu
      fiable en PWA standalone sur iOS et laissait un bloc vide non couvert en bas
      de l'ecran (bug constate le 18/09/2026). position:fixed;inset:0 s'aligne
      toujours sur le vrai viewport visuel, sans ce risque. */
-  #app{position:fixed; inset:0 0 calc(-1 * var(--manque)) 0; display:flex; flex-direction:column;}
+  #app{position:fixed; inset:0; display:flex; flex-direction:column;}
   header.topbar{
     padding: calc(14px + var(--safe-top)) 18px 14px;
     background:var(--card); border-bottom:1px solid var(--border);
@@ -159,7 +152,7 @@
   /* Bouton d'action principal (charte §5.3 / §5.4) */
   .btn-course-terminee{
     display:none;
-    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + 14px - var(--manque));
+    position:fixed; left:18px; right:18px; bottom:calc(var(--tabbar-height) + 14px);
     min-height:52px; padding:14px 10px; border:none; border-radius:var(--r-lg); background:var(--accent);
     color:#fff; font-size:15px; font-weight:700; z-index:20;
     box-shadow:0 10px 24px rgba(var(--accent-rgb),0.30), var(--shadow-sm);
@@ -238,7 +231,7 @@
 
   /* Modale ajout/édition produit */
   .modal-fond{
-    position:fixed; inset:0 0 calc(-1 * var(--manque)) 0; background:rgba(0,0,0,0.6); z-index:100;
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
     display:flex; align-items:flex-end; justify-content:center;
     animation:fondIn .22s ease-out;
   }
