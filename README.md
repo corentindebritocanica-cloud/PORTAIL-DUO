@@ -662,3 +662,11 @@ Détail dans `Muscu/README.md`. Particularités : chaque écran est une plaque (
 Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
 - **Portail** : pastille après « Portail Duo ». `app.js` (tableau de bord) : `statut()` — or au démarrage, vert dès qu'une lecture de `portail/*` réussit (REST, SDK ou écoute en direct servie par le serveur), rouge hors ligne ou si la lecture échoue alors que la base est prête.
 - Course, Budget, Muscu : voir leurs README. **Vérifié** (Chromium) : pastille à côté du titre dans les 4 apps, passage au rouge en coupant le réseau (Muscu), aucune erreur JS.
+
+
+## Haut de page aligné sur Budget (28/09/2026)
+
+Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tête dans les 4 apps. Nouvelle variable commune `--v-haut` (`verre.css`) = zone de l'encoche + 18 px (valeur de Budget) : **le titre démarre au même endroit dans toutes les apps**, en **Unbounded 600 22 px** avec la pastille de connexion à côté, et **les plaques de verre commencent sous l'en-tête**, jamais sous la barre d'état.
+Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
+- **Portail** : `body` démarre à `--v-haut` (au lieu de encoche + 32 px), nom « Portail Duo » en 22 px (19 avant), barre du haut sans hauteur minimale (elle servait au bouton de thème retiré).
+- Course, Budget, Muscu : voir leurs README.

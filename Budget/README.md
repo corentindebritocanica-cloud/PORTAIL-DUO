@@ -398,3 +398,10 @@ Budget : **rien à changer**, c'est le modèle (titre « Budget » + `#sync-dot`
 **Cause** : `#login-screen` était **visible par défaut** dans `index.html` et n'était masqué qu'une fois Firebase prêt (import du module de cache persistant de Firestore, puis relecture de la session enregistrée) — c'est-à-dire après 1 à 3 s selon le réseau, même avec une session valide. Muscu fait l'inverse : son écran de connexion est masqué par défaut et n'apparaît que si Firebase répond « pas de session ».
 **Correction** : `#login-screen` porte `class="hidden"` d'emblée ; `authListen` (inchangé) le retire seulement quand `user === null`. Firebase ne rend ce verdict qu'après avoir relu la session de l'appareil, donc jamais à tort.
 **Vérifié** (Chromium, Firebase bouchonné avec un démarrage lent simulé de 1,5 s) : connecté → l'écran de connexion n'apparaît jamais ; déconnecté → il apparaît dès que Firebase a répondu. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+
+
+## Haut de page aligné sur Budget (28/09/2026)
+
+Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tête dans les 4 apps. Nouvelle variable commune `--v-haut` (`verre.css`) = zone de l'encoche + 18 px (valeur de Budget) : **le titre démarre au même endroit dans toutes les apps**, en **Unbounded 600 22 px** avec la pastille de connexion à côté, et **les plaques de verre commencent sous l'en-tête**, jamais sous la barre d'état.
+Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
+Budget : **modèle, inchangé** (`.top-nav` à encoche + 18 px, titre 22 px).

@@ -349,3 +349,10 @@ Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on re
 
 Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
 Course : pastille après le titre de l'onglet (`#titre-onglet`, l'en-tête passe en `justify-content:flex-start`). `app.js` : `majStatutConnexion()` appelée à chaque instantané Firestore (`dbOnCollection`) — vert quand les données viennent du serveur, or tant qu'elles viennent du cache local, rouge hors ligne (événements `online`/`offline`).
+
+
+## Haut de page aligné sur Budget (28/09/2026)
+
+Demande de Corentin : Budget gère le mieux le haut de l'écran → même en-tête dans les 4 apps. Nouvelle variable commune `--v-haut` (`verre.css`) = zone de l'encoche + 18 px (valeur de Budget) : **le titre démarre au même endroit dans toutes les apps**, en **Unbounded 600 22 px** avec la pastille de connexion à côté, et **les plaques de verre commencent sous l'en-tête**, jamais sous la barre d'état.
+Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à 79–80 px dans les 4 apps (avant : Portail 88, Course 92, Budget 80, Muscu 132).
+Course : en-tête à `--v-haut` (au lieu de encoche + 30 px), titre de l'onglet en Unbounded 600 22 px (Unbounded 300 34 px avant) ; la plaque remonte d'autant.

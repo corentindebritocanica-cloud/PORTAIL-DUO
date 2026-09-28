@@ -53,6 +53,10 @@ html.verre{
   --v-flou:blur(30px) saturate(180%);
   --v-ease:cubic-bezier(.2,.9,.25,1);
   --v-f-chiffres:'Unbounded', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* HAUT DE PAGE COMMUN (28/09/2026, modèle Budget) : le titre de chaque app démarre à 18 px
+     sous la zone de l'encoche, en Unbounded 600 22 px, pastille de connexion à côté ; les
+     plaques de verre commencent SOUS l'en-tête (jamais sous la barre d'état). */
+  --v-haut:calc(env(safe-area-inset-top, 0px) + 18px);
 
   /* Les jetons existants des apps sont redirigés vers le verre : tout ce qui
      les utilise suit sans règle spécifique. */
@@ -175,8 +179,10 @@ html.verre .reload-btn{
 html.verre[data-app="portail"] .big-question{ display:none; }
 html.verre[data-app="portail"] .app-title{ letter-spacing:.4px; text-transform:none; font-size:13px; color:var(--v-dim); }
 html.verre[data-app="portail"] .app-title-brand{
-  font-family:var(--v-f-chiffres); font-weight:600; font-size:19px; letter-spacing:-.3px; color:var(--v-text);
+  font-family:var(--v-f-chiffres); font-weight:600; font-size:22px; letter-spacing:-.3px; line-height:1.2; color:var(--v-text);
 }
+html.verre[data-app="portail"] body{ padding-top:var(--v-haut); }
+html.verre[data-app="portail"] .topbar{ min-height:0; margin-bottom:6px; }
 html.verre[data-app="portail"] .dash-titre{ margin:0 2px 18px; }
 html.verre[data-app="portail"] .dash-date{ margin:0; font-size:13px; }
 
@@ -264,9 +270,9 @@ html.verre[data-app="course"] #app{ background:transparent; }
    élément, même prolongé, n'y est dessiné). On ne peut donc que choisir cette couleur : celle du bas de
    la plaque de verre. Le dégradé plein garde la vraie couleur de fond à l'intérieur de la page. */
 html.verre[data-app="course"], html.verre[data-app="budget"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
-html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; }
+html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; padding:var(--v-haut) 20px 16px; }
 html.verre[data-app="course"] header.topbar h1{
-  font-family:var(--v-f-chiffres); font-weight:300; font-size:34px; letter-spacing:-1.2px; color:var(--v-text);
+  font-family:var(--v-f-chiffres); font-weight:600; font-size:22px; letter-spacing:-.3px; line-height:1.2; color:var(--v-text);
 }
 
 /* La plaque : UNE seule surface floutée pour tout le contenu qui défile */
@@ -489,9 +495,14 @@ html.verre[data-app="muscu"] body{ padding-bottom:0 !important; }
 html.verre[data-app="muscu"] .sync-badge{ background:var(--v-soft); box-shadow:none; }
 
 /* Plaque des écrans */
-html.verre[data-app="muscu"] .view-inner{
-  margin-top:calc(env(safe-area-inset-top, 0px) + 10px);
-  padding:22px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+/* En-tête (retour, titre + pastille) posé sur les halos, comme Budget ; la plaque (.plaque,
+   ajoutée dans index.html autour de tout ce qui suit le titre) prend toute la largeur. */
+html.verre[data-app="muscu"] .view-inner{ padding:var(--v-haut) 18px 0; gap:10px; }
+html.verre[data-app="muscu"] .view-inner > .app-title-brand{ display:none; }    /* « Duo Training » : le titre suffit, comme Budget */
+html.verre[data-app="muscu"] .view-inner > .back-btn{ margin:-8px 0 -4px; }
+html.verre[data-app="muscu"] .plaque{
+  flex:1; display:flex; flex-direction:column; gap:14px;
+  margin:6px -18px 0; padding:22px 18px calc(28px + env(safe-area-inset-bottom, 0px));
   background:var(--v-glass);
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
   border:1px solid var(--v-edge); border-bottom:none; border-radius:34px 34px 0 0;
@@ -500,7 +511,11 @@ html.verre[data-app="muscu"] .view-inner{
 html.verre[data-app="muscu"] .app-title-brand{ font-family:var(--v-f-chiffres); font-weight:600; letter-spacing:.3px; }
 
 /* Titres et grands chiffres : Unbounded fin (remplace Bebas Neue) */
-html.verre[data-app="muscu"] .big-question,
+html.verre[data-app="muscu"] #builder-hub{ display:flex; flex-direction:column; }
+html.verre[data-app="muscu"] .builder-create-btn{ margin-bottom:18px; border-radius:999px; }
+html.verre[data-app="muscu"] .big-question{
+  font-family:var(--v-f-chiffres); text-transform:none; font-weight:600; font-size:22px; letter-spacing:-.3px; line-height:1.2; margin:0 2px;
+}
 html.verre[data-app="muscu"] .login-title{
   font-family:var(--v-f-chiffres); text-transform:none; font-weight:300; font-size:30px; letter-spacing:-1px; line-height:1.1;
 }
