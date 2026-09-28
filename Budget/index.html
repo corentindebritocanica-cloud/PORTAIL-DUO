@@ -37,7 +37,9 @@
 </div>
 
 
-    <div id="login-screen">
+    <!-- Masqué par défaut (28/09/2026) : affiché par app.js SEULEMENT si Firebase confirme qu'aucune session n'existe
+         (comme Muscu). Avant, il s'affichait à chaque ouverture le temps que Firebase relise la session enregistrée. -->
+    <div id="login-screen" class="hidden">
         <div class="login-box">
             <h1>🔒 Budget L&C</h1>
             <p>Accès aux comptes de Lisa & Corentin</p>

@@ -48,6 +48,18 @@
 
 ---
 
+## 🔐 Budget — écran de connexion affiché quelques secondes alors que la session est valide (28/09/2026)
+
+### 28/09/2026 — Budget — « comme s'il cherchait à valider que j'étais connecté »
+**Symptôme** : à chaque ouverture, l'écran de connexion apparaissait 1 à 3 s puis laissait place à l'accueil, alors que Corentin était déjà connecté. Muscu n'a pas ce défaut.
+**Fausses pistes explorées** : aucune (comparaison directe avec Muscu).
+**Cause racine** : écran de connexion **visible par défaut** dans le HTML, masqué seulement quand Firebase confirmait la session — donc toujours visible pendant le démarrage de Firebase.
+**Solution** : écran de connexion **masqué par défaut**, affiché uniquement quand `onAuthStateChanged` renvoie `null` (Firebase ne le fait qu'après avoir relu la session enregistrée).
+**Leçon généralisable** : ne jamais afficher par défaut un écran qui dépend d'une réponse asynchrone négative (connexion, erreur, liste vide) : l'afficher seulement quand la réponse est connue. Même principe que « afficher d'abord, remplir ensuite » (entrée Course du 24/09).
+**Fichiers touchés** : `Budget/index.html`, `Budget/app.js`, `Budget/README.md`
+
+---
+
 ## 💪 Muscu — migration Verre : style posé en JS et constante couplée au CSS (28/09/2026)
 
 ### 28/09/2026 — Muscu — deux pièges repérés à la lecture avant la migration

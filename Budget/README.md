@@ -390,3 +390,11 @@ Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on re
 
 Demande de Corentin : dans chaque app, le titre à gauche et la pastille verte/rouge de connexion **juste à côté**, comme « Budget ● ». Pastille commune dessinée par `verre.css` en `::after` sur le titre (un pseudo-élément survit aux titres réécrits en JS), couleur pilotée par `<html data-sync="ok|envoi|hors-ligne">` : **vert** synchronisé, **or** synchronisation en cours, **rouge** hors ligne. Budget garde sa pastille d'origine (`.status-dot`), qui servait de modèle.
 Budget : **rien à changer**, c'est le modèle (titre « Budget » + `#sync-dot` à côté, déjà stylé avec un halo en design Verre).
+
+
+## Écran de connexion affiché à tort au démarrage (28/09/2026)
+
+**Constat de Corentin** : déjà connecté, Budget montrait l'écran de connexion quelques secondes avant d'afficher l'accueil ; Muscu, lui, arrive directement sur son accueil.
+**Cause** : `#login-screen` était **visible par défaut** dans `index.html` et n'était masqué qu'une fois Firebase prêt (import du module de cache persistant de Firestore, puis relecture de la session enregistrée) — c'est-à-dire après 1 à 3 s selon le réseau, même avec une session valide. Muscu fait l'inverse : son écran de connexion est masqué par défaut et n'apparaît que si Firebase répond « pas de session ».
+**Correction** : `#login-screen` porte `class="hidden"` d'emblée ; `authListen` (inchangé) le retire seulement quand `user === null`. Firebase ne rend ce verdict qu'après avoir relu la session de l'appareil, donc jamais à tort.
+**Vérifié** (Chromium, Firebase bouchonné avec un démarrage lent simulé de 1,5 s) : connecté → l'écran de connexion n'apparaît jamais ; déconnecté → il apparaît dès que Firebase a répondu. `node --check` sur `app.js`. **Non vérifié sur iPhone.**

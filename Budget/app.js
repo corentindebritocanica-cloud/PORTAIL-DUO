@@ -1042,6 +1042,10 @@
         applyProfil(localStorage.getItem(LS_PROFIL) === 'lisa' ? 'lisa' : 'corentin');
 
         // 11. Auth Listener (attend que Firestore/Auth soient initialisés avec le cache persistant)
+        // 28/09/2026 : #login-screen est MASQUÉ par défaut (index.html) et n'apparaît que si Firebase répond
+        // « pas de session » (user === null) — Firebase ne rend ce verdict qu'après avoir relu la session
+        // enregistrée sur l'appareil, donc jamais à tort. Avant, l'écran de connexion restait affiché le temps
+        // du démarrage de Firebase (import du cache persistant + relecture de la session), même connecté.
         dbReady.then(() => authListen((user) => {
             if (user) {
                 document.getElementById('login-screen').classList.add('hidden');
