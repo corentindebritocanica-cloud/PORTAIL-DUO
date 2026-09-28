@@ -677,7 +677,7 @@ Mesuré (Chromium 440×956, zone d'encoche simulée à 62 px) : haut du titre à
 Demande de Corentin : un seul choix de profil pour tout (avant : une clé par app — `duo_profile` pour Muscu et le Portail, `profil` pour Course, `budgetLC_profil` pour Budget — donc trois choix à faire sur le téléphone de Lisa). **Clé unique : `localStorage duo_profile` = `'corentin' | 'lisa'`** (même origine, donc partagée). Muscu l'utilisait déjà (écran « Qui s'entraîne ? » et Réglages › « Qui es-tu sur ce téléphone ? »), le Portail la lisait déjà.
 - **Portail** : relit `duo_profile` aussi au retour sur le Portail (`pageshow` depuis le cache précédent/suivant), le profil ayant pu changer dans l'app qu'on vient de quitter.
 - Course et Budget : voir leurs README (anciennes clés reprises une fois puis effacées). Muscu : texte de Réglages mis à jour (« Réglage commun aux 4 apps »).
-- ⚠️ Conséquence voulue : choisir « Lisa » dans « Qui s'entraîne ? » de Muscu sur le téléphone de Corentin passe aussi les 3 autres apps en rose (c'était déjà le cas pour le Portail).
+- ~~Conséquence : choisir « Lisa » dans « Qui s'entraîne ? » de Muscu passait les 3 autres apps en rose~~ → écran retiré le soir même : le profil du téléphone ne se règle plus que dans les Réglages (Muscu, Course ou Budget) ; Muscu garde un sélecteur « Séance pour » local, sans effet sur les autres apps (voir `Muscu/README.md`).
 **Vérifié** (Chromium) : anciennes clés Course=Lisa / Budget=lisa migrées vers `duo_profile`, puis changement dans Budget → suivi par Muscu, changement dans Course → suivi par le Portail ; aucune erreur JS.
 
 

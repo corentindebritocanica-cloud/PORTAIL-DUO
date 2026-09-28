@@ -951,7 +951,7 @@ Muscu : c'était l'écart le plus grand (la plaque de chaque écran démarrait s
 ## Profil Corentin/Lisa commun aux 4 apps (28/09/2026)
 
 Demande de Corentin : un seul choix de profil pour tout (avant : une clé par app — `duo_profile` pour Muscu et le Portail, `profil` pour Course, `budgetLC_profil` pour Budget — donc trois choix à faire sur le téléphone de Lisa). **Clé unique : `localStorage duo_profile` = `'corentin' | 'lisa'`** (même origine, donc partagée). Muscu l'utilisait déjà (écran « Qui s'entraîne ? » et Réglages › « Qui es-tu sur ce téléphone ? »), le Portail la lisait déjà.
-Muscu : **source historique de la clé** (`currentProfile`, `setProfile()`), rien ne change dans le code ; seul le texte de Réglages › « Qui es-tu sur ce téléphone ? » précise que le réglage vaut pour les 4 apps. Choisir un profil dans « Qui s'entraîne ? » change donc aussi la couleur des autres apps.
+Muscu : **source historique de la clé** (`currentProfile`, `setProfile()`), rien ne change dans le code ; seul le texte de Réglages › « Qui es-tu sur ce téléphone ? » précise que le réglage vaut pour les 4 apps. (Écran « Qui s'entraîne ? » retiré le même soir : voir section suivante.)
 
 
 ## Transition « la vitre s'ouvre en app » (28/09/2026)
@@ -960,3 +960,13 @@ Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se t
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
 Muscu : `#view-menu .plaque` (plaque du menu, premier écran affiché) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
+
+
+## « Qui s'entraîne ? » retiré, sélecteur « Séance pour » (28/09/2026)
+
+Conséquence du profil commun : l'écran « Qui s'entraîne ? » changeait le profil de **tout le téléphone** (couleur des 4 apps). Décision de Corentin : le retirer.
+- **Entraînement** (`goToTrainingView()`) ouvre directement « Choisis ta séance » au nom du **profil du téléphone** (`duo_profile`, réglé dans Réglages › « Qui es-tu sur ce téléphone ? », seul endroit qui l'écrit : `setProfile()`).
+- **« Séance pour »** (sélecteur Corentin (moi) / Lisa en haut de l'écran des séances, `setSessionProfile()`) : pour noter une séance de l'autre sur ce téléphone. Change `currentProfile` **en mémoire seulement** — jamais écrit dans `duo_profile`, donc aucun effet sur les autres apps ni sur les prochaines ouvertures ; Muscu prend la couleur de la personne le temps de la séance. Retour automatique au profil du téléphone en revenant au menu (`goToMenuView()`) ou en rouvrant Entraînement.
+- `index.html` : écran `#view-profile` supprimé ; bouton retour de l'écran des séances → « ← Menu ». `app.js` : `selectProfile()` supprimée, `goToProfileView()` redirigée vers `goToTrainingView()` ; titre de l'écran des séances réduit à « Choisis ta séance » (le nom est dans le sélecteur).
+- **Suivi Progression** : son sélecteur Corentin/Lisa était **déjà local** (`progressProfile`, commentaire d'origine : « regarder les courbes de l'autre ne doit pas changer le profil avec lequel on s'entraîne ») — vérifié : il ne change ni `duo_profile`, ni la couleur du reste de l'app, seulement celle de l'écran Suivi.
+**Vérifié** (Chromium) : Entraînement → séances de Corentin ; « Séance pour » Lisa → séances et écran d'exercices de Lisa, `duo_profile` toujours `corentin` ; retour au menu → profil Corentin ; Suivi Progression → Lisa sans effet sur `duo_profile` ; balises HTML équilibrées ; aucune erreur JS.

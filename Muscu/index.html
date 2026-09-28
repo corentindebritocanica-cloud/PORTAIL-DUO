@@ -89,7 +89,7 @@
       </div>
     </div>
 
-    <button class="big-choice-btn primary" onclick="goToProfileView('fwd')">
+    <button class="big-choice-btn primary" onclick="goToTrainingView()">
       <span class="badge-tag">🔥 Aujourd'hui</span>
       <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="4.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.8"/><circle cx="19.5" cy="12" r="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M6.7 12h10.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9 12v0M15 12v0" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></span>
       <span class="choice-label">Entraînement</span>
@@ -188,31 +188,20 @@
   </div>
 </div>
 
-<!-- ÉCRAN 1 : CHOIX DU PROFIL -->
-<div class="view" id="view-profile">
-  <div class="view-inner">
-    <button class="back-btn" onclick="goToMenuView()">← Menu</button>
-    <p class="app-title app-title-brand">Duo Training</p>
-    <h1 class="big-question">Qui s'entraîne ?</h1>
-    <div class="plaque"><!-- plaque de verre (design Verre, 28/09/2026) : tout sous le titre -->
-    <button class="big-choice-btn corentin" onclick="selectProfile('corentin')">
-      <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6.4 7-6.4s7 2.8 7 6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      Corentin
-    </button>
-    <button class="big-choice-btn lisa" onclick="selectProfile('lisa')">
-      <span class="choice-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c0-3.6 3.1-6.4 7-6.4s7 2.8 7 6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      Lisa
-    </button>
-    </div>
-  </div>
-</div>
+<!-- Écran « Qui s'entraîne ? » retiré le 28/09/2026 (profil commun aux 4 apps) : Entraînement ouvre directement le
+     choix de séance au nom du profil du téléphone ; sélecteur « Séance pour » sur cet écran pour noter une séance de l'autre. -->
 
 <!-- ÉCRAN 2 : CHOIX DE LA SÉANCE -->
 <div class="view" id="view-session">
   <div class="view-inner">
-    <button class="back-btn" onclick="goToProfileView()">← Retour</button>
+    <button class="back-btn" onclick="goToMenuView()">← Menu</button>
     <h1 class="big-question" id="session-view-title">Choisis ta séance</h1>
     <div class="plaque"><!-- plaque de verre (design Verre, 28/09/2026) : tout sous le titre -->
+    <!-- « Séance pour » (28/09/2026) : noter une séance de l'autre sur ce téléphone, SANS changer le profil du téléphone -->
+    <div class="session-for">
+      <span class="section-label">Séance pour</span>
+      <div class="segmented" id="session-profile-toggle"></div>
+    </div>
     <div class="session-list" id="session-list"></div>
     </div>
   </div>

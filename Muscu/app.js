@@ -469,12 +469,6 @@ function setProfile(profile){
   storage.set("duo_profile", profile);
 }
 
-function selectProfile(profile){
-  setProfile(profile);
-  applyThemeColor();
-  renderSessionList();
-  showView('view-session', 'fwd');
-}
 
 function setSession(sessionId){
   currentSessionId = sessionId;
@@ -492,6 +486,7 @@ function selectSession(sessionId){
 }
 
 function goToMenuView(){
+  revenirAuProfilDuTelephone();   /* « Séance pour » ne vaut que le temps d'une séance */
   renderMenuHero();
   showView('view-menu', 'back');
 }
@@ -518,9 +513,47 @@ function renderMenuHero(){
   if(sessionsEl) sessionsEl.innerHTML = avgSessions + ' <small>séance' + (avgSessions > 1 ? 's' : '') + '</small>';
 }
 
-function goToProfileView(direction){
-  showView('view-profile', direction || 'back');
+/* ---------- ENTRAÎNEMENT (28/09/2026) ----------
+   Profil commun aux 4 apps : `duo_profile` (localStorage) = qui utilise CE téléphone, réglé dans
+   Réglages › « Qui es-tu sur ce téléphone ? » (setProfile). L'écran « Qui s'entraîne ? » est retiré :
+   Entraînement ouvre directement le choix de séance au nom de ce profil. Pour noter une séance de
+   l'autre, le sélecteur « Séance pour » change `currentProfile` EN MÉMOIRE seulement (jamais écrit :
+   les autres apps et la couleur des autres apps ne bougent pas) ; retour au profil du téléphone en
+   revenant au menu ou à Entraînement. */
+function profilDuTelephone(){
+  return storage.get('duo_profile') === 'lisa' ? 'lisa' : 'corentin';
 }
+function revenirAuProfilDuTelephone(){
+  if(currentProfile !== profilDuTelephone()){
+    currentProfile = profilDuTelephone();
+    applyThemeColor();
+  }
+}
+function goToTrainingView(){
+  revenirAuProfilDuTelephone();
+  renderSessionList();
+  showView('view-session', 'fwd');
+}
+function setSessionProfile(profile){
+  if(currentProfile === profile) return;
+  currentProfile = profile;             /* mémoire seulement : ne touche pas duo_profile */
+  applyThemeColor();
+  renderSessionList();
+}
+function renderSessionProfileToggle(){
+  const wrap = document.getElementById('session-profile-toggle');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  [['corentin', 'Corentin'], ['lisa', 'Lisa']].forEach(([id, label]) => {
+    const b = document.createElement('button');
+    b.className = 'segmented-btn ' + id + (currentProfile === id ? ' selected' : '');
+    b.textContent = label + (id === profilDuTelephone() ? ' (moi)' : '');
+    b.onclick = () => setSessionProfile(id);
+    wrap.appendChild(b);
+  });
+}
+/* Ancienne entrée de l'écran « Qui s'entraîne ? » (retiré) : redirigée, au cas où un appel subsisterait. */
+function goToProfileView(){ goToTrainingView(); }
 
 function goToSessionView(){
   renderSessionList();
@@ -707,8 +740,9 @@ function showView(viewId, direction){
 }
 
 function renderSessionList(){
+  renderSessionProfileToggle();
   const title = document.getElementById('session-view-title');
-  title.textContent = `Choisis ta séance — ${currentProfile === 'corentin' ? 'Corentin' : 'Lisa'}`;
+  title.textContent = 'Choisis ta séance';   /* 28/09/2026 : le profil est indiqué par le sélecteur « Séance pour » juste dessous */
 
   const list = document.getElementById('session-list');
   list.innerHTML = '';
