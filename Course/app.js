@@ -557,6 +557,28 @@ function formaterDerniereMaj(iso){
   const m = String(d.getMinutes()).padStart(2,'0');
   return `${jour}/${mois}/${d.getFullYear()} à ${h}h${m}`;
 }
+/* Diagnostic TEMPORAIRE (28/09/2026) — bande unie sous la barre d'onglets : affiche dans Réglages les
+   vraies mesures de l'iPhone (écran, viewport, safe-areas, --manque, bas de #app). À retirer une fois réglé. */
+(function(){
+  const el = document.getElementById('diag-ecran');
+  if (!el) return;
+  const sonde = document.createElement('div');
+  sonde.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;';
+  document.body.appendChild(sonde);
+  function maj(){
+    const cs = getComputedStyle(sonde), vv = window.visualViewport;
+    const app = document.getElementById('app').getBoundingClientRect();
+    const modeApp = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    el.textContent = 'écran ' + screen.width + '×' + screen.height + ' · innerH ' + innerHeight +
+      ' · clientH ' + document.documentElement.clientHeight + ' · visuel ' + (vv ? Math.round(vv.height) + ' (y ' + Math.round(vv.offsetTop) + ')' : '?') +
+      ' · safe haut ' + cs.paddingTop + ' bas ' + cs.paddingBottom +
+      ' · manque ' + getComputedStyle(document.documentElement).getPropertyValue('--manque').trim() +
+      ' · #app ' + Math.round(app.top) + '→' + Math.round(app.bottom) + ' · app ' + (modeApp ? 'oui' : 'non');
+  }
+  maj(); setTimeout(maj, 1600);
+  document.querySelectorAll('nav.tabbar button').forEach((b) => b.addEventListener('click', maj));
+})();
+
 const elDerniereMaj = document.getElementById('derniere-maj');
 if (elDerniereMaj) elDerniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
 

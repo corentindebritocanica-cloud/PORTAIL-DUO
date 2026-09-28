@@ -282,3 +282,9 @@ Retour de Corentin : **bande toujours là**. Le changement de `status-bar-style`
 - **`style.css`** : `#app` et le fond des modales descendent de `--manque` sous le bas du viewport (ils couvrent la bande) ; la barre d'onglets et les fins de listes/réglages/modales remontent d'autant → **la barre reste exactement à la même place à l'écran** (position choisie par Corentin à l'usage). Les éléments fixés au viewport (« Course terminée », bandeau de mise à jour) ne bougent pas.
 
 **Non vérifiable hors iPhone** (Chromium ne reproduit pas ce viewport). Si la bande reste : c'est que Safari ne peint rien sous le viewport, et il faudra une autre approche (fond de `<html>` à la couleur de la plaque).
+
+### Suite (28/09/2026, 18h40) — bande toujours là : diagnostic + filet de sécurité
+
+Retour de Corentin : **toujours là** après le correctif par mesure. Plutôt que d'enchaîner les hypothèses :
+- **Diagnostic temporaire** dans Réglages › Application (sous la date du code, `#diag-ecran`, bloc « Diagnostic TEMPORAIRE » de `app.js`) : taille de l'écran, `innerHeight`, `clientHeight`, viewport visuel, safe-areas haut/bas, `--manque`, bas réel de `#app`, mode app oui/non. **À retirer une fois la bande réglée.**
+- **Filet de sécurité en mode Verre** (`verre.css`) : le fond de `<html>` garde la couleur du fond sur toute la hauteur du viewport (dégradé plein, taille 100 %), et prend la couleur de la plaque de verre (`#171719`, clair : `#ece7df`) pour tout ce qui dépasse — donc la bande, si Safari ne peint que ce fond-là sous le viewport.

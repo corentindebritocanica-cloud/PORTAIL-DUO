@@ -226,6 +226,11 @@ html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border
    COURSE — une plaque de verre, des lignes (pas de cartes)
    ========================================================================== */
 html.verre[data-app="course"] #app{ background:transparent; }
+/* Filet de sécurité (28/09/2026) — bande sous la barre d'onglets (bug WebKit n°1, voir README Course) :
+   sous le viewport, Safari ne peint que le fond de <html>. Le viewport garde la couleur du fond (dégradé
+   plein de la taille du viewport) ; tout ce qui dépasse, donc la bande, prend la couleur de la plaque. */
+html.verre[data-app="course"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
+html.verre.light-mode[data-app="course"]{ background:#ece7df linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
 html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; }
 html.verre[data-app="course"] header.topbar h1{
   font-family:var(--v-f-chiffres); font-weight:300; font-size:34px; letter-spacing:-1.2px; color:var(--v-text);
