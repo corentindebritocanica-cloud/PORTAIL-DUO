@@ -97,15 +97,41 @@ html.verre[data-app="muscu"]{ --v-app:var(--v-corps); }
    au-dessus du fond de <html>, sous tout le contenu. D'où body transparent.
    -------------------------------------------------------------------------- */
 html.verre body{ background:transparent !important; color:var(--v-text); }
-html.verre body::before{ display:none !important; }            /* poussière de craie du Portail */
+/* HALOS ANIMÉS (28/09/2026, demande de Corentin) : les deux lumières dérivent lentement, en continu.
+   Deux calques fixes, un par lumière (::before = couleur du profil, ::after = couleur de l'app),
+   plus grands que l'écran (inset:-20 %) pour que leurs bords ne se voient jamais pendant le mouvement.
+   Seul `transform` est animé (composité par le GPU, aucun recalcul de mise en page), sur des cycles
+   longs (23 s et 31 s, durées premières entre elles : le mouvement ne se répète jamais à l'identique).
+   Exception assumée à la charte §11.3 (durées 150–300 ms) : animation d'ambiance, pas d'interface —
+   coupée par prefers-reduced-motion. Amplitudes limitées : la lumière de l'app ne descend pas
+   sous ~75 % de la hauteur, le bas de page reste uni (bande iOS, voir Course). */
+html.verre body::before,
 html.verre body::after{
-  content:''; position:fixed; inset:-10%; z-index:-1; pointer-events:none;
+  content:''; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
+  opacity:1; background-repeat:no-repeat; will-change:transform;
+}
+html.verre body::before{                                        /* remplace la poussière de craie du Portail */
   background:
-    radial-gradient(38% 30% at 12% 30%, rgba(var(--accent-rgb), var(--v-halo-op)), transparent 72%),
-    radial-gradient(34% 26% at 92% 6%, rgba(var(--accent-rgb), calc(var(--v-halo-op) * .45)), transparent 72%),
-    radial-gradient(40% 26% at 84% 60%, color-mix(in srgb, var(--v-app) calc(var(--v-halo-op) * 80%), transparent), transparent 72%);
-  /* 2e halo remonté à 60 % (28/09/2026) : il s'éteint avant le bas de l'écran, pour que le bas de la plaque
-     soit uni et se raccorde sans marche à la bande colorée par iOS sous la page (voir plus bas, Course). */
+    radial-gradient(33% 26% at 23% 36%, rgba(var(--accent-rgb), var(--v-halo-op)), transparent 72%),
+    radial-gradient(29% 22% at 80% 19%, rgba(var(--accent-rgb), calc(var(--v-halo-op) * .45)), transparent 72%);
+  animation:v-derive-profil 23s ease-in-out infinite alternate;
+}
+html.verre body::after{
+  background:
+    radial-gradient(34% 22% at 74% 57%, color-mix(in srgb, var(--v-app) calc(var(--v-halo-op) * 80%), transparent), transparent 72%);
+  animation:v-derive-app 31s ease-in-out infinite alternate;
+}
+@keyframes v-derive-profil{
+  0%  { transform:translate3d(0, 0, 0) scale(1); }
+  35% { transform:translate3d(9%, 7%, 0) scale(1.12); }
+  70% { transform:translate3d(3%, 16%, 0) scale(.94); }
+  100%{ transform:translate3d(-6%, 5%, 0) scale(1.06); }
+}
+@keyframes v-derive-app{
+  0%  { transform:translate3d(0, 0, 0) scale(1); }
+  40% { transform:translate3d(-14%, -9%, 0) scale(1.1); }
+  75% { transform:translate3d(-6%, -18%, 0) scale(.95); }
+  100%{ transform:translate3d(4%, -4%, 0) scale(1.05); }
 }
 
 /* Éléments propres au design Verre (masqués si html.verre est absent) */
@@ -301,4 +327,5 @@ html.verre[data-app="course"] .modal-actions button{ border-radius:999px; }
 /* Accessibilité — mouvement réduit (charte §11.9) */
 @media (prefers-reduced-motion: reduce){
   html.verre .dash-card, html.verre .dash-body, html.verre .verre-peek{ transition:none !important; }
+  html.verre body::before, html.verre body::after{ animation:none !important; }   /* halos fixes */
 }

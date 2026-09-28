@@ -629,3 +629,8 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 5. Fond de `<html>` : à la couleur du bas du contenu.
 
 **Vérifié** (Chromium 390×844, sans aucune clé en `localStorage`) : Portail et Course s'ouvrent directement en Verre, pile (glisser, toucher, ouverture d'app, ordre après rechargement), Réglages de Course sans la carte « Apparence », aucune erreur JS.
+
+### Halos animés (28/09/2026, 19h25)
+
+Demande de Corentin : les deux lumières du fond **bougent en continu**. `verre.css` : deux calques fixes au lieu d'un — `body::before` = couleur du profil (remplace la poussière de craie du Portail), `body::after` = couleur de l'app — plus grands que l'écran (`inset:-20%`) pour que leurs bords ne se voient jamais. Seul `transform` est animé (GPU, pas de recalcul de mise en page), cycles de 23 s et 31 s en `alternate` (durées différentes : le mouvement ne se répète jamais à l'identique). Amplitudes limitées pour que la lumière de l'app reste au-dessus de ~75 % de la hauteur (bas de page uni, cf. bande iOS). Coupées par `prefers-reduced-motion`. S'applique au Portail et à Course (et aux futures apps migrées).
+**Vérifié** (Chromium, images à 0, 8, 16 et 23 s) : dérive visible sur les deux apps, bas de page toujours sombre, aucune erreur JS. **Non vérifié sur iPhone** : si le défilement de la liste de Course saccade, ralentir ou couper l'animation en premier.

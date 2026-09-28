@@ -331,3 +331,6 @@ Décision de Corentin : le design Verre devient celui de Course (et du Portail).
 **État de Course en résumé** : page qui défile (structure de Budget), barre d'onglets en `position:fixed` à ~22 pt du vrai bord, plaque de verre unique pour le contenu, produits en lignes à filets, cases rondes à la couleur du profil, bouton thème qui défile avec l'en-tête, `status-bar-style` `black-translucent`, `../verre.css` en cache (`FICHIER_VERRE` dans `sw.js`). `style.css` reste la base (jetons, structure, thème clair), `verre.css` l'habille.
 
 **Vérifié** (Chromium 390×844, aucune clé en `localStorage`) : ouverture directe en Verre, Liste, Réglages sans « Apparence », aucune erreur JS.
+
+### Halos animés (28/09/2026, 19h25)
+Les deux lumières du fond dérivent lentement (feuille commune `../verre.css`, voir README racine, « Halos animés »). Rien de propre à Course. Point à surveiller sur iPhone : fluidité du défilement de la liste (le verre de la plaque est recalculé pendant que le fond bouge) — en cas de saccade, couper l'animation d'abord.
