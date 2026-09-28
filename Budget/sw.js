@@ -18,7 +18,11 @@ const CACHE_PREFIX = 'budget-lc-shell-';
 
 // Chemins relatifs à l'emplacement de ce script (/Budget/sw.js) : ils
 // restent valables quel que soit le sous-chemin d'hébergement GitHub Pages.
+// ../verre.css (28/09/2026) : design « Verre » commun aux apps, à la RACINE du dépôt (hors du dossier
+// de ce SW) — mis en cache ici quand même, sinon le design disparaîtrait hors-ligne (modèle : Course/sw.js).
+const FICHIER_VERRE = '../verre.css';
 const SHELL_FILES = [
+  FICHIER_VERRE,
   './',
   './index.html',
   './style.css',
@@ -125,6 +129,12 @@ self.addEventListener('fetch', (event) => {
   // Auth : tout part normalement sur le réseau, sans passer par ce
   // service worker).
   if (url.origin !== self.location.origin) return;
+
+  // Seule exception au périmètre ci-dessous : la feuille commune ../verre.css (réseau d'abord).
+  if (url.pathname === new URL(FICHIER_VERRE, self.registration.scope).pathname) {
+    event.respondWith(reseauPuisCache(event.request));
+    return;
+  }
 
   // Jamais d'interception hors du dossier de CE service worker
   // (/Budget/) : la racine du portail, /Muscu/ et /Course/ ne sont

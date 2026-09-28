@@ -48,6 +48,18 @@
 
 ---
 
+## 🎨 Budget — jetons redéfinis sur `body` : le thème partagé ne s'appliquait pas (28/09/2026)
+
+### 28/09/2026 — Budget — migration vers le design Verre
+**Symptôme (anticipé à la lecture du code, avant tout rendu)** : `verre.css` redirige les jetons des apps (`--card`, `--border`, `--text`…) vers ceux du verre sur `<html>`. Or Budget redéfinit ces mêmes jetons sur **`body.light-mode`** et pose son thème (`light-mode`, `profil-lisa`) sur `<body>`, pas sur `<html>`.
+**Fausses pistes explorées** : aucune.
+**Cause racine** : une variable CSS se résout sur l'élément le plus proche qui la déclare : une déclaration sur `body` gagne toujours sur `<html>`, quelle que soit la spécificité. Et les couleurs du verre en thème clair sont définies par `html.verre.light-mode`, donc invisibles si la classe n'est que sur `body`.
+**Solution** : (1) section Budget de `verre.css` qui redirige de nouveau les jetons sur `html.verre[data-app="budget"] body` et `… body.light-mode` ; (2) `toggleDark()` recopie `light-mode` sur `<html>`.
+**Leçon généralisable** : avant d'appliquer une feuille de thème commune, repérer **sur quel élément** chaque app déclare ses jetons et pose ses classes de thème ; harmoniser, ou rediriger au même niveau.
+**Fichiers touchés** : `verre.css`, `Budget/app.js`, `Budget/index.html`, `Budget/sw.js`
+
+---
+
 ## 🌊 Portail/Course — animation continue entre plusieurs pages (28/09/2026)
 
 ### 28/09/2026 — Portail, Course — les halos animés repartaient de zéro à chaque changement d'app

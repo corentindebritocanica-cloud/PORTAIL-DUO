@@ -1032,16 +1032,19 @@
         const toggleDark = () => {
             document.body.classList.toggle('light-mode');
             const isDark = !document.body.classList.contains('light-mode');
+            // Design Verre (28/09/2026) : verre.css lit le thème sur <html> (couleurs du verre, fond de page) —
+            // la classe est donc recopiée sur <html> ; body.light-mode reste la référence pour style.css.
+            document.documentElement.classList.toggle('light-mode', !isDark);
             localStorage.setItem(LS_DARK, isDark);
             document.getElementById('btn-toggle-dark').innerText = isDark ? '🌙' : '☀️';
-            document.getElementById('meta-theme-color').content = isDark ? '#0d1014' : '#eef1f5';
+            document.getElementById('meta-theme-color').content = isDark ? '#08080a' : '#e6e0d6';   // fonds du design Verre
         };
         document.getElementById('btn-toggle-dark').onclick = toggleDark;
         // Sombre par defaut : active sauf si l'utilisateur a explicitement choisi le clair
         // (ancienne logique : dark uniquement si LS_DARK==='true' ; nouvelle logique :
         // dark sauf si LS_DARK==='false' explicitement enregistre par un clic anterieur).
         if (localStorage.getItem(LS_DARK) === 'false') toggleDark();
-        else document.getElementById('meta-theme-color').content = '#0d1014';
+        else document.getElementById('meta-theme-color').content = '#08080a';
 
         // 10bis. Profil actif (Corentin/Lisa) — preference par appareil, purement
         // visuelle (couleur d'accent), memorisee dans localStorage. Le compte et

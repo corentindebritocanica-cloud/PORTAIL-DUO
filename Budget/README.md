@@ -353,3 +353,28 @@ Aucun changement de logique de calcul ni de `data-field` : uniquement l'ordre d'
 
 **Vérifié** : Chromium headless 390×844 avec Firebase bouchonné (données fictives) — mois, Répartition, dépenses (dont Mixte), Fixes, Bilan annuel, Réglages, thème clair/sombre, toast + Annuler (ligne restaurée), dialogue de suppression du mois (Annuler = rien supprimé), vidage de corbeille via le dialogue, dialogue d'information, fermeture par tap sur le fond, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
 
+
+
+## v4.0.0 — Design « Verre » (28/09/2026)
+
+Demande de Corentin : même design que le Portail et Course (design Verre définitif, charte §12). Feuille commune **`../verre.css`** (racine du dépôt) ; tout ce qui est propre à Budget y est sous `html.verre[data-app="budget"]`. `style.css` reste la base (jetons, structure, thème clair) et n'a pas été modifié.
+
+**Fichiers** :
+- `index.html` : `<html lang="fr" data-app="budget" class="verre">` ; police Unbounded ; mini-script « Halos : animation calée sur l'horloge » (identique au Portail/Course : les lumières du fond continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a` ; libellé de version 4.0.0.
+- `app.js` : `toggleDark()` **recopie `light-mode` sur `<html>`** (verre.css lit le thème sur `<html>` : couleurs du verre, fond de page) — `body.light-mode` reste la référence de `style.css` ; `theme-color` aux fonds du verre (`#08080a` / `#e6e0d6`).
+- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course).
+- `../verre.css`, section « BUDGET ».
+
+**Rendu** :
+- En-tête (titre « Budget » en Unbounded, pastille de synchro lumineuse, bouton thème en verre, liste des mois en pilules de verre, « + Démarrer un mois ») posé directement sur les halos, **plus collant** en haut (il défile avec la page).
+- **Une seule plaque de verre floutée** (`.main-content`) pour tout le contenu ; cartes, revenus et sections de Réglages deviennent des **panneaux sans flou** posés dessus (arête + reflet) — règle de perf du verre : jamais un flou par carte ou par ligne. Lignes de dépenses à filets.
+- Titres de page et grands montants (« Reste à vivre », « Total à diviser », « Total Dépenses ») en Unbounded fin, montant en couleur de texte.
+- Jauges de Répartition : pistes en verre, remplissages lumineux aux couleurs des catégories (inchangées).
+- Boutons en pilules de verre teinté (accent / rouge / neutre) au lieu d'aplats pleins ; champs arrondis ; sélecteur de profil en pilule.
+- Barre d'onglets en verre dense, onglet actif clair avec icône à l'accent ; position inchangée (~22 pt du bord).
+- Toast, modales (bottom-sheet à coins de 34 px) et écran de connexion (voile flouté sur les halos) en verre.
+- Fond de `<html>` : même règle que Course (couleur de la plaque au-delà de la page). Budget, page qui défile, n'a jamais eu la bande du bas.
+
+⚠️ **Piège propre à Budget** : ses jetons (`--card`, `--border`, `--text`…) sont redéfinis sur **`body.light-mode`** (et non sur `<html>`) : ils écrasaient la redirection vers le verre posée sur `<html>`. La section Budget de `verre.css` redirige donc de nouveau ces jetons sur `body` / `body.light-mode`.
+
+**Vérifié** (Chromium 390×844, Firebase bouchonné avec un mois fictif) : Mois (revenus, Reste à vivre, Répartition dépliée, lignes), Fixes, Bilan annuel, Réglages, dialogue « Supprimer le mois », thèmes sombre et clair, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**

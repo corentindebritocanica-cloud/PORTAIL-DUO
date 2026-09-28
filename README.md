@@ -621,7 +621,7 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 - `style.css` = base (jetons, structure, thème clair) — inchangé ; `verre.css` (racine) = habillage, toutes règles préfixées `html.verre` (+ `[data-app="…"]`). Le code « mode classique » de `style.css` sert désormais de socle sous le verre : ne pas le supprimer sans vérifier ce que le verre en réutilise.
 - `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIER_VERRE` de Course).
 
-**Migrer Muscu ou Budget plus tard** (check-list) :
+**Migrer une app** (check-list — Budget migrée le 28/09/2026 au soir, reste Muscu) :
 1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<link rel="stylesheet" href="../verre.css?v=…">` (le workflow gère le `?v=`).
 2. `sw.js` de l'app : ajouter `../verre.css` au précache et au réseau d'abord, AVANT le filtre de périmètre (modèle : `Course/sw.js`, `FICHIER_VERRE`).
 3. Règles propres à l'app dans `verre.css`, sous `html.verre[data-app="…"]` — une plaque de verre + des lignes à filets, jamais une carte floutée par ligne.
@@ -641,3 +641,7 @@ Demande de Corentin : les deux lumières du fond **bougent en continu**. `verre.
 Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque changement d'app. Chaque app étant une page à part, une animation CSS redémarre à chaque ouverture. **Solution : caler l'animation sur l'horloge.** Un mini-script dans le `<head>` (Portail et Course, **identique dans chaque app qui charge `verre.css`**) pose `--v-delai-profil = −(maintenant modulo 46 s)` et `--v-delai-app = −(maintenant modulo 62 s)` (46 et 62 s = un aller-retour des cycles `alternate` de 23 et 31 s), utilisés comme `animation-delay` dans `verre.css`. Toutes les apps affichent donc la même position au même instant : le passage de l'une à l'autre est continu. Recalé au retour depuis le cache précédent/suivant (`pageshow` persisté), où l'animation était en pause.
 ⚠️ Si on change une durée d'animation dans `verre.css`, changer le modulo (2 × durée) dans le script de **chaque** `index.html`.
 **Vérifié** (Chromium) : Portail et Course ouverts en même temps → même position des deux halos (écart < 0,3 px).
+
+### Budget passe au design Verre (28/09/2026, 19h40)
+
+Budget suit la check-list ci-dessus (détail dans `Budget/README.md`, v4.0.0). **Nouveau piège à ajouter à la check-list** : si une app redéfinit ses jetons ailleurs que sur `<html>` (Budget : `body.light-mode`), ils écrasent la redirection du verre → les rediriger aussi à cet endroit dans `verre.css`, et recopier la classe de thème sur `<html>` (verre.css lit le thème sur `<html>`). État : ✅ Portail, Course, Budget — ⏳ Muscu.

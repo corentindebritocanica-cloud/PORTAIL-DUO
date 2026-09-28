@@ -251,8 +251,8 @@ html.verre[data-app="course"] #app{ background:transparent; }
    remplit les 62 pt du bas avec la COULEUR de fond de <html> (couleur unie seulement : ni dégradé, ni
    élément, même prolongé, n'y est dessiné). On ne peut donc que choisir cette couleur : celle du bas de
    la plaque de verre. Le dégradé plein garde la vraie couleur de fond à l'intérieur de la page. */
-html.verre[data-app="course"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
-html.verre.light-mode[data-app="course"]{ background:#f1ede7 linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
+html.verre[data-app="course"], html.verre[data-app="budget"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
+html.verre.light-mode[data-app="course"], html.verre.light-mode[data-app="budget"]{ background:#f1ede7 linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
 html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; }
 html.verre[data-app="course"] header.topbar h1{
   font-family:var(--v-f-chiffres); font-weight:300; font-size:34px; letter-spacing:-1.2px; color:var(--v-text);
@@ -327,6 +327,141 @@ html.verre[data-app="course"] .modal-carte{
 html.verre[data-app="course"] .champ input,
 html.verre[data-app="course"] .champ select{ border-radius:16px; }
 html.verre[data-app="course"] .modal-actions button{ border-radius:999px; }
+
+
+/* ==========================================================================
+   BUDGET (28/09/2026) — une plaque de verre (.main-content) portant des
+   panneaux sans flou (cartes, revenus, réglages) ; lignes à filets.
+   Particularité : Budget pose light-mode / profil-lisa sur <body> et y
+   redéfinit ses jetons : on les redirige de nouveau vers le verre sur body
+   (app.js recopie aussi light-mode sur <html> pour les couleurs du verre).
+   ========================================================================== */
+html.verre[data-app="budget"] body,
+html.verre[data-app="budget"] body.light-mode{
+  --bg:var(--v-bg); --card:var(--v-soft); --card-2:var(--v-soft);
+  --border:var(--v-edge); --border-strong:rgba(127,127,127,.30);
+  --text:var(--v-text); --text-dim:var(--v-dim);
+  --glass-bar:var(--v-glass-fort); --glass-modal:var(--glass-modal-v);
+  --shadow-sm:none; --shadow:0 18px 40px var(--v-ombre); --shadow-lg:0 -10px 50px var(--v-ombre);
+}
+html.verre[data-app="budget"]{ --glass-modal-v:rgba(24,24,28,0.72); }
+html.verre.light-mode[data-app="budget"]{ --glass-modal-v:rgba(250,247,242,0.80); }
+html.verre[data-app="budget"] body.light-mode{ color-scheme:light; }
+
+/* En-tête (titre, bouton thème, liste des mois) : posé sur les halos, sans fond, plus collant */
+html.verre[data-app="budget"] .top-nav{
+  position:relative; background:transparent; border:none; box-shadow:none;
+  padding:calc(18px + env(safe-area-inset-top)) 20px 14px;
+}
+html.verre[data-app="budget"] .nav-header h2{ font-family:var(--v-f-chiffres); font-weight:600; font-size:22px; letter-spacing:-.3px; }
+html.verre[data-app="budget"] .status-dot{ box-shadow:0 0 8px currentColor; color:var(--done); }
+html.verre[data-app="budget"] .status-dot.offline{ color:var(--danger); }
+html.verre[data-app="budget"] .status-dot.saving{ color:var(--gold); }
+html.verre[data-app="budget"] .btn-theme,
+html.verre[data-app="budget"] .btn-icon{
+  width:44px; height:44px; background:var(--v-soft); border:1px solid var(--v-edge);
+  box-shadow:inset 0 1px 0 var(--v-hi), 0 8px 20px var(--v-ombre);
+}
+html.verre[data-app="budget"] .year-group{ border-radius:24px; border-color:var(--v-edge); background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="budget"] .year-header{ background:transparent; }
+html.verre[data-app="budget"] .month-pill{ border-radius:999px; background:var(--v-soft); border-color:var(--v-edge); }
+html.verre[data-app="budget"] .month-pill.active{ background:rgba(var(--accent-rgb),.22); border-color:rgba(var(--accent-rgb),.6); color:var(--v-text); }
+
+/* La plaque : UNE seule surface floutée pour tout le contenu qui défile */
+html.verre[data-app="budget"] .main-content{
+  background:var(--v-glass);
+  -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
+  border:1px solid var(--v-edge); border-bottom:none; border-radius:34px 34px 0 0;
+  box-shadow:inset 0 1px 0 var(--v-hi), 0 -10px 40px var(--v-ombre);
+  padding-top:18px;
+}
+html.verre[data-app="budget"] main h1,
+html.verre[data-app="budget"] .page-title{
+  font-family:var(--v-f-chiffres); font-weight:300; font-size:28px; letter-spacing:-1px; line-height:1.1;
+}
+html.verre[data-app="budget"] .search-container input{ border-radius:999px; background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="budget"] .select-annee{ border-radius:999px; background:var(--v-soft); }
+
+/* Panneaux posés sur la plaque (sans flou) */
+html.verre[data-app="budget"] .card,
+html.verre[data-app="budget"] .revenus-box,
+html.verre[data-app="budget"] .admin-section{
+  background:var(--v-soft); border:1px solid var(--v-edge); border-radius:26px;
+  box-shadow:inset 0 1px 0 var(--v-hi);
+}
+html.verre[data-app="budget"] .card-header{ border-bottom-color:var(--v-hair); }
+html.verre[data-app="budget"] .card-header.collapsed{ border-bottom-color:transparent; }
+html.verre[data-app="budget"] .item-row{ background:transparent; border-bottom-color:var(--v-hair); }
+html.verre[data-app="budget"] .revenus-row:not(:last-child){ border-bottom-color:var(--v-hair); }
+html.verre[data-app="budget"] .revenus-row.revenus-group-start{ border-top-color:var(--v-hair); }
+html.verre[data-app="budget"] .revenus-box input,
+html.verre[data-app="budget"] input[type="number"],
+html.verre[data-app="budget"] .item-bottom input[type="date"],
+html.verre[data-app="budget"] .item-bottom select,
+html.verre[data-app="budget"] .obj-form input{ border-radius:14px; }
+html.verre[data-app="budget"] .revenus-box input:not([readonly]){ color:var(--v-text); }
+
+/* Carte « Reste à vivre » / « Total à diviser » / « Total Dépenses » : grand chiffre fin */
+html.verre[data-app="budget"] .summary-card{ background:var(--v-soft); padding:20px 16px 22px; }
+html.verre[data-app="budget"] .total-amount{
+  font-family:var(--v-f-chiffres); font-weight:300; font-size:44px; letter-spacing:-1.8px; color:var(--v-text);
+}
+
+/* Jauges : pistes en verre, remplissages lumineux aux couleurs des catégories */
+html.verre[data-app="budget"] .progress-track{ background:var(--v-soft); border-radius:999px; }
+html.verre[data-app="budget"] .fill-charges{ box-shadow:0 0 10px rgba(239,68,68,.7); }
+html.verre[data-app="budget"] .fill-depenses{ box-shadow:0 0 10px rgba(255,149,0,.7); }
+html.verre[data-app="budget"] .fill-provisions{ box-shadow:0 0 10px rgba(255,204,0,.7); }
+html.verre[data-app="budget"] .fill-reste{ box-shadow:0 0 10px rgba(18,185,129,.7); }
+
+/* Boutons : pilules de verre teinté (plus d'aplat plein) */
+html.verre[data-app="budget"] .btn-action,
+html.verre[data-app="budget"] .btn-small,
+html.verre[data-app="budget"] .login-btn{ border-radius:999px; }
+html.verre[data-app="budget"] .bg-primary,
+html.verre[data-app="budget"] .btn-small.bg-primary,
+html.verre[data-app="budget"] .login-btn{
+  background:rgba(var(--accent-rgb),.26); border:1px solid rgba(var(--accent-rgb),.6); color:var(--v-text);
+  box-shadow:inset 0 1px 0 var(--v-hi);
+}
+html.verre[data-app="budget"] .bg-danger{
+  background:rgba(239,68,68,.24); border:1px solid rgba(239,68,68,.6); color:var(--v-text); box-shadow:inset 0 1px 0 var(--v-hi);
+}
+html.verre[data-app="budget"] .bg-neutral{ background:var(--v-soft); border:1px solid var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="budget"] .btn-pay-method{ border-radius:14px; background:var(--v-soft); border-color:var(--v-edge); }
+html.verre[data-app="budget"] .mixte-btn{ background:var(--v-soft); border-color:var(--v-edge); }
+html.verre[data-app="budget"] .item-mixte{ border-radius:20px; }
+html.verre[data-app="budget"] .profile-switch{ border-radius:999px; }
+html.verre[data-app="budget"] .profile-switch-btn{ border-radius:999px; }
+
+/* Barre d'onglets : verre dense (posée sur du contenu qui défile) */
+html.verre[data-app="budget"] .tab-buttons{
+  background:var(--v-glass-fort); border-color:var(--v-edge);
+  box-shadow:inset 0 1px 0 var(--v-hi), 0 18px 40px var(--v-ombre);
+}
+html.verre[data-app="budget"] .btn-tab.active{ background:var(--v-soft-on); color:var(--v-text); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="budget"] .btn-tab.active svg{ color:var(--accent); }
+
+/* Toast, modales, écran de connexion */
+html.verre[data-app="budget"] #toast{
+  background:var(--v-glass-fort); -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
+  border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi), 0 12px 30px var(--v-ombre);
+}
+html.verre[data-app="budget"] .overlay-popup{ background:rgba(0,0,0,.45); }
+html.verre[data-app="budget"] .popup-box{
+  border-radius:34px 34px 0 0; border-color:var(--v-edge);
+  -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
+  box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow-lg);
+}
+html.verre[data-app="budget"] #login-screen{
+  background:rgba(8,8,10,.35); -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
+}
+html.verre.light-mode[data-app="budget"] #login-screen{ background:rgba(230,224,214,.35); }
+html.verre[data-app="budget"] .login-box{
+  background:var(--v-soft); border:1px solid var(--v-edge); border-radius:34px; box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow);
+}
+html.verre[data-app="budget"] .login-box h1{ font-family:var(--v-f-chiffres); font-weight:300; letter-spacing:-.8px; }
+html.verre[data-app="budget"] .login-box input{ border-radius:16px; background:var(--v-soft); }
 
 
 /* Accessibilité — mouvement réduit (charte §11.9) */
