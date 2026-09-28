@@ -312,3 +312,13 @@ Capture de Budget par Corentin : son contenu et sa barre descendent jusqu'au vra
 
 Retour iPhone : la barre d'onglets est **coupée** en bas — iOS ne dessine toujours rien sous 894 pt, même sans `body{overflow:hidden}`. `style.css` et `index.html` de Course **remis à l'identique de l'état précédent** (barre visible, même position qu'avant ; `overflow:hidden` et `--nav-offset` ≈ 4 pt restaurés ; `--manque` retiré). Restent en place : `black-translucent` et la couleur de fond de secours du mode Verre.
 **Piste restante** : Budget, lui, a sa pleine hauteur — sa page **défile** (contenu plus haut que l'écran, `body{min-height:100vh}`), celle de Course non (tout est dans `#app` fixé). À tester séparément, en mesurant d'abord la hauteur de page de Budget sur l'iPhone.
+
+### Correctif définitif (28/09/2026, 19h00) — la page défile comme Budget et Muscu
+
+Constat de Corentin : Budget et Muscu, **pages qui défilent**, n'ont jamais eu la bande. Course était la seule app construite en « écran fixe » : `body{overflow:hidden}` + `#app{position:fixed; inset:0}` + `<main>` qui défilait **à l'intérieur**. Dans cette structure, iOS (app écran d'accueil) ne donne à la page que 894 pt sur 956 et ne dessine rien dans les 62 pt du bas (mesuré). La tentative précédente n'avait retiré que `overflow:hidden` en gardant `#app` fixé : insuffisant.
+**Course reprend la structure de Budget** (`style.css`) :
+- `#app` suit le flux normal (`position:relative; min-height:100vh`), `<main>` grandit avec son contenu (plus de défilement interne) : c'est la page entière qui défile.
+- Barre d'onglets en `position:fixed` (avant : `absolute` dans `#app` fixé) ; bouton thème en `absolute` (défile avec l'en-tête) ; « Course terminée », modales et bandeau de mise à jour étaient déjà en `fixed`.
+- `--nav-offset` = valeur de Budget, `max(20px, safe-area − 12px)` ≈ 22 pt du **vrai** bord (l'ancienne valeur ≈ 4 pt se mesurait depuis une page coupée : à l'écran, la barre était à ~66 pt du bord).
+- `app.js` : `window.scrollTo(0,0)` à chaque changement d'onglet (le défilement est maintenant celui de la page, partagé par les onglets).
+**Vérifié** (Chromium 390×844, vraie base) : liste longue qui défile jusqu'en bas avec la barre fixe par-dessus, Réglages, changement d'onglet revenant en haut, modes Verre et classique, aucune erreur JS. **À confirmer sur iPhone.** Point à surveiller : en mode Verre, la plaque floutée fait désormais toute la hauteur de la liste — si le défilement saccade sur une longue liste, retirer son `backdrop-filter` (le fond seul suffit).

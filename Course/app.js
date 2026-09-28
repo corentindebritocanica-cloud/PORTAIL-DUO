@@ -111,6 +111,7 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     document.querySelectorAll('nav.tabbar button').forEach(b=> b.classList.toggle('actif', b===btn));
     document.querySelectorAll('section.vue').forEach(s=> s.classList.toggle('actif', s.id==='vue-'+btn.dataset.tab));
     document.getElementById('titre-onglet').textContent = titres[btn.dataset.tab];
+    window.scrollTo(0, 0);   /* 28/09/2026 : la page défile désormais (plus <main>) — chaque onglet s'ouvre en haut */
   });
 });
 
