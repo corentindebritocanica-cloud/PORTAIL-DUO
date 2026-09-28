@@ -370,3 +370,12 @@ Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se t
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
 Course : `main` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
+
+
+## Noyau commun `../commun.js` (28/09/2026)
+
+Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la transition « vitre → app » au retour, date de dernière mise à jour, enregistrement du service worker, vérification de version au retour dans l'app) vit maintenant **une seule fois** dans `../commun.js` à la racine — détail dans le README racine, « Noyau commun ».
+- `index.html` : les deux mini-scripts du `<head>` remplacés par `<script src="../commun.js?v=…">` (sans `defer`, avant `verre.css`). `DERNIERE_MAJ`, `#maj-toast` et `#derniere-maj` (Réglages) restent ici.
+- `app.js` : blocs `formaterDerniereMaj`, service worker et vérification de version retirés (~80 lignes).
+- `sw.js` : `FICHIER_VERRE` → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre).
+**Vérifié** (Chromium) : aucune erreur JS, date de MAJ affichée dans Réglages, `sw.js` enregistré, `commun.js` en cache, rechargement auto / bandeau sur version plus récente.

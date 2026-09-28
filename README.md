@@ -622,12 +622,12 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 - `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIER_VERRE` de Course).
 
 **Migrer une app** (check-list — les 4 apps sont migrées depuis le 28/09/2026 ; à suivre pour toute nouvelle app) :
-1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<link rel="stylesheet" href="../verre.css?v=…">` (le workflow gère le `?v=`).
-2. `sw.js` de l'app : ajouter `../verre.css` au précache et au réseau d'abord, AVANT le filtre de périmètre (modèle : `Course/sw.js`, `FICHIER_VERRE`).
+1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<script src="../commun.js?v=…"></script>` puis `<link rel="stylesheet" href="../verre.css?v=…">` dans le `<head>` (le workflow gère les `?v=`).
+2. `sw.js` de l'app : ajouter `../verre.css` et `../commun.js` au précache et au réseau d'abord, AVANT le filtre de périmètre (modèle : `Course/sw.js`, `FICHIERS_COMMUNS`).
 3. Règles propres à l'app dans `verre.css`, sous `html.verre[data-app="…"]` — une plaque de verre + des lignes à filets, jamais une carte floutée par ligne.
 4. **Bas de page** : la page doit défiler elle-même (pas d'« écran fixe » avec défilement interne), sinon bande de 62 pt en bas (voir `PROBLEMES_RESOLUS.md`). Muscu et Budget sont déjà construites ainsi.
 5. Fond de `<html>` : à la couleur du bas du contenu.
-6. Copier dans le `<head>` le mini-script « Halos : animation calée sur l'horloge » (identique à celui du Portail), sinon les halos repartent de zéro à l'ouverture de l'app.
+6. ~~Copier dans le `<head>` le mini-script « Halos »~~ → fait par `commun.js` depuis le 28/09/2026 (voir « Noyau commun »). Garder dans `index.html` : la constante `DERNIERE_MAJ`, le bandeau `#maj-toast` (bouton `#maj-btn`) et, si l'app l'affiche, `#derniere-maj`.
 
 **Vérifié** (Chromium 390×844, sans aucune clé en `localStorage`) : Portail et Course s'ouvrent directement en Verre, pile (glisser, toucher, ouverture d'app, ordre après rechargement), Réglages de Course sans la carte « Apparence », aucune erreur JS.
 
@@ -639,7 +639,7 @@ Demande de Corentin : les deux lumières du fond **bougent en continu**. `verre.
 ### Halos continus d'une app à l'autre (28/09/2026, 19h30)
 
 Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque changement d'app. Chaque app étant une page à part, une animation CSS redémarre à chaque ouverture. **Solution : caler l'animation sur l'horloge.** Un mini-script dans le `<head>` (Portail et Course, **identique dans chaque app qui charge `verre.css`**) pose `--v-delai-profil = −(maintenant modulo 46 s)` et `--v-delai-app = −(maintenant modulo 62 s)` (46 et 62 s = un aller-retour des cycles `alternate` de 23 et 31 s), utilisés comme `animation-delay` dans `verre.css`. Toutes les apps affichent donc la même position au même instant : le passage de l'une à l'autre est continu. Recalé au retour depuis le cache précédent/suivant (`pageshow` persisté), où l'animation était en pause.
-⚠️ Si on change une durée d'animation dans `verre.css`, changer le modulo (2 × durée) dans le script de **chaque** `index.html`.
+⚠️ Si on change une durée d'animation dans `verre.css`, changer le modulo (2 × durée) dans `commun.js` (depuis le 28/09/2026 le script vit là, une seule fois — voir « Noyau commun »).
 **Vérifié** (Chromium) : Portail et Course ouverts en même temps → même position des deux halos (écart < 0,3 px).
 
 ### Budget passe au design Verre (28/09/2026, 19h40)
@@ -688,3 +688,23 @@ Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se t
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
 - **Portail** (`app.js`, bloc de la pile) : au toucher de la vitre de devant (et seulement elle, jamais après un glisser), elle reçoit `view-transition-name: vitre` juste avant la navigation ; nom retiré au retour (`pageshow`) pour qu'un seul élément le porte.
 **Vérifié** (Chromium 141, ralenti ×0,15) : Portail → Course, Budget et Muscu : la vitre grandit et devient la plaque ; retour arrière : transition annulée ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Noyau commun `commun.js` (28/09/2026)
+
+Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **le code recopié à l'identique dans les 4 apps vit désormais dans un seul fichier, `commun.js`, à la racine**. Une correction faite dedans vaut pour le Portail, Course, Budget et Muscu (avant : 4 copies à tenir identiques à la main, ~360 lignes en double retirées).
+
+**Contenu** (dans cet ordre dans le fichier) :
+1. **Halos calés sur l'horloge** (`--v-delai-profil`, `--v-delai-app`, recalage au `pageshow` persisté) — avant : mini-script dans chaque `<head>`.
+2. **Transition « vitre → app »** : annulation pour les retours et rechargements (`pagereveal`) — avant : mini-script dans chaque `<head>`.
+3. **Date de dernière mise à jour du code** : `window.formaterDerniereMaj()` (globale : Muscu l'appelle en ouvrant ses Réglages) + remplissage de `#derniere-maj` au chargement.
+4. **Service worker** : enregistrement de `sw.js` (chemin et portée relatifs, donc le `sw.js` du dossier de l'app), détection d'une nouvelle version, bouton `#maj-btn` du bandeau → recharge.
+5. **Vérification de version au retour dans l'app** (relit `index.html`, compare `DERNIERE_MAJ` ; rechargement auto, ou bandeau si saisie en cours / fenêtre ouverte / déjà 2 rechargements) — `window.__verifierVersion` gardé.
+
+**Reste propre à chaque app** : `DERNIERE_MAJ` (index.html, gérée par le workflow), le bandeau `#maj-toast` (sa position dépend de la barre du bas), `sw.js`.
+
+**Chargement** : `<script src="commun.js?v=…">` (Portail) / `"../commun.js?v=…"` (apps), dans le `<head>`, **sans `defer`** (halos et transition doivent tourner avant le 1er rendu). `DERNIERE_MAJ` est définie plus bas dans la page : le noyau ne la lit qu'au moment de s'en servir (`DOMContentLoaded`, `load`, retour au premier plan), jamais au chargement.
+**Cache hors-ligne** : Portail `sw.js` → `SHELL_ANNEXES` + réseau d'abord ; Course, Budget, Muscu → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre ; remplace `FICHIER_VERRE`).
+**Workflow `auto-version.yml`** : `commun.js` ajouté aux chemins surveillés ; s'il change, chaque app dont l'`index.html` contient `commun.js?v=` est rebumpée (DERNIERE_MAJ, `?v=`, `CACHE_NAME`), comme pour `verre.css`.
+**Portail** (`app.js`) : blocs date de MAJ, service worker et vérification de version retirés ; `index.html` : les deux mini-scripts du `<head>` remplacés par `commun.js`.
+**Vérifié** (Chromium 141) : 4 apps sans erreur JS ; halos calés ; « Dernière mise à jour du code » affichée (Portail, Course, Budget ; Muscu dans ses Réglages) ; `sw.js` de chaque dossier enregistré ; `commun.js` et `verre.css` présents dans le cache de chaque app ; version plus récente simulée sur le serveur → rechargement automatique, et bandeau « Actualiser » une fois la limite de 2 rechargements atteinte.

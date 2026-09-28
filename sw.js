@@ -15,8 +15,9 @@ const CACHE_PREFIX = 'portail-duo-shell-';
 // cache.addAll() échoue à cause d'UN SEUL fichier annexe (404 passager pendant un déploiement,
 // par ex.), les fichiers critiques doivent quand même finir en cache.
 const SHELL_CRITIQUES = ['./', './index.html', './style.css', './app.js'];
+// commun.js (28/09/2026) : noyau commun aux 4 apps (halos, SW, vérification de version) — annexe elle aussi.
 // verre.css (28/09/2026) : habillage « Verre » commun aux 4 apps — annexe (sans lui, la page s'affiche en mode classique).
-const SHELL_ANNEXES = ['./manifest.json', './icone-192.png', './icone-512.png', './icone-512-maskable.png', './verre.css'];
+const SHELL_ANNEXES = ['./manifest.json', './icone-192.png', './icone-512.png', './icone-512-maskable.png', './verre.css', './commun.js'];
 
 // SDK Firebase (autre origine, gstatic.com) pour le tableau de bord (22/09/2026) : mis en cache en mode
 // 'no-cors' (réponse opaque, mais utilisable comme source de script) pour que le Portail puisse relire
@@ -168,7 +169,7 @@ self.addEventListener('fetch', (event) => {
 
   // index.html / page d'accueil : réseau d'abord (voir reseauPuisCache)
   const scopePath = new URL(self.registration.scope).pathname;
-  if (url.pathname === scopePath || ['index.html', 'style.css', 'app.js', 'verre.css'].some((f) => url.pathname === scopePath + f)) {
+  if (url.pathname === scopePath || ['index.html', 'style.css', 'app.js', 'verre.css', 'commun.js'].some((f) => url.pathname === scopePath + f)) {
     event.respondWith(reseauPuisCache(event.request));
     return;
   }

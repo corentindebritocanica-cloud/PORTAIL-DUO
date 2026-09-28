@@ -61,7 +61,8 @@ const FIREBASE_FILES = [
 /* ../verre.css (28/09/2026) : design « Verre » commun aux apps, à la RACINE du dépôt (hors du dossier
    de ce SW) — précaché à l'installation et servi en réseau d'abord avant le filtre de périmètre plus bas,
    sinon le design disparaîtrait hors-ligne (même modèle que Course/sw.js et Budget/sw.js). */
-const FICHIER_VERRE = '../verre.css';
+/* ../commun.js (28/09/2026) : noyau commun aux 4 apps, même traitement que verre.css. */
+const FICHIERS_COMMUNS = ['../verre.css', '../commun.js'];
 function shellUrls(){
   const scope = self.registration.scope;
   return [
@@ -78,7 +79,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.allSettled(
-        [...shellUrls(), new URL(FICHIER_VERRE, self.registration.scope).href, ...FIREBASE_FILES].map((url) =>
+        [...shellUrls(), ...FICHIERS_COMMUNS.map((f) => new URL(f, self.registration.scope).href), ...FIREBASE_FILES].map((url) =>
           cache.add(FIREBASE_FILES.includes(url) ? url : new Request(url, { cache: 'reload' })).catch((err) => {
             console.warn('[sw] pas mis en cache (probablement un 404) :', url, err);
           })
@@ -163,8 +164,8 @@ self.addEventListener('fetch', (event) => {
      les polices Google sont ainsi ignorées sans avoir à les nommer. */
   if(url.origin !== self.location.origin) return;
 
-  /* Seule exception au périmètre ci-dessous : la feuille commune ../verre.css (réseau d'abord). */
-  if(url.pathname === new URL(FICHIER_VERRE, self.registration.scope).pathname){
+  /* Seule exception au périmètre ci-dessous : les fichiers communs ../verre.css et ../commun.js (réseau d'abord). */
+  if(FICHIERS_COMMUNS.some((f) => url.pathname === new URL(f, self.registration.scope).pathname)){
     event.respondWith(reseauPuisCache(req));
     return;
   }

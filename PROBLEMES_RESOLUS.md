@@ -23,6 +23,14 @@
 
 > **Statut** : design Verre **définitif** pour le Portail et Course depuis le 28/09/2026 au soir (classe `html.verre` en dur, interrupteur et curseur d'intensité retirés). Pour migrer Muscu/Budget : check-list dans le README racine, « Design Verre — DÉFINITIF ».
 
+### 28/09/2026 — 4 apps — Mutualiser du code dans un fichier commun (`commun.js`) sans rien casser
+**Symptôme** : le même code (service worker, vérification de version, date de MAJ, halos, transition) recopié dans 4 apps ; toute correction devait être refaite 4 fois à l'identique.
+**Fausses pistes explorées** : charger le fichier commun en `defer` ou en fin de page — trop tard pour les halos et l'écoute de `pagereveal`, qui doivent tourner avant le 1er rendu.
+**Cause racine** : 3 pièges à éviter en sortant du code d'une app vers la racine : (1) le fichier est chargé dans le `<head>` alors que `const DERNIERE_MAJ` est définie plus bas dans la page ; (2) un fichier hors du dossier de l'app n'est pas mis en cache par son service worker (filtre de périmètre) ; (3) le workflow de versionnage ne rebumpe que l'app dont un fichier a changé.
+**Solution** : (1) ne lire `DERNIERE_MAJ` qu'au moment de s'en servir (`typeof DERNIERE_MAJ` dans une fonction appelée au `DOMContentLoaded` / `load` / retour au premier plan) — jamais au chargement du script ; (2) `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` dans chaque `sw.js`, précachés et servis en réseau d'abord AVANT le filtre de périmètre ; (3) workflow : toute app dont l'`index.html` contient `commun.js?v=` est rebumpée quand `commun.js` change. Garder les fonctions appelées ailleurs globales (`window.formaterDerniereMaj`, `window.__verifierVersion`).
+**Test** : avec Playwright, un `page.route()` ne voit pas les requêtes servies par le service worker de la page → pour simuler une nouvelle version côté serveur, ouvrir le contexte avec `service_workers='block'`.
+**Fichiers touchés** : `commun.js` (nouveau), les 4 `index.html`, les 4 `app.js`, les 4 `sw.js`, `.github/workflows/auto-version.yml`
+
 ### 28/09/2026 — Portail, Course — arêtes fantômes, halo invisible, fichier commun hors cache
 **Symptôme** : (1) sur la pile de vitres du Portail, les bords des vitres du fond restaient visibles **à travers** la vitre de devant (translucide) ; (2) un fond décoratif en `position:fixed` risquait de passer par-dessus `#app` (Course) ou d'être caché par le fond du `body` ; (3) une feuille commune à la racine (`verre.css`) chargée par `/Course/` n'est pas gérée par le service worker de Course.
 **Fausses pistes explorées** : s'en remettre au flou (`backdrop-filter`) pour « effacer » les vitres du fond — un filet de 1 px reste lisible même flouté à 30 px.

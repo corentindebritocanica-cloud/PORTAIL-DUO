@@ -970,3 +970,12 @@ Conséquence du profil commun : l'écran « Qui s'entraîne ? » changeait le pr
 - `index.html` : écran `#view-profile` supprimé ; bouton retour de l'écran des séances → « ← Menu ». `app.js` : `selectProfile()` supprimée, `goToProfileView()` redirigée vers `goToTrainingView()` ; titre de l'écran des séances réduit à « Choisis ta séance » (le nom est dans le sélecteur).
 - **Suivi Progression** : son sélecteur Corentin/Lisa était **déjà local** (`progressProfile`, commentaire d'origine : « regarder les courbes de l'autre ne doit pas changer le profil avec lequel on s'entraîne ») — vérifié : il ne change ni `duo_profile`, ni la couleur du reste de l'app, seulement celle de l'écran Suivi.
 **Vérifié** (Chromium) : Entraînement → séances de Corentin ; « Séance pour » Lisa → séances et écran d'exercices de Lisa, `duo_profile` toujours `corentin` ; retour au menu → profil Corentin ; Suivi Progression → Lisa sans effet sur `duo_profile` ; balises HTML équilibrées ; aucune erreur JS.
+
+
+## Noyau commun `../commun.js` (28/09/2026)
+
+Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la transition « vitre → app » au retour, date de dernière mise à jour, enregistrement du service worker, vérification de version au retour dans l'app) vit maintenant **une seule fois** dans `../commun.js` à la racine — détail dans le README racine, « Noyau commun ».
+- `index.html` : les deux mini-scripts du `<head>` remplacés par `<script src="../commun.js?v=…">` (sans `defer`, avant `verre.css`). `DERNIERE_MAJ` et `#maj-toast` restent ici.
+- `app.js` : définition de `formaterDerniereMaj()` retirée — `goToSettingsView()` l'appelle toujours, elle est désormais fournie (globale) par `commun.js` ; blocs service worker et vérification de version retirés (~70 lignes).
+- `sw.js` : `FICHIER_VERRE` → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre).
+**Vérifié** (Chromium) : aucune erreur JS, « Dernière mise à jour du code » affichée dans Réglages, `sw.js` enregistré, `commun.js` en cache.

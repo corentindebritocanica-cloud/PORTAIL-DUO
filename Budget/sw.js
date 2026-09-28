@@ -20,9 +20,11 @@ const CACHE_PREFIX = 'budget-lc-shell-';
 // restent valables quel que soit le sous-chemin d'hébergement GitHub Pages.
 // ../verre.css (28/09/2026) : design « Verre » commun aux apps, à la RACINE du dépôt (hors du dossier
 // de ce SW) — mis en cache ici quand même, sinon le design disparaîtrait hors-ligne (modèle : Course/sw.js).
-const FICHIER_VERRE = '../verre.css';
+// ../commun.js (28/09/2026) : noyau commun aux 4 apps (halos, service worker, vérification de version), même
+// traitement que verre.css.
+const FICHIERS_COMMUNS = ['../verre.css', '../commun.js'];
 const SHELL_FILES = [
-  FICHIER_VERRE,
+  ...FICHIERS_COMMUNS,
   './',
   './index.html',
   './style.css',
@@ -130,8 +132,8 @@ self.addEventListener('fetch', (event) => {
   // service worker).
   if (url.origin !== self.location.origin) return;
 
-  // Seule exception au périmètre ci-dessous : la feuille commune ../verre.css (réseau d'abord).
-  if (url.pathname === new URL(FICHIER_VERRE, self.registration.scope).pathname) {
+  // Seule exception au périmètre ci-dessous : les fichiers communs ../verre.css et ../commun.js (réseau d'abord).
+  if (FICHIERS_COMMUNS.some((f) => url.pathname === new URL(f, self.registration.scope).pathname)) {
     event.respondWith(reseauPuisCache(event.request));
     return;
   }

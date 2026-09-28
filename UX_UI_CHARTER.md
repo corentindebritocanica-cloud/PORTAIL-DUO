@@ -454,6 +454,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 - [ ] Actions répétées (validation, coche) : feedback bref, sans rebond
 - [ ] `transform-box: fill-box` sur tout élément SVG animé en `scale`/`rotate`
 - [ ] Bloc `@media (prefers-reduced-motion: reduce)` présent
+- [ ] **Noyau commun** : `<script src="../commun.js?v=…">` dans le `<head>` (sans `defer`) + `../commun.js` dans le précache du `sw.js` — ne pas recopier SW / vérification de version / date de MAJ dans l'app
 
 ---
 
@@ -611,8 +612,9 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Retour au Portail** : geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
 - **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
 - **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).
-- **Halos animés** (28/09/2026) : les deux lumières dérivent en continu (2 calques fixes, `transform` seul, cycles de 23 s et 31 s en `alternate`). **Exception assumée à §11.3** : animation d'ambiance, pas d'interface ; coupée par `prefers-reduced-motion` ; la lumière de l'app reste au-dessus de ~75 % de la hauteur. **Continue d'une app à l'autre** : animation calée sur l'horloge par un mini-script identique dans le `<head>` de chaque app (`animation-delay` négatif = −(maintenant modulo 2 × durée)).
+- **Halos animés** (28/09/2026) : les deux lumières dérivent en continu (2 calques fixes, `transform` seul, cycles de 23 s et 31 s en `alternate`). **Exception assumée à §11.3** : animation d'ambiance, pas d'interface ; coupée par `prefers-reduced-motion` ; la lumière de l'app reste au-dessus de ~75 % de la hauteur. **Continue d'une app à l'autre** : animation calée sur l'horloge par `commun.js` (`animation-delay` négatif = −(maintenant modulo 2 × durée)).
 - **Structure de page** : la page défile elle-même, barres en `position:fixed` ; jamais d'« écran fixe » avec défilement interne (bande de 62 pt en bas sur iPhone, voir `PROBLEMES_RESOLUS.md`). Fond de `<html>` à la couleur du bas du contenu.
+- **Code commun** (28/09/2026) : `commun.js` à la racine, chargé dans le `<head>` de chaque app (halos, transition, date de MAJ, service worker, vérification de version) — même principe que `verre.css` : jamais recopié dans une app.
 - **État** : ✅ les 4 apps (Portail, Course, Budget, Muscu) depuis le 28/09/2026. Toute nouvelle app suit la check-list du README racine.
 
 ---
