@@ -48,6 +48,18 @@
 
 ---
 
+## 💪 Muscu — migration Verre : style posé en JS et constante couplée au CSS (28/09/2026)
+
+### 28/09/2026 — Muscu — deux pièges repérés à la lecture avant la migration
+**Symptôme (anticipé)** : (1) `adjustBottomSpacing()` pose un `padding-bottom` **en style inline** sur `body` (réserve de la barre du bas) : avec une plaque de verre par écran, cette réserve aurait laissé une bande de fond nu sous la plaque ; (2) le moteur des flammes de record dessine l'arrondi de la carte avec une constante `R_CARD` égale à `--r-lg` : agrandir les rayons sans la changer décalait le « gommage » de la carte dans le feu.
+**Fausses pistes explorées** : aucune.
+**Cause racine** : (1) un style inline ne se surcharge en CSS qu'avec `!important` ; (2) couplage CSS ↔ JS documenté dans le README de Muscu (« Flammes de record »).
+**Solution** : (1) `html.verre[data-app="muscu"] body{ padding-bottom:0 !important; }` et réserve reportée dans les plaques (`.view-inner`, `main` des exercices) ; (2) `--r-lg` 24 px dans `verre.css` **et** `R_CARD = 24` dans `app.js`.
+**Leçon généralisable** : avant de rhabiller une app, chercher les styles posés en JS (`element.style.…`) et les constantes JS qui recopient une valeur CSS ; les traiter dans le même commit que le CSS.
+**Fichiers touchés** : `verre.css`, `Muscu/app.js`, `Muscu/index.html`, `Muscu/sw.js`
+
+---
+
 ## 🎨 Budget — jetons redéfinis sur `body` : le thème partagé ne s'appliquait pas (28/09/2026)
 
 ### 28/09/2026 — Budget — migration vers le design Verre

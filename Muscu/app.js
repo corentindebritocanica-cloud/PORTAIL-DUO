@@ -1886,7 +1886,7 @@ function recordFireSet(card, on){
 
 function createRecordFireEngine(){
   const PAD = { l:17, t:44, r:17, b:14 };
-  const R_CARD = 18;                 /* = --r-lg */
+  const R_CARD = 24;                 /* = --r-lg (24 px en design Verre depuis le 28/09/2026, voir verre.css) */
   const MAX_PARTICLES = 520;
   const STEPS = 24;
   const STOPS = [                    /* t, r, g, b, alpha */

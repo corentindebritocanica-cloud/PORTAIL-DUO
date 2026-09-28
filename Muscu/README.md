@@ -911,3 +911,24 @@ Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTE
 
 Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Muscu : bouton `#theme-toggle` retiré (`index.html`) ; `applyTheme()` / `toggleTheme()` supprimés d'`app.js`, remplacés par l'effacement de la clé `duo_theme` ; `style.css` : bloc `html.light-mode`, `html.light-mode body::before` et `.theme-toggle` retirés. Le **badge de synchro** (`.sync-badge`), qui se tenait à gauche du bouton, passe à droite (`right:14px`) et la réserve de l'en-tête (`.header-row`, `padding-right`) passe de 86 à 40 px. Muscu n'est pas encore en design Verre.
 **Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Design « Verre » (28/09/2026)
+
+Demande de Corentin : même design que le Portail, Course et Budget (charte §12). **Muscu n'est plus l'app de référence visuelle** : la référence est désormais la feuille commune **`../verre.css`** (racine du dépôt), dont la section « MUSCU » contient tout ce qui est propre à cette app (`html.verre[data-app="muscu"]`). `style.css` reste la base (jetons, structure) et n'a pas été modifié.
+
+**Fichiers** :
+- `index.html` : `<html lang="fr" data-app="muscu" class="verre">` ; police Unbounded ajoutée (Bebas Neue gardée pour les rares usages restants) ; mini-script « Halos : animation calée sur l'horloge » (identique aux 3 autres apps : les lumières continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a`.
+- `app.js` : **`R_CARD` 18 → 24** (moteur des flammes de record) — il doit rester égal à `--r-lg`, passé à 24 px en design Verre.
+- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course et Budget).
+
+**Rendu** :
+- Chaque écran (`.view-inner` : menu, profil, séances, archives, suivi, Build Training, réglages) est **une plaque de verre floutée** qui démarre sous la barre d'état ; sur l'écran des exercices, c'est la zone des cartes (`#view-exercises main`) qui est la plaque, sous un **en-tête collant en verre dense** et au-dessus de la **barre du bas en verre dense**.
+- Cartes, entrées du menu, séances, carte « Séances totales », cartes d'exercice, graphiques… deviennent des **panneaux sans flou** (les jetons `--card`, `--border`, `--shadow-sm` redirigés par `verre.css`), avec reflet en haut ; rayons agrandis (`--r-lg` 24 px, `--r-xl` 30 px). Rayures « craie » de la carte hero retirées ; poussière de craie du fond remplacée par les halos.
+- Titres d'écran et grands chiffres en Unbounded fin (au lieu de Bebas Neue en majuscules) ; libellés du menu en police système grasse.
+- « Entraînement », « Séance terminée », « Archiver » et le bouton de connexion : **verre teinté à l'accent** (bleu Corentin / rose Lisa) au lieu d'aplats ; confirmation rouge et copie verte en verre teinté aussi.
+- Modales, boîtes de confirmation, liste d'autocomplétion et toasts : verre dense flouté (lisibles au-dessus du contenu) ; écran de connexion : voile flouté sur les halos.
+- **Réserve du bas** : `adjustBottomSpacing()` continue de poser un `padding-bottom` sur `body`, mais `verre.css` le neutralise (`!important`) et reporte la réserve dans les plaques (`.view-inner` : 28 px + safe-area ; `main` des exercices : 112 px + safe-area pour la barre du bas). Sinon une bande de fond nu apparaissait sous la plaque.
+- **Inchangé** : validation de série (exception §11.2), flammes de record, glissement entre écrans, logique et données.
+
+**Vérifié** (Chromium 390×844, Firebase bouchonné, sans données) : Menu principal, Qui s'entraîne ?, Choix de séance, écran des exercices (haut, milieu, fin de liste sous la barre du bas), Suivi Progression, Réglages, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone** — en particulier la fluidité du défilement de l'écran des exercices (plaque floutée haute + en-tête et barre floutés).

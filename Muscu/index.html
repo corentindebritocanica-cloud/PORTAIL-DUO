@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-app="muscu" class="verre">
 <head>
 <meta charset="UTF-8">
 <!-- Icône d'accueil iOS : même barre que l'écran de chargement, disque bleu et
@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Duo Training">
-<meta name="theme-color" content="#0d1014">
+<meta name="theme-color" content="#08080a">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <!-- Icône d'écran d'accueil iOS. Le fichier doit être commité à côté de
      index.html : Safari ne sait pas lire une icône embarquée en data URI. -->
@@ -24,8 +24,15 @@
      système — ne pas y toucher, ça a été calé pour iOS Safari. Si hors-ligne,
      repli silencieux sur la pile système (voir --f-display). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap">
 <link rel="stylesheet" href="style.css?v=202609281940160200">
+<!-- Design « Verre » (28/09/2026) : feuille commune à la RACINE du dépôt (../verre.css), appliquée par la classe
+     html.verre posée en dur ci-dessus. style.css garde la base (jetons, structure), verre.css l'habille. -->
+<!-- Halos : animation calée sur l'horloge (28/09/2026) — même position dans toutes les apps au même instant,
+     donc continue d'une app à l'autre. Aller-retour = 2 × durée (23 s et 31 s, voir verre.css). À garder identique
+     dans chaque app qui charge verre.css. -->
+<script>(function(){function c(){var t=Date.now(),s=document.documentElement.style;s.setProperty('--v-delai-profil',(-(t%46000)/1000)+'s');s.setProperty('--v-delai-app',(-(t%62000)/1000)+'s');}c();addEventListener('pageshow',function(e){if(e.persisted)c();});})();</script>
+<link rel="stylesheet" href="../verre.css?v=202609281945000200">
 </head>
 <body>
 <div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px)); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">

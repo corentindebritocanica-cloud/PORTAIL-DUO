@@ -621,7 +621,7 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 - `style.css` = base (jetons, structure, thème clair) — inchangé ; `verre.css` (racine) = habillage, toutes règles préfixées `html.verre` (+ `[data-app="…"]`). Le code « mode classique » de `style.css` sert désormais de socle sous le verre : ne pas le supprimer sans vérifier ce que le verre en réutilise.
 - `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIER_VERRE` de Course).
 
-**Migrer une app** (check-list — Budget migrée le 28/09/2026 au soir, reste Muscu) :
+**Migrer une app** (check-list — les 4 apps sont migrées depuis le 28/09/2026 ; à suivre pour toute nouvelle app) :
 1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<link rel="stylesheet" href="../verre.css?v=…">` (le workflow gère le `?v=`).
 2. `sw.js` de l'app : ajouter `../verre.css` au précache et au réseau d'abord, AVANT le filtre de périmètre (modèle : `Course/sw.js`, `FICHIER_VERRE`).
 3. Règles propres à l'app dans `verre.css`, sous `html.verre[data-app="…"]` — une plaque de verre + des lignes à filets, jamais une carte floutée par ligne.
@@ -651,3 +651,7 @@ Budget suit la check-list ci-dessus (détail dans `Budget/README.md`, v4.0.0). *
 
 Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Portail : bouton `#theme-toggle` retiré de l'en-tête (`index.html`), bloc « THEME CLAIR / SOMBRE » d'`app.js` remplacé par l'effacement de l'ancienne clé `portail-theme` ; règles `html.light-mode` et `.theme-toggle` retirées de `style.css`. `verre.css` : règles du thème clair retirées (`html.verre.light-mode`, variantes Budget/Course). Détail des autres apps dans leurs README ; Muscu : bouton retiré aussi, badge de synchro recalé à droite.
 **Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**
+
+### Muscu passe au design Verre — les 4 apps sont unifiées (28/09/2026, 19h50)
+
+Détail dans `Muscu/README.md`. Particularités : chaque écran est une plaque (et la zone des cartes sur l'écran des exercices), rayons agrandis (`--r-lg` 24 px → `R_CARD` des flammes de record mis à jour dans `app.js`), réserve du bas reportée dans les plaques (le `padding-bottom` posé en JS sur `body` est neutralisé). **Le Portail, Course, Budget et Muscu partagent désormais un seul design, défini dans `verre.css`.**

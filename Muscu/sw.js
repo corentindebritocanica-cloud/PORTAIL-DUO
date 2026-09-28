@@ -58,6 +58,10 @@ const FIREBASE_FILES = [
 /* Recalculé à chaque usage plutôt que mis en cache une fois pour toutes :
    self.registration.scope est disponible aussi bien dans install/activate
    que dans fetch, et le recalcul est trivial (quelques new URL()). */
+/* ../verre.css (28/09/2026) : design « Verre » commun aux apps, à la RACINE du dépôt (hors du dossier
+   de ce SW) — précaché à l'installation et servi en réseau d'abord avant le filtre de périmètre plus bas,
+   sinon le design disparaîtrait hors-ligne (même modèle que Course/sw.js et Budget/sw.js). */
+const FICHIER_VERRE = '../verre.css';
 function shellUrls(){
   const scope = self.registration.scope;
   return [
@@ -74,7 +78,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.allSettled(
-        [...shellUrls(), ...FIREBASE_FILES].map((url) =>
+        [...shellUrls(), new URL(FICHIER_VERRE, self.registration.scope).href, ...FIREBASE_FILES].map((url) =>
           cache.add(FIREBASE_FILES.includes(url) ? url : new Request(url, { cache: 'reload' })).catch((err) => {
             console.warn('[sw] pas mis en cache (probablement un 404) :', url, err);
           })
@@ -158,6 +162,12 @@ self.addEventListener('fetch', (event) => {
   /* Jamais une autre origine pour le reste : Firestore, l'API Gemini et
      les polices Google sont ainsi ignorées sans avoir à les nommer. */
   if(url.origin !== self.location.origin) return;
+
+  /* Seule exception au périmètre ci-dessous : la feuille commune ../verre.css (réseau d'abord). */
+  if(url.pathname === new URL(FICHIER_VERRE, self.registration.scope).pathname){
+    event.respondWith(reseauPuisCache(req));
+    return;
+  }
 
   const scopePath = new URL(self.registration.scope).pathname;
   /* Jamais en dehors de ce dossier : le portail, /Budget/ et /Course/
