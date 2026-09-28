@@ -29,6 +29,14 @@
 **Leçon généralisable** : un fichier partagé entre apps d'un monorepo PWA doit être ajouté **à la main** au service worker de chaque app (hors périmètre sinon) ET au workflow de versionnage (sinon cache périmé). Pour du verre dépoli : jamais une surface floutée par ligne de liste (une plaque + des filets), et couper (`clip-path`) ce qui ne doit pas se voir au travers.
 **Fichiers touchés** : `verre.css`, `index.html`, `app.js`, `sw.js`, `Course/index.html`, `Course/app.js`, `Course/sw.js`, `.github/workflows/auto-version.yml`
 
+### 28/09/2026 (suite) — Course — la bande du bug WebKit n°1 n'avait jamais disparu, elle était juste invisible
+**Symptôme** : en mode Verre sur iPhone, bande unie de ~62 pt sous la barre d'onglets de Course.
+**Fausses pistes explorées** : croire la bande réglée depuis le 19/09 par `#app{position:fixed; inset:0}` — elle était seulement de la même couleur que le fond.
+**Cause racine (hypothèse forte, mesurée sur capture)** : le viewport de Course est plus court que l'écran de la hauteur de la zone du haut (~62 pt ≈ encoche) ; sous lui, seul le fond de `<html>` est peint — même un calque `position:fixed; inset:-10%` s'arrête net au bas du viewport. Course était la seule app en `status-bar-style` `black` (les 3 autres en `black-translucent`), réglage posé le 18/09 contre un flou dont la vraie cause était le cache du service worker.
+**Solution** : `black-translucent` comme les autres apps (en attente de vérification iPhone).
+**Leçon généralisable** : un changement de fond (thème, mode Verre) peut révéler un défaut de mise en page ancien jusque-là de la même couleur que le fond. Pour mesurer une zone suspecte : échantillonner les pixels d'une capture iPhone (taille réelle ÷ 3 = points) plutôt que deviner. Garder le **même `status-bar-style` sur toutes les apps** d'un même scope PWA.
+**Fichiers touchés** : `Course/index.html`
+
 ---
 
 ## 🐢 Course — ouverture lente depuis le Portail : écran masqué jusqu'à Firebase (24/09/2026)

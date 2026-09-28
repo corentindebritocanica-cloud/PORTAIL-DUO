@@ -591,7 +591,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Couleurs d'identité des apps** (remplacent `--blue/--gold/--green` en mode Verre) : Corps `#ff7a59`, Argent `#ffb800`, Frigo `#12b981`, Portail `#ff8a2b`.
 - **Verre** : fond `rgba(255,255,255,.07)`, `backdrop-filter: blur(30px) saturate(180%)`, arête `rgba(255,255,255,.16)`, reflet `inset 0 1px 0 rgba(255,255,255,.30)`, rayon **34 px** pour les plaques, pilule pour les contrôles.
 - **Typo** : Unbounded 300 pour les grands chiffres et titres ; police système pour tout le reste.
-- **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app) ; dans une app, les autres vitres restent en retrait en haut (« ‹ Portail »).
+- **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app). Retour au Portail par le geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
 - **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
 - **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).
 - **État** : Portail et Course habillés ; Budget et Muscu à venir.
@@ -604,7 +604,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 |-----|-------------------|-----------------|
 | **Muscu** | ✅ Référence | Aucune (source de vérité) |
 | **Budget** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | Écarts assumés : couleurs de catégories `--cat-depenses`/`--cat-provisions` (sens métier, jamais décoratives) ; bouton thème dans l'en-tête plutôt qu'en position fixe |
-| **Course** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | Écart assumé : `status-bar-style` à `black` (chantier du flou de barre de statut du 18/09, à ne pas toucher sans test iPhone) |
+| **Course** | ✅ Conforme §1–§7 et §11 (24/09/26) · pilule §5.5b (20/09/26) | `status-bar-style` repassé en `black-translucent` le 28/09/26 comme les 3 autres apps (suspect n°1 de la bande en bas d'écran, voir README Course) — à confirmer sur iPhone |
 | **Portail** | ✅ Conforme §1–§7 et §11 (24/09/26) | Écarts assumés : couleurs d'identité des apps (`--blue`/`--gold`/`--green`) ; Bebas Neue sur les noms d'apps ; accent qui suit le profil de Muscu (pas de sélecteur propre) |
 
 ---

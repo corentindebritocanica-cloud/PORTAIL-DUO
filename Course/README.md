@@ -265,3 +265,12 @@ Habillage activable défini dans la feuille commune **`../verre.css`** (racine d
 - Rendu en mode Verre : **une seule plaque de verre** (`main`) pour tout le contenu qui défile ; les produits deviennent des **lignes séparées par des filets** (plus de cartes) pour ne pas multiplier les flous ; cases rondes lumineuses à la couleur du profil ; barre d'onglets et bouton + en verre plus dense ; « Course terminée » teinté vert. **La coche reste sans animation** (charte §11.2).
 
 **Vérifié** : Chromium headless 390×844 — Liste et Réglages en mode Verre, mode classique inchangé. **Non vérifié sur iPhone.**
+
+
+## Mode Verre — retouches après le 1er essai sur iPhone (28/09/2026)
+
+Retour de Corentin sur capture iPhone :
+- **Lien « ‹ Portail » retiré** (et ses deux barres translucides en haut) : pas clair, et inutile — le geste retour d'iOS (glisser vers la droite) ramène déjà au Portail. `index.html` (`#verre-pile`), `app.js` et `verre.css` nettoyés ; l'en-tête reprend sa position normale.
+- **Bande unie de ~62 pt tout en bas, sous la barre d'onglets.** Mesure sur la capture (1320×2868, ×3) : la plaque et la barre s'arrêtent à 895 pt sur 956 ; dessous, seulement le fond de `<html>` (#08080a) — pas le calque de halos, pourtant fixé en `inset:-10%`. La hauteur manquante ≈ l'encoche du haut : c'est le **bug WebKit n°1** du guide PWA (le viewport perd la hauteur de la zone du haut). Elle existait déjà en mode classique, **invisible** car de la même couleur que le fond ; le verre, plus clair, la révèle. **Course était la seule des 4 apps en `status-bar-style` `black`** (Portail, Muscu et Budget : `black-translucent`, sans bande signalée), alors que ce réglage n'avait eu « aucun effet » sur le flou du 18/09 (vraie cause : cache du service worker). **Passé en `black-translucent`**, comme les 3 autres. En mode classique, l'en-tête gardait déjà sa marge `--safe-top` : rien ne passe sous l'heure.
+
+⚠️ **À vérifier sur iPhone** : bande disparue ? Et la barre d'onglets : si le viewport retrouve sa vraie hauteur, la pilule descend d'environ 60 pt (elle était de fait posée plus haut que `--nav-offset` ne le prévoyait). Si elle devient trop basse (Siri qui se déclenche), remonter `--nav-offset` dans `style.css`. Si le flou de la barre de statut du 18/09 réapparaît, revenir à `black` et chercher une autre piste pour la bande.

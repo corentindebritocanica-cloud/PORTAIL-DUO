@@ -529,10 +529,9 @@ dbReady.then(demarrer);
    Habillage commun aux 4 apps (../verre.css). Activé par localStorage duo-verre = '1'
    (même origine que le Portail et les autres apps : un seul réglage pour les 4) ;
    la classe html.verre est posée dès le <head> de index.html. L'interrupteur agit
-   tout de suite (pure CSS, pas de rechargement).
-   Retour au Portail : si on vient du Portail, on remonte l'historique (le Portail
-   ressort alors de son cache « précédent/suivant », comme avec le geste retour —
-   voir README Portail, pageshow) ; sinon (app ouverte directement), lien normal.
+   tout de suite (pure CSS, pas de rechargement). Retour au Portail : geste retour
+   d'iOS (glisser depuis le bord gauche), comme en mode classique — le lien
+   « ‹ Portail » essayé le 28/09 a été retiré à la demande de Corentin.
    ============================================================ */
 (function(){
   const root = document.documentElement;
@@ -544,16 +543,6 @@ dbReady.then(demarrer);
     root.classList.toggle('verre', actif);
     try { localStorage.setItem('duo-verre', actif ? '1' : '0'); } catch (e) {}
     majInter();
-  });
-  const pile = document.getElementById('verre-pile');
-  pile.addEventListener('click', (e) => {
-    let depuisPortail = false;
-    try {
-      const base = new URL('../', location.href).pathname;
-      const ref = document.referrer ? new URL(document.referrer).pathname : '';
-      depuisPortail = ref === base || ref === base + 'index.html';
-    } catch (err) {}
-    if (depuisPortail && history.length > 1) { e.preventDefault(); history.back(); }
   });
 })();
 
