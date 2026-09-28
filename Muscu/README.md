@@ -1,6 +1,12 @@
 # Duo Training
 
-Application web mono-fichier (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. Thème sombre par défaut avec bascule vers un thème clair, identité visuelle « Ardoise & craie ». ~6 100 lignes, ~295 Ko (dont ~17 Ko d'icône encodée en base64).
+Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de musculation en duo pour **Corentin** et **Lisa**. Ouverte dans Safari sur iPhone. **Sombre uniquement, design Verre** commun aux 4 apps (l'identité « Ardoise & craie » décrite plus bas est le socle de `style.css`). 3 fichiers depuis le 20/09/2026 : `index.html` (~640 lignes), `style.css`, `app.js` (~4 500 lignes).
+
+> **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
+> - **Design Verre** (`../verre.css`, section MUSCU), titre de chaque écran à gauche + pastille de connexion ; une plaque de verre par écran.
+> - **Noyau commun `../commun.js`** : halos, transition, `formaterDerniereMaj()` (utilisée par les Réglages), service worker, vérification de version.
+> - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
+
 
 ## Où vit le projet
 
@@ -29,24 +35,25 @@ Points à connaître, tous vérifiés :
 
 ## Contraintes techniques à toujours respecter
 
-- **Fichier HTML unique**, tout le CSS et JS dedans. Pas de framework, pas de bundler. Décision confirmée : le découpage en `style.css` / `app.js` serait techniquement possible (l'app est forcément servie en HTTP, sinon le `<script type="module">` ne fonctionnerait pas), mais on garde la propriété « un fichier qu'on dépose et qui marche ».
+- ~~**Fichier HTML unique**~~ → **découpé le 20/09/2026** en `index.html` / `style.css` / `app.js` (voir « Historique — Découpage »). Pas de framework, pas de bundler.
 - Firebase SDK chargé **en CDN via `<script type="module">`**. Version : `firebasejs/12.18.0`.
 - Robustesse LocalStorage obligatoire : try/catch + fallback mémoire (préférences locales et données de la séance en cours ; tout le reste est dans Firestore).
 - **Tous les champs de saisie en `font-size:16px` minimum** : en dessous, Safari iOS zoome au focus.
 - Cible : iPhone Safari. Voir « Bugs iOS déjà corrigés ».
-- Avant toute livraison : `node --check` sur les quatre blocs `<script>` **et** les suites de tests (voir « Tests »).
+- Avant toute livraison : `node --check app.js` (et le `<script type="module">` d'`index.html`) **et** les suites de tests (voir « Tests »).
 
 ## Architecture de navigation
 
 ```
 [écran de connexion] → view-menu (Menu principal, 5 entrées)
-├── Entraînement      → view-profile → view-session → view-exercises
+├── Entraînement      → view-session (« Séance pour ») → view-exercises
 │                                            └────── → view-archives ⇄ corbeille
 ├── Build Training    → view-builder (hub → formulaire)
 ├── Coach             → view-coach (fil de discussion, plusieurs conversations)
 ├── Suivi Progression → view-progress (onglets Entraînement / Poids & mensurations)
-└── Réglages          → view-settings (compte, déconnexion)
+└── Réglages          → view-settings (compte, profil du téléphone, déconnexion)
 ```
+(`view-profile` « Qui s'entraîne ? » supprimé le 28/09/2026.)
 
 **Retour par glissement.** Un balayage vers la droite déclenche le **bouton retour de l'écran actif** (`goBackFromActiveView`) plutôt qu'une table de destinations : le geste ne peut donc pas diverger du tap, y compris pour le rappel d'archivage. Neutralisé sur les champs, les boutons, les listes déroulantes, les barres segmentées et la zone de rédaction, ainsi que pendant la connexion et toute modale ouverte. Exige un geste franchement horizontal (`SWIPE_MIN_X`, `SWIPE_MAX_Y`, `SWIPE_MAX_MS`), sinon un défilement oblique déclencherait un retour.
 
@@ -466,7 +473,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 
 ## Autres
 
-- **Thème clair/sombre** : bouton flottant, préférence en LocalStorage (`duo_theme`).
+- ~~**Thème clair/sombre** : bouton flottant, préférence en LocalStorage (`duo_theme`).~~ → retiré le 28/09/2026 (sombre uniquement).
 - **Barre de progression + tonnage**, recalculés **à chaque frappe**.
 - **Échappement HTML** : `escapeHtml()` obligatoire sur tout contenu saisi injecté via `innerHTML`.
 - **Stockage** : `storage.set` marque la clé dans `memoryOnlyKeys` si `setItem` échoue.
@@ -918,9 +925,9 @@ Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on re
 Demande de Corentin : même design que le Portail, Course et Budget (charte §12). **Muscu n'est plus l'app de référence visuelle** : la référence est désormais la feuille commune **`../verre.css`** (racine du dépôt), dont la section « MUSCU » contient tout ce qui est propre à cette app (`html.verre[data-app="muscu"]`). `style.css` reste la base (jetons, structure) et n'a pas été modifié.
 
 **Fichiers** :
-- `index.html` : `<html lang="fr" data-app="muscu" class="verre">` ; police Unbounded ajoutée (Bebas Neue gardée pour les rares usages restants) ; mini-script « Halos : animation calée sur l'horloge » (identique aux 3 autres apps : les lumières continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a`.
+- `index.html` : `<html lang="fr" data-app="muscu" class="verre">` ; police Unbounded ajoutée (Bebas Neue gardée pour les rares usages restants) ; mini-script « Halos : animation calée sur l'horloge » (→ dans `../commun.js` depuis le noyau commun ; identique aux 3 autres apps : les lumières continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a`.
 - `app.js` : **`R_CARD` 18 → 24** (moteur des flammes de record) — il doit rester égal à `--r-lg`, passé à 24 px en design Verre.
-- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course et Budget).
+- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course et Budget — → `FICHIERS_COMMUNS` depuis le noyau commun).
 
 **Rendu** :
 - Chaque écran (`.view-inner` : menu, profil, séances, archives, suivi, Build Training, réglages) est **une plaque de verre floutée** qui démarre sous la barre d'état ; sur l'écran des exercices, c'est la zone des cartes (`#view-exercises main`) qui est la plaque, sous un **en-tête collant en verre dense** et au-dessus de la **barre du bas en verre dense**.
@@ -959,7 +966,7 @@ Muscu : **source historique de la clé** (`currentProfile`, `setProfile()`), rie
 Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
-Muscu : `#view-menu .plaque` (plaque du menu, premier écran affiché) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
+Muscu : `#view-menu .plaque` (plaque du menu, premier écran affiché) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html` (→ dans `../commun.js` depuis le noyau commun).
 
 
 ## « Qui s'entraîne ? » retiré, sélecteur « Séance pour » (28/09/2026)

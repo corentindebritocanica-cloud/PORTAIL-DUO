@@ -21,7 +21,7 @@
 
 ## 🪟 Portail/Course — habillage « Verre » : pièges du verre dépoli et d'un fichier partagé entre apps (28/09/2026)
 
-> **Statut** : design Verre **définitif** pour le Portail et Course depuis le 28/09/2026 au soir (classe `html.verre` en dur, interrupteur et curseur d'intensité retirés). Pour migrer Muscu/Budget : check-list dans le README racine, « Design Verre — DÉFINITIF ».
+> **Statut** : design Verre **définitif sur les 4 apps** depuis le 28/09/2026 au soir (classe `html.verre` en dur, interrupteur et curseur d'intensité retirés ; Budget et Muscu migrées le même soir). Pour toute nouvelle app : check-list dans le README racine, « Design Verre — DÉFINITIF ».
 
 ### 28/09/2026 — 4 apps — Mutualiser du code dans un fichier commun (`commun.js`) sans rien casser
 **Symptôme** : le même code (service worker, vérification de version, date de MAJ, halos, transition) recopié dans 4 apps ; toute correction devait être refaite 4 fois à l'identique.

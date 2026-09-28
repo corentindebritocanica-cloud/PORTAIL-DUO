@@ -1,5 +1,11 @@
 # Lisa-CorentinBudget
 
+> **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
+> - **Version 4.0.0 — Design Verre** (feuille commune `../verre.css`), **sombre uniquement**, titre « Budget » + pastille `.status-dot` (modèle des 4 apps). L'écran de connexion reste caché tant que Firebase n'a pas répondu.
+> - Fichiers : `index.html` (structure + `DERNIERE_MAJ`, charge `../commun.js` et `../verre.css`), `style.css`, `app.js`, `sw.js` (shell + `FICHIERS_COMMUNS` + SDK), `manifest.json`, `icone.PNG`.
+> - **Noyau commun `../commun.js`** : halos, transition, date de MAJ, service worker, vérification de version.
+> - **Profil** : `duo_profile`, commun aux 4 apps (ex-`budgetLC_profil`, migrée). Le changelog ci-dessous est chronologique (les premières versions décrivent un état dépassé).
+
 ## Changelog
 
 ### v2.9.6 — Correctif Accordéons (2026-09-18)
@@ -56,7 +62,7 @@ Audit puis mise en conformité avec `/UX_UI_CHARTER.md` (référence : app Muscu
 
 ### v3.2.0 — Sélecteur de profil Corentin/Lisa (2026-09-18)
 - Ajout d'un sélecteur de profil dans la section admin (à l'emplacement laissé libre par l'ancienne "Garde-robe", v3.1.0) : deux boutons **Corentin** (bleu `#1f8fff`) / **Lisa** (rose `#ff3d7e`), mêmes couleurs que sur Muscu et Course.
-- **Purement une préférence d'affichage par appareil** (`localStorage` : `budgetLC_profil`) : change uniquement la couleur d'accent (`--primary`) via une classe `body.profil-lisa`. Le compte reste unique et partagé — aucune donnée n'est séparée par profil, contrairement à Muscu où Corentin et Lisa ont chacun leurs propres séances.
+- **Purement une préférence d'affichage par appareil** (`localStorage` : `budgetLC_profil` → `duo_profile` depuis le 28/09/2026) : change uniquement la couleur d'accent (`--primary`) via une classe `body.profil-lisa`. Le compte reste unique et partagé — aucune donnée n'est séparée par profil, contrairement à Muscu où Corentin et Lisa ont chacun leurs propres séances.
 - Nouvelles variables `--lisa` / `--lisa-light` ajoutées à côté de `--primary`/`--primary-light` existantes.
 
 ## Historique — Bandeau de mise à jour du Service Worker + meta tag standard (19/09/2026)
@@ -360,9 +366,9 @@ Aucun changement de logique de calcul ni de `data-field` : uniquement l'ordre d'
 Demande de Corentin : même design que le Portail et Course (design Verre définitif, charte §12). Feuille commune **`../verre.css`** (racine du dépôt) ; tout ce qui est propre à Budget y est sous `html.verre[data-app="budget"]`. `style.css` reste la base (jetons, structure, thème clair) et n'a pas été modifié.
 
 **Fichiers** :
-- `index.html` : `<html lang="fr" data-app="budget" class="verre">` ; police Unbounded ; mini-script « Halos : animation calée sur l'horloge » (identique au Portail/Course : les lumières du fond continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a` ; libellé de version 4.0.0.
+- `index.html` : `<html lang="fr" data-app="budget" class="verre">` ; police Unbounded ; mini-script « Halos : animation calée sur l'horloge » (→ dans `../commun.js` depuis le noyau commun ; identique au Portail/Course : les lumières du fond continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a` ; libellé de version 4.0.0.
 - `app.js` : `toggleDark()` **recopie `light-mode` sur `<html>`** (verre.css lit le thème sur `<html>` : couleurs du verre, fond de page) — `body.light-mode` reste la référence de `style.css` ; `theme-color` aux fonds du verre (`#08080a` / `#e6e0d6`).
-- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course).
+- `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course — → `FICHIERS_COMMUNS` depuis le noyau commun).
 - `../verre.css`, section « BUDGET ».
 
 **Rendu** :
@@ -418,7 +424,7 @@ Budget : `LS_PROFIL` = `'duo_profile'` (`app.js`, section 10bis) ; l'ancienne cl
 Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
-Budget : `.main-content` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
+Budget : `.main-content` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html` (→ dans `../commun.js` depuis le noyau commun).
 
 
 ## Noyau commun `../commun.js` (28/09/2026)

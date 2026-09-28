@@ -9,6 +9,13 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 
 **Depuis le 28/09/2026, design « Verre » définitif** (pile de vitres, feuille commune `verre.css`) — voir « Design Verre » en fin de fichier.
 
+> **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
+> - **4 apps, un seul design** : feuille commune `verre.css` (racine) + classe `html.verre` en dur ; **sombre uniquement** (plus de bouton lune) ; titre à gauche en Unbounded 22 px avec la **pastille de connexion** à côté ; haut de page commun (`--v-haut`).
+> - **Noyau commun `commun.js`** (racine) : halos calés sur l'horloge, transition « vitre → app », date de MAJ, service worker, vérification de version — plus aucune copie dans les `app.js`.
+> - **Profil Corentin/Lisa unique** : `localStorage duo_profile`, réglable dans les Réglages de Muscu, Course ou Budget.
+> - **Portail** : pile de 3 vitres (toucher une vitre du fond → devant ; toucher celle de devant → ouvre l'app avec la transition ; glisser haut/bas → fait tourner la pile), aperçu du jour de chaque app (résumés `portail/*` dans Firebase), bouton ↻ de rechargement forcé. Retour depuis une app : geste retour d'iOS.
+> - **Fichiers du Portail** : `index.html`, `style.css` (base), `app.js`, `sw.js`, `manifest.json`, icônes ; partagés : `verre.css`, `commun.js` ; versionnage auto : `.github/workflows/auto-version.yml`.
+
 Depuis le 22/09/2026, le Portail est un **tableau de bord** : chaque carte ouvre son app et affiche un aperçu du jour (prochaine séance, reste à vivre, produits à acheter). Il lit pour cela un petit résumé écrit par chaque app dans Firebase, en **connexion anonyme** (aucun mot de passe) — voir « Tableau de bord » en fin de fichier. HTML/CSS/JS sans build, avec un manifest PWA.
 
 ---
@@ -29,21 +36,20 @@ GitHub Pages, avec un `manifest.json` unique scope `./` à la racine, et les 3 a
 dans des sous-dossiers. Les boutons du portail utilisent désormais des chemins
 relatifs (`./Muscu/`, `./Budget/`, `./Course/`) au lieu des anciennes URLs absolues.
 
-## 2. Structure du repo (vérifiée en ligne le 14/09/2026)
+## 2. Structure du repo (mise à jour le 28/09/2026)
 
 ```
 PORTAIL-DUO/
-├── index.html              ← Portail Duo (ce document)
+├── index.html / style.css / app.js / sw.js  ← Portail Duo (ce document)
 ├── manifest.json           ← PWA, scope "./"
-├── icone-192.png
-├── icone-512.png
-├── icone-512-maskable.png
-├── Muscu/                  ← Duo Training (musculation)
-│   └── index.html
-├── Budget/                 ← Budget L&C
-│   └── index.html
-└── Course/                 ← App Courses
-    └── index.html
+├── icone-192.png, icone-512.png, icone-512-maskable.png
+├── verre.css               ← design « Verre » commun aux 4 apps
+├── commun.js               ← noyau JS commun aux 4 apps
+├── UX_UI_CHARTER.md, GUIDE_PWA_IOS.md, PROBLEMES_RESOLUS.md, FUTURE_APPS_ROADMAP.md
+├── .github/workflows/auto-version.yml  ← DERNIERE_MAJ, ?v=, CACHE_NAME automatiques
+├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png, backups/
+├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
+└── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
 ```
 
 Les 3 sous-dossiers répondent bien en HTTP 200 et contiennent les bonnes apps
@@ -110,10 +116,11 @@ entièrement retirée.
   radiaux), identique à celle de Muscu, façon tableau noir essuyé.
 - Chaque app est une carte `.dash-card` (fond `--card`, bordure `--border`, rayon 18px) avec icône ronde à dégradé coloré (`.choice-icon`) + libellé Bebas Neue + description + chevron. Remplace `.big-choice-btn` (supprimée le 22/09/2026).
 - `theme-color` (meta) = `#0d1014`, aligné sur le nouveau `--bg`.
-- **Bascule clair/sombre ajoutée (18/09/2026)** : bouton `theme-toggle` (cercle
+- ~~**Bascule clair/sombre ajoutée (18/09/2026)**~~ → **retirée le 28/09/2026** (sombre uniquement). ~~ bouton `theme-toggle` (cercle
   🌙/☀️ en haut à droite, `env(safe-area-inset-top)` pris en compte), classe
   `html.light-mode` avec les mêmes valeurs que Muscu/Course, préférence mémorisée
-  dans `localStorage` (`portail-theme`).
+  dans `localStorage` (`portail-theme`).~~
+- → **Depuis le 28/09/2026, la palette de cette section est celle du socle `style.css` ; l'apparence réelle vient de `verre.css`** (voir « Design Verre »).
 
 ## 5. Comportement / fonctionnalités du portail
 
@@ -609,7 +616,7 @@ Demandes de Corentin :
 
 ## Design Verre — DÉFINITIF pour le Portail et Course (28/09/2026, 19h15)
 
-Décision de Corentin après l'essai sur iPhone : **le design Verre devient le design du Portail et de Course**. Muscu et Budget seront migrées plus tard (elles ne chargent pas `verre.css` et restent inchangées d'ici là).
+Décision de Corentin après l'essai sur iPhone : **le design Verre devient le design du Portail et de Course**. ~~Muscu et Budget seront migrées plus tard~~ → migrées le soir même : les 4 apps sont en Verre.
 
 **Ce qui change par rapport à l'essai** :
 - **Plus d'interrupteur** : la classe `verre` est écrite en dur sur `<html>` (`<html lang="fr" data-app="portail" class="verre">`). Mini-script du `<head>` et bouton « Essai Verre » retirés.
@@ -619,7 +626,7 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 
 **Architecture** :
 - `style.css` = base (jetons, structure, thème clair) — inchangé ; `verre.css` (racine) = habillage, toutes règles préfixées `html.verre` (+ `[data-app="…"]`). Le code « mode classique » de `style.css` sert désormais de socle sous le verre : ne pas le supprimer sans vérifier ce que le verre en réutilise.
-- `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIER_VERRE` de Course).
+- `verre.css` : versionné par le workflow auto-version (toute app qui le référence est rebumpée quand il change) et mis en cache par le service worker (`SHELL_ANNEXES` du Portail, `FICHIERS_COMMUNS` des 3 apps — ex-`FICHIER_VERRE`).
 
 **Migrer une app** (check-list — les 4 apps sont migrées depuis le 28/09/2026 ; à suivre pour toute nouvelle app) :
 1. `<html … data-app="muscu|budget" class="verre">`, police Unbounded, `<script src="../commun.js?v=…"></script>` puis `<link rel="stylesheet" href="../verre.css?v=…">` dans le `<head>` (le workflow gère les `?v=`).
@@ -638,13 +645,13 @@ Demande de Corentin : les deux lumières du fond **bougent en continu**. `verre.
 
 ### Halos continus d'une app à l'autre (28/09/2026, 19h30)
 
-Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque changement d'app. Chaque app étant une page à part, une animation CSS redémarre à chaque ouverture. **Solution : caler l'animation sur l'horloge.** Un mini-script dans le `<head>` (Portail et Course, **identique dans chaque app qui charge `verre.css`**) pose `--v-delai-profil = −(maintenant modulo 46 s)` et `--v-delai-app = −(maintenant modulo 62 s)` (46 et 62 s = un aller-retour des cycles `alternate` de 23 et 31 s), utilisés comme `animation-delay` dans `verre.css`. Toutes les apps affichent donc la même position au même instant : le passage de l'une à l'autre est continu. Recalé au retour depuis le cache précédent/suivant (`pageshow` persisté), où l'animation était en pause.
+Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque changement d'app. Chaque app étant une page à part, une animation CSS redémarre à chaque ouverture. **Solution : caler l'animation sur l'horloge.** Un mini-script dans le `<head>` (Portail et Course, **identique dans chaque app qui charge `verre.css`** — → déplacé dans `commun.js` depuis le noyau commun) pose `--v-delai-profil = −(maintenant modulo 46 s)` et `--v-delai-app = −(maintenant modulo 62 s)` (46 et 62 s = un aller-retour des cycles `alternate` de 23 et 31 s), utilisés comme `animation-delay` dans `verre.css`. Toutes les apps affichent donc la même position au même instant : le passage de l'une à l'autre est continu. Recalé au retour depuis le cache précédent/suivant (`pageshow` persisté), où l'animation était en pause.
 ⚠️ Si on change une durée d'animation dans `verre.css`, changer le modulo (2 × durée) dans `commun.js` (depuis le 28/09/2026 le script vit là, une seule fois — voir « Noyau commun »).
 **Vérifié** (Chromium) : Portail et Course ouverts en même temps → même position des deux halos (écart < 0,3 px).
 
 ### Budget passe au design Verre (28/09/2026, 19h40)
 
-Budget suit la check-list ci-dessus (détail dans `Budget/README.md`, v4.0.0). **Nouveau piège à ajouter à la check-list** : si une app redéfinit ses jetons ailleurs que sur `<html>` (Budget : `body.light-mode`), ils écrasent la redirection du verre → les rediriger aussi à cet endroit dans `verre.css`, et recopier la classe de thème sur `<html>` (verre.css lit le thème sur `<html>`). État : ✅ Portail, Course, Budget — ⏳ Muscu.
+Budget suit la check-list ci-dessus (détail dans `Budget/README.md`, v4.0.0). **Nouveau piège à ajouter à la check-list** : si une app redéfinit ses jetons ailleurs que sur `<html>` (Budget : `body.light-mode`), ils écrasent la redirection du verre → les rediriger aussi à cet endroit dans `verre.css`, et recopier la classe de thème sur `<html>` (verre.css lit le thème sur `<html>`). État : ✅ Portail, Course, Budget — ⏳ Muscu (→ ✅ Muscu migrée le même soir).
 
 
 ## Thème sombre uniquement — bouton lune retiré (28/09/2026)
@@ -685,7 +692,7 @@ Demande de Corentin : un seul choix de profil pour tout (avant : une clé par ap
 
 Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
-- Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
+- Mini-script identique dans le `<head>` des 4 pages (`pagereveal`, → dans `commun.js` depuis le noyau commun) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
 - **Portail** (`app.js`, bloc de la pile) : au toucher de la vitre de devant (et seulement elle, jamais après un glisser), elle reçoit `view-transition-name: vitre` juste avant la navigation ; nom retiré au retour (`pageshow`) pour qu'un seul élément le porte.
 **Vérifié** (Chromium 141, ralenti ×0,15) : Portail → Course, Budget et Muscu : la vitre grandit et devient la plaque ; retour arrière : transition annulée ; aucune erreur JS. **Non vérifié sur iPhone.**
 

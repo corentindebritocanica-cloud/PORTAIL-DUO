@@ -3,7 +3,7 @@
 **Version** : 2.0 (design Verre, §12)  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
-**App de référence** : Muscu (Duo Training) — extraite directement de son code source
+**Référence visuelle** : `verre.css` (design Verre, §12) depuis le 28/09/2026 — avant : Muscu (Duo Training), dont les sections 1 à 11 sont extraites
 
 ---
 
@@ -11,7 +11,7 @@
 
 Cette charte standardise **typographie, couleurs, composants (cards, boutons, modales, barres de navigation)** et comportements iOS pour que Portail, Muscu, Budget, Course (et futures apps : Agenda, Recettes, Goals, Défis…) partagent **une seule identité visuelle cohérente**.
 
-**Depuis le 28/09/2026 (v2.0)** : le **design Verre (section 12)** est la référence visuelle — définitif sur le Portail et Course, appliqué aux 4 apps. Les sections 1 à 11 restent la base technique (jetons, standards iOS, animation) ; là où elles contredisent la section 12 (cards, barres, radius, polices d'affichage), la section 12 prime.
+**Depuis le 28/09/2026 (v2.0)** : le **design Verre (section 12)** est la référence visuelle — appliqué aux 4 apps. Les sections 1 à 11 restent la base technique (jetons, standards iOS, animation) ; là où elles contredisent la section 12 (cards, barres, radius, polices d'affichage), la section 12 prime.
 
 **Principe directeur (v1, historique)** : Muscu fait référence. Toute nouvelle app ou refonte doit copier son système de variables CSS (`:root`), sa hiérarchie de radius/ombres, et ses patterns de composants — puis n'adapter que la **couleur d'accent** si nécessaire.
 
@@ -273,7 +273,7 @@ nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  
 - **Position basse** : la pilule se pose à `--nav-offset = max(2px, safe-area-inset-bottom − 30px)` du bord de l'écran (≈ 4px sur iPhone à home indicator : valeur choisie sur Course à la demande de Corentin, **volontairement très basse**, au-delà de la recommandation initiale ≈ 20px). Plus la barre est basse, plus les boutons s'approchent de la zone de geste du home indicator ; à surveiller, et à remonter (~8 à 20px) en cas de déclenchement de Siri. Ne pas descendre en dessous : les boutons doivent rester hors de la zone de geste du home indicator (sinon Siri / retour à l'accueil se déclenchent au tap).
 - **Le contenu défile sous la barre** : tout `padding-bottom` du contenu scrollable doit valoir au minimum `hauteur totale de la barre + marge`. Course : `--tabbar-height = 62px + --nav-offset` (la safe-area y est **déjà incluse** — ne pas la rajouter), réutilisée par les listes et les boutons fixes au-dessus de la barre. Avec un bouton rond au-dessus de la pilule, ajouter aussi sa hauteur + son écart (`+ 56px + 12px + marge`) au `padding-bottom` de la liste, sinon le dernier élément reste masqué derrière lui.
 - **`pointer-events:none` sur le conteneur**, `auto` uniquement sur la pilule et le bouton rond — sinon la zone vide bloque le scroll.
-- **Onglet actif = teinte d'accent** (`--accent-soft` + icône/label en `--accent`), jamais une couleur fixe : la barre suit le profil Corentin/Lisa et le mode clair/sombre.
+- **Onglet actif = teinte d'accent** (`--accent-soft` + icône/label en `--accent`), jamais une couleur fixe : la barre suit le profil Corentin/Lisa (mode clair retiré le 28/09/2026).
 - **Zones tactiles** : chaque onglet ≥ 44px de haut (≈ 50px ici), bouton rond 56px.
 - **Le bouton rond doit être masqué explicitement** sur les onglets où il n'a pas de sens (ex. attribut `data-onglet` sur le conteneur + `#app:not([data-onglet="liste"]) .nav-add{display:none}`) ; le laisser dans une section masquée ne suffit plus une fois déplacé dans la barre.
 - Le blur (`backdrop-filter`) n'est visible que parce que le contenu passe réellement derrière la barre : ne pas la remettre comme ligne flex séparée.
@@ -482,6 +482,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 24/09/26 | Portail aligné sur les sections 1 à 7 : accent dynamique suivant le profil de Muscu, bouton recharger 44px, radius dans l'échelle, `confirm()` remplacé par une bottom-sheet. **Les 4 apps sont désormais conformes à la charte (§1–§7 et §11).** |
 | 24/09/26 | Course aligné sur les sections 1 à 7 : couleurs exactes de la charte (bordure bleu-gris opaque retirée), labels de section, cards `--r-lg`, sélecteur de profil §5.6 repris tel quel, zones tactiles 44px (étendues par `::after` sur la case à cocher, sans changement visuel), modales en verre, `confirm()` remplacé. |
 | 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
+| 28/09/26 (soir) | **Noyau commun `commun.js`** (halos, transition, date de MAJ, service worker, vérification de version) chargé par les 4 apps ; Muscu : écran « Qui s'entraîne ? » retiré (sélecteur « Séance pour » local), §12. |
 | 28/09/26 (soir) | **Profil commun aux 4 apps** (`duo_profile`) et **transition « la vitre s'ouvre en app »** (View Transitions inter-pages), §12. |
 | 28/09/26 (soir) | **Haut de page aligné sur Budget dans les 4 apps** (`--v-haut`, titre 22 px, plaque sous l'en-tête), §12. |
 | 28/09/26 (soir) | **Pastille de connexion à côté du titre dans les 4 apps** (modèle Budget), §12. |
@@ -592,9 +593,9 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 ---
 
-## 12. 🪟 Design « Verre » — DÉFINITIF pour le Portail et Course (28/09/2026)
+## 12. 🪟 Design « Verre » — DÉFINITIF sur les 4 apps (28/09/2026)
 
-> Refonte validée sur mockup puis à l'usage sur iPhone par Corentin le 28/09/2026. **Référence pour le Portail et Course**, et cible de Muscu et Budget (migration prévue plus tard). Pour ces deux apps, les sections 1 à 11 restent la référence jusqu'à leur migration. Là où la section 12 s'applique, elle **prime** sur les sections 5 (cards, bottom-bar, pilule) et 7 (architecture d'écran), et sur les radius de la section 3 (plaques à 34 px, contrôles en pilule). Les sections 6 (standards iOS) et 11 (animation) restent valables.
+> Refonte validée sur mockup puis à l'usage sur iPhone par Corentin le 28/09/2026. **Référence pour les 4 apps** (Portail et Course d'abord, puis Budget et Muscu le soir même). Là où la section 12 s'applique, elle **prime** sur les sections 5 (cards, bottom-bar, pilule) et 7 (architecture d'écran), et sur les radius de la section 3 (plaques à 34 px, contrôles en pilule). Les sections 6 (standards iOS) et 11 (animation) restent valables.
 
 - **Activation** : classe `verre` en dur sur `<html>` + `data-app="…"` ; aucune option ni interrupteur (essai et curseur d'intensité retirés le 28/09).
 - **Thème** : sombre uniquement (le thème clair du verre a été retiré avec le bouton lune le 28/09).
@@ -626,7 +627,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 | **Muscu** | ✅ **Design Verre (§12, 28/09/26)** | Une plaque par écran (zone des cartes sur l'écran des exercices) ; `--r-lg` 24 px (`R_CARD` des flammes aligné) ; réserve du bas reportée dans les plaques ; n'est plus la référence visuelle (c'est `verre.css`) |
 | **Budget** | ✅ **Design Verre (§12, 28/09/26)** | Plaque de verre unique + panneaux sans flou ; en-tête non collant ; couleurs de catégories conservées (jauges lumineuses) ; thème recopié sur `<html>` |
 | **Course** | ✅ **Design Verre définitif (§12, 28/09/26)** | Page qui défile (structure de Budget), barre d'onglets fixe à ~22 pt du bord, `status-bar-style` `black-translucent` |
-| **Portail** | ✅ **Design Verre définitif (§12, 28/09/26)** | Pile de vitres (toucher / glisser) ; couleurs d'identité des apps (Corps, Argent, Frigo) ; accent qui suit le profil de Muscu |
+| **Portail** | ✅ **Design Verre définitif (§12, 28/09/26)** | Pile de vitres (toucher / glisser) ; couleurs d'identité des apps (Corps, Argent, Frigo) ; accent qui suit le profil commun (`duo_profile`) |
 
 ---
 

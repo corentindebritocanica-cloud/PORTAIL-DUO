@@ -1,12 +1,19 @@
 # Courses L&C
 
-Liste de courses partagée entre Corentin et Lisa. Fichier unique (HTML/CSS/JS vanilla), hébergé sur GitHub Pages, synchronisé en temps réel via **Cloud Firestore**. Accessible via l'icône du Portail Duo sur iPhone (menu → Courses), avec ouverture hors-ligne.
+Liste de courses partagée entre Corentin et Lisa. HTML/CSS/JS vanilla (3 fichiers depuis le 20/09/2026), hébergé sur GitHub Pages, synchronisé en temps réel via **Cloud Firestore**. Accessible via l'icône du Portail Duo sur iPhone (menu → Courses), avec ouverture hors-ligne.
 
 **Reconstruite intégralement le 18/09/2026** suite à des incidents répétés de duplication de données liés à l'ancienne architecture (voir tout en bas, section Historique, pour le contexte).
 
-## Fichiers
-- `index.html` — l'application complète (CSS et JS inline, un seul fichier)
-- `sw.js` — Service Worker : met en cache le shell (`index.html`, `manifest.json`) et le SDK Firebase (gstatic.com) pour l'ouverture hors-ligne
+
+> **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
+> - **Design Verre** (feuille commune `../verre.css`), **sombre uniquement**, titre de l’onglet (Liste / Course / Réglages) à gauche + pastille de connexion ; la page défile elle-même, barre d'onglets en `position:fixed`.
+> - **Noyau commun `../commun.js`** chargé dans le `<head>` (halos, transition, date de MAJ, service worker, vérification de version).
+> - **Profil** : `duo_profile`, commun aux 4 apps (Réglages › Profil). Retour au Portail : geste retour d'iOS.
+## Fichiers (mis à jour le 28/09/2026)
+- `index.html` — structure + `DERNIERE_MAJ` (gérée par le workflow) ; charge `../commun.js`, `../verre.css`, `style.css`, `app.js`
+- `style.css` — styles de base (le verre vient de `../verre.css`)
+- `app.js` — logique de l'app
+- `sw.js` — Service Worker : shell (`index.html`, `style.css`, `app.js`, `manifest.json`), fichiers communs `../verre.css` et `../commun.js` (`FICHIERS_COMMUNS`) et SDK Firebase (gstatic.com), pour l'ouverture hors-ligne
 - `manifest.json` — configuration PWA (icône en base64 intégrée, nom, couleurs)
 
 ## Fonctionnement — 3 onglets
@@ -21,9 +28,9 @@ Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton 
 
 **Course** : uniquement les produits cochés "à acheter" en Liste, groupés par rayon. On coche ici un produit une fois réellement acheté (nom barré, carte estompée) — rien n'est retiré automatiquement. Le bouton **Course terminée** (actif seulement si au moins un produit est coché acheté) décoche d'un coup, dans les deux onglets, tous les produits ainsi cochés — sans jamais les supprimer de la Liste.
 
-**Réglages** : choix du profil (**Corentin** = thème bleu, **Lisa** = thème rose, appliqué immédiatement via une variable CSS `data-profil` sur `<html>`, mémorisé dans `localStorage`). Bouton **Recharger l'application** : vide uniquement le cache et le Service Worker de Course (jamais ceux du Portail/Muscu/Budget — voir "Choix d'architecture" ci-dessous), avec confirmation avant l'action.
+**Réglages** : choix du profil (**Corentin** = thème bleu, **Lisa** = thème rose, appliqué immédiatement via une variable CSS `data-profil` sur `<html>`, mémorisé dans `localStorage duo_profile` — réglage commun aux 4 apps depuis le 28/09/2026). Bouton **Recharger l'application** : vide uniquement le cache et le Service Worker de Course (jamais ceux du Portail/Muscu/Budget — voir "Choix d'architecture" ci-dessous), avec confirmation avant l'action.
 
-Un bouton **theme-toggle** (cercle 🌙/☀️ en haut à droite, superposé à l'app) bascule entre mode sombre (par défaut) et mode clair, préférence mémorisée dans `localStorage` (`course-theme`), indépendamment du profil Corentin/Lisa.
+~~Un bouton **theme-toggle** (cercle 🌙/☀️ en haut à droite, superposé à l'app) bascule entre mode sombre (par défaut) et mode clair, préférence mémorisée dans `localStorage` (`course-theme`), indépendamment du profil Corentin/Lisa.~~ → retiré le 28/09/2026 (sombre uniquement).
 
 ## Base de données : Cloud Firestore
 Projet `course-app-36e9d`, deux collections de premier niveau :
@@ -336,7 +343,7 @@ Décision de Corentin : le design Verre devient celui de Course (et du Portail).
 Les deux lumières du fond dérivent lentement (feuille commune `../verre.css`, voir README racine, « Halos animés »). Rien de propre à Course. Point à surveiller sur iPhone : fluidité du défilement de la liste (le verre de la plaque est recalculé pendant que le fond bouge) — en cas de saccade, couper l'animation d'abord.
 
 ### Halos continus d'une app à l'autre (28/09/2026, 19h30)
-`index.html` : mini-script dans `<head>` qui cale l'animation des halos sur l'horloge (identique au Portail) — les lumières continuent leur mouvement au lieu de repartir de zéro en arrivant dans Course. Détail dans le README racine.
+`index.html` : mini-script dans `<head>` (→ dans `../commun.js` depuis le noyau commun) qui cale l'animation des halos sur l'horloge (identique au Portail) — les lumières continuent leur mouvement au lieu de repartir de zéro en arrivant dans Course. Détail dans le README racine.
 
 
 ## Thème sombre uniquement — bouton lune retiré (28/09/2026)
@@ -369,7 +376,7 @@ Course : `lireProfilCommun()` / `ecrireProfilCommun()` (`app.js`) — lit `duo_p
 Demande de Corentin : en touchant la vitre de devant du Portail, la vitre **se transforme** en l'app au lieu d'un simple changement de page. **View Transitions inter-pages** (Safari/iOS 18.2+, Chrome 126+ ; ailleurs : navigation normale) :
 - `verre.css` : `@view-transition { navigation: auto; }` (les 4 pages partagent l'origine et la feuille) ; la **plaque** de chaque app porte `view-transition-name: vitre` (Course : `main` ; Budget : `.main-content` ; Muscu : `#view-menu .plaque`) ; la boîte « vitre » se déforme de la taille de la vitre à celle de la plaque en 0,42 s (courbe de la pile), contenu jamais étiré (`object-fit:none`, calé en haut, découpé par la boîte arrondie) ; le reste de la page fond enchaîné. Coupée par `prefers-reduced-motion`.
 - Mini-script identique dans le `<head>` des 4 pages (`pagereveal`) : **transition annulée pour les retours** (geste retour d'iOS, historique : type `traverse` / `back_forward`) et les rechargements — iOS anime déjà lui-même le retour, deux animations se superposeraient.
-Course : `main` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html`.
+Course : `main` (la plaque) porte `view-transition-name: vitre` ; mini-script `pagereveal` dans `index.html` (→ dans `../commun.js` depuis le noyau commun).
 
 
 ## Noyau commun `../commun.js` (28/09/2026)
