@@ -591,7 +591,8 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Couleurs d'identité des apps** (remplacent `--blue/--gold/--green` en mode Verre) : Corps `#ff7a59`, Argent `#ffb800`, Frigo `#12b981`, Portail `#ff8a2b`.
 - **Verre** : fond `rgba(255,255,255,.07)`, `backdrop-filter: blur(30px) saturate(180%)`, arête `rgba(255,255,255,.16)`, reflet `inset 0 1px 0 rgba(255,255,255,.30)`, rayon **34 px** pour les plaques, pilule pour les contrôles.
 - **Typo** : Unbounded 300 pour les grands chiffres et titres ; police système pour tout le reste.
-- **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app). Retour au Portail par le geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
+- **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app ; glisser haut/bas → fait tourner la pile, la vitre suit le doigt 1:1).
+- **Intensité** : `--v-f` (0 à 2) pilote flou, opacité, arêtes et reflet ; réglée par le curseur « Effet verre » du Portail, partagée par les apps (`duo-verre-intensite`, lue dans le `<head>`). Retour au Portail par le geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
 - **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
 - **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).
 - **État** : Portail et Course habillés ; Budget et Muscu à venir.

@@ -595,3 +595,11 @@ Audit statique contre `UX_UI_CHARTER.md`, dernière des 4 apps. Le Portail étai
 **Pour revenir en arrière** : couper l'interrupteur (sur chaque appareil). Pour retirer l'essai définitivement : supprimer `verre.css`, les `<link>`/`<script>` « Verre » des `index.html`, les blocs « MODE VERRE » des `app.js`, `.verre-seul` des `index.html`.
 
 **Vérifié** : Chromium headless 390×844 (données de démonstration en `localStorage`, Firebase bouchonné) — Portail pile sombre et clair, vitre du fond ramenée devant, mode classique identique à avant. `node --check` sur `app.js`/`sw.js`. **Non vérifié sur iPhone.**
+
+### Mode Verre — glisser la pile + curseur « Effet verre » (28/09/2026, 19h05)
+
+Demandes de Corentin :
+- **Changer de vitre en glissant** (en plus du toucher) : glisser la pile vers le **haut** envoie la vitre de devant au fond (la suivante passe devant) ; vers le **bas**, la vitre du fond revient devant. Seuil 50 px, ou geste rapide (> 0,4 px/ms) d'au moins 20 px. Pendant le geste, la vitre de devant suit le doigt 1:1 (variable `--drag`, amortie au-delà de 120 px, transitions coupées via `.dash.glisse`), puis la transition normale anime le changement. Un glisser n'ouvre jamais l'app (clic suivant annulé, en phase de capture). `touch-action:none` sur la pile en mode Verre : **on ne peut plus faire défiler la page en partant de la pile** (le reste de la page défile normalement). Ordre complet de la pile mémorisé (`portail-verre-pile`, remplace `portail-verre-devant`, relue en repli).
+- **Curseur « Effet verre »** sous le bouton recharger (mode Verre seulement), de 0 à 200 % : variable `--v-f` (0 à 2, 1 par défaut) qui pilote dans `verre.css` le flou (`blur(calc(30px × f))`, saturation), l'opacité du verre, ses arêtes et son reflet. Mémorisé dans `duo-verre-intensite` et appliqué dès le `<head>` du Portail **et de Course** (même origine : les apps suivent le réglage).
+
+**Vérifié** (Chromium 390×844) : glisser haut ×2, bas, petit glisser sans effet et sans ouverture d'app, toucher une vitre du fond, toucher la vitre de devant → ouvre l'app, ordre et intensité conservés après rechargement, curseur à 0 et 200 %, aucune erreur JS. **Non vérifié sur iPhone.**

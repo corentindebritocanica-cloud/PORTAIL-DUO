@@ -21,7 +21,7 @@
 <!-- Habillage « Verre » commun aux 4 apps (essai, 28/09/2026) : sans effet tant que <html> n'a pas la
      classe .verre. Classe posée ici, AVANT l'affichage (pas de flash de l'ancien thème), si l'essai
      est activé (localStorage duo-verre, partagé par les 4 apps). Voir verre.css et README. -->
-<script>try{if(localStorage.getItem('duo-verre')==='1')document.documentElement.classList.add('verre');}catch(e){}</script>
+<script>try{if(localStorage.getItem('duo-verre')==='1')document.documentElement.classList.add('verre');var f=parseFloat(localStorage.getItem('duo-verre-intensite'));if(f>=0&&f<=2)document.documentElement.style.setProperty('--v-f',String(f));}catch(e){}</script>
 <link rel="stylesheet" href="verre.css?v=202609281840360200">
 </head>
 <body>
@@ -111,7 +111,7 @@
     </div>
 
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
-    <p class="verre-astuce verre-seul">Touche une vitre du fond pour la ramener devant</p>
+    <p class="verre-astuce verre-seul">Touche une vitre ou fais glisser la pile vers le haut ou le bas</p>
 
     <div class="reload-row">
       <button class="reload-btn" id="hardReload" title="Vider le cache et recharger" aria-label="Vider le cache et recharger">
@@ -120,6 +120,11 @@
           <polyline points="21 3 21 9 15 9"/>
         </svg>
       </button>
+    </div>
+    <!-- Curseur « Effet verre » (28/09/2026) : intensité du verre des 4 apps (--v-f), mode Verre seulement. -->
+    <div class="verre-curseur verre-seul">
+      <label for="verre-intensite"><span>Effet verre</span><span id="verre-intensite-txt">100 %</span></label>
+      <input type="range" id="verre-intensite" min="0" max="200" step="5" value="100">
     </div>
     <button type="button" class="verre-interrupteur verre-reglage" id="verre-interrupteur" role="switch" aria-checked="false">
       <span>Essai Verre</span><span class="verre-pastille" aria-hidden="true"></span>

@@ -384,8 +384,9 @@
      la classe html.verre étant posée dès le <head> de index.html.
      PILE : en mode Verre, les 3 cartes sont 3 vitres empilées (data-rang : 0 = devant).
      Toucher une vitre du fond la ramène devant (sans ouvrir l'app) ; toucher celle de
-     devant ouvre l'app (lien normal). La vitre de devant est mémorisée
-     (portail-verre-devant). La 2e lumière du fond prend la couleur de l'app de devant.
+     devant ouvre l'app (lien normal) ; glisser la pile vers le haut/bas fait tourner les
+     vitres. Ordre mémorisé (portail-verre-pile). La 2e lumière du fond prend la couleur
+     de l'app de devant. Curseur « Effet verre » : intensité du verre des 4 apps.
      En mode classique, data-rang n'a aucun effet : les cartes restent de simples liens.
      ============================================================ */
   (function(){
@@ -393,25 +394,91 @@
     const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses' };
     const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)' };
     const ordre = ['muscu', 'budget', 'courses'];
-    let devant = 'muscu';
-    try { const d = localStorage.getItem('portail-verre-devant'); if (ordre.includes(d)) devant = d; } catch (e) {}
+    const carte = (k) => document.getElementById(cartes[k]);
+    /* Ordre de la pile, de devant (0) au fond (2). Mémorisé (portail-verre-pile) ; repli sur
+       l'ancienne clé portail-verre-devant (1re version du 28/09). */
+    let pile = ordre.slice();
+    try {
+      const p = JSON.parse(localStorage.getItem('portail-verre-pile'));
+      if (Array.isArray(p) && p.length === 3 && ordre.every((k) => p.includes(k))) pile = p;
+      else { const d = localStorage.getItem('portail-verre-devant'); if (ordre.includes(d)) pile = [d, ...ordre.filter((k) => k !== d)]; }
+    } catch (e) {}
 
     function empiler(){
-      const rangs = [devant, ...ordre.filter((k) => k !== devant)];
-      rangs.forEach((k, i) => document.getElementById(cartes[k]).setAttribute('data-rang', String(i)));
-      root.style.setProperty('--v-app', teintes[devant]);
+      pile.forEach((k, i) => carte(k).setAttribute('data-rang', String(i)));
+      root.style.setProperty('--v-app', teintes[pile[0]]);
+      try { localStorage.setItem('portail-verre-pile', JSON.stringify(pile)); } catch (e) {}
     }
     empiler();
 
+    /* Toucher une vitre du fond : elle passe devant (les autres gardent leur ordre). */
     ordre.forEach((k) => {
-      document.getElementById(cartes[k]).addEventListener('click', (e) => {
-        if (!root.classList.contains('verre') || k === devant) return;   /* devant (ou mode classique) : ouvre l'app */
+      carte(k).addEventListener('click', (e) => {
+        if (!root.classList.contains('verre') || k === pile[0]) return;   /* devant (ou mode classique) : ouvre l'app */
         e.preventDefault();
-        devant = k;
-        try { localStorage.setItem('portail-verre-devant', k); } catch (err) {}
+        pile = [k, ...pile.filter((x) => x !== k)];
         empiler();
       });
     });
+
+    /* GLISSER VERTICAL (28/09/2026) — vers le HAUT : la vitre de devant part au fond, la suivante
+       passe devant ; vers le BAS : la vitre du fond revient devant. Seuil : 50 px, ou un geste
+       rapide (> 0,4 px/ms) d'au moins 20 px. Pendant le geste, la vitre de devant suit le doigt
+       (--drag, amorti au-delà de 120 px). Un glisser n'ouvre jamais l'app (clic annulé). */
+    const dash = document.querySelector('.dash');
+    let depart = null, dernier = null, aGlisse = false;
+    dash.addEventListener('pointerdown', (e) => {
+      if (!root.classList.contains('verre') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      depart = { y: e.clientY, t: performance.now() }; dernier = depart; aGlisse = false;
+    });
+    dash.addEventListener('pointermove', (e) => {
+      if (!depart) return;
+      const dy = e.clientY - depart.y;
+      if (!aGlisse && Math.abs(dy) > 8) {
+        aGlisse = true; dash.classList.add('glisse');
+        try { dash.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      if (aGlisse) {
+        const amorti = Math.sign(dy) * (Math.abs(dy) <= 120 ? Math.abs(dy) : 120 + (Math.abs(dy) - 120) * 0.3);
+        carte(pile[0]).style.setProperty('--drag', amorti.toFixed(1) + 'px');
+        dernier = { y: e.clientY, t: performance.now(), v: (e.clientY - dernier.y) / Math.max(1, performance.now() - dernier.t) };
+      }
+    });
+    function finir(e){
+      if (!depart) return;
+      const dy = e.clientY - depart.y, v = (dernier && dernier.v) || 0;
+      carte(pile[0]).style.removeProperty('--drag');
+      dash.classList.remove('glisse');
+      if (aGlisse) {
+        const versHaut = dy < -50 || (dy < -20 && v < -0.4);
+        const versBas = dy > 50 || (dy > 20 && v > 0.4);
+        if (versHaut) pile = [pile[1], pile[2], pile[0]];
+        else if (versBas) pile = [pile[2], pile[0], pile[1]];
+        if (versHaut || versBas) empiler();
+      }
+      depart = null;
+    }
+    dash.addEventListener('pointerup', finir);
+    dash.addEventListener('pointercancel', finir);
+    /* Le clic qui suit un glisser ne doit rien faire (ni ouvrir l'app, ni changer de vitre). */
+    dash.addEventListener('click', (e) => { if (aGlisse) { e.preventDefault(); e.stopPropagation(); aGlisse = false; } }, true);
+
+    /* CURSEUR « EFFET VERRE » (28/09/2026) : 0 à 200 % → --v-f de 0 à 2 (voir verre.css).
+       Mémorisé dans duo-verre-intensite (lu dès le <head> par chaque app). */
+    const curseur = document.getElementById('verre-intensite');
+    const txt = document.getElementById('verre-intensite-txt');
+    function appliquerIntensite(pct, memoriser){
+      const f = Math.min(2, Math.max(0, pct / 100));
+      root.style.setProperty('--v-f', String(f));
+      curseur.style.setProperty('--pct', (pct / 2) + '%');
+      txt.textContent = Math.round(pct) + ' %';
+      if (memoriser) { try { localStorage.setItem('duo-verre-intensite', String(f)); } catch (e) {} }
+    }
+    let f0 = 1;
+    try { const v = parseFloat(localStorage.getItem('duo-verre-intensite')); if (v >= 0 && v <= 2) f0 = v; } catch (e) {}
+    curseur.value = String(Math.round(f0 * 100));
+    appliquerIntensite(f0 * 100, false);
+    curseur.addEventListener('input', () => appliquerIntensite(parseFloat(curseur.value), true));
 
     const inter = document.getElementById('verre-interrupteur');
     const majInter = () => inter.setAttribute('aria-checked', root.classList.contains('verre') ? 'true' : 'false');

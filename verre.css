@@ -27,6 +27,11 @@
    ========================================================================== */
 
 html.verre{
+  /* INTENSITÉ DU VERRE (28/09/2026) : --v-f, de 0 (verre clair, presque sans flou) à 2 (verre très
+     dépoli), 1 par défaut. Réglée par le curseur « Effet verre » du Portail, mémorisée dans
+     localStorage duo-verre-intensite (même origine : les 4 apps suivent) et posée dès le <head>.
+     Elle pilote le flou, l'opacité du verre, ses arêtes et son reflet (calc() dans rgba/blur). */
+  --v-f:1;
   /* Couleurs d'identité des vitres (reprises du mockup validé le 28/09/2026) */
   --v-corps:#ff7a59;   /* Musculation */
   --v-argent:#ffb800;  /* Budget */
@@ -37,16 +42,16 @@ html.verre{
   --v-bg:#08080a;
   --v-text:#f5f2ec;
   --v-dim:rgba(245,242,236,0.64);
-  --v-glass:rgba(255,255,255,0.07);         /* plaque de verre */
+  --v-glass:rgba(255,255,255,calc(0.03 + 0.04 * var(--v-f)));   /* plaque de verre (0.07 à --v-f = 1) */
   --v-glass-fort:rgba(22,22,26,0.62);       /* verre posé sur du contenu qui défile (barres, modales) */
   --v-soft:rgba(255,255,255,0.06);          /* éléments posés SUR une plaque (pas de flou) */
   --v-soft-on:rgba(255,255,255,0.16);       /* état actif d'un segment */
-  --v-edge:rgba(255,255,255,0.16);          /* arête du verre */
-  --v-hi:rgba(255,255,255,0.30);            /* reflet du haut */
+  --v-edge:rgba(255,255,255,calc(0.06 + 0.10 * var(--v-f)));    /* arête du verre (0.16) */
+  --v-hi:rgba(255,255,255,calc(0.10 + 0.20 * var(--v-f)));      /* reflet du haut (0.30) */
   --v-hair:rgba(255,255,255,0.08);          /* filet entre deux lignes */
   --v-ombre:rgba(0,0,0,0.55);
   --v-halo-op:0.60;
-  --v-flou:blur(30px) saturate(180%);
+  --v-flou:blur(calc(30px * var(--v-f))) saturate(calc(100% + 80% * var(--v-f)));
   --v-ease:cubic-bezier(.2,.9,.25,1);
   --v-f-chiffres:'Unbounded', -apple-system, BlinkMacSystemFont, sans-serif;
 
@@ -71,12 +76,12 @@ html.verre.light-mode{
   --v-bg:#e6e0d6;
   --v-text:#15120e;
   --v-dim:rgba(21,18,14,0.64);
-  --v-glass:rgba(255,255,255,0.42);
+  --v-glass:rgba(255,255,255,calc(0.14 + 0.28 * var(--v-f)));
   --v-glass-fort:rgba(250,247,242,0.66);
   --v-soft:rgba(255,255,255,0.50);
   --v-soft-on:rgba(255,255,255,0.90);
-  --v-edge:rgba(255,255,255,0.75);
-  --v-hi:rgba(255,255,255,0.95);
+  --v-edge:rgba(255,255,255,calc(0.35 + 0.40 * var(--v-f)));
+  --v-hi:rgba(255,255,255,calc(0.55 + 0.40 * var(--v-f)));
   --v-hair:rgba(21,18,14,0.10);
   --v-ombre:rgba(70,45,20,0.18);
   --v-halo-op:0.50;
@@ -159,7 +164,8 @@ html.verre[data-app="portail"] .dash-card{
   grid-area:1 / 1;
   --dy:132px; --sc:1;
   transform-origin:50% 0;
-  transform:translateY(var(--dy)) scale(var(--sc));
+  transform:translateY(calc(var(--dy) + var(--drag, 0px))) scale(var(--sc));
+  -webkit-touch-callout:none; -webkit-user-drag:none; user-select:none;
   transition:transform .4s var(--v-ease), opacity .3s ease-out, clip-path .4s var(--v-ease);
   border-radius:34px; overflow:hidden;
   background:var(--v-glass); border:1px solid var(--v-edge);
@@ -174,7 +180,12 @@ html.verre[data-app="portail"] .dash-card[data-rang="2"]{ --dy:0px;  --sc:.86; o
    visibles à travers la vitre de devant (translucide), ce qui brouille la lecture. */
 html.verre[data-app="portail"] .dash-card{ clip-path:inset(0 0 0 0 round 34px); }
 html.verre[data-app="portail"] .dash-card:not([data-rang="0"]){ clip-path:inset(0 0 calc(100% - 80px) 0 round 34px); }
-html.verre[data-app="portail"] .dash-card:active{ transform:translateY(var(--dy)) scale(calc(var(--sc) * .98)); }
+html.verre[data-app="portail"] .dash-card:active{ transform:translateY(calc(var(--dy) + var(--drag, 0px))) scale(calc(var(--sc) * .98)); }
+/* GLISSER VERTICAL (28/09/2026) : la pile capte les gestes verticaux (pas de défilement de page
+   depuis la pile) ; pendant le geste, la vitre de devant suit le doigt 1:1 (--drag), sans transition
+   (charte §11.7). Au relâcher, la transition normale reprend et anime le changement de vitre. */
+html.verre[data-app="portail"] .dash{ touch-action:none; }
+html.verre[data-app="portail"] .dash.glisse .dash-card{ transition:none; }
 /* Filet de lumière à la couleur de l'app, sur l'arête du haut */
 html.verre[data-app="portail"] .dash-card::before{
   content:''; position:absolute; left:26px; right:26px; top:0; height:1px;
@@ -220,6 +231,20 @@ html.verre[data-app="portail"] .chip-n{ background:var(--v-frigo); box-shadow:0 
 html.verre[data-app="portail"] .dash-maj.vieux{ color:var(--v-argent); }
 html.verre[data-app="portail"] .verre-astuce{ text-align:center; font-size:12px; color:var(--v-dim); margin:14px 0 0; }
 html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow-lg); }
+/* Curseur « Effet verre » (Portail, mode Verre seulement) */
+.verre-curseur{ width:100%; box-sizing:border-box; max-width:280px; margin:14px auto 0; padding:10px 16px 6px; border-radius:26px;
+  background:var(--v-soft); border:1px solid var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre .verre-curseur{ display:block !important; }
+.verre-curseur label{ display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--v-text); }
+.verre-curseur label span:last-child{ color:var(--v-dim); font-weight:600; }
+.verre-curseur input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:44px; margin:0; background:transparent; }
+.verre-curseur input[type=range]::-webkit-slider-runnable-track{ height:6px; border-radius:999px;
+  background:linear-gradient(90deg, rgba(var(--accent-rgb),.9) 0 var(--pct,50%), var(--v-soft-on) var(--pct,50%) 100%); }
+.verre-curseur input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:28px; height:28px; margin-top:-11px;
+  border-radius:50%; background:#fff; border:none; box-shadow:0 2px 8px rgba(0,0,0,.35), 0 0 0 4px rgba(var(--accent-rgb),.25); }
+.verre-curseur input[type=range]::-moz-range-track{ height:6px; border-radius:999px; background:var(--v-soft-on); }
+.verre-curseur input[type=range]::-moz-range-thumb{ width:28px; height:28px; border-radius:50%; background:#fff; border:none; }
+
 /* Interrupteur du Portail : sous le bouton recharger, dans les deux modes */
 .verre-reglage{ margin:16px auto 0; max-width:280px; }
 
