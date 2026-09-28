@@ -337,3 +337,9 @@ Les deux lumières du fond dérivent lentement (feuille commune `../verre.css`, 
 
 ### Halos continus d'une app à l'autre (28/09/2026, 19h30)
 `index.html` : mini-script dans `<head>` qui cale l'animation des halos sur l'horloge (identique au Portail) — les lumières continuent leur mouvement au lieu de repartir de zéro en arrivant dans Course. Détail dans le README racine.
+
+
+## Thème sombre uniquement — bouton lune retiré (28/09/2026)
+
+Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Course : bouton `#theme-toggle` retiré (`index.html`), bloc thème d'`app.js` remplacé par l'effacement de `course-theme` ; règles `.light-mode` et `.theme-toggle` retirées de `style.css` et de `verre.css`.
+**Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**

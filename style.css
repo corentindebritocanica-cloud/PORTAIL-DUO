@@ -52,17 +52,7 @@
     --f-display: 'Bebas Neue', -apple-system, BlinkMacSystemFont, sans-serif;
   }
   html[data-profil="lisa"]{ --accent:var(--lisa); --accent-rgb:var(--lisa-rgb); --accent-dark:var(--lisa-dark); }
-  /* Mode clair (charte UX/UI, memes valeurs que Muscu/Course) */
-  html.light-mode{
-    --bg:#eef1f5; --card:#ffffff; --card-2:#e7ecf2;
-    --border:rgba(23,38,56,0.11); --border-strong:rgba(23,38,56,0.20);
-    --text:#131a23; --text-dim:#5f6c7c;
-    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
-    --shadow: 0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
-    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
-    --glass-modal:rgba(255,255,255,0.95);
-  }
-  html.light-mode body::before{ display:none; }
+  /* Mode clair retiré le 28/09/2026 : sombre uniquement (4 apps). */
 
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{ margin:0; min-height:100%; overscroll-behavior:none; }
@@ -132,7 +122,6 @@
   .dash-titre{ margin:2px 2px 16px; }
   .dash-titre .big-question{ margin:0; }
   .dash-date{ margin:4px 0 0; font-size:14px; font-weight:500; color:var(--text-dim); }
-  html.light-mode .app-title-brand{ color:var(--accent-dark); }
 
   .dash{ display:flex; flex-direction:column; gap:14px; }
   .dash-card{
@@ -149,7 +138,6 @@
   .dash-card .choice-label{ font-size:22px; }
   .dash-maj{ font-size:12.5px; color:var(--text-dim); margin-top:1px; }
   .dash-maj.vieux{ color:var(--gold); }                          /* plus de 24 h : chiffres à prendre avec prudence */
-  html.light-mode .dash-maj.vieux{ color:#8a6200; }
 
   .dash-body{ display:flex; flex-direction:column; padding:16px 16px 18px; }
   .dash-label{ display:block; font-size:13px; font-weight:600; color:var(--text-dim); }
@@ -238,17 +226,8 @@
   @keyframes feuilleIn{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
 
   @media (prefers-reduced-motion: reduce){
-    .dash-card, .gauge-fill, .choice-chev, .reload-btn, .theme-toggle, .modal-actions button{ transition:none; }
+    .dash-card, .gauge-fill, .choice-chev, .reload-btn, .modal-actions button{ transition:none; }
     .modal-overlay.open, .modal-sheet{ animation:none; }
   }
 
-  /* Bouton de bascule theme (charte UX/UI) — dans la barre du haut depuis le 22/09/2026 (le tableau de bord défile) */
-  .theme-toggle{
-    flex:0 0 auto; width:44px; height:44px; padding:0; border-radius:50%;
-    background:var(--card); border:1px solid var(--border); color:var(--text);
-    display:flex; align-items:center; justify-content:center;
-    font-size:16px; box-shadow: var(--shadow-sm);
-    transition:transform var(--t-fast) ease-out;
-  }
-  .theme-toggle:active{ transform:scale(0.97); }
 

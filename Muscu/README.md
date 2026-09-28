@@ -905,3 +905,9 @@ Audit contre la section 11 « Animation & Micro-interactions » de `UX_UI_CHARTE
 - **Token** : `--t-fast` 0,14 s → 0,15 s (plancher de la charte §11.3, imperceptible).
 
 **Vérifié** : Chromium headless — durées/courbes calculées conformes, point de graphique qui grandit autour de son propre centre, mouvement réduit toujours respecté. **Non vérifié sur iPhone.**
+
+
+## Thème sombre uniquement — bouton lune retiré (28/09/2026)
+
+Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Muscu : bouton `#theme-toggle` retiré (`index.html`) ; `applyTheme()` / `toggleTheme()` supprimés d'`app.js`, remplacés par l'effacement de la clé `duo_theme` ; `style.css` : bloc `html.light-mode`, `html.light-mode body::before` et `.theme-toggle` retirés. Le **badge de synchro** (`.sync-badge`), qui se tenait à gauche du bouton, passe à droite (`right:14px`) et la réserve de l'en-tête (`.header-row`, `padding-right`) passe de 86 à 40 px. Muscu n'est pas encore en design Verre.
+**Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**

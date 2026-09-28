@@ -6,7 +6,7 @@
 
 /* =====================================================
    1. DESIGN TOKENS — identiques à la charte §1, §3, §4, §6.5
-   Thème SOMBRE par défaut ; .light-mode (sur body) = thème clair.
+   Thème SOMBRE uniquement (mode clair retiré le 28/09/2026, 4 apps).
    ===================================================== */
 :root {
     /* Fonds */
@@ -79,24 +79,7 @@ body.profil-lisa {
     --accent-dark: var(--lisa-dark);
 }
 
-/* 2. THÈME CLAIR (charte §1) */
-body.light-mode {
-    color-scheme: light;
-    --bg:            #eef1f5;
-    --card:          #ffffff;
-    --card-2:        #e7ecf2;
-    --border:        rgba(23,38,56,0.11);
-    --border-strong: rgba(23,38,56,0.20);
-    --tint:          rgba(var(--accent-rgb), 0.06);
-    --tint-strong:   rgba(var(--accent-rgb), 0.10);
-    --text:          #131a23;
-    --text-dim:      #5f6c7c;
-    --shadow-sm: 0 6px 14px rgba(20,30,45,0.08);
-    --shadow:    0 14px 28px rgba(20,30,45,0.10), 0 2px 8px rgba(20,30,45,0.05);
-    --shadow-lg: 0 -8px 40px rgba(20,30,45,0.14);
-    --glass-bar:     rgba(255,255,255,0.84);
-    --glass-modal:   rgba(255,255,255,0.95);
-}
+/* 2. THÈME CLAIR — retiré le 28/09/2026 (sombre uniquement). */
 
 /* 3. LAYOUT GLOBAL (charte §6.2) */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--f-body); -webkit-tap-highlight-color: transparent; }
@@ -131,9 +114,6 @@ main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
 .top-nav { background-color: var(--card); border-bottom: 1px solid var(--border); padding: 15px; padding-top: calc(23px + env(safe-area-inset-top)); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm); }
 .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .nav-header h2 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-/* Bascule thème — composant charte §5.7 (cercle 38px), placé dans l'en-tête */
-.btn-theme { width: 38px; height: 38px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
-.btn-theme:active { transform: scale(0.97); }
 
 /* Barre d'onglets flottante « pilule » (charte §5.5b). Fixe en bas, PAR-DESSUS
    le contenu. Le conteneur laisse passer les touches (pointer-events:none), seule
@@ -330,7 +310,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 /* ACCESSIBILITÉ — mouvement réduit (charte §11.9) */
 @media (prefers-reduced-motion: reduce) {
     body, .btn-tab, .month-pill, .year-header::after, .card-header::after, .progress-fill, #toast,
-    .btn-action, .btn-small, .btn-icon, .btn-theme, .btn-pay-method, .mixte-btn, .login-btn { transition: none !important; }
+    .btn-action, .btn-small, .btn-icon, .btn-pay-method, .mixte-btn, .login-btn { transition: none !important; }
     .overlay-popup, .popup-box { animation: none !important; }
     .status-dot.saving { animation: none; opacity: .6; }
 }

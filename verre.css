@@ -71,22 +71,6 @@ html.verre{
 
   background:var(--v-bg);
 }
-html.verre.light-mode{
-  --v-bg:#e6e0d6;
-  --v-text:#15120e;
-  --v-dim:rgba(21,18,14,0.64);
-  --v-glass:rgba(255,255,255,0.42);
-  --v-glass-fort:rgba(250,247,242,0.66);
-  --v-soft:rgba(255,255,255,0.50);
-  --v-soft-on:rgba(255,255,255,0.90);
-  --v-edge:rgba(255,255,255,0.75);
-  --v-hi:rgba(255,255,255,0.95);
-  --v-hair:rgba(21,18,14,0.10);
-  --v-ombre:rgba(70,45,20,0.18);
-  --v-halo-op:0.50;
-  --border-strong:rgba(21,18,14,0.18);
-  --glass-modal:rgba(250,247,242,0.80);
-}
 html.verre[data-app="course"]{ --v-app:var(--v-frigo); }
 html.verre[data-app="budget"]{ --v-app:var(--v-argent); }
 html.verre[data-app="muscu"]{ --v-app:var(--v-corps); }
@@ -143,8 +127,7 @@ html.verre body::after{
 .verre-seul{ display:none !important; }
 html.verre .verre-seul{ display:revert !important; }
 
-/* Bouton rond en verre (bascule de thème, recharger…) */
-html.verre .theme-toggle,
+/* Bouton rond en verre (recharger…) */
 html.verre .reload-btn{
   width:44px; height:44px;
   background:var(--v-soft); color:var(--v-text);
@@ -252,12 +235,10 @@ html.verre[data-app="course"] #app{ background:transparent; }
    élément, même prolongé, n'y est dessiné). On ne peut donc que choisir cette couleur : celle du bas de
    la plaque de verre. Le dégradé plein garde la vraie couleur de fond à l'intérieur de la page. */
 html.verre[data-app="course"], html.verre[data-app="budget"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
-html.verre.light-mode[data-app="course"], html.verre.light-mode[data-app="budget"]{ background:#f1ede7 linear-gradient(#e6e0d6, #e6e0d6) 0 0 / 100% 100% no-repeat; }
 html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; }
 html.verre[data-app="course"] header.topbar h1{
   font-family:var(--v-f-chiffres); font-weight:300; font-size:34px; letter-spacing:-1.2px; color:var(--v-text);
 }
-html.verre[data-app="course"] .theme-toggle{ top:calc(8px + var(--safe-top)); right:18px; }
 
 /* La plaque : UNE seule surface floutée pour tout le contenu qui défile */
 html.verre[data-app="course"] main{
@@ -332,12 +313,10 @@ html.verre[data-app="course"] .modal-actions button{ border-radius:999px; }
 /* ==========================================================================
    BUDGET (28/09/2026) — une plaque de verre (.main-content) portant des
    panneaux sans flou (cartes, revenus, réglages) ; lignes à filets.
-   Particularité : Budget pose light-mode / profil-lisa sur <body> et y
-   redéfinit ses jetons : on les redirige de nouveau vers le verre sur body
-   (app.js recopie aussi light-mode sur <html> pour les couleurs du verre).
+   Particularité : Budget déclare ses jetons et son profil (profil-lisa) sur
+   <body> : on y redirige de nouveau les jetons vers le verre.
    ========================================================================== */
-html.verre[data-app="budget"] body,
-html.verre[data-app="budget"] body.light-mode{
+html.verre[data-app="budget"] body{
   --bg:var(--v-bg); --card:var(--v-soft); --card-2:var(--v-soft);
   --border:var(--v-edge); --border-strong:rgba(127,127,127,.30);
   --text:var(--v-text); --text-dim:var(--v-dim);
@@ -345,8 +324,6 @@ html.verre[data-app="budget"] body.light-mode{
   --shadow-sm:none; --shadow:0 18px 40px var(--v-ombre); --shadow-lg:0 -10px 50px var(--v-ombre);
 }
 html.verre[data-app="budget"]{ --glass-modal-v:rgba(24,24,28,0.72); }
-html.verre.light-mode[data-app="budget"]{ --glass-modal-v:rgba(250,247,242,0.80); }
-html.verre[data-app="budget"] body.light-mode{ color-scheme:light; }
 
 /* En-tête (titre, bouton thème, liste des mois) : posé sur les halos, sans fond, plus collant */
 html.verre[data-app="budget"] .top-nav{
@@ -357,7 +334,6 @@ html.verre[data-app="budget"] .nav-header h2{ font-family:var(--v-f-chiffres); f
 html.verre[data-app="budget"] .status-dot{ box-shadow:0 0 8px currentColor; color:var(--done); }
 html.verre[data-app="budget"] .status-dot.offline{ color:var(--danger); }
 html.verre[data-app="budget"] .status-dot.saving{ color:var(--gold); }
-html.verre[data-app="budget"] .btn-theme,
 html.verre[data-app="budget"] .btn-icon{
   width:44px; height:44px; background:var(--v-soft); border:1px solid var(--v-edge);
   box-shadow:inset 0 1px 0 var(--v-hi), 0 8px 20px var(--v-ombre);
@@ -456,7 +432,6 @@ html.verre[data-app="budget"] .popup-box{
 html.verre[data-app="budget"] #login-screen{
   background:rgba(8,8,10,.35); -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
 }
-html.verre.light-mode[data-app="budget"] #login-screen{ background:rgba(230,224,214,.35); }
 html.verre[data-app="budget"] .login-box{
   background:var(--v-soft); border:1px solid var(--v-edge); border-radius:34px; box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow);
 }

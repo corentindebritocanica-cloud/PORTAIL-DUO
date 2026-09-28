@@ -1024,27 +1024,9 @@
         };
 
 
-        // 10. Initialisation Thème (sombre par defaut - charte UX/UI du 18/09/2026 ;
-        // les 10 themes decoratifs "Garde-robe" ont ete retires, seul le mode
-        // sombre/clair subsiste desormais, comme sur Muscu/Course/Portail)
-        // Charte : thème sombre = état par défaut (aucune classe), .light-mode = clair.
-        // La clé LS_DARK garde le même sens ('false' = l'utilisateur a choisi le clair).
-        const toggleDark = () => {
-            document.body.classList.toggle('light-mode');
-            const isDark = !document.body.classList.contains('light-mode');
-            // Design Verre (28/09/2026) : verre.css lit le thème sur <html> (couleurs du verre, fond de page) —
-            // la classe est donc recopiée sur <html> ; body.light-mode reste la référence pour style.css.
-            document.documentElement.classList.toggle('light-mode', !isDark);
-            localStorage.setItem(LS_DARK, isDark);
-            document.getElementById('btn-toggle-dark').innerText = isDark ? '🌙' : '☀️';
-            document.getElementById('meta-theme-color').content = isDark ? '#08080a' : '#e6e0d6';   // fonds du design Verre
-        };
-        document.getElementById('btn-toggle-dark').onclick = toggleDark;
-        // Sombre par defaut : active sauf si l'utilisateur a explicitement choisi le clair
-        // (ancienne logique : dark uniquement si LS_DARK==='true' ; nouvelle logique :
-        // dark sauf si LS_DARK==='false' explicitement enregistre par un clic anterieur).
-        if (localStorage.getItem(LS_DARK) === 'false') toggleDark();
-        else document.getElementById('meta-theme-color').content = '#08080a';
+        // 10. Thème : sombre uniquement depuis le 28/09/2026 (décision de Corentin, valable pour les 4 apps) —
+        // bouton lune/soleil et mode clair retirés. Nettoyage de l'ancien réglage (clé LS_DARK).
+        try { localStorage.removeItem(LS_DARK); } catch (e) {}
 
         // 10bis. Profil actif (Corentin/Lisa) — preference par appareil, purement
         // visuelle (couleur d'accent), memorisee dans localStorage. Le compte et

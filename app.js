@@ -35,24 +35,9 @@
     });
   }
 
-  /* ============================================================
-     THEME CLAIR / SOMBRE (charte UX/UI)
-     ============================================================ */
-  (function(){
-    const root = document.documentElement;
-    const btn = document.getElementById('theme-toggle');
-    const stocke = localStorage.getItem('portail-theme');
-    function appliquer(theme){
-      root.classList.toggle('light-mode', theme === 'light');
-      btn.textContent = theme === 'light' ? '☀️' : '🌙';
-    }
-    appliquer(stocke === 'light' ? 'light' : 'dark');
-    btn.addEventListener('click', ()=>{
-      const nouveauTheme = root.classList.contains('light-mode') ? 'dark' : 'light';
-      localStorage.setItem('portail-theme', nouveauTheme);
-      appliquer(nouveauTheme);
-    });
-  })();
+  /* THÈME : sombre uniquement depuis le 28/09/2026 (décision de Corentin, valable pour les 4 apps) —
+     bouton lune/soleil et mode clair retirés. Nettoyage de l'ancien réglage. */
+  try { localStorage.removeItem('portail-theme'); } catch (e) {}
 
   /* ============================================================
      TABLEAU DE BORD (22/09/2026)

@@ -645,3 +645,9 @@ Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque change
 ### Budget passe au design Verre (28/09/2026, 19h40)
 
 Budget suit la check-list ci-dessus (détail dans `Budget/README.md`, v4.0.0). **Nouveau piège à ajouter à la check-list** : si une app redéfinit ses jetons ailleurs que sur `<html>` (Budget : `body.light-mode`), ils écrasent la redirection du verre → les rediriger aussi à cet endroit dans `verre.css`, et recopier la classe de thème sur `<html>` (verre.css lit le thème sur `<html>`). État : ✅ Portail, Course, Budget — ⏳ Muscu.
+
+
+## Thème sombre uniquement — bouton lune retiré (28/09/2026)
+
+Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Portail : bouton `#theme-toggle` retiré de l'en-tête (`index.html`), bloc « THEME CLAIR / SOMBRE » d'`app.js` remplacé par l'effacement de l'ancienne clé `portail-theme` ; règles `html.light-mode` et `.theme-toggle` retirées de `style.css`. `verre.css` : règles du thème clair retirées (`html.verre.light-mode`, variantes Budget/Course). Détail des autres apps dans leurs README ; Muscu : bouton retiré aussi, badge de synchro recalé à droite.
+**Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**

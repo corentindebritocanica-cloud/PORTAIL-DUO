@@ -378,3 +378,9 @@ Demande de Corentin : même design que le Portail et Course (design Verre défin
 ⚠️ **Piège propre à Budget** : ses jetons (`--card`, `--border`, `--text`…) sont redéfinis sur **`body.light-mode`** (et non sur `<html>`) : ils écrasaient la redirection vers le verre posée sur `<html>`. La section Budget de `verre.css` redirige donc de nouveau ces jetons sur `body` / `body.light-mode`.
 
 **Vérifié** (Chromium 390×844, Firebase bouchonné avec un mois fictif) : Mois (revenus, Reste à vivre, Répartition dépliée, lignes), Fixes, Bilan annuel, Réglages, dialogue « Supprimer le mois », thèmes sombre et clair, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
+
+
+## Thème sombre uniquement — bouton lune retiré (28/09/2026)
+
+Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on reste en sombre d'office. Budget : bouton `#btn-toggle-dark` retiré de l'en-tête (`index.html`) ; `toggleDark()` et la recopie de `light-mode` sur `<html>` supprimés d'`app.js`, remplacés par l'effacement de la clé `budgetLC_dark` (`LS_DARK`) ; `theme-color` reste `#08080a`. `style.css` : bloc `body.light-mode` et `.btn-theme` retirés ; `verre.css` : redirection des jetons conservée sur `body` seulement (plus de `body.light-mode`).
+**Vérifié** (Chromium 390×844, avec l'ancien réglage « clair » encore en mémoire) : l'app s'ouvre en sombre, plus de bouton, aucune erreur JS. **Non vérifié sur iPhone.**

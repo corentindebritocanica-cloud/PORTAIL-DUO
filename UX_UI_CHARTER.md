@@ -67,7 +67,7 @@ Cette charte standardise **typographie, couleurs, composants (cards, boutons, mo
 }
 ```
 
-### Thème clair (`.light-mode`)
+### ~~Thème clair (`.light-mode`)~~ — RETIRÉ le 28/09/2026 (sombre uniquement, 4 apps), conservé pour mémoire
 
 ```css
 .light-mode {
@@ -303,7 +303,7 @@ nav.tabbar button.actif{ color:var(--accent); background:var(--accent-soft); }  
 
 > 💡 **Toute app avec une notion "qui" (dépense de qui, séance de qui, tâche de qui) doit réutiliser ce composant tel quel.**
 
-### 5.7 Bouton de bascule thème (dark/light)
+### ~~5.7 Bouton de bascule thème (dark/light)~~ — RETIRÉ le 28/09/2026 (sombre uniquement, 4 apps)
 
 ```css
 .theme-toggle {
@@ -411,7 +411,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 ```
 ┌─────────────────────────────┐
-│ [theme-toggle] (fixed, top-right, cercle 38px)
+│ (plus de bouton de thème depuis le 28/09/2026)
 │                              │
 │  .app-title (eyebrow)       │
 │  .menu-hero (card dégradé)  │
@@ -435,7 +435,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 ## 8. ✅ Checklist de Conformité (pour toute nouvelle app/refonte)
 
 - [ ] Import des variables `:root` identiques à Muscu (couleurs, radius, ombres)
-- [ ] Support `.light-mode` avec les mêmes overrides
+- [ ] ~~Support `.light-mode`~~ — **plus de thème clair** depuis le 28/09/2026 : sombre uniquement, aucun bouton de thème
 - [ ] `--accent` dynamique si notion de profil (Corentin/Lisa)
 - [ ] Police body = système iOS (`-apple-system...`), `Bebas Neue` réservée aux gros chiffres
 - [ ] Meta tags PWA complets (apple-mobile-web-app-*, theme-color, viewport no-zoom)
@@ -481,6 +481,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 24/09/26 | Portail aligné sur les sections 1 à 7 : accent dynamique suivant le profil de Muscu, bouton recharger 44px, radius dans l'échelle, `confirm()` remplacé par une bottom-sheet. **Les 4 apps sont désormais conformes à la charte (§1–§7 et §11).** |
 | 24/09/26 | Course aligné sur les sections 1 à 7 : couleurs exactes de la charte (bordure bleu-gris opaque retirée), labels de section, cards `--r-lg`, sélecteur de profil §5.6 repris tel quel, zones tactiles 44px (étendues par `::after` sur la case à cocher, sans changement visuel), modales en verre, `confirm()` remplacé. |
 | 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
+| 28/09/26 (soir) | **Thème sombre uniquement sur les 4 apps** : bouton lune/soleil et mode clair retirés (décision de Corentin). §1 « Thème clair » et §5.7 barrés. |
 | 28/09/26 (soir) | **Budget passe au design Verre** (§12) — reste Muscu. |
 | 28/09/26 (soir) | **Design Verre définitif pour le Portail et Course** (section 12) : interrupteur d'essai et curseur d'intensité retirés, classe `html.verre` en dur. Muscu et Budget restent sur les sections 1–11 jusqu'à leur migration. |
 | 28/09/26 | Ajout de la section 12 « Direction Verre » (essai activable, Portail + Course) après validation du mockup par Corentin. |
@@ -591,6 +592,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 > Refonte validée sur mockup puis à l'usage sur iPhone par Corentin le 28/09/2026. **Référence pour le Portail et Course**, et cible de Muscu et Budget (migration prévue plus tard). Pour ces deux apps, les sections 1 à 11 restent la référence jusqu'à leur migration. Là où la section 12 s'applique, elle **prime** sur les sections 5 (cards, bottom-bar, pilule) et 7 (architecture d'écran), et sur les radius de la section 3 (plaques à 34 px, contrôles en pilule). Les sections 6 (standards iOS) et 11 (animation) restent valables.
 
 - **Activation** : classe `verre` en dur sur `<html>` + `data-app="…"` ; aucune option ni interrupteur (essai et curseur d'intensité retirés le 28/09).
+- **Thème** : sombre uniquement (le thème clair du verre a été retiré avec le bouton lune le 28/09).
 
 - **Source unique** : `verre.css` à la racine, règles préfixées `html.verre` (+ `[data-app="…"]` pour une app). Aucune app ne redéfinit le verre dans son propre `style.css`.
 - **Fond** : `#08080a` (clair : `#e6e0d6`) éclairé par deux halos en `radial-gradient` : couleur du profil (`--accent`) et couleur de l'app (`--v-app`).

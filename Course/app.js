@@ -506,24 +506,9 @@ function demarrer(){
 }
 dbReady.then(demarrer);
 
-/* ============================================================
-   THEME CLAIR / SOMBRE (charte UX/UI)
-   ============================================================ */
-(function(){
-  const root = document.documentElement;
-  const btn = document.getElementById('theme-toggle');
-  const stocke = localStorage.getItem('course-theme');
-  function appliquer(theme){
-    root.classList.toggle('light-mode', theme === 'light');
-    btn.textContent = theme === 'light' ? '☀️' : '🌙';
-  }
-  appliquer(stocke === 'light' ? 'light' : 'dark');
-  btn.addEventListener('click', ()=>{
-    const nouveauTheme = root.classList.contains('light-mode') ? 'dark' : 'light';
-    localStorage.setItem('course-theme', nouveauTheme);
-    appliquer(nouveauTheme);
-  });
-})();
+/* THÈME : sombre uniquement depuis le 28/09/2026 (décision de Corentin, valable pour les 4 apps) —
+   bouton lune/soleil et mode clair retirés. Nettoyage de l'ancien réglage. */
+try { localStorage.removeItem('course-theme'); } catch (e) {}
 
 /* Design « Verre » définitif depuis le 28/09/2026 (classe html.verre en dur dans index.html, feuille
    ../verre.css). Retour au Portail : geste retour d'iOS. Nettoyage des réglages de l'essai (interrupteur

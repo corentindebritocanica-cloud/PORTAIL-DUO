@@ -97,19 +97,10 @@ window.addEventListener('online', updateSyncBadge);
 window.addEventListener('offline', updateSyncBadge);
 updateSyncBadge();
 
-/* ---------- THÈME CLAIR / SOMBRE ---------- */
-function applyTheme(theme){
-  document.documentElement.classList.toggle('light-mode', theme === 'light');
-  const btn = document.getElementById('theme-toggle');
-  if(btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
-}
-function toggleTheme(){
-  const current = storage.get('duo_theme') || 'dark';
-  const next = current === 'light' ? 'dark' : 'light';
-  storage.set('duo_theme', next);
-  applyTheme(next);
-}
-applyTheme(storage.get('duo_theme') || 'dark');
+/* ---------- THÈME ----------
+   Sombre uniquement depuis le 28/09/2026 (décision de Corentin, valable pour les 4 apps) :
+   bouton lune/soleil et mode clair retirés. Nettoyage de l'ancien réglage. */
+try { localStorage.removeItem('duo_theme'); } catch (e) {}
 
 /* ---------- MESSAGE D'ERREUR FIRESTORE LISIBLE ---------- */
 function firestoreErrorMessage(err, action){
