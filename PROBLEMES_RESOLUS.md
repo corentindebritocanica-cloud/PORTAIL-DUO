@@ -19,6 +19,18 @@
 
 ---
 
+## 🪟 Portail/Course — habillage « Verre » : pièges du verre dépoli et d'un fichier partagé entre apps (28/09/2026)
+
+### 28/09/2026 — Portail, Course — arêtes fantômes, halo invisible, fichier commun hors cache
+**Symptôme** : (1) sur la pile de vitres du Portail, les bords des vitres du fond restaient visibles **à travers** la vitre de devant (translucide) ; (2) un fond décoratif en `position:fixed` risquait de passer par-dessus `#app` (Course) ou d'être caché par le fond du `body` ; (3) une feuille commune à la racine (`verre.css`) chargée par `/Course/` n'est pas gérée par le service worker de Course.
+**Fausses pistes explorées** : s'en remettre au flou (`backdrop-filter`) pour « effacer » les vitres du fond — un filet de 1 px reste lisible même flouté à 30 px.
+**Cause racine** : (1) un verre translucide montre ce qu'il y a derrière, y compris les arêtes des autres surfaces ; (2) un pseudo-élément fixe placé APRÈS `#app` dans l'arbre se peint au-dessus de lui à `z-index` égal ; en `z-index:-1`, il passe sous le fond du `body` si celui-ci en a un ; (3) le `fetch` du service worker de Course ignore volontairement tout ce qui est hors de `/Course/`.
+**Solution** : (1) `clip-path: inset(0 0 calc(100% - 80px) 0 round 34px)` sur les vitres du fond (seul leur en-tête existe), animé avec la pile ; (2) calque de halos en `body::after`, `position:fixed; z-index:-1`, avec **`body` transparent** et le fond posé sur `<html>` ; halos en `radial-gradient` (pas de `filter:blur`, bien plus coûteux) ; (3) `../verre.css` ajouté au précache de Course et traité avant le filtre de périmètre ; côté versionnage, le workflow bumpe toute app dont l'`index.html` référence `verre.css?v=` quand ce fichier change.
+**Leçon généralisable** : un fichier partagé entre apps d'un monorepo PWA doit être ajouté **à la main** au service worker de chaque app (hors périmètre sinon) ET au workflow de versionnage (sinon cache périmé). Pour du verre dépoli : jamais une surface floutée par ligne de liste (une plaque + des filets), et couper (`clip-path`) ce qui ne doit pas se voir au travers.
+**Fichiers touchés** : `verre.css`, `index.html`, `app.js`, `sw.js`, `Course/index.html`, `Course/app.js`, `Course/sw.js`, `.github/workflows/auto-version.yml`
+
+---
+
 ## 🐢 Course — ouverture lente depuis le Portail : écran masqué jusqu'à Firebase (24/09/2026)
 
 ### 24/09/2026 — Course — ~1 s d'écran vide à chaque ouverture

@@ -116,12 +116,14 @@
       if (pr && typeof pr === 'object') {
         const titre = texte(pr.title, 70), label = texte(pr.label, 30), nb = entier(pr.nbExos, 0, 99);
         el('mu-next').textContent = (label && titre) ? label + ' · ' + titre : (titre || label || '—');
+        el('mu-peek').textContent = label || titre;          /* mode Verre : aperçu sur l'arête de la vitre */
         const morceaux = [];
         if (nb !== null) morceaux.push(nb + ' exercice' + (nb > 1 ? 's' : ''));
         if (pr.cardio === true) morceaux.push('cardio');
         el('mu-next-sub').textContent = morceaux.join(' + ');
       } else {
         el('mu-next').textContent = '—';
+        el('mu-peek').textContent = '';
         el('mu-next-sub').textContent = '';
       }
       /* Phrase motivante du duo (22/09/26) : remplace le compte « X/4 séances », pas représentatif
@@ -146,11 +148,13 @@
         big.classList.remove('neg');
         fill.style.transform = 'translateX(-100%)'; fill.classList.remove('over');
         el('bu-days').textContent = d ? "Ce mois n'est pas encore démarré dans Budget" : '';
+        el('bu-peek').textContent = '';
         el('bu-spent').textContent = '';
       } else {
         const neg = reste < 0;
         el('bu-int').textContent = (neg ? '−' : '') + Math.abs(reste).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         el('bu-dec').textContent = '€';
+        el('bu-peek').textContent = (neg ? '−' : '') + Math.round(Math.abs(reste)).toLocaleString('fr-FR') + ' €';
         big.classList.toggle('neg', neg);
         const pct = (budget !== null && budget > 0 && depense !== null) ? Math.min(100, Math.max(0, depense / budget * 100)) : (neg ? 100 : 0);
         fill.style.transform = 'translateX(' + (pct - 100).toFixed(1) + '%)'; // translateX (GPU) au lieu de width — charte §11.3
@@ -181,8 +185,10 @@
       if (n === null) {
         el('co-int').textContent = '—';
         el('co-label').textContent = '';
+        el('co-peek').textContent = '';
       } else {
         el('co-int').textContent = String(n);
+        el('co-peek').textContent = String(n);
         el('co-label').textContent = n === 0 ? 'rien à acheter' : (n > 1 ? 'produits' : 'produit');
         (Array.isArray(d.rayons) ? d.rayons.slice(0, 3) : []).forEach((r) => {
           const nom = texte(r && r.nom, 26), k = entier(r && r.n, 0, 9999);
@@ -369,6 +375,53 @@
     });
     window.addEventListener('pageshow', (e) => { if (e.persisted) auRetour(); });
     window.addEventListener('pagehide', arreterSondage);
+  })();
+
+  /* ============================================================
+     MODE VERRE — ESSAI (28/09/2026)
+     Habillage commun aux 4 apps (verre.css, à la racine). Activé par
+     localStorage duo-verre = '1' (même origine : un seul réglage pour les 4 apps),
+     la classe html.verre étant posée dès le <head> de index.html.
+     PILE : en mode Verre, les 3 cartes sont 3 vitres empilées (data-rang : 0 = devant).
+     Toucher une vitre du fond la ramène devant (sans ouvrir l'app) ; toucher celle de
+     devant ouvre l'app (lien normal). La vitre de devant est mémorisée
+     (portail-verre-devant). La 2e lumière du fond prend la couleur de l'app de devant.
+     En mode classique, data-rang n'a aucun effet : les cartes restent de simples liens.
+     ============================================================ */
+  (function(){
+    const root = document.documentElement;
+    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses' };
+    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)' };
+    const ordre = ['muscu', 'budget', 'courses'];
+    let devant = 'muscu';
+    try { const d = localStorage.getItem('portail-verre-devant'); if (ordre.includes(d)) devant = d; } catch (e) {}
+
+    function empiler(){
+      const rangs = [devant, ...ordre.filter((k) => k !== devant)];
+      rangs.forEach((k, i) => document.getElementById(cartes[k]).setAttribute('data-rang', String(i)));
+      root.style.setProperty('--v-app', teintes[devant]);
+    }
+    empiler();
+
+    ordre.forEach((k) => {
+      document.getElementById(cartes[k]).addEventListener('click', (e) => {
+        if (!root.classList.contains('verre') || k === devant) return;   /* devant (ou mode classique) : ouvre l'app */
+        e.preventDefault();
+        devant = k;
+        try { localStorage.setItem('portail-verre-devant', k); } catch (err) {}
+        empiler();
+      });
+    });
+
+    const inter = document.getElementById('verre-interrupteur');
+    const majInter = () => inter.setAttribute('aria-checked', root.classList.contains('verre') ? 'true' : 'false');
+    majInter();
+    inter.addEventListener('click', () => {
+      const actif = !root.classList.contains('verre');
+      root.classList.toggle('verre', actif);
+      try { localStorage.setItem('duo-verre', actif ? '1' : '0'); } catch (e) {}
+      majInter();
+    });
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {

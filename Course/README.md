@@ -253,3 +253,15 @@ Audit statique contre `UX_UI_CHARTER.md` puis mise en conformité, avec les mêm
 
 **Vérifié** (Chromium, vrai service worker, vraie base, cache HTTP du navigateur désactivé) : SDK présent dans son cache dès la 1re installation (3/3) ; rechargement **hors ligne** : 134/134 produits en ~150 ms ; déploiement simulé → ancien cache du shell supprimé, cache SDK conservé (3/3), cache d'une autre app intact ; nouveau rechargement hors ligne OK ; **coche faite hors ligne** puis retour du réseau → visible depuis un autre appareil ; coche annulée ensuite (état réel du produit vérifié en base via l'accès admin : revenu à l'identique). Bouchon Firebase avec authentification lente : liste affichée depuis l'aperçu à 100 ms, tap à 230 ms envoyé seulement après Firestore (900 ms), avec la bonne valeur. **Non vérifié sur iPhone.**
 
+
+
+## Mode « Verre » — essai commun aux 4 apps (28/09/2026)
+
+Habillage activable défini dans la feuille commune **`../verre.css`** (racine du dépôt) — principe, activation et workflow décrits dans le README racine, section « Mode Verre ». Côté Course :
+
+- `index.html` : `<html data-app="course">`, mini-script dans `<head>` qui pose `html.verre` si `localStorage duo-verre = '1'`, police Unbounded, `<link>` vers `../verre.css?v=…` ; lien **« ‹ Portail »** (`#verre-pile`, visible seulement en mode Verre) en haut de `#app` ; nouvelle carte **Réglages › Apparence** avec l'interrupteur « Essai Verre (les 4 apps) ».
+- `app.js` (bloc « MODE VERRE ») : interrupteur (effet immédiat, sans rechargement) ; lien « ‹ Portail » : si on vient du Portail, `history.back()` (le Portail ressort de son cache précédent/suivant, comme avec le geste retour) ; sinon lien normal vers `../`.
+- `sw.js` : `../verre.css` est **hors du dossier du service worker**, il était donc ignoré par le gestionnaire `fetch` (et aurait manqué hors ligne). Ajouté explicitement au précache et en « réseau d'abord » (constante `FICHIER_VERRE`).
+- Rendu en mode Verre : **une seule plaque de verre** (`main`) pour tout le contenu qui défile ; les produits deviennent des **lignes séparées par des filets** (plus de cartes) pour ne pas multiplier les flous ; cases rondes lumineuses à la couleur du profil ; barre d'onglets et bouton + en verre plus dense ; « Course terminée » teinté vert. **La coche reste sans animation** (charte §11.2).
+
+**Vérifié** : Chromium headless 390×844 — Liste et Réglages en mode Verre, mode classique inchangé. **Non vérifié sur iPhone.**

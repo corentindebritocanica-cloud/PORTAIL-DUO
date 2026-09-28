@@ -524,6 +524,39 @@ dbReady.then(demarrer);
   });
 })();
 
+/* ============================================================
+   MODE VERRE — ESSAI (28/09/2026)
+   Habillage commun aux 4 apps (../verre.css). Activé par localStorage duo-verre = '1'
+   (même origine que le Portail et les autres apps : un seul réglage pour les 4) ;
+   la classe html.verre est posée dès le <head> de index.html. L'interrupteur agit
+   tout de suite (pure CSS, pas de rechargement).
+   Retour au Portail : si on vient du Portail, on remonte l'historique (le Portail
+   ressort alors de son cache « précédent/suivant », comme avec le geste retour —
+   voir README Portail, pageshow) ; sinon (app ouverte directement), lien normal.
+   ============================================================ */
+(function(){
+  const root = document.documentElement;
+  const inter = document.getElementById('verre-interrupteur');
+  const majInter = () => inter.setAttribute('aria-checked', root.classList.contains('verre') ? 'true' : 'false');
+  majInter();
+  inter.addEventListener('click', () => {
+    const actif = !root.classList.contains('verre');
+    root.classList.toggle('verre', actif);
+    try { localStorage.setItem('duo-verre', actif ? '1' : '0'); } catch (e) {}
+    majInter();
+  });
+  const pile = document.getElementById('verre-pile');
+  pile.addEventListener('click', (e) => {
+    let depuisPortail = false;
+    try {
+      const base = new URL('../', location.href).pathname;
+      const ref = document.referrer ? new URL(document.referrer).pathname : '';
+      depuisPortail = ref === base || ref === base + 'index.html';
+    } catch (err) {}
+    if (depuisPortail && history.length > 1) { e.preventDefault(); history.back(); }
+  });
+})();
+
 /* Horodatage du dernier deploiement de code (pas des donnees) : mise a jour automatiquement (workflow auto-version) a chaque commit sur cette app. Complement du bandeau
    "Nouvelle version disponible". */
 /* DERNIERE_MAJ est définie dans index.html (mise à jour automatiquement par le workflow auto-version). */

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-app="portail">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -16,8 +16,13 @@
 <!-- Police d'affichage reprise de Muscu (thème "Ardoise & Craie") : réservée
      aux titres/majuscules, le reste reste en police système. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap">
 <link rel="stylesheet" href="style.css?v=202609240855310200">
+<!-- Habillage « Verre » commun aux 4 apps (essai, 28/09/2026) : sans effet tant que <html> n'a pas la
+     classe .verre. Classe posée ici, AVANT l'affichage (pas de flash de l'ancien thème), si l'essai
+     est activé (localStorage duo-verre, partagé par les 4 apps). Voir verre.css et README. -->
+<script>try{if(localStorage.getItem('duo-verre')==='1')document.documentElement.classList.add('verre');}catch(e){}</script>
+<link rel="stylesheet" href="verre.css?v=202609281830000200">
 </head>
 <body>
 <div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px)); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
@@ -50,6 +55,7 @@
             <span class="choice-label">Musculation</span>
             <span class="choice-desc dash-maj" id="mu-maj"></span>
           </span>
+          <span class="verre-peek verre-seul" id="mu-peek"></span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -73,6 +79,7 @@
             <span class="choice-label">Budget</span>
             <span class="choice-desc dash-maj" id="bu-maj"></span>
           </span>
+          <span class="verre-peek verre-seul" id="bu-peek"></span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -91,6 +98,7 @@
             <span class="choice-label">Courses</span>
             <span class="choice-desc dash-maj" id="co-maj"></span>
           </span>
+          <span class="verre-peek verre-seul" id="co-peek"></span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -102,6 +110,9 @@
       </a>
     </div>
 
+    <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
+    <p class="verre-astuce verre-seul">Touche une vitre du fond pour la ramener devant</p>
+
     <div class="reload-row">
       <button class="reload-btn" id="hardReload" title="Vider le cache et recharger" aria-label="Vider le cache et recharger">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
@@ -110,6 +121,9 @@
         </svg>
       </button>
     </div>
+    <button type="button" class="verre-interrupteur verre-reglage" id="verre-interrupteur" role="switch" aria-checked="false">
+      <span>Essai Verre</span><span class="verre-pastille" aria-hidden="true"></span>
+    </button>
     <p id="derniere-maj" class="derniere-maj"></p>
   </main>
 

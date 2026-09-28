@@ -17,7 +17,11 @@ const CACHE_PREFIX = 'courses-lc-shell-';
 const SDK_PREFIX = 'courses-lc-sdk-';
 const CACHE_SDK = SDK_PREFIX + '10.12.2';
 
+// ../verre.css (28/09/2026) : habillage « Verre » commun aux 4 apps, à la RACINE du dépôt (hors du
+// dossier de ce SW) — mis en cache ici quand même, sinon le mode Verre disparaîtrait hors-ligne.
+const FICHIER_VERRE = '../verre.css';
 const SHELL_FILES = [
+  FICHIER_VERRE,
   './',
   './index.html',
   './style.css',
@@ -147,6 +151,12 @@ self.addEventListener('fetch', (event) => {
 
   // Jamais d'interception hors de cette origine (Firestore, Auth : réseau normal).
   if (url.origin !== self.location.origin) return;
+
+  // Seule exception au périmètre ci-dessous : la feuille commune ../verre.css (réseau d'abord).
+  if (url.pathname === new URL(FICHIER_VERRE, self.registration.scope).pathname) {
+    event.respondWith(reseauPuisCache(event.request));
+    return;
+  }
 
   // Jamais d'interception hors du dossier de CE service worker (/Course/).
   const scopePath = new URL(self.registration.scope).pathname;

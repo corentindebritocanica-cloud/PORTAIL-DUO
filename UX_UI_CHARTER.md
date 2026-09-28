@@ -479,6 +479,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 | 24/09/26 | Portail aligné sur les sections 1 à 7 : accent dynamique suivant le profil de Muscu, bouton recharger 44px, radius dans l'échelle, `confirm()` remplacé par une bottom-sheet. **Les 4 apps sont désormais conformes à la charte (§1–§7 et §11).** |
 | 24/09/26 | Course aligné sur les sections 1 à 7 : couleurs exactes de la charte (bordure bleu-gris opaque retirée), labels de section, cards `--r-lg`, sélecteur de profil §5.6 repris tel quel, zones tactiles 44px (étendues par `::after` sur la case à cocher, sans changement visuel), modales en verre, `confirm()` remplacé. |
 | 24/09/26 | Budget aligné sur les sections 1 à 7 : tokens renommés comme Muscu, thème clair via `.light-mode`, couleurs décoratives retirées (seules les couleurs de catégories restent), hero sobre, cards bordées, zones tactiles ≥ 44px, modales en bottom-sheet et `alert()`/`confirm()` natifs remplacés par une boîte de dialogue maison. |
+| 28/09/26 | Ajout de la section 12 « Direction Verre » (essai activable, Portail + Course) après validation du mockup par Corentin. |
 | 24/09/26 | Charte v1.3 — Audit des 4 apps contre la section 11 et mise en conformité : Budget (retrait du `transition: all` global, jauges et toast en `transform`, reduced-motion), Muscu (validation de série adoucie à 1,08 sans rebond — exception documentée au §11.2, points de graphique, `left` → `translateX`), Portail (jauge en `translateX`), Course (reduced-motion). `--t-fast` passé de 140 à 150 ms. Checklist §8 complétée. |
 | 23/09/26 | Ajout de la section 11 « Animation & Micro-interactions » (grille de fréquence, règles GPU-safe, springs, principes Apple Fluid Interfaces, clip-path, reduced-motion) — synthèse des skills communautaires `emil-design-eng`/`apple-design` d'Emil Kowalski et de la WWDC 2018. Référentiel de règles, pas encore appliqué aux 4 apps. |
 
@@ -578,6 +579,22 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - ❌ Popover qui s'agrandit depuis son propre centre au lieu du point de déclenchement
 - ❌ Animation sans réponse claire à "pourquoi ça anime ?"
 - ❌ Absence de `prefers-reduced-motion`
+
+---
+
+## 12. 🪟 Direction « Verre » — ESSAI en cours (28/09/2026)
+
+> Refonte validée sur mockup par Corentin le 28/09/2026, en **essai activable** (interrupteur « Essai Verre », partagé par les 4 apps). Tant que l'essai n'est pas adopté, les sections 1 à 11 restent la référence. S'il l'est, cette section deviendra la charte v2 et remplacera les cards, la bottom-bar et la pilule.
+
+- **Source unique** : `verre.css` à la racine, règles préfixées `html.verre` (+ `[data-app="…"]` pour une app). Aucune app ne redéfinit le verre dans son propre `style.css`.
+- **Fond** : `#08080a` (clair : `#e6e0d6`) éclairé par deux halos en `radial-gradient` : couleur du profil (`--accent`) et couleur de l'app (`--v-app`).
+- **Couleurs d'identité des apps** (remplacent `--blue/--gold/--green` en mode Verre) : Corps `#ff7a59`, Argent `#ffb800`, Frigo `#12b981`, Portail `#ff8a2b`.
+- **Verre** : fond `rgba(255,255,255,.07)`, `backdrop-filter: blur(30px) saturate(180%)`, arête `rgba(255,255,255,.16)`, reflet `inset 0 1px 0 rgba(255,255,255,.30)`, rayon **34 px** pour les plaques, pilule pour les contrôles.
+- **Typo** : Unbounded 300 pour les grands chiffres et titres ; police système pour tout le reste.
+- **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app) ; dans une app, les autres vitres restent en retrait en haut (« ‹ Portail »).
+- **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
+- **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).
+- **État** : Portail et Course habillés ; Budget et Muscu à venir.
 
 ---
 

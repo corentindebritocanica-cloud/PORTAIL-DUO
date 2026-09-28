@@ -6,6 +6,8 @@ name: Auto-version (DERNIERE_MAJ + cache du Service Worker)
 #   - les URLs versionnées style.css?v=… et app.js?v=… dans son index.html
 #     (chiffres de DERNIERE_MAJ : garantit qu'aucun cache ne ressert l'ancien code)
 #   - CACHE_NAME dans son sw.js (préfixe de l'app + "r" + numéro d'exécution)
+# Feuille commune verre.css (racine, 28/09/2026) : si elle change, CHAQUE app dont l'index.html
+# la référence (verre.css?v=…) est traitée comme modifiée, et son URL versionnée est mise à jour.
 # Lancement manuel (onglet Actions > Run workflow) : met à jour les 4 apps,
 # ce qui force le rafraîchissement de toutes les installations.
 # Si une étape de contrôle échoue, l'exécution est marquée en rouge dans l'onglet Actions.
@@ -26,6 +28,7 @@ on:
       - 'Muscu/index.html'
       - 'Muscu/style.css'
       - 'Muscu/app.js'
+      - 'verre.css'
   workflow_dispatch:
 
 permissions:
@@ -62,15 +65,19 @@ jobs:
             fi
             CHANGED=$(git diff --name-only "$BEFORE" HEAD)
           fi
+          VERRE=0
+          if printf '%s\n' "$CHANGED" | grep -qxF 'verre.css'; then VERRE=1; fi
           for DIR in "" Budget Course Muscu; do
             P="${DIR:+$DIR/}"
-            if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then continue; fi
+            if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then
+              if [ "$VERRE" = "1" ] && grep -q 'verre\.css?v=' "${P}index.html"; then :; else continue; fi
+            fi
             echo "→ ${P:-racine (Portail)}"
             PREFIX=$(sed -nE "s/^const CACHE_PREFIX = '([^']*)';.*/\1/p" "${P}sw.js")
             test -n "$PREFIX"
             VER=$(printf '%s' "$NOW" | tr -dc '0-9')
             sed -i -E "s/(DERNIERE_MAJ = ')[^']*(')/\1${NOW}\2/" "${P}index.html"
-            sed -i -E "s/(style\.css\?v=)[0-9]*/\1${VER}/; s/(app\.js\?v=)[0-9]*/\1${VER}/" "${P}index.html"
+            sed -i -E "s/(style\.css\?v=)[0-9]*/\1${VER}/; s/(app\.js\?v=)[0-9]*/\1${VER}/; s/(verre\.css\?v=)[0-9]*/\1${VER}/" "${P}index.html"
             sed -i -E "s/^(const CACHE_NAME = ')[^']*(';)/\1${PREFIX}r${RUN_NUMBER}\2/" "${P}sw.js"
             test "$(grep -c "DERNIERE_MAJ = '${NOW}'" "${P}index.html")" = "1"
             test "$(grep -c "style\.css?v=${VER}" "${P}index.html")" = "1"

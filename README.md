@@ -572,3 +572,26 @@ Audit statique contre `UX_UI_CHARTER.md`, dernière des 4 apps. Le Portail étai
 
 **Vérifié** : Chromium headless 390×844 — rendu Corentin (bleu) et Lisa (rose), dialogue de rechargement (Annuler → rien ne se passe), bouton à 44 px, aucune erreur JS. `node --check` sur `app.js`. **Non vérifié sur iPhone.**
 
+
+
+## Mode « Verre » — ESSAI commun aux 4 apps (28/09/2026)
+
+**Contexte** : refonte visuelle complète décidée par Corentin après 2 mockups (« Le Fil », rejeté ; « Verre », validé : « surtout l'écran principal du Portail, j'adore »). Pour juger sur iPhone avec les vraies données avant de tout basculer, la refonte est livrée comme un **habillage activable**, sans rien retirer au mode actuel.
+
+**Principe** :
+- **Une seule feuille commune `verre.css`, à la racine** du dépôt, chargée par chaque app (`verre.css?v=…` pour le Portail, `../verre.css?v=…` pour les apps). C'est elle qui fait « une seule app » : fond sombre éclairé par deux halos (couleur du profil + couleur de l'app), surfaces en verre dépoli, police Unbounded (Google Fonts) pour les grands chiffres, police système pour le reste.
+- **Toutes ses règles sont préfixées par `html.verre`** : sans cette classe, le fichier n'a aucun effet. Chaque `index.html` pose `data-app="portail|course|budget|muscu"` sur `<html>` ; les règles propres à une app sont préfixées par `html.verre[data-app="…"]` (classes homonymes d'une app à l'autre).
+- **Activation** : `localStorage['duo-verre'] = '1'` (même origine → **un seul réglage pour les 4 apps**). La classe est posée par un mini-script **dans le `<head>`, avant la feuille**, pour éviter un flash de l'ancien thème. Interrupteur « Essai Verre » : sous le bouton recharger du Portail, et dans Réglages › Apparence de Course. Effet immédiat, sans rechargement (pur CSS).
+- Les jetons existants des apps (`--bg`, `--card`, `--border`, `--text`…) sont **redirigés** vers ceux du verre : tout ce qui les utilise suit sans règle dédiée.
+
+**Portail — la pile de vitres** (bloc « MODE VERRE » de `app.js`) : les 3 cartes (mêmes éléments, mêmes `id`) sont empilées dans la même cellule de grille. `data-rang` (0 = devant) est posé par `empiler()`. Toucher une vitre du fond la ramène devant (`preventDefault`, pas d'ouverture) ; toucher celle de devant ouvre l'app (lien normal). Vitre de devant mémorisée (`portail-verre-devant`) ; le 2e halo prend la couleur de l'app de devant (`--v-app`). Chaque vitre montre un aperçu sur son arête (`#mu-peek`, `#bu-peek`, `#co-peek`, remplis dans `afficherMuscu/Budget/Courses`) visible seulement quand elle est au fond. Les vitres du fond sont coupées sous leur en-tête (`clip-path`) : sinon leurs arêtes se voyaient à travers la vitre de devant. Toutes les vitres ont la hauteur de la plus haute (étirement de grille) pour une pile régulière.
+
+**Service worker** : `./verre.css` ajouté aux fichiers annexes du shell et au « réseau d'abord ».
+
+**Workflow `auto-version.yml`** : `verre.css` ajouté aux chemins surveillés. S'il change, **chaque app dont l'`index.html` contient `verre.css?v=`** est traitée comme modifiée (DERNIERE_MAJ, `?v=`, `CACHE_NAME`), et son `verre.css?v=` est mis à jour avec le même numéro.
+
+**Écarts assumés à la charte v1.3** (normal : c'est la future charte v2) : transitions de la pile en 0,4 s (navigation occasionnelle, charte §11.2) ; `clip-path` animé (en plus de `transform`/`opacity`) ; `backdrop-filter` limité aux grandes surfaces (jamais une par ligne de liste).
+
+**Pour revenir en arrière** : couper l'interrupteur (sur chaque appareil). Pour retirer l'essai définitivement : supprimer `verre.css`, les `<link>`/`<script>` « Verre » des `index.html`, les blocs « MODE VERRE » des `app.js`, `.verre-seul` des `index.html`.
+
+**Vérifié** : Chromium headless 390×844 (données de démonstration en `localStorage`, Firebase bouchonné) — Portail pile sombre et clair, vitre du fond ramenée devant, mode classique identique à avant. `node --check` sur `app.js`/`sw.js`. **Non vérifié sur iPhone.**
