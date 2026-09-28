@@ -298,3 +298,12 @@ Mesures relevées par le diagnostic sur l'iPhone de Corentin (écran 440×956 pt
 - Diagnostic temporaire **retiré** de Réglages.
 - **Conservé** : `black-translucent` (même réglage que les 3 autres apps) et, en mode Verre, fond de `<html>` à la couleur du bas de la plaque (`#171719`, clair `#f1ede7`) — la bande prolonge la plaque. Le 2e halo (couleur de l'app) est remonté à 60 % de la hauteur pour que le bas de la plaque soit uni et se raccorde sans marche à la bande.
 - La cause profonde (pourquoi iOS retire 62 pt à la page) reste un bug WebKit non contournable côté page à ce jour ; elle touche sans doute aussi les autres apps, où elle ne se voit pas car leur bas de page a déjà la couleur du fond.
+
+### Rebondissement (28/09/2026, 18h50) — Budget n'a PAS la bande : la cause est propre à Course
+
+Capture de Budget par Corentin : son contenu et sa barre descendent jusqu'au vrai bas de l'écran (barre à ~22 pt du bord, alors que la page de Course s'arrête à 894 pt). La conclusion précédente (« iOS coupe toutes les pages ») était donc **fausse**. Différence de structure : Budget = page qui défile normalement ; Course = `body{overflow:hidden}` + `#app` fixé. Suspect n°1 : **`body{overflow:hidden}`**.
+- `body{overflow:hidden}` **retiré** (rien n'est dans le flux normal, la page ne peut de toute façon pas défiler).
+- **`--manque` remis**, mais cette fois SANS compenser la barre : `#app` (et les fonds de modale) descendent jusqu'au vrai bas de l'écran si la page est encore plus courte que l'écran ; la barre suit. Les éléments fixés au bas du viewport (« Course terminée », bandeau de mise à jour) retranchent `--manque` pour rester au-dessus de la barre.
+- **`--nav-offset` aligné sur Budget** : `max(20px, safe-area − 12px)` ≈ 22 pt (avant : ≈ 4 pt, valeur jamais réellement vue à l'écran à cause de la bande — elle aurait mis la barre dans la zone du geste d'accueil).
+
+⚠️ **À vérifier sur iPhone** : la barre doit être posée comme celle de Budget. Si elle apparaît **coupée en bas** : le retrait d'`overflow:hidden` ne suffit pas, iOS ne dessine toujours rien sous 894 pt → remettre `--manque` à 0 (retirer le script de `index.html`) le temps de chercher.
