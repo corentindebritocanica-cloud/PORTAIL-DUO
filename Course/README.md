@@ -334,3 +334,6 @@ Décision de Corentin : le design Verre devient celui de Course (et du Portail).
 
 ### Halos animés (28/09/2026, 19h25)
 Les deux lumières du fond dérivent lentement (feuille commune `../verre.css`, voir README racine, « Halos animés »). Rien de propre à Course. Point à surveiller sur iPhone : fluidité du défilement de la liste (le verre de la plaque est recalculé pendant que le fond bouge) — en cas de saccade, couper l'animation d'abord.
+
+### Halos continus d'une app à l'autre (28/09/2026, 19h30)
+`index.html` : mini-script dans `<head>` qui cale l'animation des halos sur l'horloge (identique au Portail) — les lumières continuent leur mouvement au lieu de repartir de zéro en arrivant dans Course. Détail dans le README racine.

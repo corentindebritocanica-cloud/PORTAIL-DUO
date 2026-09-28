@@ -627,6 +627,7 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 3. Règles propres à l'app dans `verre.css`, sous `html.verre[data-app="…"]` — une plaque de verre + des lignes à filets, jamais une carte floutée par ligne.
 4. **Bas de page** : la page doit défiler elle-même (pas d'« écran fixe » avec défilement interne), sinon bande de 62 pt en bas (voir `PROBLEMES_RESOLUS.md`). Muscu et Budget sont déjà construites ainsi.
 5. Fond de `<html>` : à la couleur du bas du contenu.
+6. Copier dans le `<head>` le mini-script « Halos : animation calée sur l'horloge » (identique à celui du Portail), sinon les halos repartent de zéro à l'ouverture de l'app.
 
 **Vérifié** (Chromium 390×844, sans aucune clé en `localStorage`) : Portail et Course s'ouvrent directement en Verre, pile (glisser, toucher, ouverture d'app, ordre après rechargement), Réglages de Course sans la carte « Apparence », aucune erreur JS.
 
@@ -634,3 +635,9 @@ Décision de Corentin après l'essai sur iPhone : **le design Verre devient le d
 
 Demande de Corentin : les deux lumières du fond **bougent en continu**. `verre.css` : deux calques fixes au lieu d'un — `body::before` = couleur du profil (remplace la poussière de craie du Portail), `body::after` = couleur de l'app — plus grands que l'écran (`inset:-20%`) pour que leurs bords ne se voient jamais. Seul `transform` est animé (GPU, pas de recalcul de mise en page), cycles de 23 s et 31 s en `alternate` (durées différentes : le mouvement ne se répète jamais à l'identique). Amplitudes limitées pour que la lumière de l'app reste au-dessus de ~75 % de la hauteur (bas de page uni, cf. bande iOS). Coupées par `prefers-reduced-motion`. S'applique au Portail et à Course (et aux futures apps migrées).
 **Vérifié** (Chromium, images à 0, 8, 16 et 23 s) : dérive visible sur les deux apps, bas de page toujours sombre, aucune erreur JS. **Non vérifié sur iPhone** : si le défilement de la liste de Course saccade, ralentir ou couper l'animation en premier.
+
+### Halos continus d'une app à l'autre (28/09/2026, 19h30)
+
+Demande de Corentin : l'animation ne doit pas repartir de zéro à chaque changement d'app. Chaque app étant une page à part, une animation CSS redémarre à chaque ouverture. **Solution : caler l'animation sur l'horloge.** Un mini-script dans le `<head>` (Portail et Course, **identique dans chaque app qui charge `verre.css`**) pose `--v-delai-profil = −(maintenant modulo 46 s)` et `--v-delai-app = −(maintenant modulo 62 s)` (46 et 62 s = un aller-retour des cycles `alternate` de 23 et 31 s), utilisés comme `animation-delay` dans `verre.css`. Toutes les apps affichent donc la même position au même instant : le passage de l'une à l'autre est continu. Recalé au retour depuis le cache précédent/suivant (`pageshow` persisté), où l'animation était en pause.
+⚠️ Si on change une durée d'animation dans `verre.css`, changer le modulo (2 × durée) dans le script de **chaque** `index.html`.
+**Vérifié** (Chromium) : Portail et Course ouverts en même temps → même position des deux halos (écart < 0,3 px).

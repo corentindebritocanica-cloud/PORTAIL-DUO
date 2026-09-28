@@ -104,7 +104,12 @@ html.verre body{ background:transparent !important; color:var(--v-text); }
    longs (23 s et 31 s, durées premières entre elles : le mouvement ne se répète jamais à l'identique).
    Exception assumée à la charte §11.3 (durées 150–300 ms) : animation d'ambiance, pas d'interface —
    coupée par prefers-reduced-motion. Amplitudes limitées : la lumière de l'app ne descend pas
-   sous ~75 % de la hauteur, le bas de page reste uni (bande iOS, voir Course). */
+   sous ~75 % de la hauteur, le bas de page reste uni (bande iOS, voir Course).
+   CONTINUITÉ ENTRE LES APPS (28/09/2026) : chaque ouverture de page relancerait l'animation à zéro.
+   Un mini-script dans le <head> de chaque app cale l'animation sur l'HORLOGE (délai négatif
+   = −(maintenant modulo un aller-retour), variables --v-delai-profil / --v-delai-app) : toutes les
+   apps affichent donc la même position au même instant, et le passage de l'une à l'autre est
+   continu. Recalé aussi au retour depuis le cache précédent/suivant (pageshow). */
 html.verre body::before,
 html.verre body::after{
   content:''; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
@@ -114,12 +119,12 @@ html.verre body::before{                                        /* remplace la p
   background:
     radial-gradient(33% 26% at 23% 36%, rgba(var(--accent-rgb), var(--v-halo-op)), transparent 72%),
     radial-gradient(29% 22% at 80% 19%, rgba(var(--accent-rgb), calc(var(--v-halo-op) * .45)), transparent 72%);
-  animation:v-derive-profil 23s ease-in-out infinite alternate;
+  animation:v-derive-profil 23s ease-in-out var(--v-delai-profil, 0s) infinite alternate;
 }
 html.verre body::after{
   background:
     radial-gradient(34% 22% at 74% 57%, color-mix(in srgb, var(--v-app) calc(var(--v-halo-op) * 80%), transparent), transparent 72%);
-  animation:v-derive-app 31s ease-in-out infinite alternate;
+  animation:v-derive-app 31s ease-in-out var(--v-delai-app, 0s) infinite alternate;
 }
 @keyframes v-derive-profil{
   0%  { transform:translate3d(0, 0, 0) scale(1); }

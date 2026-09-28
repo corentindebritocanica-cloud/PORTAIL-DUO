@@ -48,6 +48,18 @@
 
 ---
 
+## 🌊 Portail/Course — animation continue entre plusieurs pages (28/09/2026)
+
+### 28/09/2026 — Portail, Course — les halos animés repartaient de zéro à chaque changement d'app
+**Symptôme** : animation d'ambiance continue en CSS, mais chaque app étant une page séparée (navigation complète), elle redémarrait à sa position initiale à chaque ouverture — saut visible en passant du Portail à Course.
+**Fausses pistes explorées** : aucune (solution connue). Mémoriser la position dans `localStorage` au départ aurait été moins précis (le temps de chargement décale tout) et plus fragile.
+**Cause racine** : une animation CSS a pour origine de temps le chargement du document.
+**Solution** : `animation-delay` **négatif calé sur l'horloge** : `−(Date.now() modulo période)`, posé par un script dans le `<head>` via une variable CSS (`--v-delai-…`). Pour une animation `alternate`, la période est un aller-retour (2 × durée). Toutes les pages calculent la même position au même instant. Recalcul sur `pageshow` persisté (page ressortie du cache précédent/suivant, où l'animation était en pause).
+**Leçon généralisable** : pour qu'un mouvement « survive » à une navigation entre pages d'un même site/PWA, le synchroniser sur l'horloge plutôt que de mémoriser un état. Garder la même durée ET le même modulo partout.
+**Fichiers touchés** : `verre.css`, `index.html`, `Course/index.html`
+
+---
+
 ## 🐢 Course — ouverture lente depuis le Portail : écran masqué jusqu'à Firebase (24/09/2026)
 
 ### 24/09/2026 — Course — ~1 s d'écran vide à chaque ouverture
