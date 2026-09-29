@@ -995,3 +995,12 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Règles : les 4 collections sont réservées au compte e-mail du duo (`/firestore.rules`). **Le point « inscription libre ouverte » (section sécurité du coach) est neutralisé** : un autre compte e-mail, même créé, n'a accès à rien.
 - ⚠️ **Sauvegarde du dimanche (Apps Script)** : remplacer la propriété de script `SA_MUSCU` par la clé de compte de service de `course-app-36e9d`.
 - Vérifié : copie (0 écart), règles (émulateur), ouverture dans Chromium avec session anonyme → `__authUser` nul, aucune erreur. **Non vérifié** : connexion réelle, iPhone.
+
+## Clés Gemini et Groq du coach effacées de la base (29/09/2026)
+
+Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Groq) restaient dans `settings/coach` (copiées telles quelles lors du passage au projet unique).
+- `index.html`, écoute de `settings/coach` : les deux champs sont **retirés du cache** `window.coachSettingsCache` → jamais réécrits par `saveCoachSettingsRemote()` (qui renvoie tout le cache) ni envoyés par la sauvegarde mail (`buildMailBackupPayload()` ne retirait que `apiKey`, pas `groqApiKey`).
+- S'ils sont encore sur le serveur, ils sont **effacés** (`setDoc(…, { apiKey: deleteField(), groqApiKey: deleteField() }, { merge: true })` : `body`, `threads` et le reste du document sont conservés). Une seule tentative par ouverture : un refus ne boucle pas avec le snapshot suivant.
+- Effet à la première ouverture de Muscu connectée au compte du duo, après publication sur `main`.
+- ⚠️ Effacer les champs ne rend pas les clés inutilisables : **les révoquer** dans Google AI Studio et dans la console Groq.
+**Vérifié** : `node --check` du module ; logique testée en isolation (clés présentes → une écriture `deleteField` et cache sans clés ; une seule clé ; aucune clé → aucune écriture ; écriture refusée → pas de boucle) ; `deleteField` bien exporté par le SDK 12.18 ; ouverture dans Chromium sans erreur JS. **Non vérifié** : effacement réel sur le serveur, iPhone.
