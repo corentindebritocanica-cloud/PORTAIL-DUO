@@ -805,5 +805,6 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 **Retour de Corentin** : les vitres du Portail n'étaient pas centrées à l'écran — collées sous l'en-tête, grand vide en bas.
 - `verre.css` (section « PORTAIL — la pile de vitres ») : `main` occupe toute la hauteur (`flex:1 0 auto`), `margin-top:auto` sur `.dash` et `margin-bottom:auto` sur `.derniere-maj` → le groupe pile + astuce + bouton recharger + date est centré dans la hauteur restante sous l'en-tête.
 - Écran trop petit pour tout afficher (iPhone SE) : les marges automatiques valent 0, rien ne change.
-- Mesuré (Chromium, zones de l'encoche et de la barre d'accueil simulées) : iPhone 15 — pile descendue de 42 px, centre à 412 px pour un milieu d'écran à 426 px ; iPhone 13 mini et Pro Max : même écart ; iPhone SE : inchangé. **Non vérifié sur iPhone.**
+- **Téléphones du duo** : iPhone 16 Pro Max (Corentin, 440 × 956 pt) et iPhone 16 (Lisa, 393 × 852 pt) — à utiliser comme tailles de référence pour les essais de mise en page.
+- Mesuré (Chromium, zones de l'encoche et de la barre d'accueil simulées) : iPhone 16 Pro Max — pile 237→694, centre à 466 px pour un milieu d'écran à 478 px ; iPhone 16 — pile descendue de 42 px, centre à 412 px pour 426 px ; iPhone 13 mini : même écart ; iPhone SE : inchangé. **Non vérifié sur iPhone.**
 
