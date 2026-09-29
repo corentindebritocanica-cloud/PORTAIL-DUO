@@ -464,7 +464,7 @@
   // ---------- FIREBASE (archives partagées Corentin / Lisa, temps réel) ----------
   import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
   import {
-    getFirestore, initializeFirestore, collection, doc, setDoc, deleteDoc, onSnapshot,
+    getFirestore, initializeFirestore, collection, doc, setDoc, deleteDoc, deleteField, onSnapshot,
     persistentLocalCache, persistentMultipleTabManager
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
   import {
@@ -615,9 +615,23 @@
 
   /* Réglages du conseiller, partagés par les deux téléphones. Possible seulement
      parce que les règles sont fermées : sans authentification, y déposer une clé
-     API serait la donner à quiconque connaît l'identifiant du projet. */
+     API serait la donner à quiconque connaît l'identifiant du projet.
+     29/09/2026 : coach IA abandonné le 23/09 — ses clés Gemini et Groq (`apiKey`, `groqApiKey`)
+     ne sont plus gardées en mémoire (donc jamais réécrites par saveCoachSettingsRemote() ni
+     envoyées par la sauvegarde mail) et sont effacées du serveur si elles y sont encore
+     (une tentative par ouverture : un refus ne doit pas boucler avec le snapshot suivant). */
+  const CLES_COACH = ['apiKey', 'groqApiKey'];
+  let clesCoachEffacees = false;
   onSnapshot(doc(db, 'settings', 'coach'), (snap) => {
-    window.coachSettingsCache = snap.exists() ? snap.data() : {};
+    const reglages = snap.exists() ? snap.data() : {};
+    const cles = CLES_COACH.filter(k => k in reglages);
+    cles.forEach(k => { delete reglages[k]; });
+    window.coachSettingsCache = reglages;
+    if(cles.length && !clesCoachEffacees){
+      clesCoachEffacees = true;
+      setDoc(doc(db, 'settings', 'coach'), Object.fromEntries(cles.map(k => [k, deleteField()])), { merge: true })
+        .catch(err => console.warn('Clés du coach non effacées', err && err.code));
+    }
     window.__coachSettingsLoaded = true;
     window.dispatchEvent(new Event('coach-settings-updated'));
     /* miroir local : c'est la seule copie des noms et des rôles */
