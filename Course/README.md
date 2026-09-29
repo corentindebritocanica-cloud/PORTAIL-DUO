@@ -386,3 +386,10 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - `app.js` : blocs `formaterDerniereMaj`, service worker et vérification de version retirés (~80 lignes).
 - `sw.js` : `FICHIER_VERRE` → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre).
 **Vérifié** (Chromium) : aucune erreur JS, date de MAJ affichée dans Réglages, `sw.js` enregistré, `commun.js` en cache, rechargement auto / bandeau sur version plus récente.
+
+## Projet Firebase unique (29/09/2026)
+
+- Le projet de Course (`course-app-36e9d`) est devenu **le projet commun aux 4 apps** : Budget (`mois`, `config`) et Muscu (`archives`, `customSessions`, `coachChat`, `settings`) y ont été copiés. Données de Course **non touchées**. Détails : README racine, « Projet Firebase UNIQUE ».
+- **Règles modifiées** (`/firestore.rules`, versionné) : `produits`, `rayons` et `portail` restent ouverts à toute session (anonyme comprise) ; les collections de Budget et Muscu exigent le compte e-mail du duo ; tout le reste est fermé (avant : `request.auth != null` sur **toute** la base).
+- **Session partagée** avec Budget et Muscu : si l'on s'est connecté par e-mail dans l'une d'elles, Course reprend cette session telle quelle ; sinon connexion anonyme comme avant. `demarrer()` garde les fonctions d'arrêt de ses deux écoutes (`ecoutes`, `dbOnCollection` renvoie désormais la fonction d'arrêt) : jamais d'écoute en double si l'état d'auth est re-signalé, arrêt puis reconnexion anonyme après une déconnexion faite dans Muscu.
+- Vérifié : Chromium, base réelle — données lues depuis le serveur (pastille verte), aucune erreur.

@@ -986,3 +986,12 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - `app.js` : définition de `formaterDerniereMaj()` retirée — `goToSettingsView()` l'appelle toujours, elle est désormais fournie (globale) par `commun.js` ; blocs service worker et vérification de version retirés (~70 lignes).
 - `sw.js` : `FICHIER_VERRE` → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre).
 **Vérifié** (Chromium) : aucune erreur JS, « Dernière mise à jour du code » affichée dans Réglages, `sw.js` enregistré, `commun.js` en cache.
+
+## Projet Firebase unique (29/09/2026)
+
+- **Muscu ne vit plus dans `duo-training-e835b`** mais dans **`course-app-36e9d`**, le projet commun aux 4 apps (`firebaseConfig` dans le `<script type="module">` d'`index.html`). `archives` (24), `coachChat` (143), `settings/coach` et `customSessions` (vide) copiés à l'identique ; ancien projet gardé en **lecture seule** comme archive. Détails : README racine, « Projet Firebase UNIQUE ».
+- **Compte unique avec Budget, mot de passe de Budget** (choix de Corentin le 29/09/2026) : l'ancien mot de passe de Muscu ne fonctionne plus. Se reconnecter une fois par téléphone.
+- **Session anonyme = pas connecté** : dans `onAuthStateChanged`, `compte = user && !user.isAnonymous ? user : null` (Course peut avoir ouvert une session anonyme sur le même projet). `window.__authUser` reste `null` et l'écran de connexion s'affiche. La déconnexion depuis les Réglages déconnecte aussi Budget (session partagée).
+- Règles : les 4 collections sont réservées au compte e-mail du duo (`/firestore.rules`). **Le point « inscription libre ouverte » (section sécurité du coach) est neutralisé** : un autre compte e-mail, même créé, n'a accès à rien.
+- ⚠️ **Sauvegarde du dimanche (Apps Script)** : remplacer la propriété de script `SA_MUSCU` par la clé de compte de service de `course-app-36e9d`.
+- Vérifié : copie (0 écart), règles (émulateur), ouverture dans Chromium avec session anonyme → `__authUser` nul, aucune erreur. **Non vérifié** : connexion réelle, iPhone.

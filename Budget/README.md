@@ -434,3 +434,12 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - `app.js` : blocs `formaterDerniereMaj`, service worker et vérification de version retirés (~80 lignes).
 - `sw.js` : `FICHIER_VERRE` → `FICHIERS_COMMUNS = ['../verre.css', '../commun.js']` (précache + réseau d'abord avant le filtre de périmètre).
 **Vérifié** (Chromium) : aucune erreur JS, date de MAJ affichée, `sw.js` enregistré, `commun.js` en cache.
+
+## Projet Firebase unique (29/09/2026)
+
+- **Budget ne vit plus dans `lisa-et-corentin`** mais dans **`course-app-36e9d`**, le projet commun aux 4 apps (`firebaseConfig` en tête d'`app.js`). `mois` (9 documents) et `config/global` copiés à l'identique ; ancien projet gardé en **lecture seule** comme archive. Détails : README racine, « Projet Firebase UNIQUE ».
+- **Même compte, même mot de passe qu'avant** (l'empreinte du mot de passe de Budget a été importée dans le projet commun). Il faut **se reconnecter une fois** sur chaque téléphone (la session enregistrée appartenait à l'ancien projet) ; ensuite, cette connexion vaut aussi pour Muscu.
+- **Session anonyme = pas connecté** : `authListen` teste `user && !user.isAnonymous` (Course peut avoir ouvert une session anonyme sur le même projet) → écran de connexion, puis la connexion e-mail remplace la session anonyme. `attacherEcouteurs()` n'est plus appelée si les écoutes tournent déjà (`!unsubMois`).
+- Règles : `mois` et `config` réservés au compte e-mail du duo (`/firestore.rules`) ; une session anonyme reçoit `permission-denied`.
+- ⚠️ **Sauvegarde du dimanche (Apps Script)** : remplacer la propriété de script `SA_BUDGET` par la clé de compte de service de `course-app-36e9d`, sinon le mail contient les données figées de l'ancien projet.
+- Vérifié : copie document par document (0 écart), règles (émulateur, 120 cas), ouverture dans Chromium avec une session anonyme ouverte par Course → écran de connexion affiché, aucune erreur. **Non vérifié** : connexion réelle avec le mot de passe (à faire par Corentin), iPhone.

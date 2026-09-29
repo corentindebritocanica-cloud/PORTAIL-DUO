@@ -19,6 +19,18 @@
 
 ---
 
+## 🔥 4 apps — regroupement des 3 projets Firebase en un seul (29/09/2026)
+
+### 29/09/2026 — Budget, Muscu, Course, Portail — migrer une base Firebase vers un autre projet sans rien casser
+**Symptôme** : 3 projets Firebase (Budget, Muscu, Course), donc 3 comptes, 3 sessions, 3 quotas ; Budget et Muscu demandaient chacun leur connexion, et chaque future app aurait demandé un projet de plus.
+**Fausses pistes explorées** : export/import officiel (`gcloud firestore export`) — exige le plan Blaze ; test des règles par l'API `projects:test` — refusé au compte de service (`firebaserules.rulesets.test`), remplacé par l'émulateur Firestore local.
+**Cause racine / pièges** : (1) le projet cible avait une règle `request.auth != null` sur **toute** la base, et Course y ouvre des sessions **anonymes** (que n'importe qui peut ouvrir avec la config du dépôt public) → copier le budget AVANT de durcir les règles l'aurait exposé ; (2) même e-mail mais **3 comptes distincts** (un par projet, un déjà présent dans le projet cible) et des mots de passe potentiellement différents ; (3) même projet + même origine + application Firebase par défaut = **session partagée** : une session anonyme ouverte par Course était vue comme « connecté » par Budget/Muscu, qui auraient alors reçu `permission-denied` au lieu d'afficher l'écran de connexion ; (4) les appareils gardent l'ancien code en cache quelques instants et peuvent encore écrire dans l'ancien projet ; (5) une dépendance hors dépôt (Apps Script des sauvegardes du dimanche) lit Firestore avec ses propres clés.
+**Solution** : ordre strict — sauvegarde complète typée des 3 bases → règles cloisonnées publiées et testées sur le projet cible (`compteDuo()` = fournisseur `password` + e-mail du duo) → empreinte du mot de passe de Budget importée sur le compte existant du projet cible (`auth.import_users` + `UserImportHash.scrypt` avec les paramètres de hachage du projet SOURCE, lus par `GET identitytoolkit…/admin/v2/projects/<id>/config` → `signIn.hashConfig` ; `get_user()` ne renvoie pas l'empreinte, il faut `list_users()`) → copie document par document (heure de coupure notée AVANT la copie) → vérification 0 écart → bascule du code (`isAnonymous` traité comme « pas connecté » dans Budget/Muscu, écoutes non doublées dans Course) → passe de rattrapage des documents modifiés à la source après la coupure → anciens projets passés en lecture seule, gardés comme archives.
+**Leçon généralisable** : dans un projet Firebase partagé entre apps, **l'authentification anonyme n'est PAS une barrière** ; toute donnée privée doit exiger un fournisseur et une identité précis dans les règles. Et toujours publier les règles AVANT d'y copier des données sensibles.
+**Fichiers touchés** : `Budget/app.js`, `Muscu/index.html`, `Course/app.js`, `firestore.rules` (nouveau), README racine, `Budget/README.md`, `Muscu/README.md`, `Course/README.md`
+
+---
+
 ## 🪟 Portail/Course — habillage « Verre » : pièges du verre dépoli et d'un fichier partagé entre apps (28/09/2026)
 
 > **Statut** : design Verre **définitif sur les 4 apps** depuis le 28/09/2026 au soir (classe `html.verre` en dur, interrupteur et curseur d'intensité retirés ; Budget et Muscu migrées le même soir). Pour toute nouvelle app : check-list dans le README racine, « Design Verre — DÉFINITIF ».

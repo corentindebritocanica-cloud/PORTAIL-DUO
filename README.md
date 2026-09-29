@@ -348,7 +348,7 @@ Budget ─┼── écrivent portail/<app> ──►  base Firestore de COURSES
 Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 ```
 
-- Les 3 apps sont sur **3 projets Firebase distincts** (Muscu et Budget : e-mail + mot de passe ; Courses : anonyme). Un Portail qui lirait les 3 bases demanderait 2 mots de passe et devrait **recalculer** le reste à vivre et la semaine de Muscu (risque de divergence avec les apps).
+- *(Situation au 22/09/2026 — depuis le 29/09/2026 les 4 apps sont sur un projet unique, voir « Projet Firebase UNIQUE » en fin de fichier.)* Les 3 apps sont sur **3 projets Firebase distincts** (Muscu et Budget : e-mail + mot de passe ; Courses : anonyme). Un Portail qui lirait les 3 bases demanderait 2 mots de passe et devrait **recalculer** le reste à vivre et la semaine de Muscu (risque de divergence avec les apps).
 - **Courses est le seul projet à l'authentification anonyme** : n'importe quelle app peut donc s'y connecter en silence. Chaque app calcule son propre résumé (elle connaît ses données et sa logique) et l'écrit dans `portail/<app>` ; le Portail ne fait que lire et afficher.
 - Aucune règle Firestore modifiée : `allow read, write: if request.auth != null` de Courses couvre déjà la nouvelle collection `portail` (testé le 22/09/2026 : écriture/lecture anonymes OK, lecture sans connexion refusée).
 - Écartées : **A** (résumés dans `localStorage` de la même origine : pas en direct, un téléphone ne voit pas ce que fait l'autre) et **B2** (le Portail lit les 3 bases : 2 connexions e-mail/mot de passe + calculs dupliqués).
@@ -397,6 +397,7 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 
 ### ⚠️ Sécurité — à lire avant de toucher à quoi que ce soit
 
+- **29/09/2026** : cette base contient désormais aussi Budget et Muscu, **protégés par des règles réservées au compte e-mail** (voir « Projet Firebase UNIQUE ») ; ce qui suit ne vaut plus que pour `produits`, `rayons` et `portail`.
 - **Le dépôt est public et la base de Courses accepte n'importe quelle connexion anonyme** : quiconque lit la configuration Firebase dans le code peut **lire et écrire** toute cette base — les produits, mais aussi les 3 documents `portail/*` (donc le reste à vivre en euros, choix assumé de Corentin le 22/09/2026).
 - Conséquence côté code : **les documents `portail/*` ne sont pas de confiance.** Le Portail les valide (types, bornes, longueurs) et les écrit **exclusivement avec `textContent`** — **jamais `innerHTML`** : le Portail partage son origine avec Muscu, Budget et Courses, donc avec leur `localStorage` (dont la clé API du coach IA). Vérifié le 22/09/2026 : des documents piégés (`<img onerror=…>`, `<script>`, types faux, valeurs énormes) s'affichent comme du texte inerte.
 - **Durcissements possibles** (non faits) : règle Firestore limitant `portail/{doc}` à un schéma et une taille fixes ; App Check ; ou publier des pourcentages plutôt que des montants.
@@ -715,3 +716,44 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 **Workflow `auto-version.yml`** : `commun.js` ajouté aux chemins surveillés ; s'il change, chaque app dont l'`index.html` contient `commun.js?v=` est rebumpée (DERNIERE_MAJ, `?v=`, `CACHE_NAME`), comme pour `verre.css`.
 **Portail** (`app.js`) : blocs date de MAJ, service worker et vérification de version retirés ; `index.html` : les deux mini-scripts du `<head>` remplacés par `commun.js`.
 **Vérifié** (Chromium 141) : 4 apps sans erreur JS ; halos calés ; « Dernière mise à jour du code » affichée (Portail, Course, Budget ; Muscu dans ses Réglages) ; `sw.js` de chaque dossier enregistré ; `commun.js` et `verre.css` présents dans le cache de chaque app ; version plus récente simulée sur le serveur → rechargement automatique, et bandeau « Actualiser » une fois la limite de 2 rechargements atteinte.
+
+## Projet Firebase UNIQUE pour les 4 apps (29/09/2026)
+
+**Décision de Corentin** : regrouper les 3 projets Firebase en un seul, pour un login unique et pour brancher les futures apps (roadmap) sans créer un projet à chaque fois.
+
+### Où sont les données
+
+| App | Projet avant | Projet depuis le 29/09/2026 | Collections |
+|---|---|---|---|
+| Course | `course-app-36e9d` | `course-app-36e9d` (inchangé) | `produits`, `rayons` |
+| Portail | `course-app-36e9d` | inchangé | `portail/{muscu,budget,courses}` |
+| Budget | `lisa-et-corentin` | **`course-app-36e9d`** | `mois`, `config` |
+| Muscu | `duo-training-e835b` | **`course-app-36e9d`** | `archives`, `customSessions`, `coachChat`, `settings` |
+
+- **Projet cible = celui de Course** : il servait déjà de boîte aux lettres au tableau de bord, et Course/Portail n'ont donc rien eu à migrer. Son identifiant (`course-app-…`) ne peut pas être renommé : c'est normal qu'il porte ce nom.
+- **Aucun conflit de noms** entre collections, et **aucune donnée indexée par UID** : copie à l'identique, document par document, avec les mêmes identifiants (vérifié : 0 écart sur 178 documents).
+- **Anciens projets `lisa-et-corentin` et `duo-training-e835b` : gardés comme archives, passés en LECTURE SEULE** (règles `allow write: if false`). Ne pas les supprimer avant plusieurs semaines d'usage sans souci.
+- **Sauvegarde complète avant migration** (données typées, règles, comptes) : `Sauvegarde_Firebase_AVANT-MIGRATION_2026-09-29.zip`, remise à Corentin, **hors du dépôt** (le dépôt est public, la sauvegarde contient le budget et la clé du coach).
+
+### Compte et session
+
+- **Un seul compte e-mail / mot de passe** dans `course-app-36e9d` (`corentin.debritocanica@gmail.com`), **avec le mot de passe de Budget** (choix de Corentin) : son empreinte a été importée telle quelle depuis `lisa-et-corentin` (Admin SDK `importUsers`, paramètres scrypt du projet source). Le mot de passe de l'ancien compte Muscu ne sert plus.
+- **Session partagée** : Budget, Muscu et Course utilisent la même application Firebase par défaut, sur le même projet et la même origine → une connexion faite dans Budget ou Muscu vaut pour les 3 (au sein d'une même installation PWA ; une app installée séparément sur l'écran d'accueil a son propre stockage sous iOS).
+- **Piège géré** : Course ouvre une session **anonyme** s'il n'y a personne. Budget et Muscu traitent une session anonyme comme « pas connecté » (`user.isAnonymous`) → écran de connexion ; la connexion e-mail remplace alors la session anonyme pour toutes les apps. Course reprend une session e-mail telle quelle, sans doubler ses écoutes (`ecoutes`), et les arrête puis se reconnecte en anonyme après une déconnexion faite dans Muscu.
+- La 2e application Firebase `'portail'` de Muscu et Budget (boîte aux lettres) est **conservée telle quelle** : elle pointe désormais sur le même projet, avec sa propre session anonyme. Simplification possible plus tard (publier directement via la base principale), non faite pour limiter le risque.
+
+### Règles de sécurité — `/firestore.rules` (versionné)
+
+- **Course / Portail** (`produits`, `rayons`, `portail`) : toute session, anonyme comprise — inchangé.
+- **Muscu / Budget** : `compteDuo()` = connexion **par mot de passe** ET e-mail du duo. Une session anonyme (que n'importe qui peut ouvrir avec la config publique du dépôt) **n'y a pas accès**, un autre compte e-mail non plus (ferme aussi le trou de l'inscription libre signalé dans `Muscu/README.md`).
+- **Tout le reste est fermé.** Une nouvelle app = ses collections déclarées explicitement dans `firestore.rules`.
+- ⚠️ **Le fichier du dépôt n'est pas déployé automatiquement.** Après modification : publier par la console Firebase (Firestore → Règles, copier-coller) ou par l'API Firebase Rules avec le compte de service (créer un `ruleset` puis mettre à jour la release `cloud.firestore`). Toujours tester avant (émulateur Firestore + `@firebase/rules-unit-testing` : 120 cas testés le 29/09/2026 — compte du duo, anonyme, autre e-mail, sans session).
+- Publiées **AVANT** la copie des données de Budget et Muscu : l'ancienne règle de ce projet (`request.auth != null` partout) aurait exposé le budget à n'importe quelle session anonyme.
+
+### Ce qui reste hors du dépôt
+
+- **Google Apps Script des sauvegardes du dimanche** (Budget et Muscu) : il lit Firestore avec les clés des propriétés de script `SA_BUDGET` et `SA_MUSCU`. **À mettre à jour par Corentin** : remplacer le contenu de ces deux propriétés par la clé de compte de service de `course-app-36e9d`. Sinon, les mails continuent d'arriver mais avec les données figées des anciens projets.
+
+### Coûts
+
+- Quotas gratuits (plan Spark) désormais **partagés** entre les 4 apps (50 000 lectures / 20 000 écritures par jour). Volume à deux : très loin des limites. Un `onSnapshot` mal placé dans une app pèserait sur les autres — y penser en ajoutant une app.
