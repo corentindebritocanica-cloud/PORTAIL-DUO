@@ -295,6 +295,23 @@ html.verre[data-app="course"] .searchbar{
   margin:16px 18px 4px; border-radius:999px; background:var(--v-soft);
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
+/* RECHERCHE TOUJOURS ACCESSIBLE (29/09/2026, demande de Corentin) : la barre reste collée en haut de
+   l'écran pendant le défilement de la liste (position:sticky — la page défile elle-même, cf. BAS DE
+   PAGE). L'enveloppe .barre-recherche (index.html) est pleine largeur ; une fois collée (classe .colle,
+   posée par app.js), elle prend un fond opaque couleur plaque — SANS flou (règle PERF : pas de 4e
+   surface floutée) — et son ::before couvre la zone de l'encoche au-dessus : les lignes qui passent
+   dessous ne se lisent ni à côté de la barre ni derrière l'heure. ::after = fondu sous la barre. */
+html.verre[data-app="course"] .barre-recherche{
+  position:sticky; z-index:5;
+  top:calc(env(safe-area-inset-top, 0px) - 6px);   /* la barre (16 px sous le haut de l'enveloppe) se cale 10 px sous l'encoche */
+  padding:16px 18px 4px;
+}
+html.verre[data-app="course"] .barre-recherche .searchbar{ margin:0; }
+html.verre[data-app="course"] .barre-recherche.colle{ background:#171719; }
+html.verre[data-app="course"] .barre-recherche.colle::before,
+html.verre[data-app="course"] .barre-recherche.colle::after{ content:''; position:absolute; left:0; right:0; pointer-events:none; }
+html.verre[data-app="course"] .barre-recherche.colle::before{ bottom:100%; height:calc(env(safe-area-inset-top, 0px) + 1px); background:#171719; }
+html.verre[data-app="course"] .barre-recherche.colle::after{ top:100%; height:14px; background:linear-gradient(#171719, rgba(23,23,25,0)); }
 html.verre[data-app="course"] .titre-rayon{ margin:0 0 2px 2px; }
 html.verre[data-app="course"] .section-rayon{ margin-top:20px; }
 html.verre[data-app="course"] .carte-produit{

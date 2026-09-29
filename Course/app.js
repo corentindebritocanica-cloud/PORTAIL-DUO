@@ -270,6 +270,23 @@ document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
 /* ============================================================
    RECHERCHE
    ============================================================ */
+/* BARRE DE RECHERCHE COLLÉE (29/09/2026, demande de Corentin) : .barre-recherche est en position:sticky
+   (../verre.css), donc toujours à portée de pouce pendant le défilement. La classe .colle (fond opaque +
+   voile sur l'encoche) n'est posée que lorsqu'elle est réellement collée en haut : au repos, elle garde
+   l'aspect de la plaque de verre. Au plus un calcul par image. */
+(function(){
+  const barre = document.querySelector('.barre-recherche');
+  if(!barre) return;
+  let prevu = false;
+  function majColle(){
+    prevu = false;
+    const haut = parseFloat(getComputedStyle(barre).top);
+    barre.classList.toggle('colle', window.scrollY > 0 && barre.getBoundingClientRect().top <= (isNaN(haut) ? 0 : haut) + 1);
+  }
+  window.addEventListener('scroll', ()=>{ if(!prevu){ prevu = true; requestAnimationFrame(majColle); } }, { passive:true });
+  window.addEventListener('resize', majColle);
+  majColle();
+})();
 const champRecherche = document.getElementById('champ-recherche');
 const btnEffacerRecherche = document.getElementById('btn-effacer-recherche');
 champRecherche.addEventListener('input', ()=>{
