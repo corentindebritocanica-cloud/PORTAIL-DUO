@@ -400,4 +400,4 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - **Plus de connexion anonyme** : `demarrer()` (`app.js`) ouvre l'écran **Connexion** (`#connexion`, `connexionDuo()` de `../commun.js`) tant qu'il n'y a pas de session e-mail du duo — une ancienne session anonyme compte comme « pas connecté ». Écoutes de `produits`/`rayons` démarrées seulement avec le compte du duo, arrêtées à la déconnexion.
 - **Session partagée** avec le Portail, Budget et Muscu (application Firebase par défaut, même origine) : une connexion faite dans l'une vaut pour les autres sur la même installation.
 - Règles : `produits`, `rayons`, `portail` → `compteDuo()` (`/firestore.rules`). **Ordre de mise en service** et vérifications : README racine, « Course et Portail réservés au compte du duo ».
-- **État au 29/09/2026 (soir)** : en ligne, testé sur iPhone par Corentin (« tout marche ») ; connexion anonyme désactivée dans Firebase ; compte reconnu par son UID dans les règles.
+- **État au 29/09/2026 (soir)** : en ligne, testé sur iPhone par Corentin (« tout marche ») ; connexion anonyme désactivée dans Firebase ; règles avec l'UID du compte publiées.
