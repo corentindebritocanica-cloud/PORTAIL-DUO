@@ -471,13 +471,17 @@
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
+  /* 29/09/2026 : projet Firebase UNIQUE des 4 apps (course-app-36e9d). Avant : projet dédié
+     `duo-training-e835b`, gardé en lecture seule comme archive. Collections archives, customSessions,
+     coachChat et settings copiées à l'identique ; règles réservées au compte e-mail du duo
+     (voir /firestore.rules). Même compte que Budget (son mot de passe a été conservé). */
   const firebaseConfig = {
-    apiKey: "AIzaSyDk07pFMBaSwV7HCmqZGw4hq-OJcu4UUbY",
-    authDomain: "duo-training-e835b.firebaseapp.com",
-    projectId: "duo-training-e835b",
-    storageBucket: "duo-training-e835b.firebasestorage.app",
-    messagingSenderId: "543084754030",
-    appId: "1:543084754030:web:7ea0c673faf74648f7227f"
+    apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+    authDomain: "course-app-36e9d.firebaseapp.com",
+    projectId: "course-app-36e9d",
+    storageBucket: "course-app-36e9d.firebasestorage.app",
+    messagingSenderId: "55041357024",
+    appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -562,10 +566,15 @@
      Firebase conserve la session localement, donc le mode hors-ligne survit :
      après une première connexion, l'app fonctionne en salle sans réseau. */
   let subscribed = false;
+  /* 29/09/2026 (projet Firebase unique) : session PARTAGÉE avec Budget et Course (même projet,
+     même origine). Une session ANONYME ouverte par Course ne donne pas accès aux données de Muscu
+     (règles) : elle compte comme « pas connecté », l'écran de connexion s'affiche, et la connexion
+     e-mail remplace la session anonyme pour toutes les apps. */
   onAuthStateChanged(auth, (user) => {
-    window.__authUser = user ? { email: user.email, uid: user.uid } : null;
+    const compte = user && !user.isAnonymous ? user : null;
+    window.__authUser = compte ? { email: compte.email, uid: compte.uid } : null;
     window.dispatchEvent(new Event('auth-changed'));
-    if(user && !subscribed){ subscribed = true; subscribeAll(); }
+    if(compte && !subscribed){ subscribed = true; subscribeAll(); }
   });
 
   function subscribeAll(){

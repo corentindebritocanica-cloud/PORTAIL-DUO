@@ -65,7 +65,7 @@ window.addEventListener('offline', ()=> majStatutConnexion(true));
 window.addEventListener('online', ()=> majStatutConnexion(true));
 function dbOnCollection(nom, cb){
   let premier = true, etaitCache = true;
-  colRef(nom).onSnapshot({ includeMetadataChanges: true }, snap=>{
+  return colRef(nom).onSnapshot({ includeMetadataChanges: true }, snap=>{   /* renvoie la fonction d'arrêt (29/09/2026) */
     const cache = snap.metadata.fromCache;
     majStatutConnexion(cache);
     const passageServeur = etaitCache && !cache;
@@ -522,11 +522,21 @@ function recuDeFirestore(nom){
 }
 
 function demarrer(){
+  /* 29/09/2026 (projet Firebase unique) : la session est partagée avec Budget et Muscu. Une connexion
+     e-mail faite dans l'une d'elles est reprise telle quelle ici (les règles l'acceptent) ; sinon,
+     connexion anonyme comme avant. `abonne` : l'état d'auth peut être re-signalé (anonyme → e-mail),
+     jamais deux écoutes en double. Déconnexion (depuis Muscu) : écoutes arrêtées, puis reconnexion
+     anonyme qui les relance. */
+  let ecoutes = null;
   authListen(user=>{
     if(user){
-      dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); });
-      dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); });
+      if(ecoutes) return;
+      ecoutes = [
+        dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); }),
+        dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); })
+      ];
     } else {
+      if(ecoutes){ ecoutes.forEach(arret=> arret()); ecoutes = null; }
       auth.signInAnonymously().catch(err=> console.error('Connexion anonyme impossible :', err));
     }
   });

@@ -1,0 +1,38 @@
+rules_version = '2';
+// Projet Firebase UNIQUE de PORTAIL-DUO (course-app-36e9d) depuis le 29/09/2026.
+// Source versionnée : /firestore.rules du dépôt. Publiée par l'API Firebase Rules (voir README racine).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Toute session, anonyme comprise (Course, Portail, boîte aux lettres du tableau de bord).
+    function connecte() {
+      return request.auth != null;
+    }
+
+    // Le compte e-mail / mot de passe du duo, et lui seul. Une session anonyme ne suffit PAS :
+    // n'importe qui peut en ouvrir une avec la configuration publique du dépôt.
+    function compteDuo() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.auth.token.email == 'corentin.debritocanica@gmail.com';
+    }
+
+    // ---- COURSE + PORTAIL ----
+    match /produits/{id}       { allow read, write: if connecte(); }
+    match /rayons/{id}         { allow read, write: if connecte(); }
+    match /portail/{id}        { allow read, write: if connecte(); }
+
+    // ---- MUSCU ----
+    match /archives/{id}       { allow read, write: if compteDuo(); }
+    match /customSessions/{id} { allow read, write: if compteDuo(); }
+    match /coachChat/{id}      { allow read, write: if compteDuo(); }
+    match /settings/{id}       { allow read, write: if compteDuo(); }
+
+    // ---- BUDGET ----
+    match /mois/{document=**}   { allow read, write: if compteDuo(); }
+    match /config/{document=**} { allow read, write: if compteDuo(); }
+
+    // Tout le reste : fermé. Une nouvelle app = une nouvelle collection déclarée ici.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

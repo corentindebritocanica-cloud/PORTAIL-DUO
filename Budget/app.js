@@ -2,13 +2,16 @@
    Extrait des anciens <script> inline de index.html le 20/09/2026 (contenu inchangé,
    sauf la constante DERNIERE_MAJ, qui reste dans index.html : voir README). */
         // Firebase compat — scripts chargés en <head>
+        // 29/09/2026 : projet Firebase UNIQUE des 4 apps (course-app-36e9d). Avant : projet dédié
+        // `lisa-et-corentin`, gardé en lecture seule comme archive. Collections `mois` et `config`
+        // copiées à l'identique ; règles réservées au compte e-mail du duo (voir /firestore.rules).
         const firebaseConfig = {
-            apiKey: "AIzaSyBro9AXaoXhSptyUVxoKVtr6xC4rtZQ3FI",
-            authDomain: "lisa-et-corentin.firebaseapp.com",
-            projectId: "lisa-et-corentin",
-            storageBucket: "lisa-et-corentin.firebasestorage.app",
-            messagingSenderId: "694332145017",
-            appId: "1:694332145017:web:1bf6fb387f54d46b1643a8"
+            apiKey: "AIzaSyCc12HZotF_AmmPHvSr0eXBYWOLSnBOONw",
+            authDomain: "course-app-36e9d.firebaseapp.com",
+            projectId: "course-app-36e9d",
+            storageBucket: "course-app-36e9d.firebasestorage.app",
+            messagingSenderId: "55041357024",
+            appId: "1:55041357024:web:48ee2d71b97dc15c55cc85"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -1055,10 +1058,14 @@
         // « pas de session » (user === null) — Firebase ne rend ce verdict qu'après avoir relu la session
         // enregistrée sur l'appareil, donc jamais à tort. Avant, l'écran de connexion restait affiché le temps
         // du démarrage de Firebase (import du cache persistant + relecture de la session), même connecté.
+        // 29/09/2026 (projet Firebase unique) : la session est PARTAGÉE avec Muscu et Course (même
+        // projet, même origine). Course peut avoir ouvert une session ANONYME : elle ne donne pas accès
+        // aux données du Budget (règles) → traitée comme « pas connecté », l'écran de connexion s'affiche
+        // et la connexion e-mail remplace la session anonyme pour toutes les apps.
         dbReady.then(() => authListen((user) => {
-            if (user) {
+            if (user && !user.isAnonymous) {
                 document.getElementById('login-screen').classList.add('hidden');
-                attacherEcouteurs();
+                if (!unsubMois) attacherEcouteurs(); // jamais deux écoutes (l'état d'auth peut être re-signalé, session partagée)
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
                 if (unsubMois) { unsubMois(); unsubMois = null; }
