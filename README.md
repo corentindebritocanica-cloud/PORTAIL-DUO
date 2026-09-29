@@ -752,7 +752,8 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 
 ### Ce qui reste hors du dépôt
 
-- **Google Apps Script des sauvegardes du dimanche** (Budget et Muscu) : il lit Firestore avec les clés des propriétés de script `SA_BUDGET` et `SA_MUSCU`. **À mettre à jour par Corentin** : remplacer le contenu de ces deux propriétés par la clé de compte de service de `course-app-36e9d`. Sinon, les mails continuent d'arriver mais avec les données figées des anciens projets.
+- **Google Apps Script des sauvegardes du dimanche** (Budget et Muscu) : il lit Firestore avec les clés des propriétés de script `SA_BUDGET` et `SA_MUSCU` (le projet lu = `project_id` de la clé, rien en dur dans le code). **Fait le 29/09/2026** : les deux propriétés contiennent la clé de `course-app-36e9d` ; exécution test OK (Budget 9 mois, Muscu 24 séances). ⚠️ Coller la clé **sur une seule ligne** (JSON minifié, champs `project_id`, `client_email`, `private_key` suffisent) : collé sur plusieurs lignes, le champ des propriétés tronque la valeur (« Unterminated string in JSON at position 751 »). Vérification sans mail : fonction `verifierAcces`.
+- **Anciens projets** `lisa-et-corentin` et `duo-training-e835b` : plus aucune dépendance après la mise à jour de l'Apps Script → suppression validée le 29/09/2026 (Google les garde 30 jours récupérables).
 
 ### Coûts
 
