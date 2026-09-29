@@ -37,9 +37,9 @@ Projet `course-app-36e9d`, deux collections de premier niveau :
 - `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool), `compteur` (nombre, incrémenté de 1 à chaque "Course terminée" — sert au tri par popularité de l'onglet Liste)
 - `rayons/{id}` — champ `nom`
 
-Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme).
+Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme). *(Situation d'origine — depuis le 29/09/2026 au soir : réservé au compte du duo, voir « Réservée au compte du duo » en fin de fichier.)*
 
-**Authentification : anonyme** (`signInAnonymously()`), activée sur le projet le 18/09/2026. Pas d'écran de connexion — le choix Corentin/Lisa dans Réglages est une simple préférence d'affichage locale (`localStorage`), pas un compte séparé : les deux profils partagent les mêmes données.
+**Authentification : anonyme** (`signInAnonymously()`), activée sur le projet le 18/09/2026 *(remplacée le 29/09/2026 au soir par le compte e-mail du duo ; connexion anonyme désactivée dans Firebase)*. Pas d'écran de connexion — le choix Corentin/Lisa dans Réglages est une simple préférence d'affichage locale (`localStorage`), pas un compte séparé : les deux profils partagent les mêmes données.
 
 **Persistance hors-ligne Firestore** : `enablePersistence({synchronizeTabs:true})` (SDK compat classique — délibérément pas l'API modulaire `initializeFirestore`/`persistentLocalCache`, qui nécessitait un `import()` cross-origin dynamique s'étant révélé peu fiable pour la mise en cache par le Service Worker). En cas d'échec, repli silencieux sur le cache mémoire.
 
@@ -51,6 +51,7 @@ Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règle
 - **Authentification anonyme** plutôt qu'email/mot de passe : élimine un écran de connexion et sa dépendance réseau au démarrage.
 
 ## Mise en route (si jamais à refaire ailleurs)
+*(Procédure d'origine, périmée depuis le 29/09/2026 : aujourd'hui, projet commun `course-app-36e9d`, connexion e-mail du duo, règles = `/firestore.rules` du dépôt.)*
 1. Projet Firebase avec Cloud Firestore (mode natif) activé
 2. Activer l'authentification **Anonyme** dans Firebase Auth (Sign-in method)
 3. Règles Firestore : `allow read, write: if request.auth != null;`
@@ -203,7 +204,7 @@ Courses est la **« boîte aux lettres » du tableau de bord du Portail** : sa b
 - **`portail/courses`** (écrit par cette app) : `maj`, `aAcheter` (produits dans la liste), `restants` (dans la liste **et pas encore cochés** en magasin : `aAcheter && !achete`), `rayons` = les 3 rayons qui ont le plus de produits restants (`{nom, n}`).
 - **Code** : bloc « RÉSUMÉ POUR LE PORTAIL » de `app.js` (`calculerResumePortail`, `planifierPublicationPortail`). `dbOnCollection` transmet un 2e argument `fromCache` à son callback (rétro-compatible). Publié **seulement après un premier snapshot SERVEUR des deux collections** (`portailRecu`), regroupé 2,5 s. **Depuis le 23/09/2026, republié à chaque snapshot serveur même si le contenu n'a pas changé** (sur demande de Corentin : `maj` doit refléter la dernière fois que l'app a été ouverte et vérifiée, pas la dernière fois que la liste a réellement changé — sinon le Portail affichait un horodatage périmé après une simple ouverture sans modification). **Flush immédiat au `pagehide`/`visibilitychange`** (même date) : si la page se ferme avant la fin des 2,5 s (aller-retour rapide dans l'app), le `setTimeout` en attente est publié tout de suite au lieu d'être perdu avec la page. **v2 (23/09/2026, soir)** : regroupement ramené à 0,3 s, `portailOk` suit l'accusé de réception serveur, et au départ de la page le secours passe par l'API REST de Firestore en `fetch keepalive` (remplace le simple flush, dont l'écriture n'était envoyée qu'à la prochaine ouverture de Courses). Détails et tests : README du Portail, « Publication fiable du résumé — v2 ».
 - ⚠️ **La collection `portail` n'est pas à Courses** : elle contient aussi `portail/muscu` et `portail/budget`, écrits par les autres apps. Ne pas la supprimer, ne pas la « nettoyer » dans un script de remise à zéro du catalogue, et ne pas s'étonner d'y trouver ces documents.
-- **Règles Firestore inchangées** : `request.auth != null` (anonyme compris) couvre déjà `portail`.
+- **Règles Firestore inchangées** : `request.auth != null` (anonyme compris) couvre déjà `portail`. *(Depuis le 29/09/2026 au soir : `portail/*` réservé au compte du duo.)*
 - **Vérifié** (vraie base, connexion anonyme réelle) : l'app publie et met à jour `portail/courses`. **Non vérifié sur iPhone.**
 
 
@@ -391,7 +392,7 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 
 - Le projet de Course (`course-app-36e9d`) est devenu **le projet commun aux 4 apps** : Budget (`mois`, `config`) et Muscu (`archives`, `customSessions`, `coachChat`, `settings`) y ont été copiés. Données de Course **non touchées**. Détails : README racine, « Projet Firebase UNIQUE ».
 - **Règles modifiées** (`/firestore.rules`, versionné) : `produits`, `rayons` et `portail` restent ouverts à toute session (anonyme comprise) ; les collections de Budget et Muscu exigent le compte e-mail du duo ; tout le reste est fermé (avant : `request.auth != null` sur **toute** la base).
-- **Session partagée** avec Budget et Muscu : si l'on s'est connecté par e-mail dans l'une d'elles, Course reprend cette session telle quelle ; sinon connexion anonyme comme avant. `demarrer()` garde les fonctions d'arrêt de ses deux écoutes (`ecoutes`, `dbOnCollection` renvoie désormais la fonction d'arrêt) : jamais d'écoute en double si l'état d'auth est re-signalé, arrêt puis reconnexion anonyme après une déconnexion faite dans Muscu.
+- **Session partagée** avec Budget et Muscu : si l'on s'est connecté par e-mail dans l'une d'elles, Course reprend cette session telle quelle ; sinon connexion anonyme comme avant *(plus de connexion anonyme depuis le soir même : écran de connexion, voir ci-dessous)*. `demarrer()` garde les fonctions d'arrêt de ses deux écoutes (`ecoutes`, `dbOnCollection` renvoie désormais la fonction d'arrêt) : jamais d'écoute en double si l'état d'auth est re-signalé, arrêt puis reconnexion anonyme après une déconnexion faite dans Muscu.
 - Vérifié : Chromium, base réelle — données lues depuis le serveur (pastille verte), aucune erreur.
 
 ## Réservée au compte du duo (29/09/2026, soir)
@@ -399,3 +400,4 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - **Plus de connexion anonyme** : `demarrer()` (`app.js`) ouvre l'écran **Connexion** (`#connexion`, `connexionDuo()` de `../commun.js`) tant qu'il n'y a pas de session e-mail du duo — une ancienne session anonyme compte comme « pas connecté ». Écoutes de `produits`/`rayons` démarrées seulement avec le compte du duo, arrêtées à la déconnexion.
 - **Session partagée** avec le Portail, Budget et Muscu (application Firebase par défaut, même origine) : une connexion faite dans l'une vaut pour les autres sur la même installation.
 - Règles : `produits`, `rayons`, `portail` → `compteDuo()` (`/firestore.rules`). **Ordre de mise en service** et vérifications : README racine, « Course et Portail réservés au compte du duo ».
+- **État au 29/09/2026 (soir)** : en ligne, testé sur iPhone par Corentin (« tout marche ») ; connexion anonyme désactivée dans Firebase ; compte reconnu par son UID dans les règles.

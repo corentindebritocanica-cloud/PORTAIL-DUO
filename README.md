@@ -155,7 +155,7 @@ entièrement retirée.
   du dépôt (voir aussi `Muscu/README.md`, `Course/README.md`, `Budget/README.md`
   — Budget n'avait ni Service Worker ni persistance Firestore, tous deux ajoutés
   ce même jour).
-- **Depuis le 22/09/2026** : lecture de Firebase (connexion anonyme) pour le tableau de bord, et dernier état connu gardé dans `localStorage` (`portail-resume`). Voir « Tableau de bord ».
+- **Depuis le 22/09/2026** : lecture de Firebase (connexion anonyme ; **depuis le 29/09/2026 au soir : compte e-mail du duo**, écran de connexion si besoin) pour le tableau de bord, et dernier état connu gardé dans `localStorage` (`portail-resume`). Voir « Tableau de bord ».
 
 ## 6. Historique — barre de statut iOS (résolu le 18/09/2026)
 
@@ -348,7 +348,7 @@ Budget ─┼── écrivent portail/<app> ──►  base Firestore de COURSES
 Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 ```
 
-- *(Situation au 22/09/2026 — depuis le 29/09/2026 les 4 apps sont sur un projet unique, voir « Projet Firebase UNIQUE » en fin de fichier.)* Les 3 apps sont sur **3 projets Firebase distincts** (Muscu et Budget : e-mail + mot de passe ; Courses : anonyme). Un Portail qui lirait les 3 bases demanderait 2 mots de passe et devrait **recalculer** le reste à vivre et la semaine de Muscu (risque de divergence avec les apps).
+- *(Situation au 22/09/2026 — depuis le 29/09/2026 les 4 apps sont sur un projet unique, voir « Projet Firebase UNIQUE » en fin de fichier ; depuis le 29/09/2026 au soir, plus de connexion anonyme ni de 2e application `'portail'`, voir « Course et Portail réservés au compte du duo » en fin de fichier.)* Les 3 apps sont sur **3 projets Firebase distincts** (Muscu et Budget : e-mail + mot de passe ; Courses : anonyme). Un Portail qui lirait les 3 bases demanderait 2 mots de passe et devrait **recalculer** le reste à vivre et la semaine de Muscu (risque de divergence avec les apps).
 - **Courses est le seul projet à l'authentification anonyme** : n'importe quelle app peut donc s'y connecter en silence. Chaque app calcule son propre résumé (elle connaît ses données et sa logique) et l'écrit dans `portail/<app>` ; le Portail ne fait que lire et afficher.
 - Aucune règle Firestore modifiée : `allow read, write: if request.auth != null` de Courses couvre déjà la nouvelle collection `portail` (testé le 22/09/2026 : écriture/lecture anonymes OK, lecture sans connexion refusée).
 - Écartées : **A** (résumés dans `localStorage` de la même origine : pas en direct, un téléphone ne voit pas ce que fait l'autre) et **B2** (le Portail lit les 3 bases : 2 connexions e-mail/mot de passe + calculs dupliqués).
@@ -741,8 +741,8 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 
 - **Un seul compte e-mail / mot de passe** dans `course-app-36e9d` (l'adresse e-mail du duo), **avec le mot de passe de Budget** (choix de Corentin) : son empreinte a été importée telle quelle depuis `lisa-et-corentin` (Admin SDK `importUsers`, paramètres scrypt du projet source). Le mot de passe de l'ancien compte Muscu ne sert plus.
 - **Session partagée** : Budget, Muscu et Course utilisent la même application Firebase par défaut, sur le même projet et la même origine → une connexion faite dans Budget ou Muscu vaut pour les 3 (au sein d'une même installation PWA ; une app installée séparément sur l'écran d'accueil a son propre stockage sous iOS).
-- **Piège géré** : Course ouvre une session **anonyme** s'il n'y a personne. Budget et Muscu traitent une session anonyme comme « pas connecté » (`user.isAnonymous`) → écran de connexion ; la connexion e-mail remplace alors la session anonyme pour toutes les apps. Course reprend une session e-mail telle quelle, sans doubler ses écoutes (`ecoutes`), et les arrête puis se reconnecte en anonyme après une déconnexion faite dans Muscu.
-- La 2e application Firebase `'portail'` de Muscu et Budget (boîte aux lettres) est **conservée telle quelle** : elle pointe désormais sur le même projet, avec sa propre session anonyme. Simplification possible plus tard (publier directement via la base principale), non faite pour limiter le risque.
+- *(Remplacé le 29/09/2026 au soir : plus de session anonyme du tout, voir « Course et Portail réservés au compte du duo » en fin de fichier.)* **Piège géré** : Course ouvre une session **anonyme** s'il n'y a personne. Budget et Muscu traitent une session anonyme comme « pas connecté » (`user.isAnonymous`) → écran de connexion ; la connexion e-mail remplace alors la session anonyme pour toutes les apps. Course reprend une session e-mail telle quelle, sans doubler ses écoutes (`ecoutes`), et les arrête puis se reconnecte en anonyme après une déconnexion faite dans Muscu.
+- *(Supprimée le 29/09/2026 au soir.)* La 2e application Firebase `'portail'` de Muscu et Budget (boîte aux lettres) est **conservée telle quelle** : elle pointe désormais sur le même projet, avec sa propre session anonyme. Simplification possible plus tard (publier directement via la base principale), non faite pour limiter le risque.
 
 ### Règles de sécurité — `/firestore.rules` (versionné)
 
@@ -779,6 +779,20 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 2. Sur **chaque téléphone** : ouvrir le Portail (et chaque app installée à part), laisser la mise à jour se faire, **se connecter** avec le compte du duo.
 3. **Seulement ensuite**, publier `/firestore.rules` : console Firebase → Firestore → Règles → coller le fichier → Publier. Avant cette étape tout fonctionne déjà (une session e-mail satisfait aussi les anciennes règles) ; publier trop tôt bloquerait un téléphone resté sur l'ancienne version (session anonyme) jusqu'à sa mise à jour.
 4. Facultatif : Authentication → Méthode de connexion → désactiver **Anonyme** (plus rien ne s'en sert).
+
+**État au 29/09/2026 (soir)** : fusion faite (PR n°1) et mise en ligne ; téléphones mis à jour et connectés — « tout marche » (retour de Corentin, iPhone) ; connexion **Anonyme désactivée** dans Firebase Authentication par Corentin. Règles : version finale = celle avec l'**UID** (ci-dessous, PR n°2), à publier dans la console si ce n'est pas déjà fait.
+
+### Compte reconnu par son UID (29/09/2026, soir)
+- `compteDuo()` vérifie `request.auth.uid` (identifiant Firebase du compte du duo, fixe) au lieu de l'adresse e-mail : même accès, mais l'adresse n'apparaît plus dans le fichier public. Le fournisseur `password` reste exigé.
+- UID : console Firebase → Authentication → Utilisateurs, colonne « UID de l'utilisateur ». Ce n'est pas un secret.
+- Vérifié (émulateur, 240 cas) : compte du duo par mot de passe → accès complet ; **autre compte avec la même adresse e-mail**, même UID via un autre fournisseur, session anonyme, autre compte, sans session → refusés ; collection non déclarée → refusée à tous.
+- ⚠️ Si le compte du duo est un jour **supprimé puis recréé**, il aura un nouvel UID : mettre à jour `firestore.rules` et republier, sinon plus personne n'a accès.
+
+### Hygiène des secrets (29/09/2026, soir)
+- **Clés Gemini et Groq du coach** (abandonné le 23/09) : effacées de `settings/coach` par Muscu (voir `Muscu/README.md`) **et révoquées** par Corentin dans Google AI Studio et la console Groq.
+- **Aucune clé privée dans le dépôt** : ni clé de compte de service, ni mot de passe, ni jeton (vérifié sur tout l'historique git). Les clés `AIza…` visibles dans le code sont les clés **web** Firebase, publiques par conception : la protection, ce sont les règles.
+- **Ne jamais coller de clé de compte de service** (JSON avec `private_key`) dans un fichier du dépôt ni dans une conversation : les règles se publient par copier-coller dans la console, sans clé. Une clé exposée se supprime dans Google Cloud → IAM → Comptes de service → Clés.
+- **Adresse e-mail** : retirée des règles (UID) ; GitHub réglé pour masquer l'adresse dans les prochains commits (« Keep my email addresses private »). Les anciens commits la gardent (historique non réécrit, choix assumé).
 
 ### Vérifié / non vérifié
 - **Règles** (émulateur Firestore, `@firebase/rules-unit-testing`) : 200 cas — compte du duo (mot de passe) : lecture, liste, écriture, suppression OK sur les 9 collections ; session anonyme, autre compte e-mail, même e-mail via un autre fournisseur, sans session : tout refusé ; collection non déclarée : refusée à tous.
