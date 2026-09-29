@@ -19,6 +19,24 @@
 
 ---
 
+## 🔒 4 apps — sécurité : base ouverte à l'anonyme, secrets oubliés (29/09/2026, soir)
+
+### 29/09/2026 — Course, Portail, Budget, Muscu — une connexion anonyme ouvrait la liste de courses et le tableau de bord à tout le monde
+**Symptôme** : aucun bug visible. Relevé lors d'un audit de sécurité du dépôt : `produits`, `rayons` et `portail` acceptaient **n'importe quelle session anonyme**.
+**Fausses pistes explorées** : « il n'y a rien de sensible dans la liste de courses » — vrai pour la confidentialité, faux pour le reste : n'importe qui pouvait vider la liste, écrire de faux résumés, lire le reste à vivre publié dans `portail/budget`, et, depuis le projet unique, **épuiser les quotas gratuits partagés** (donc bloquer aussi Budget et Muscu jusqu'au lendemain).
+**Cause racine** : configuration Firebase publique (dépôt et Pages publics) + authentification anonyme activée = une session s'ouvre sans rien savoir. La règle `request.auth != null` ne filtre donc personne.
+**Solution** : toutes les collections en `compteDuo()` (fournisseur `password` **et** UID du compte du duo) ; écran de connexion commun dans Course et le Portail (`connexionDuo()`, `commun.js`) ; Muscu et Budget publient leur résumé avec leur propre session ; Portail sur l'application Firebase par défaut (session partagée) ; mise en service dans l'ordre : apps en ligne → téléphones connectés → règles publiées → connexion Anonyme désactivée. Détails : README racine, « Course et Portail réservés au compte du duo ».
+**Leçons généralisables** :
+- **La clé web Firebase n'est pas un secret** : ce qui protège, ce sont les règles. Toute collection doit exiger une identité précise (UID + fournisseur), jamais seulement `request.auth != null`.
+- **Changer des règles qui retirent un accès = d'abord les apps, ensuite les règles.** Publiées trop tôt, elles coupent les téléphones restés sur l'ancienne version.
+- **Reconnaître le compte par son UID plutôt que par son e-mail** : même sécurité, et l'adresse ne se retrouve pas dans un fichier public ; un autre compte créé avec la même adresse reste refusé.
+- **Quand une fonction est abandonnée, supprimer aussi ses secrets** : les clés Gemini/Groq du coach (abandonné le 23/09) dormaient dans `settings/coach`, avaient été copiées lors de la migration, et la sauvegarde par mail envoyait la clé Groq (seule `apiKey` était retirée). Effacées par Muscu et révoquées chez les fournisseurs.
+- **Ne jamais coller une clé de compte de service** (JSON avec `private_key`) dans le dépôt ni dans une conversation : les règles se publient par copier-coller dans la console. Une clé exposée se supprime aussitôt (Google Cloud → IAM → Comptes de service → Clés).
+- **Tester des règles sans risque** : émulateur Firestore + `@firebase/rules-unit-testing`, une matrice « sessions × collections × opérations » (240 cas ici) ; et les apps entières dans Chromium branchées sur les émulateurs Auth/Firestore.
+**Fichiers touchés** : `firestore.rules`, `commun.js`, `verre.css`, `index.html`, `app.js`, `Course/index.html`, `Course/app.js`, `Budget/app.js`, `Muscu/index.html`, README racine, `Course/README.md`, `Budget/README.md`, `Muscu/README.md`
+
+---
+
 ## 🔥 4 apps — regroupement des 3 projets Firebase en un seul (29/09/2026)
 
 ### 29/09/2026 — Budget, Muscu, Course, Portail — migrer une base Firebase vers un autre projet sans rien casser
