@@ -393,3 +393,9 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - **Règles modifiées** (`/firestore.rules`, versionné) : `produits`, `rayons` et `portail` restent ouverts à toute session (anonyme comprise) ; les collections de Budget et Muscu exigent le compte e-mail du duo ; tout le reste est fermé (avant : `request.auth != null` sur **toute** la base).
 - **Session partagée** avec Budget et Muscu : si l'on s'est connecté par e-mail dans l'une d'elles, Course reprend cette session telle quelle ; sinon connexion anonyme comme avant. `demarrer()` garde les fonctions d'arrêt de ses deux écoutes (`ecoutes`, `dbOnCollection` renvoie désormais la fonction d'arrêt) : jamais d'écoute en double si l'état d'auth est re-signalé, arrêt puis reconnexion anonyme après une déconnexion faite dans Muscu.
 - Vérifié : Chromium, base réelle — données lues depuis le serveur (pastille verte), aucune erreur.
+
+## Réservée au compte du duo (29/09/2026, soir)
+
+- **Plus de connexion anonyme** : `demarrer()` (`app.js`) ouvre l'écran **Connexion** (`#connexion`, `connexionDuo()` de `../commun.js`) tant qu'il n'y a pas de session e-mail du duo — une ancienne session anonyme compte comme « pas connecté ». Écoutes de `produits`/`rayons` démarrées seulement avec le compte du duo, arrêtées à la déconnexion.
+- **Session partagée** avec le Portail, Budget et Muscu (application Firebase par défaut, même origine) : une connexion faite dans l'une vaut pour les autres sur la même installation.
+- Règles : `produits`, `rayons`, `portail` → `compteDuo()` (`/firestore.rules`). **Ordre de mise en service** et vérifications : README racine, « Course et Portail réservés au compte du duo ».

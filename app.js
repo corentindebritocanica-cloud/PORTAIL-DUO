@@ -49,12 +49,14 @@
      TABLEAU DE BORD (22/09/2026)
      Chaque carte est un simple lien vers son app. Les chiffres viennent de
      `portail/muscu`, `portail/budget` et `portail/courses`, écrits par les 3 apps dans la
-     base de Courses (connexion anonyme : aucun mot de passe). Voir README.
+     base commune (course-app-36e9d). Depuis le 29/09/2026 : lecture et écriture réservées au
+     compte e-mail du duo (plus de connexion anonyme). Voir README.
      - Affichage instantané depuis le dernier état connu (localStorage), puis mise à jour en
        direct : le Portail reste utilisable hors ligne et ne dépend jamais du SDK pour s'ouvrir.
-     - ⚠️ Ces documents ne sont PAS de confiance (la base accepte n'importe quelle connexion
-       anonyme, et le dépôt est public) : tout est validé (types, bornes, longueurs) et écrit avec
-       textContent — jamais innerHTML. Ce Portail partage son origine avec les 3 apps.
+     - ⚠️ Ces documents restent traités comme NON fiables (défense en profondeur ; jusqu'au
+       29/09/2026 la base acceptait n'importe quelle connexion anonyme) : tout est validé (types,
+       bornes, longueurs) et écrit avec textContent — jamais innerHTML. Ce Portail partage son
+       origine avec les 3 apps.
      ============================================================ */
   (function(){
     const CONFIG_BASE_PORTAIL = {
@@ -71,7 +73,10 @@
     const NOMS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const el = (id) => document.getElementById(id);
     let resume = {};
-    let authPortail = null; // connexion anonyme, gardée pour la relecture REST (sonder)
+    let authPortail = null; // session du duo, gardée pour la relecture REST (sonder)
+    /* 29/09/2026 : `portail/*` est réservé au compte e-mail du duo (firestore.rules). Une session
+       anonyme (anciennes versions) ne compte pas. */
+    const connecte = () => !!(authPortail && authPortail.currentUser && !authPortail.currentUser.isAnonymous);
     let db = null; // hissé hors de demarrerBase() pour que rafraichirDepuisServeur() (retour au premier plan) puisse s'en servir
 
     /* ---- validation : rien de ce qui vient de la base n'est utilisé tel quel ---- */
@@ -222,17 +227,20 @@
       try {
         await chargerScript(SDK + 'firebase-app-compat.js');
         await Promise.all([chargerScript(SDK + 'firebase-auth-compat.js'), chargerScript(SDK + 'firebase-firestore-compat.js')]);
-        const app = firebase.apps.find((a) => a.name === 'portail') || firebase.initializeApp(CONFIG_BASE_PORTAIL, 'portail');
+        /* 29/09/2026 : application Firebase PAR DÉFAUT (avant : 2e application 'portail' en connexion
+           anonyme) → même session e-mail que Course, Budget et Muscu sur la même installation : se
+           connecter dans l'une connecte les autres. Pas de cache Firestore persistant : il serait
+           partagé avec celui des apps (versions du SDK différentes) ; le dernier état connu reste
+           affiché depuis localStorage (CLE_CACHE). */
+        const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(CONFIG_BASE_PORTAIL);
         const auth = app.auth();
         authPortail = auth;
         db = app.firestore();
-        try { await db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* repli silencieux sur le cache mémoire */ }
+        const afficherConnexion = connexionDuo(auth);
         auth.onAuthStateChanged((user) => {
-          if (user) {
-            ecouter();
-          } else {
-            auth.signInAnonymously().catch((err) => console.warn('[portail] connexion anonyme impossible :', err));
-          }
+          const compte = !!(user && !user.isAnonymous);
+          afficherConnexion(!compte);
+          if (compte) { ecouter(); sonder(); } else arreterEcoute();
         });
       } catch (err) {
         console.warn('[portail] base indisponible, affichage du dernier état connu :', err);
@@ -248,7 +256,7 @@
        visible, indépendamment de l'état de l'écoute en direct. */
     /* Renvoie true si la lecture serveur a réussi. */
     async function rafraichirDepuisServeur(){
-      if (!db) return false; // Firestore pas encore prêt (ou base indisponible) : le prochain onSnapshot fera foi
+      if (!db || !connecte()) return false; // Firestore pas prêt (ou pas connecté) : le prochain onSnapshot fera foi
       try {
         const snap = await db.collection('portail').get({ source: 'server' });
         const obj = {};
@@ -266,9 +274,12 @@
     /* Écoute en direct de `portail/*`. Peut être relancée (retour au Portail) : l'ancienne
        écoute est d'abord coupée, pour n'en avoir jamais deux en parallèle. */
     let desabonner = null;
-    function ecouter(){
-      if (!db) return;
+    function arreterEcoute(){
       if (desabonner) { try { desabonner(); } catch (e) {} desabonner = null; }
+    }
+    function ecouter(){
+      if (!db || !connecte()) return;
+      arreterEcoute();
       desabonner = db.collection('portail').onSnapshot((snap) => {
         if (!snap.metadata.fromCache) statut('ok');
         const obj = {};
@@ -325,8 +336,8 @@
       return null;
     }
     async function lireParRest(){
-      const u = authPortail && authPortail.currentUser;
-      if (!u) return false;
+      if (!connecte()) return false;
+      const u = authPortail.currentUser;
       const jeton = await u.getIdToken();                 /* mis en cache par Firebase, renouvelé seul */
       const rep = await fetch(URL_REST_PORTAIL, { headers: { 'Authorization': 'Bearer ' + jeton }, cache: 'no-store' });
       if (!rep.ok) return false;

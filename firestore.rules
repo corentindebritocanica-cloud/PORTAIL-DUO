@@ -4,23 +4,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Toute session, anonyme comprise (Course, Portail, boîte aux lettres du tableau de bord).
-    function connecte() {
-      return request.auth != null;
-    }
-
     // Le compte e-mail / mot de passe du duo, et lui seul. Une session anonyme ne suffit PAS :
     // n'importe qui peut en ouvrir une avec la configuration publique du dépôt.
+    // Depuis le 29/09/2026 (soir), vaut pour les 4 apps : plus aucune collection ouverte à l'anonyme.
     function compteDuo() {
       return request.auth != null
         && request.auth.token.firebase.sign_in_provider == 'password'
         && request.auth.token.email == 'corentin.debritocanica@gmail.com';
     }
 
-    // ---- COURSE + PORTAIL ----
-    match /produits/{id}       { allow read, write: if connecte(); }
-    match /rayons/{id}         { allow read, write: if connecte(); }
-    match /portail/{id}        { allow read, write: if connecte(); }
+    // ---- COURSE + PORTAIL ---- (avant le 29/09/2026 : toute session, anonyme comprise)
+    match /produits/{id}       { allow read, write: if compteDuo(); }
+    match /rayons/{id}         { allow read, write: if compteDuo(); }
+    match /portail/{id}        { allow read, write: if compteDuo(); }
 
     // ---- MUSCU ----
     match /archives/{id}       { allow read, write: if compteDuo(); }
