@@ -298,6 +298,19 @@ btnEffacerRecherche.addEventListener('click', ()=>{
   champRecherche.value=''; state.recherche=''; btnEffacerRecherche.style.display='none';
   renderListe(); champRecherche.focus();
 });
+/* CLAVIER ET BARRE COLLÉE (29/09/2026, retour de Corentin sur iPhone) : toucher la barre alors qu'elle
+   était collée ouvrait le clavier, et iOS faisait défiler la page pour « montrer » le champ… en poussant
+   la barre hors de l'écran. À l'entrée dans le champ, on remonte en haut de la liste : la barre y est à sa
+   place normale, bien au-dessus du clavier, et les résultats s'affichent juste dessous. Refait pendant
+   l'ouverture du clavier (visualViewport `resize`, 1,5 s au plus après l'entrée : iOS peut redéfiler après
+   le focus) — jamais ensuite, pour laisser parcourir les résultats clavier ouvert. */
+let entreeRecherche = 0;
+champRecherche.addEventListener('focus', ()=>{ entreeRecherche = Date.now(); window.scrollTo(0, 0); });
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', ()=>{
+    if(document.activeElement === champRecherche && Date.now() - entreeRecherche < 1500) window.scrollTo(0, 0);
+  });
+}
 
 /* ============================================================
    MODALE AJOUT / ÉDITION (le même formulaire pour les deux)

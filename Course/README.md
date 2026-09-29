@@ -410,3 +410,8 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - La barre se cale à 10 px sous l'encoche (`top: env(safe-area-inset-top) - 6px`, la barre étant à 16 px du haut de l'enveloppe).
 - Vérifié (Chromium + émulateurs, 30 produits, encoche simulée) : iPhone 16 Pro Max — au repos barre à 139 px, non collée ; après défilement barre à 72 px (62 + 10), collée ; recherche qui raccourcit la liste → retour en haut, décollée ; iPhone 16 : 136 px → 69 px. Aucune erreur JS. **Non vérifié sur iPhone.**
 
+### Suite — la barre disparaissait à l'ouverture du clavier (29/09/2026, soir)
+**Retour de Corentin (iPhone)** : toucher la barre alors qu'elle était collée ouvrait le clavier, et iOS faisait défiler la page pour « montrer » le champ… en poussant la barre hors de l'écran.
+- `app.js` (« CLAVIER ET BARRE COLLÉE ») : à l'entrée dans le champ (`focus`), retour en haut de la liste (`scrollTo(0, 0)`) — la barre y est à sa place normale, au-dessus du clavier, résultats juste dessous. Refait sur `visualViewport` `resize` pendant l'ouverture du clavier (1,5 s au plus après l'entrée, iOS pouvant redéfiler après le focus), jamais ensuite : on peut parcourir les résultats clavier ouvert.
+- Vérifié (Chromium, iPhone 16 Pro Max simulé) : liste défilée → toucher la barre collée → haut de page, barre à 139 px, champ actif ; redéfilement simulé pendant l'ouverture → ramené en haut ; saisie OK ; défilement après 1,5 s → laissé tel quel, barre recollée. **Le clavier d'iOS ne se simule pas dans Chromium : à confirmer sur iPhone.**
+
