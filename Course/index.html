@@ -41,10 +41,14 @@
 
   <main>
     <section class="vue actif" id="vue-liste">
-      <div class="searchbar">
-        <span>&#128269;</span>
-        <input type="text" id="champ-recherche" placeholder="Chercher un produit...">
-        <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" aria-label="Effacer la recherche">&#10005;</button>
+      <!-- Enveloppe collée en haut de l'écran pendant le défilement (29/09/2026) : voir .barre-recherche
+           dans ../verre.css et « BARRE DE RECHERCHE COLLÉE » dans app.js. -->
+      <div class="barre-recherche">
+        <div class="searchbar">
+          <span>&#128269;</span>
+          <input type="text" id="champ-recherche" placeholder="Chercher un produit...">
+          <button type="button" class="btn-effacer-recherche" id="btn-effacer-recherche" aria-label="Effacer la recherche">&#10005;</button>
+        </div>
       </div>
       <div class="liste" id="liste-produits"></div>
     </section>

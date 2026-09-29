@@ -401,3 +401,12 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - **Session partagée** avec le Portail, Budget et Muscu (application Firebase par défaut, même origine) : une connexion faite dans l'une vaut pour les autres sur la même installation.
 - Règles : `produits`, `rayons`, `portail` → `compteDuo()` (`/firestore.rules`). **Ordre de mise en service** et vérifications : README racine, « Course et Portail réservés au compte du duo ».
 - **État au 29/09/2026 (soir)** : en ligne, testé sur iPhone par Corentin (« tout marche ») ; connexion anonyme désactivée dans Firebase ; règles avec l'UID du compte publiées.
+
+## Barre de recherche toujours accessible (29/09/2026, soir)
+
+**Demande de Corentin** : que la recherche reste en haut pendant qu'on fait défiler la liste.
+- `index.html` : la `.searchbar` est enveloppée dans `.barre-recherche`, **collée en haut de l'écran** pendant le défilement (`position:sticky`, `../verre.css`) — la page défile elle-même (voir « bande noire du bas »), pas de défilement interne.
+- Au repos : aspect inchangé (même place, sur la plaque de verre). **Collée** (classe `.colle`, posée par `app.js`, « BARRE DE RECHERCHE COLLÉE », au plus un calcul par image) : fond opaque couleur plaque `#171719` **sans flou** (règle PERF de `verre.css` : pas de 4e surface floutée), voile sur la zone de l'encoche au-dessus (`::before`) et fondu sous la barre (`::after`) — les produits qui défilent dessous ne se lisent ni à côté de la barre ni derrière l'heure.
+- La barre se cale à 10 px sous l'encoche (`top: env(safe-area-inset-top) - 6px`, la barre étant à 16 px du haut de l'enveloppe).
+- Vérifié (Chromium + émulateurs, 30 produits, encoche simulée) : iPhone 16 Pro Max — au repos barre à 139 px, non collée ; après défilement barre à 72 px (62 + 10), collée ; recherche qui raccourcit la liste → retour en haut, décollée ; iPhone 16 : 136 px → 69 px. Aucune erreur JS. **Non vérifié sur iPhone.**
+
