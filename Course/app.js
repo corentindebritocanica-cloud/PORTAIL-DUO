@@ -11,6 +11,7 @@
    - Authentification ANONYME (signInAnonymously) : pas d'écran de
      connexion, le choix "Corentin/Lisa" dans Réglages n'est qu'une
      préférence d'affichage/thème locale (localStorage), pas un compte.
+     → REMPLACÉE le 29/09/2026 par le compte e-mail du duo (voir demarrer()).
    - AUCUNE logique de "réinjection si vide" : le catalogue de départ est
      importé une seule fois côté serveur (script d'import), jamais par
      l'app elle-même.
@@ -403,8 +404,8 @@ document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
    RÉSUMÉ POUR LE PORTAIL (22/09/2026)
    Le Portail (tableau de bord) affiche un aperçu de chaque app. Chaque app écrit
    un petit document `portail/<app>` ; celui-ci, `portail/courses`, vit dans la base
-   de CETTE app, qui sert aussi de « boîte aux lettres » pour Muscu et Budget (son
-   authentification anonyme n'exige aucun mot de passe). Voir README.
+   de CETTE app, qui sert aussi de « boîte aux lettres » pour Muscu et Budget. Depuis le
+   29/09/2026 : réservée au compte e-mail du duo, comme tout le reste. Voir README.
    - Publié seulement après un premier snapshot venu du SERVEUR (pas du cache local),
      pour ne pas écraser un résumé récent avec des données périmées.
    - Regroupé (0,3 s), republié à chaque ouverture, secours `keepalive` au départ (voir plus bas).
@@ -434,7 +435,7 @@ function calculerResumePortail(produits, rayons){
       pas confirmée, envoi par l'API REST de Firestore avec `fetch(..., { keepalive: true })`,
       la seule requête qu'un navigateur laisse finir APRÈS la destruction de la page (une
       écriture du SDK, elle, serait coupée — ou gardée sur le téléphone jusqu'à la prochaine
-      ouverture de Courses). Jeton = celui de la connexion anonyme, gardé à l'avance
+      ouverture de Courses). Jeton = celui de la session (e-mail du duo depuis le 29/09/2026), gardé à l'avance
       (`portailJeton`) car on ne peut plus attendre de promesse au moment du départ. */
 let portailOk = false, portailJeton = null;
 function rafraichirJetonPortail(){
@@ -522,22 +523,24 @@ function recuDeFirestore(nom){
 }
 
 function demarrer(){
-  /* 29/09/2026 (projet Firebase unique) : la session est partagée avec Budget et Muscu. Une connexion
-     e-mail faite dans l'une d'elles est reprise telle quelle ici (les règles l'acceptent) ; sinon,
-     connexion anonyme comme avant. `abonne` : l'état d'auth peut être re-signalé (anonyme → e-mail),
-     jamais deux écoutes en double. Déconnexion (depuis Muscu) : écoutes arrêtées, puis reconnexion
-     anonyme qui les relance. */
+  /* 29/09/2026 (projet Firebase unique) : la session est partagée avec Budget, Muscu et le Portail.
+     Depuis le 29/09/2026 (soir), Course est RÉSERVÉE au compte e-mail du duo (firestore.rules) :
+     plus de connexion anonyme. Pas de session e-mail (ou une ancienne session anonyme) → écran de
+     connexion (#connexion, commun.js). `ecoutes` : l'état d'auth peut être re-signalé, jamais deux
+     écoutes en double. Déconnexion (depuis Muscu ou Budget) : écoutes arrêtées, écran de connexion. */
+  const afficherConnexion = connexionDuo(auth);
   let ecoutes = null;
   authListen(user=>{
-    if(user){
+    const compte = !!(user && !user.isAnonymous);
+    afficherConnexion(!compte);
+    if(compte){
       if(ecoutes) return;
       ecoutes = [
         dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); }),
         dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); })
       ];
-    } else {
-      if(ecoutes){ ecoutes.forEach(arret=> arret()); ecoutes = null; }
-      auth.signInAnonymously().catch(err=> console.error('Connexion anonyme impossible :', err));
+    } else if(ecoutes){
+      ecoutes.forEach(arret=> arret()); ecoutes = null;
     }
   });
 }

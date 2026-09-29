@@ -397,6 +397,8 @@ Courses ┘   (connexion ANONYME)            (projet course-app-36e9d)
 
 ### ⚠️ Sécurité — à lire avant de toucher à quoi que ce soit
 
+- **29/09/2026 (soir)** : plus aucune connexion anonyme — `produits`, `rayons` et `portail` sont réservés au compte e-mail du duo (voir « Course et Portail réservés au compte du duo », fin de fichier). Les points ci-dessous décrivent la situation d'avant ; la validation des documents `portail/*` et l'écriture par `textContent` sont conservées (défense en profondeur).
+
 - **29/09/2026** : cette base contient désormais aussi Budget et Muscu, **protégés par des règles réservées au compte e-mail** (voir « Projet Firebase UNIQUE ») ; ce qui suit ne vaut plus que pour `produits`, `rayons` et `portail`.
 - **Le dépôt est public et la base de Courses accepte n'importe quelle connexion anonyme** : quiconque lit la configuration Firebase dans le code peut **lire et écrire** toute cette base — les produits, mais aussi les 3 documents `portail/*` (donc le reste à vivre en euros, choix assumé de Corentin le 22/09/2026).
 - Conséquence côté code : **les documents `portail/*` ne sont pas de confiance.** Le Portail les valide (types, bornes, longueurs) et les écrit **exclusivement avec `textContent`** — **jamais `innerHTML`** : le Portail partage son origine avec Muscu, Budget et Courses, donc avec leur `localStorage` (dont la clé API du coach IA). Vérifié le 22/09/2026 : des documents piégés (`<img onerror=…>`, `<script>`, types faux, valeurs énormes) s'affichent comme du texte inerte.
@@ -744,7 +746,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 
 ### Règles de sécurité — `/firestore.rules` (versionné)
 
-- **Course / Portail** (`produits`, `rayons`, `portail`) : toute session, anonyme comprise — inchangé.
+- **Course / Portail** (`produits`, `rayons`, `portail`) : toute session, anonyme comprise — **jusqu'au 29/09/2026 au soir**, puis `compteDuo()` comme le reste (voir « Course et Portail réservés au compte du duo » ci-dessous).
 - **Muscu / Budget** : `compteDuo()` = connexion **par mot de passe** ET e-mail du duo. Une session anonyme (que n'importe qui peut ouvrir avec la config publique du dépôt) **n'y a pas accès**, un autre compte e-mail non plus (ferme aussi le trou de l'inscription libre signalé dans `Muscu/README.md`).
 - **Tout le reste est fermé.** Une nouvelle app = ses collections déclarées explicitement dans `firestore.rules`.
 - ⚠️ **Le fichier du dépôt n'est pas déployé automatiquement.** Après modification : publier par la console Firebase (Firestore → Règles, copier-coller) ou par l'API Firebase Rules avec le compte de service (créer un `ruleset` puis mettre à jour la release `cloud.firestore`). Toujours tester avant (émulateur Firestore + `@firebase/rules-unit-testing` : 120 cas testés le 29/09/2026 — compte du duo, anonyme, autre e-mail, sans session).
@@ -758,3 +760,29 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 ### Coûts
 
 - Quotas gratuits (plan Spark) désormais **partagés** entre les 4 apps (50 000 lectures / 20 000 écritures par jour). Volume à deux : très loin des limites. Un `onSnapshot` mal placé dans une app pèserait sur les autres — y penser en ajoutant une app.
+
+
+## Course et Portail réservés au compte du duo (29/09/2026, soir)
+
+**Décision de Corentin** : sécuriser aussi Course et le Portail. Jusqu'ici, `produits`, `rayons` et `portail` acceptaient n'importe quelle session anonyme — or la configuration Firebase est publique (dépôt et Pages) : n'importe qui pouvait lire, modifier ou vider la liste de courses et les résumés du tableau de bord, et, depuis le projet unique, épuiser les quotas gratuits partagés avec Budget et Muscu.
+
+### Ce qui change
+- **`firestore.rules`** : `produits`, `rayons`, `portail` → `compteDuo()`, comme Budget et Muscu. Plus aucune collection ouverte à l'anonyme ; la fonction `connecte()` est supprimée.
+- **Course** : plus de `signInAnonymously`. Sans session e-mail (ou avec une ancienne session anonyme), écran **Connexion** ; les écoutes ne démarrent qu'avec le compte du duo et s'arrêtent à la déconnexion (faite dans Muscu ou Budget).
+- **Portail** : application Firebase **par défaut** (avant : 2e application `'portail'` en anonyme) → **même session** que Course, Budget et Muscu. Sans session : écran **Connexion**. Plus de cache Firestore persistant (il aurait été partagé avec celui des apps, sur d'autres versions du SDK) : le dernier état connu reste affiché depuis `localStorage`.
+- **Muscu et Budget** publient `portail/muscu` et `portail/budget` avec **leur propre base et leur session e-mail** : la 2e application Firebase `'portail'` et sa connexion anonyme sont supprimées (la « simplification possible plus tard » de la section précédente).
+- **Écran de connexion commun** : `connexionDuo(auth)` dans `commun.js` (section 6), balisage `#connexion` dans `index.html` (Portail) et `Course/index.html`, habillage `.connexion-duo` dans `verre.css`. Masqué par défaut, ouvert seulement quand Firebase répond « pas de session » (pas de flash au démarrage).
+- **Une seule connexion par installation** : sur une même installation (le Portail et les apps ouvertes depuis lui), se connecter dans l'une connecte les autres. Une app ajoutée séparément à l'écran d'accueil a son propre stockage sous iOS : s'y connecter une fois.
+
+### ⚠️ Ordre de mise en service (important)
+1. Fusionner dans `main` (le workflow met à jour versions et caches).
+2. Sur **chaque téléphone** : ouvrir le Portail (et chaque app installée à part), laisser la mise à jour se faire, **se connecter** avec le compte du duo.
+3. **Seulement ensuite**, publier `/firestore.rules` : console Firebase → Firestore → Règles → coller le fichier → Publier. Avant cette étape tout fonctionne déjà (une session e-mail satisfait aussi les anciennes règles) ; publier trop tôt bloquerait un téléphone resté sur l'ancienne version (session anonyme) jusqu'à sa mise à jour.
+4. Facultatif : Authentication → Méthode de connexion → désactiver **Anonyme** (plus rien ne s'en sert).
+
+### Vérifié / non vérifié
+- **Règles** (émulateur Firestore, `@firebase/rules-unit-testing`) : 200 cas — compte du duo (mot de passe) : lecture, liste, écriture, suppression OK sur les 9 collections ; session anonyme, autre compte e-mail, même e-mail via un autre fournisseur, sans session : tout refusé ; collection non déclarée : refusée à tous.
+- **Chromium + émulateurs Auth/Firestore** (vrais SDK, 16 vérifications) : Portail sans session → écran de connexion ; mauvais mot de passe → message, écran ouvert ; bon mot de passe → écran fermé ; Course reprend la session du Portail, lit la liste et publie `portail/courses` ; Budget reprend la session et publie `portail/budget` ; le Portail n'ouvre plus d'application `'portail'` et lit les résumés ; déconnexion → Course redemande la connexion ; session anonyme → écran de connexion maintenu, lecture de `produits` refusée ; connexion e-mail depuis une session anonyme → liste chargée. Aucune erreur JS.
+- **Muscu** (pont `window.__portail` et effacement des clés du coach, extraits de `index.html`, vrai SDK 12 + émulateurs) : session anonyme → publication refusée, aucun jeton ; compte du duo → `portail/muscu` publié, jeton gardé pour le secours `keepalive`. La page Muscu entière n'a pas pu être testée dans ce Chromium (toute requête réseau y restait bloquée, y compris sa connexion d'origine, non modifiée).
+- **Non vérifié** : iPhone, base réelle (règles non publiées au moment du commit).
+

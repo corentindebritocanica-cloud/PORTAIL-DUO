@@ -443,3 +443,9 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Règles : `mois` et `config` réservés au compte e-mail du duo (`/firestore.rules`) ; une session anonyme reçoit `permission-denied`.
 - ⚠️ **Sauvegarde du dimanche (Apps Script)** : remplacer la propriété de script `SA_BUDGET` par la clé de compte de service de `course-app-36e9d`, sinon le mail contient les données figées de l'ancien projet.
 - Vérifié : copie document par document (0 écart), règles (émulateur, 120 cas), ouverture dans Chromium avec une session anonyme ouverte par Course → écran de connexion affiché, aucune erreur. **Non vérifié** : connexion réelle avec le mot de passe (à faire par Corentin), iPhone.
+
+## Résumé du Portail publié avec la session du duo (29/09/2026, soir)
+
+- `portail/budget` est écrit avec la base et la session e-mail de Budget (`db`, `auth`) : la 2e application Firebase `'portail'` et sa connexion anonyme sont supprimées (`CONFIG_BASE_PORTAIL`, `obtenirBasePortail()` retirés). Jeton du secours `keepalive` = celui de la session e-mail (`compteDuo()`).
+- Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
+- Vérifié (Chromium + émulateurs) : session reprise depuis le Portail, `portail/budget` publié.

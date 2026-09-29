@@ -17,6 +17,7 @@
    3. Date de dernière mise à jour du code (formaterDerniereMaj, #derniere-maj)
    4. Service worker : enregistrement + détection d'une nouvelle version
    5. Vérification de version au retour dans l'app (rechargement auto ou bandeau)
+   6. Connexion du duo pour Course et le Portail (connexionDuo, #connexion)
 
    CE QUI RESTE DANS CHAQUE APP : la constante DERNIERE_MAJ (index.html, mise à
    jour par le workflow), le bandeau #maj-toast (index.html : sa position dépend
@@ -137,4 +138,39 @@
     var btn = document.getElementById('maj-btn');
     if (btn) btn.addEventListener('click', function(){ window.location.reload(); });
   });
+
+  /* ---------- 6. CONNEXION DU DUO — Course et Portail (29/09/2026) ----------
+     Depuis le 29/09/2026, produits, rayons et portail sont réservés au compte e-mail du duo
+     (firestore.rules) : plus de session anonyme. connexionDuo(auth) branche le formulaire
+     #connexion-form (index.html de Course et du Portail, habillé par verre.css) sur l'auth
+     Firebase « compat » de la page, et renvoie afficher(vrai|faux) pour l'écran #connexion.
+     Même compte et même session que Budget et Muscu (application Firebase par défaut). */
+  window.connexionDuo = function(auth){
+    var ecran = document.getElementById('connexion');
+    var form = document.getElementById('connexion-form');
+    var champMail = document.getElementById('connexion-email');
+    var champMdp = document.getElementById('connexion-mdp');
+    var erreur = document.getElementById('connexion-erreur');
+    var btn = document.getElementById('connexion-btn');
+    var messages = {
+      'auth/invalid-credential': 'E-mail ou mot de passe incorrect.',
+      'auth/wrong-password': 'E-mail ou mot de passe incorrect.',
+      'auth/user-not-found': 'E-mail ou mot de passe incorrect.',
+      'auth/invalid-email': 'Adresse e-mail invalide.',
+      'auth/too-many-requests': 'Trop de tentatives. Réessaie plus tard.',
+      'auth/network-request-failed': 'Pas de connexion réseau.'
+    };
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var email = champMail.value.trim(), mdp = champMdp.value;
+      if (!email || !mdp) { erreur.textContent = 'E-mail et mot de passe requis.'; return; }
+      erreur.textContent = '';
+      btn.disabled = true;
+      auth.signInWithEmailAndPassword(email, mdp)
+        .then(function(){ champMdp.value = ''; })
+        .catch(function(err){ erreur.textContent = messages[err && err.code] || 'Connexion impossible.'; })
+        .then(function(){ btn.disabled = false; });
+    });
+    return function(visible){ ecran.classList.toggle('open', !!visible); };
+  };
 })();

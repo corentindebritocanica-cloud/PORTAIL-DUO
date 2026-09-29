@@ -1004,3 +1004,9 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 - Effet à la première ouverture de Muscu connectée au compte du duo, après publication sur `main`.
 - ⚠️ Effacer les champs ne rend pas les clés inutilisables : **les révoquer** dans Google AI Studio et dans la console Groq.
 **Vérifié** : `node --check` du module ; logique testée en isolation (clés présentes → une écriture `deleteField` et cache sans clés ; une seule clé ; aucune clé → aucune écriture ; écriture refusée → pas de boucle) ; `deleteField` bien exporté par le SDK 12.18 ; ouverture dans Chromium sans erreur JS. **Non vérifié** : effacement réel sur le serveur, iPhone.
+
+## Résumé du Portail publié avec la session du duo (29/09/2026, soir)
+
+- `window.__portail` (`index.html`) écrit `portail/muscu` avec la base et la session e-mail de Muscu : la 2e application Firebase `'portail'`, sa connexion anonyme et les imports `getApps`/`signInAnonymously` sont supprimés. Jeton du secours `keepalive` rafraîchi à la connexion et avant chaque publication, seulement pour une session e-mail.
+- Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
+- Vérifié (vrai SDK 12 + émulateurs, code extrait de `index.html`) : session anonyme → publication refusée ; compte du duo → `portail/muscu` publié, jeton gardé.

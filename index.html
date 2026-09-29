@@ -125,6 +125,19 @@
     <p id="derniere-maj" class="derniere-maj"></p>
   </main>
 
+  <!-- Connexion du duo (29/09/2026) : même compte e-mail que Budget et Muscu (session partagée). Masquée par
+       défaut, ouverte seulement quand Firebase répond « pas de session » — voir connexionDuo() dans commun.js. -->
+  <div class="connexion-duo" id="connexion" role="dialog" aria-modal="true" aria-labelledby="connexion-titre">
+    <form id="connexion-form" novalidate>
+      <h2 id="connexion-titre">Connexion</h2>
+      <p>Le compte du duo, le même que dans Budget et Muscu.</p>
+      <input type="email" id="connexion-email" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="none">
+      <input type="password" id="connexion-mdp" placeholder="Mot de passe" autocomplete="current-password">
+      <p class="connexion-erreur" id="connexion-erreur" aria-live="polite"></p>
+      <button type="submit" id="connexion-btn">Se connecter</button>
+    </form>
+  </div>
+
   <!-- Boîte de dialogue maison (bottom-sheet, charte §5.9) : remplace window.confirm() — voir dialogue() dans app.js -->
   <div class="modal-overlay" id="dialogue" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
     <div class="modal-sheet">
