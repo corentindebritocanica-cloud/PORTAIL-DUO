@@ -19,6 +19,21 @@
 
 ---
 
+## 🔎 Course — barre de recherche collée et clavier de l'iPhone (29/09/2026, soir)
+
+### 29/09/2026 — Course — la barre de recherche collée disparaissait quand le clavier s'ouvrait
+**Symptôme** : sur iPhone, liste défilée, la barre de recherche collée en haut (`position:sticky`, ajoutée le même soir) ; en la touchant, le clavier s'ouvrait et la barre était poussée hors de l'écran — impossible de voir ce qu'on tapait.
+**Fausses pistes explorées** : aucune sur iPhone (corrigé du premier coup). Écartées d'emblée : passer la barre en `position:fixed` (même problème : iOS décale la zone visible, pas les éléments fixes) ; la recaler en continu sur `visualViewport.offsetTop` (saccades pendant l'animation du clavier).
+**Cause racine** : à l'ouverture du clavier, iOS fait défiler la page pour « montrer » le champ actif ; un élément collé en haut de la page est alors sorti de la zone visible. Chromium ne simule pas ce clavier : le problème ne se voit que sur iPhone.
+**Solution** : à l'entrée dans le champ (`focus`), retour en haut de la liste (`scrollTo(0, 0)`) : la barre y est à sa place normale, au-dessus du clavier, résultats juste dessous. Refait sur `visualViewport` `resize` pendant l'ouverture du clavier, **1,5 s au plus** après l'entrée — jamais ensuite, sinon on ne pourrait plus parcourir les résultats clavier ouvert. Confirmé sur iPhone par Corentin.
+**Leçons généralisables** :
+- **Champ de saisie dans un élément collé ou fixe, sur iPhone** : prévoir ce que fait l'ouverture du clavier. Le plus simple : ramener le champ à sa place normale dans la page à l'entrée (`focus`), plutôt que de lutter contre le défilement d'iOS.
+- **Limiter dans le temps** toute correction qui force le défilement (fenêtre après le `focus`) : une correction permanente bloquerait le défilement de l'utilisateur.
+- **Élément collé au-dessus d'une liste qui défile** : fond opaque (pas de 4e surface floutée, règle PERF de `verre.css`) et voile sur la zone de l'encoche, posés seulement quand l'élément est réellement collé (classe `.colle`), pour garder l'aspect normal au repos.
+**Fichiers touchés** : `Course/index.html`, `Course/app.js`, `verre.css`, `Course/README.md`
+
+---
+
 ## 🔒 4 apps — sécurité : base ouverte à l'anonyme, secrets oubliés (29/09/2026, soir)
 
 ### 29/09/2026 — Course, Portail, Budget, Muscu — une connexion anonyme ouvrait la liste de courses et le tableau de bord à tout le monde
