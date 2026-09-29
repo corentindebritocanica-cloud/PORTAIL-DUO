@@ -800,3 +800,10 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 - **Muscu** (pont `window.__portail` et effacement des clés du coach, extraits de `index.html`, vrai SDK 12 + émulateurs) : session anonyme → publication refusée, aucun jeton ; compte du duo → `portail/muscu` publié, jeton gardé pour le secours `keepalive`. La page Muscu entière n'a pas pu être testée dans ce Chromium (toute requête réseau y restait bloquée, y compris sa connexion d'origine, non modifiée).
 - **iPhone, base réelle** : testé par Corentin le 29/09/2026 au soir (« tout marche »), puis règles finales (UID) publiées.
 
+## Pile de vitres centrée verticalement (29/09/2026, soir)
+
+**Retour de Corentin** : les vitres du Portail n'étaient pas centrées à l'écran — collées sous l'en-tête, grand vide en bas.
+- `verre.css` (section « PORTAIL — la pile de vitres ») : `main` occupe toute la hauteur (`flex:1 0 auto`), `margin-top:auto` sur `.dash` et `margin-bottom:auto` sur `.derniere-maj` → le groupe pile + astuce + bouton recharger + date est centré dans la hauteur restante sous l'en-tête.
+- Écran trop petit pour tout afficher (iPhone SE) : les marges automatiques valent 0, rien ne change.
+- Mesuré (Chromium, zones de l'encoche et de la barre d'accueil simulées) : iPhone 15 — pile descendue de 42 px, centre à 412 px pour un milieu d'écran à 426 px ; iPhone 13 mini et Pro Max : même écart ; iPhone SE : inchangé. **Non vérifié sur iPhone.**
+

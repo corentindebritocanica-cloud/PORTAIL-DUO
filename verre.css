@@ -189,6 +189,14 @@ html.verre[data-app="portail"] .dash-date{ margin:0; font-size:13px; }
 html.verre[data-app="portail"] .dash{
   display:grid; gap:0; padding-bottom:132px;
 }
+/* CENTRAGE VERTICAL (29/09/2026, demande de Corentin) : la pile et ce qui la suit (astuce, bouton
+   recharger, date de MAJ) sont centrés dans la hauteur restante sous l'en-tête — avant, collés en
+   haut avec un grand vide en bas. main occupe toute la hauteur de body (flex), marges automatiques
+   de part et d'autre du groupe. Écran trop petit (contenu plus haut que l'écran) : marges nulles,
+   donc rien ne change. */
+html.verre[data-app="portail"] main{ flex:1 0 auto; }
+html.verre[data-app="portail"] .dash{ margin-top:auto; }
+html.verre[data-app="portail"] .derniere-maj{ margin-bottom:auto; }
 html.verre[data-app="portail"] .dash-card{
   grid-area:1 / 1;
   --dy:132px; --sc:1;
