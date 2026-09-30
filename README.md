@@ -873,8 +873,8 @@ Portail (app.js) ──abonnement──► notifAbonnes/{id} = { token, profil, 
 
 ### Mise en service
 1. ✅ `firestore.rules` : `notifAbonnes` en `compteDuo()` — **publiée par l'API le 30/09/2026** (ajout seul, reste identique à la version en ligne, vérifié par comparaison).
-2. Corentin : dans « Projet sans titre », nouveau fichier `Notifications` ← contenu d'`outils/Notifications.gs` ; Déployer → Nouveau déploiement → Application Web, « Exécuter en tant que : moi », « Qui a accès : tout le monde » ; autoriser.
-3. URL `…/exec` → `RELAIS_NOTIF` dans `commun.js`.
+2. ✅ Relais déployé par Corentin le 30/09/2026 (fichier `Notifications` dans « Projet sans titre », application Web « Exécuter en tant que : moi », « Tout le monde »). Testé depuis l'extérieur : `GET` → réponse du service ; faux jeton → `jeton refusé` ; vrai jeton du duo → `ok` ; en-tête `Access-Control-Allow-Origin: *` présent.
+3. ✅ URL `…/exec` dans `RELAIS_NOTIF` (`commun.js`). ⚠️ Un **nouveau** déploiement change l'URL ; « Gérer les déploiements › Nouvelle version » la garde.
 4. Sur chaque iPhone : Portail (ouvert depuis l'écran d'accueil) → Notifications → **Activées** → Autoriser.
 5. Test : `notifTester` dans l'éditeur Apps Script, puis une vraie dépense.
 

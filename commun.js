@@ -217,7 +217,9 @@
      - Hors ligne ou relais injoignable : la demande attend dans localStorage (duo-notif-file,
        12 h max, 10 max) et repart au retour du réseau ou à la prochaine ouverture d'une app.
      - Tolérant : une erreur n'empêche jamais l'app de fonctionner (console.warn seulement). */
-  var RELAIS_NOTIF = '';                    /* URL …/exec du relais Apps Script (à remplir après son déploiement) */
+  /* URL …/exec du relais Apps Script (déployé le 30/09/2026). Pas un secret : sans jeton du compte du duo,
+     le relais refuse tout. Si le relais est redéployé en NOUVEAU déploiement, l'URL change : la remplacer ici. */
+  var RELAIS_NOTIF = 'https://script.google.com/macros/s/AKfycbzAXlg12huM_bGd4YWuyln8DAWbjjDCyole8IwI3fSEqRuc7D98W_M8oTzcQdbdzl4sXg/exec';
   var CLE_FILE_NOTIF = 'duo-notif-file';
   var FILE_NOTIF_MAX = 10, FILE_NOTIF_DUREE = 12 * 3600 * 1000;
   function lireFileNotif(){
