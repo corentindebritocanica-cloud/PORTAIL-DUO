@@ -20,6 +20,29 @@
   })();
 
   /* ============================================================
+     STYLE DES APPS : VERRE · RELIEF · ARGILE (30/09/2026)
+     Sélecteur #style-choix (index.html). Le choix est appliqué et mémorisé par commun.js
+     (window.duoStyle, clé localStorage duo-style, même origine → les 4 apps suivent).
+     Resynchronisé au retour sur le Portail (pageshow depuis le cache précédent/suivant).
+     ============================================================ */
+  (function(){
+    const groupe = document.getElementById('style-choix');
+    if (!groupe || !window.duoStyle) return;
+    function marquer(){
+      const actuel = window.duoStyle.lire();
+      groupe.querySelectorAll('[data-style-choix]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.styleChoix === actuel)));
+    }
+    groupe.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-style-choix]');
+      if (!b) return;
+      window.duoStyle.choisir(b.dataset.styleChoix);
+      marquer();
+    });
+    marquer();
+    window.addEventListener('pageshow', (e) => { if (e.persisted) marquer(); });
+  })();
+
+  /* ============================================================
      BOÎTE DE DIALOGUE (bottom-sheet, charte §5.9) — remplace window.confirm()
      dialogue({ titre, texte, ok, annuler }) → Promise<boolean>. Tap sur le fond = annuler.
      Classe .modal-overlay : la mise à jour auto au retour (utilisateurOccupe) la voit

@@ -449,3 +449,11 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - `portail/budget` est écrit avec la base et la session e-mail de Budget (`db`, `auth`) : la 2e application Firebase `'portail'` et sa connexion anonyme sont supprimées (`CONFIG_BASE_PORTAIL`, `obtenirBasePortail()` retirés). Jeton du secours `keepalive` = celui de la session e-mail (`compteDuo()`).
 - Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
 - Vérifié (Chromium + émulateurs) : session reprise depuis le Portail, `portail/budget` publié.
+
+## Styles au choix Verre · Relief · Argile (30/09/2026)
+
+- Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
+- **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.
+- Surfaces de cette app prises en charge : plaque `.main-content`, barre d'onglets, `#toast`, `.btn-icon`, cartes, revenus, réglages, mois, champs et jauges (creux), boutons `.bg-primary`/`.bg-danger`, `.popup-box`, écran de connexion. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
+- **Profil sur `<body>`** (`body.profil-lisa`) : recopié sur `<html>` par `:has()` dans `verre.css`, sinon les teintes calculées sur `<html>` restaient bleues pour Lisa (voir `PROBLEMES_RESOLUS.md`).
+- Vérifié (Chromium, Firebase simulé) : Mois, Fixes, Réglages dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».

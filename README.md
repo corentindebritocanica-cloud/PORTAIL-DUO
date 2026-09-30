@@ -13,6 +13,7 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 > - **4 apps, un seul design** : feuille commune `verre.css` (racine) + classe `html.verre` en dur ; **sombre uniquement** (plus de bouton lune) ; titre à gauche en Unbounded 22 px avec la **pastille de connexion** à côté ; haut de page commun (`--v-haut`).
 > - **Noyau commun `commun.js`** (racine) : halos calés sur l'horloge, transition « vitre → app », date de MAJ, service worker, vérification de version — plus aucune copie dans les `app.js`.
 > - **Profil Corentin/Lisa unique** : `localStorage duo_profile`, réglable dans les Réglages de Muscu, Course ou Budget.
+> - **Style au choix (30/09/2026)** : **Verre** (défaut) · **Relief** (neumorphisme) · **Argile** (claymorphisme), choisi sous la pile du Portail, appliqué aux 4 apps (`localStorage duo-style` → `<html data-style>`, posé par `commun.js`). Bleu Corentin / rose Lisa dans les 3 styles. Voir « Styles au choix » en fin de fichier.
 > - **Portail** : pile de 3 vitres (toucher une vitre du fond → devant ; toucher celle de devant → ouvre l'app avec la transition ; glisser haut/bas → fait tourner la pile), aperçu du jour de chaque app (résumés `portail/*` dans Firebase), bouton ↻ de rechargement forcé. Retour depuis une app : geste retour d'iOS.
 > - **Fichiers du Portail** : `index.html`, `style.css` (base), `app.js`, `sw.js`, `manifest.json`, icônes ; partagés : `verre.css`, `commun.js` ; versionnage auto : `.github/workflows/auto-version.yml`.
 
@@ -808,3 +809,25 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 - **Téléphones du duo** : iPhone 16 Pro Max (Corentin, 440 × 956 pt) et iPhone 16 (Lisa, 393 × 852 pt) — à utiliser comme tailles de référence pour les essais de mise en page.
 - Mesuré (Chromium, zones de l'encoche et de la barre d'accueil simulées) : iPhone 16 Pro Max — pile 237→694, centre à 466 px pour un milieu d'écran à 478 px ; iPhone 16 — pile descendue de 42 px, centre à 412 px pour 426 px ; iPhone 13 mini : même écart ; iPhone SE : inchangé. **Non vérifié sur iPhone.**
 
+
+## Styles au choix : Verre · Relief · Argile (30/09/2026)
+
+**Demande de Corentin** : en plus du glassmorphisme (design Verre), un style **neumorphisme** et un style **claymorphisme**, choisis dans le Portail et appliqués à toutes les apps, en respectant les couleurs de Corentin (bleu) et de Lisa (rose).
+
+- **Sélecteur** : sous la pile du Portail, « Style des apps » : `Verre` · `Relief` · `Argile` (`#style-choix`, `role="radiogroup"`, boutons 74 × 44 px). Effet immédiat, sans rechargement.
+- **Relief** = neumorphisme sombre : une seule matière mate (`#1d2026`), les surfaces sortent du fond (ombre claire en haut à gauche + ombre sombre en bas à droite) ou s'y creusent (champs, jauges, cases, onglet actif). Pas de halos, pas de flou. Accent (bleu/rose) sur les actions principales et l'onglet actif.
+- **Argile** = claymorphisme sombre : surfaces pleines et « gonflées » (reflet et ombre **intérieurs**), fond et plaques **teintés à la couleur du profil** (bleuté pour Corentin, rosé pour Lisa), halos conservés mais atténués, pas de flou.
+- **Mémorisation** : `localStorage['duo-style']` = `verre | relief | argile` — même origine et même installation que les 3 apps (manifest unique, scope `./`), exactement comme `duo_profile`. **Réglage par téléphone** : Lisa et Corentin peuvent avoir chacun leur style. Aucune lecture Firestore, aucun changement de `firestore.rules`.
+  - *Écartée* : un document Firestore `portail/style` (proposée en premier) — inutile puisque les 4 apps partagent déjà leur `localStorage` (preuve : `duo_profile`), et elle aurait imposé le même style aux deux téléphones et coûté une lecture à chaque ouverture.
+- **Application avant le 1er rendu** : `commun.js` (section 0, chargé dans le `<head>` sans `defer`, avant `verre.css`) pose `<html data-style="relief|argile">` ; attribut absent = Verre. Relu au retour depuis le cache précédent/suivant (`pageshow`) et sur l'événement `storage`. API : `window.duoStyle.lire()` / `.choisir(nom)` (utilisée par `app.js` du Portail). Au changement, la classe `style-bascule` coupe les transitions le temps de deux images (sinon chaque ombre de la page s'anime).
+- **CSS** : bloc « STYLES AU CHOIX » à la fin de `verre.css`. Jetons `--t-*` par style, redirection des jetons du verre (`--v-glass`, `--v-soft`, `--v-flou:none`…), puis des règles **par catégorie** (plaques, barres/flottants/modales, panneaux, creux, états actifs, accent), toutes sous `html.verre[data-style]` : **le Verre n'est pas modifié** (vérifié pixel par pixel sur Course, Budget, Muscu).
+- **Ajouter une surface dans une app** : la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX », sinon elle garde son habillage verre (translucide) dans Relief/Argile.
+- **Performance** : aucun `backdrop-filter` dans Relief et Argile (plus léger que le Verre).
+
+**Deux pièges rencontrés** (détail dans `PROBLEMES_RESOLUS.md`) :
+- **Pile du Portail** : les vitres sont découpées par `clip-path` → leurs ombres portées extérieures sont coupées. En Relief/Argile, le relief est donc porté par l'intérieur (dégradé ou ombres `inset`) et les vitres du fond sont assombries (`filter:brightness`) plutôt que rendues transparentes (matière opaque).
+- **Budget pose le profil sur `<body>`** (`body.profil-lisa`) : les jetons calculés sur `<html>` (teinte Argile, accent Relief) restaient bleus pour Lisa. Profil recopié sur `<html>` par `html.verre[data-app="budget"]:has(> body.profil-lisa)`.
+
+**Fichiers touchés** : `commun.js` (section 0), `verre.css` (bloc final), `index.html` + `app.js` du Portail (sélecteur). Aucun fichier des 3 apps modifié : elles suivent via `commun.js` et `verre.css` (versions `?v=` mises à jour par le workflow).
+
+**Vérifié** (Chromium 390 × 844, Firebase simulé, profils Corentin et Lisa) : Portail, Course (Liste, Course, Réglages), Budget (Mois, Fixes, Réglages), Muscu (menu, séance) dans les 3 styles ; clic sur « Argile » → `data-style="argile"` + `duo-style` enregistré, Course ouverte ensuite en Argile, retour à « Verre » → attribut retiré ; Verre identique au pixel près à avant ; aucune erreur JS. **Non vérifié sur iPhone.**

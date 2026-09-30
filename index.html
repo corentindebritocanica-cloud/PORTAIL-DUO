@@ -114,6 +114,15 @@
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
     <p class="verre-astuce verre-seul">Touche une vitre ou fais glisser la pile vers le haut ou le bas</p>
 
+    <!-- Style des 4 apps (30/09/2026) : Verre / Relief / Argile. Choix mémorisé dans localStorage duo-style
+         (commun.js), appliqué par verre.css — voir « STYLES AU CHOIX » dans le README. -->
+    <p class="style-choix-titre" id="style-choix-titre">Style des apps</p>
+    <div class="style-choix" id="style-choix" role="radiogroup" aria-labelledby="style-choix-titre">
+      <button type="button" role="radio" data-style-choix="verre" aria-checked="true">Verre</button>
+      <button type="button" role="radio" data-style-choix="relief" aria-checked="false">Relief</button>
+      <button type="button" role="radio" data-style-choix="argile" aria-checked="false">Argile</button>
+    </div>
+
     <div class="reload-row">
       <button class="reload-btn" id="hardReload" title="Vider le cache et recharger" aria-label="Vider le cache et recharger">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">

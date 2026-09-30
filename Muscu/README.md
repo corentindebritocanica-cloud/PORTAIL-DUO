@@ -1010,3 +1010,11 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 - `window.__portail` (`index.html`) écrit `portail/muscu` avec la base et la session e-mail de Muscu : la 2e application Firebase `'portail'`, sa connexion anonyme et les imports `getApps`/`signInAnonymously` sont supprimés. Jeton du secours `keepalive` rafraîchi à la connexion et avant chaque publication, seulement pour une session e-mail.
 - Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
 - Vérifié (vrai SDK 12 + émulateurs, code extrait de `index.html`) : session anonyme → publication refusée ; compte du duo → `portail/muscu` publié, jeton gardé.
+
+## Styles au choix Verre · Relief · Argile (30/09/2026)
+
+- Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
+- **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.
+- Surfaces de cette app prises en charge : plaques `.plaque` et zone des exercices, en-tête et barre du bas des exercices, boutons de menu, séances, cartes d'exercice, hero, jauges, boutons forts (Entraînement, Séance terminée), modales, confirmations, toasts, écran de connexion. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
+- En Relief, la lueur de la carte hero (`.menu-hero::after`) est masquée (matière unie).
+- Vérifié (Chromium, Firebase simulé) : menu principal, séance dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».

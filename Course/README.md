@@ -415,3 +415,11 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - `app.js` (« CLAVIER ET BARRE COLLÉE ») : à l'entrée dans le champ (`focus`), retour en haut de la liste (`scrollTo(0, 0)`) — la barre y est à sa place normale, au-dessus du clavier, résultats juste dessous. Refait sur `visualViewport` `resize` pendant l'ouverture du clavier (1,5 s au plus après l'entrée, iOS pouvant redéfiler après le focus), jamais ensuite : on peut parcourir les résultats clavier ouvert.
 - Vérifié (Chromium, iPhone 16 Pro Max simulé) : liste défilée → toucher la barre collée → haut de page, barre à 139 px, champ actif ; redéfilement simulé pendant l'ouverture → ramené en haut ; saisie OK ; défilement après 1,5 s → laissé tel quel, barre recollée. Le clavier d'iOS ne se simule pas dans Chromium : **confirmé sur iPhone par Corentin le 29/09/2026** (barre collée, puis toucher la barre → elle reste visible au-dessus du clavier).
 
+
+## Styles au choix Verre · Relief · Argile (30/09/2026)
+
+- Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
+- **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.
+- Surfaces de cette app prises en charge : plaque `main`, barre d'onglets, bouton +, « Course terminée », barre de recherche collée (fond = couleur de la plaque), cases, quantités, blocs des Réglages, sélecteur de profil, modales. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
+- **Bande iOS du bas** : le fond de `<html>` prend la couleur de la plaque du style choisi (même principe qu'en Verre).
+- Vérifié (Chromium, Firebase simulé) : Liste, Course, Réglages dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».

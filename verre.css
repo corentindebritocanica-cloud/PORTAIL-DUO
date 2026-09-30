@@ -698,3 +698,279 @@ html.verre .connexion-duo button{
   box-shadow:inset 0 1px 0 var(--v-hi); cursor:pointer;
 }
 html.verre .connexion-duo button:disabled{ opacity:.6; }
+
+
+/* ==========================================================================
+   STYLES AU CHOIX : VERRE · RELIEF · ARGILE (30/09/2026, demande de Corentin)
+   --------------------------------------------------------------------------
+   Le design Verre reste le style par défaut (attribut absent). Deux autres
+   habillages, choisis dans le Portail et appliqués aux 4 apps :
+     • RELIEF (neumorphisme) : une seule matière mate, les surfaces sortent du
+       fond (ombre claire en haut à gauche + ombre sombre en bas à droite) ou
+       s'y creusent (champs, pistes, onglet actif). Pas de halos, pas de flou.
+     • ARGILE (claymorphisme) : surfaces pleines, gonflées, teintées à la
+       couleur du profil, avec reflets et ombres INTÉRIEURS ; halos conservés
+       (atténués), pas de flou.
+   ACTIVATION : <html data-style="relief|argile">, posé par commun.js AVANT le
+   1er rendu à partir de localStorage['duo-style'] (même origine : même
+   principe que duo_profile). Choix dans le Portail (#style-choix).
+   PROFIL : toutes les teintes partent de --accent / --accent-rgb, donc bleu
+   Corentin / rose Lisa dans chaque style (charte §1, règle d'identité couple).
+   Budget pose le profil sur <body> (body.profil-lisa) : recopié sur <html>
+   par :has() ci-dessous, sinon les jetons calculés sur <html> resteraient bleus.
+   ARCHITECTURE : jetons --t-* définis par style, puis des règles PAR
+   CATÉGORIE (plaque, barre, panneau, creux, actif, accent) écrites UNE fois
+   sous html.verre[data-style] (spécificité supérieure d'un attribut aux
+   règles du verre, qu'elles ne modifient pas : le Verre reste intact).
+   Nouvelle surface dans une app → l'ajouter à la bonne catégorie ici.
+   PERF : aucun backdrop-filter dans ces deux styles (plus léger que le verre).
+   ========================================================================== */
+html.verre[data-app="budget"]:has(> body.profil-lisa){
+  --accent:var(--lisa); --accent-rgb:var(--lisa-rgb); --accent-dark:var(--lisa-dark);
+}
+
+/* ---------- Jetons : RELIEF (neumorphisme sombre) ---------- */
+html.verre[data-style="relief"]{
+  --t-fond:#1d2026;
+  --t-plaque:#1f2228;        /* à peine plus clair que le fond : la plaque se lit sans contour */
+  --t-panneau:#1f2228;       /* même matière que la plaque qui les porte */
+  --t-barre:#1f2228;
+  --t-modale:#20232a;
+  --t-clair:rgba(255,255,255,.055);
+  --t-sombre:rgba(0,0,0,.58);
+  --t-arete:rgba(255,255,255,.035);
+  --t-o-plaque:-10px -10px 24px var(--t-clair), 10px 12px 26px var(--t-sombre);
+  --t-o-barre:-6px -6px 16px var(--t-clair), 8px 10px 22px var(--t-sombre);
+  --t-o-panneau:-5px -5px 12px var(--t-clair), 6px 6px 14px var(--t-sombre);
+  --t-o-creux:inset 4px 4px 9px var(--t-sombre), inset -3px -3px 8px var(--t-clair);
+  --t-actif-fond:#1f2228;
+  --t-o-actif:inset 3px 3px 7px var(--t-sombre), inset -3px -3px 7px var(--t-clair);
+  --t-actif-texte:var(--accent);
+  --t-accent-fond:linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent-dark, var(--accent)));
+  --t-o-accent:-5px -5px 12px var(--t-clair), 6px 7px 16px var(--t-sombre), 0 0 18px rgba(var(--accent-rgb), .22);
+  --t-halo-op:0;
+}
+
+/* ---------- Jetons : ARGILE (claymorphisme sombre, teinté au profil) ---------- */
+html.verre[data-style="argile"]{
+  --t-fond:color-mix(in srgb, var(--accent) 12%, #121016);
+  --t-plaque:color-mix(in srgb, var(--accent) 15%, #1e1b24);
+  --t-panneau:color-mix(in srgb, var(--accent) 22%, #2a2631);
+  --t-barre:color-mix(in srgb, var(--accent) 24%, #2b2732);
+  --t-modale:color-mix(in srgb, var(--accent) 18%, #25222c);
+  --t-arete:rgba(255,255,255,.06);
+  --t-o-plaque:inset 6px 8px 18px rgba(255,255,255,.07), inset -6px -8px 20px rgba(0,0,0,.30), 0 -6px 30px rgba(0,0,0,.35);
+  --t-o-barre:10px 14px 30px rgba(0,0,0,.45), inset 4px 5px 10px rgba(255,255,255,.12), inset -5px -6px 12px rgba(0,0,0,.30);
+  --t-o-panneau:6px 9px 18px rgba(0,0,0,.38), inset 4px 5px 9px rgba(255,255,255,.10), inset -5px -6px 12px rgba(0,0,0,.28);
+  --t-o-creux:inset 3px 4px 8px rgba(0,0,0,.42), inset -2px -3px 6px rgba(255,255,255,.07);
+  --t-actif-fond:color-mix(in srgb, var(--accent) 45%, #2a2631);
+  --t-o-actif:4px 6px 14px rgba(var(--accent-rgb), .30), inset 3px 4px 8px rgba(255,255,255,.22), inset -4px -5px 10px rgba(0,0,0,.25);
+  --t-actif-texte:#fff;
+  --t-accent-fond:color-mix(in srgb, var(--accent) 82%, #1a1a1a);
+  --t-o-accent:6px 9px 20px rgba(var(--accent-rgb), .35), inset 4px 5px 10px rgba(255,255,255,.30), inset -5px -6px 12px rgba(0,0,0,.28);
+  --t-halo-op:.34;
+}
+
+/* ---------- Redirection des jetons du verre (et donc des jetons des apps) ---------- */
+html.verre[data-style]{
+  --v-bg:var(--t-fond);
+  --v-glass:var(--t-plaque);
+  --v-glass-fort:var(--t-barre);
+  --v-soft:var(--t-panneau);
+  --v-soft-on:var(--t-actif-fond);
+  --v-edge:var(--t-arete);
+  --v-hi:transparent;
+  --v-hair:rgba(255,255,255,.07);
+  --v-flou:none;
+  --v-halo-op:var(--t-halo-op);
+  --border-strong:rgba(255,255,255,.10);
+  --glass-modal:var(--t-modale);
+  --glass-modal-v:var(--t-modale);
+  --glass-modal-m:var(--t-modale);
+  --shadow-sm:var(--t-o-panneau);
+  --shadow:var(--t-o-barre);
+  --shadow-lg:0 -10px 40px rgba(0,0,0,.55);
+}
+html.verre[data-style][data-app="budget"] body{      /* Budget redéclare ses jetons sur <body> */
+  --border-strong:rgba(255,255,255,.10);
+  --shadow-sm:var(--t-o-panneau); --shadow:var(--t-o-barre); --shadow-lg:0 -10px 40px rgba(0,0,0,.55);
+}
+html.verre[data-style="relief"] body::before,
+html.verre[data-style="relief"] body::after,
+html.verre[data-style="relief"][data-app="muscu"] .menu-hero::after{ display:none; }   /* matière unie : pas de halos ni de lueur */
+
+/* Bande iOS du bas (Course, Budget) : couleur du bas de la plaque, comme en Verre */
+html.verre[data-style][data-app="course"],
+html.verre[data-style][data-app="budget"]{
+  background:var(--t-plaque) linear-gradient(var(--t-fond), var(--t-fond)) 0 0 / 100% 100% no-repeat;
+}
+html.verre[data-style][data-app="course"] .barre-recherche.colle,
+html.verre[data-style][data-app="course"] .barre-recherche.colle::before{ background:var(--t-plaque); }
+html.verre[data-style][data-app="course"] .barre-recherche.colle::after{
+  background:linear-gradient(var(--t-plaque), color-mix(in srgb, var(--t-plaque) 0%, transparent));
+}
+
+/* ---------- PLAQUES (grandes surfaces du contenu) ---------- */
+html.verre[data-style][data-app="portail"] .dash-card,
+html.verre[data-style][data-app="course"] main,
+html.verre[data-style][data-app="budget"] .main-content,
+html.verre[data-style][data-app="muscu"] .plaque,
+html.verre[data-style][data-app="muscu"] #view-exercises main{
+  background:var(--t-plaque); border-color:var(--t-arete); box-shadow:var(--t-o-plaque);
+}
+/* Pile du Portail : les ombres extérieures sont coupées par le clip-path → relief porté par
+   les vitres elles-mêmes (dégradé discret) ; vitres du fond pleines (matière opaque). */
+html.verre[data-style="relief"][data-app="portail"] .dash-card{
+  background:linear-gradient(145deg, #23262d, #1a1d22);
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.05), inset -1px -1px 0 rgba(0,0,0,.4);
+}
+html.verre[data-style="argile"][data-app="portail"] .dash-card{
+  background:color-mix(in srgb, var(--v-teinte) 16%, var(--t-panneau));
+  box-shadow:inset 6px 8px 16px rgba(255,255,255,.10), inset -7px -9px 18px rgba(0,0,0,.32);
+}
+html.verre[data-style][data-app="portail"] .dash-card[data-rang="1"]{ opacity:1; filter:brightness(.86); }
+html.verre[data-style][data-app="portail"] .dash-card[data-rang="2"]{ opacity:1; filter:brightness(.72); }
+/* Plaques de Muscu/Course/Budget en relief : bord du haut éclairé, pas d'ombre sur le fond uni */
+html.verre[data-style="relief"][data-app="course"] main,
+html.verre[data-style="relief"][data-app="budget"] .main-content,
+html.verre[data-style="relief"][data-app="muscu"] .plaque,
+html.verre[data-style="relief"][data-app="muscu"] #view-exercises main{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 -8px 22px rgba(0,0,0,.45);
+}
+
+/* ---------- BARRES, FLOTTANTS, MODALES ---------- */
+html.verre[data-style][data-app="course"] nav.tabbar,
+html.verre[data-style][data-app="course"] .nav-add,
+html.verre[data-style][data-app="course"] .btn-course-terminee,
+html.verre[data-style][data-app="budget"] .tab-buttons,
+html.verre[data-style][data-app="budget"] #toast,
+html.verre[data-style][data-app="muscu"] #view-exercises header,
+html.verre[data-style][data-app="muscu"] .bottom-bar,
+html.verre[data-style][data-app="muscu"] .toast,
+html.verre[data-style] .reload-btn,
+html.verre[data-style][data-app="budget"] .btn-icon{
+  background:var(--t-barre); border-color:var(--t-arete); box-shadow:var(--t-o-barre);
+}
+html.verre[data-style][data-app="course"] .btn-course-terminee{
+  background:color-mix(in srgb, var(--v-frigo) 30%, var(--t-barre));
+}
+html.verre[data-style][data-app="portail"] .modal-sheet,
+html.verre[data-style][data-app="course"] .modal-carte,
+html.verre[data-style][data-app="budget"] .popup-box,
+html.verre[data-style][data-app="muscu"] .modal,
+html.verre[data-style][data-app="muscu"] .confirm-box,
+html.verre[data-style][data-app="muscu"] .suggest-panel{
+  background:var(--t-modale); border-color:var(--t-arete); box-shadow:var(--t-o-barre);
+}
+html.verre[data-style][data-app="budget"] .login-box,
+html.verre[data-style] .connexion-duo form{
+  background:var(--t-modale); border-color:var(--t-arete); box-shadow:var(--t-o-barre);
+}
+html.verre[data-style][data-app="budget"] #login-screen,
+html.verre[data-style][data-app="muscu"] .login-overlay,
+html.verre[data-style] .connexion-duo{ background:color-mix(in srgb, var(--t-fond) 88%, transparent); }
+
+/* ---------- PANNEAUX posés sur une plaque ---------- */
+html.verre[data-style][data-app="portail"] .choice-icon,
+html.verre[data-style][data-app="portail"] .dash-phrase,
+html.verre[data-style][data-app="portail"] .chip,
+html.verre[data-style][data-app="course"] .bloc-param,
+html.verre[data-style][data-app="course"] .btn-crayon,
+html.verre[data-style][data-app="budget"] .year-group,
+html.verre[data-style][data-app="budget"] .card,
+html.verre[data-style][data-app="budget"] .revenus-box,
+html.verre[data-style][data-app="budget"] .admin-section,
+html.verre[data-style][data-app="budget"] .summary-card,
+html.verre[data-style][data-app="budget"] .month-pill,
+html.verre[data-style][data-app="budget"] .bg-neutral,
+html.verre[data-style][data-app="budget"] .btn-pay-method,
+html.verre[data-style][data-app="budget"] .mixte-btn,
+html.verre[data-style][data-app="muscu"] .big-choice-btn,
+html.verre[data-style][data-app="muscu"] .session-btn,
+html.verre[data-style][data-app="muscu"] .menu-hero,
+html.verre[data-style][data-app="muscu"] .exercise-card,
+html.verre[data-style][data-app="muscu"] .lifetime-card,
+html.verre[data-style][data-app="muscu"] .big-choice-btn .choice-icon,
+html.verre[data-style][data-app="muscu"] .session-btn .session-icon{
+  background:var(--t-panneau); border-color:var(--t-arete); box-shadow:var(--t-o-panneau);
+}
+
+/* ---------- CREUX (champs, pistes, cases) ---------- */
+html.verre[data-style][data-app="portail"] .gauge,
+html.verre[data-style][data-app="course"] .searchbar,
+html.verre[data-style][data-app="course"] .case,
+html.verre[data-style][data-app="course"] .qte-produit,
+html.verre[data-style][data-app="course"] .profile-switch,
+html.verre[data-style][data-app="course"] .champ input,
+html.verre[data-style][data-app="course"] .champ select,
+html.verre[data-style][data-app="budget"] .search-container input,
+html.verre[data-style][data-app="budget"] .select-annee,
+html.verre[data-style][data-app="budget"] .progress-track,
+html.verre[data-style][data-app="budget"] .profile-switch,
+html.verre[data-style][data-app="budget"] .revenus-box input,
+html.verre[data-style][data-app="budget"] input[type="number"],
+html.verre[data-style][data-app="budget"] .item-bottom input[type="date"],
+html.verre[data-style][data-app="budget"] .item-bottom select,
+html.verre[data-style][data-app="budget"] .login-box input,
+html.verre[data-style][data-app="muscu"] .session-progress-track,
+html.verre[data-style] .connexion-duo input,
+html.verre[data-style] .style-choix{
+  background:color-mix(in srgb, var(--t-panneau) 80%, #000); border-color:transparent; box-shadow:var(--t-o-creux);
+}
+html.verre[data-style="relief"][data-app="budget"] .revenus-box input[readonly]{ border:1px dashed rgba(255,255,255,.10); }
+
+/* ---------- ÉTATS ACTIFS (onglet, mois, segment choisi) ---------- */
+html.verre[data-style][data-app="course"] nav.tabbar button.actif,
+html.verre[data-style][data-app="budget"] .btn-tab.active,
+html.verre[data-style][data-app="budget"] .month-pill.active,
+html.verre[data-style][data-app="course"] .profile-switch-btn.selected,
+html.verre[data-style][data-app="budget"] .profile-switch-btn.selected,
+html.verre[data-style] .style-choix button[aria-checked="true"]{
+  background:var(--t-actif-fond); border-color:transparent; color:var(--t-actif-texte); box-shadow:var(--t-o-actif);
+}
+html.verre[data-style][data-app="course"] nav.tabbar button.actif svg,
+html.verre[data-style][data-app="budget"] .btn-tab.active svg{ color:var(--t-actif-texte); }
+html.verre[data-style="relief"][data-app="course"] nav.tabbar button.actif svg,
+html.verre[data-style="relief"][data-app="budget"] .btn-tab.active svg{ color:var(--accent); }
+
+/* ---------- ACCENT (actions principales, cases cochées) ---------- */
+html.verre[data-style][data-app="budget"] .bg-primary,
+html.verre[data-style][data-app="budget"] .btn-small.bg-primary,
+html.verre[data-style][data-app="budget"] .login-btn,
+html.verre[data-style][data-app="muscu"] .big-choice-btn.primary,
+html.verre[data-style][data-app="muscu"] .btn-export,
+html.verre[data-style][data-app="muscu"] .finish-btn.archive,
+html.verre[data-style][data-app="muscu"] .login-btn,
+html.verre[data-style][data-app="portail"] .btn-accent,
+html.verre[data-style] .connexion-duo button{
+  background:var(--t-accent-fond); border-color:transparent; color:#fff; box-shadow:var(--t-o-accent);
+}
+html.verre[data-style][data-app="course"] .case.checked{
+  background:var(--accent); border-color:transparent; box-shadow:var(--t-o-accent);
+}
+html.verre[data-style][data-app="course"] .nav-add{ outline-color:var(--accent); }
+html.verre[data-style][data-app="budget"] .bg-danger,
+html.verre[data-style][data-app="muscu"] .btn-confirm{
+  background:color-mix(in srgb, #ef4444 70%, var(--t-panneau)); border-color:transparent; color:#fff; box-shadow:var(--t-o-panneau);
+}
+html.verre[data-style][data-app="muscu"] .btn-copy{
+  background:color-mix(in srgb, #12b981 60%, var(--t-panneau)); border-color:transparent; color:#fff; box-shadow:var(--t-o-panneau);
+}
+
+/* ---------- Sélecteur de style (Portail, sous la pile) ---------- */
+.style-choix{
+  display:flex; gap:4px; width:max-content; margin:18px auto 0; padding:4px; border-radius:999px;
+  background:var(--v-soft); border:1px solid var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi);
+}
+.style-choix button{
+  min-height:44px; min-width:74px; padding:0 14px; border-radius:999px; border:1px solid transparent;   /* 44 px : zone tactile (charte §6.4) */
+  background:transparent; color:var(--v-dim); font:600 13px -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:background .2s ease-out, color .2s ease-out, box-shadow .2s ease-out, transform var(--t-fast, .15s) ease-out;
+}
+.style-choix button[aria-checked="true"]{ background:var(--v-soft-on); color:var(--v-text); box-shadow:inset 0 1px 0 var(--v-hi); }
+.style-choix button:active{ transform:scale(.97); }
+.style-choix-titre{ text-align:center; font-size:12px; color:var(--v-dim); margin:18px 0 0; }
+.style-choix-titre + .style-choix{ margin-top:8px; }
+/* Changement de style : bascule franche, sans animer chaque ombre de la page */
+html.verre.style-bascule *, html.verre.style-bascule *::before, html.verre.style-bascule *::after{ transition:none !important; }

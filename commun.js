@@ -12,6 +12,7 @@
    Mis en cache hors-ligne par le service worker de chaque app.
 
    CONTENU
+   0. Style au choix (Verre / Relief / Argile) posé avant le 1er rendu
    1. Halos du fond calés sur l'horloge (continuité d'une app à l'autre)
    2. Transition « la vitre s'ouvre en app » : annulée pour retours/rechargements
    3. Date de dernière mise à jour du code (formaterDerniereMaj, #derniere-maj)
@@ -28,6 +29,37 @@
 (function(){
   'use strict';
   var racine = document.documentElement;
+
+  /* ---------- 0. STYLE AU CHOIX : VERRE · RELIEF · ARGILE (30/09/2026) ----------
+     Choisi dans le Portail, appliqué aux 4 apps : localStorage['duo-style'] (même origine,
+     comme duo_profile) → <html data-style="relief|argile"> ; attribut absent = Verre (défaut).
+     Posé ICI, dans le <head> avant verre.css : aucun flash de l'ancien style à l'ouverture.
+     Relu au retour depuis le cache précédent/suivant (le choix a pu changer dans le Portail)
+     et à l'événement storage (autre onglet). Les habillages sont dans verre.css, bloc
+     « STYLES AU CHOIX ». window.duoStyle.choisir(s) : utilisé par le sélecteur du Portail. */
+  var STYLES = ['verre', 'relief', 'argile'];
+  function lireStyle(){
+    try { var s = localStorage.getItem('duo-style'); return STYLES.indexOf(s) >= 0 ? s : 'verre'; }
+    catch (e) { return 'verre'; }
+  }
+  function appliquerStyle(s){
+    if (s === 'verre') racine.removeAttribute('data-style'); else racine.setAttribute('data-style', s);
+  }
+  appliquerStyle(lireStyle());
+  window.addEventListener('pageshow', function(e){ if (e.persisted) appliquerStyle(lireStyle()); });
+  window.addEventListener('storage', function(e){ if (e.key === 'duo-style') appliquerStyle(lireStyle()); });
+  window.duoStyle = {
+    liste: STYLES.slice(),
+    lire: lireStyle,
+    choisir: function(s){
+      if (STYLES.indexOf(s) < 0) return;
+      try { localStorage.setItem('duo-style', s); } catch (e) {}
+      /* bascule franche : on coupe les transitions le temps d'une image (sinon chaque ombre s'anime) */
+      racine.classList.add('style-bascule');
+      appliquerStyle(s);
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ racine.classList.remove('style-bascule'); }); });
+    }
+  };
 
   /* ---------- 1. HALOS CALÉS SUR L'HORLOGE (28/09/2026) ----------
      Chaque app étant une page séparée, une animation CSS repartirait de zéro à chaque

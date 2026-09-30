@@ -19,6 +19,21 @@
 
 ---
 
+## 🧱 4 apps — styles au choix (Verre / Relief / Argile) : ombres coupées et profil sur `<body>` (30/09/2026)
+
+### 30/09/2026 — Portail, Budget — deux pièges en ajoutant le neumorphisme et le claymorphisme
+**Symptôme** : (1) Portail en Relief : la vitre de devant n'avait aucun relief, ses ombres portées n'apparaissaient pas ; les vitres du fond, devenues opaques, se voyaient « délavées » (opacité 0,82 / 0,62). (2) Budget en Argile avec le profil de Lisa : fond et plaques teintés **bleu** alors que les boutons étaient roses.
+**Fausses pistes explorées** : aucune (repérées au premier rendu dans Chromium).
+**Cause racine** : (1) les vitres de la pile sont découpées par `clip-path: inset(… round 34px)` : **`clip-path` coupe aussi `box-shadow`**, tout ce qui dépasse de la forme disparaît. (2) Une variable CSS qui en utilise une autre (`--t-fond: color-mix(… var(--accent) …)`) est **calculée sur l'élément où elle est déclarée** (`<html>`), puis héritée telle quelle ; or Budget pose le profil sur `<body>` (`body.profil-lisa`) : sur `<html>`, `--accent` vaut toujours le bleu de Corentin.
+**Solution** : (1) en Relief/Argile, relief des vitres porté par l'intérieur (dégradé + `inset`), vitres du fond opaques et assombries par `filter:brightness(.86 / .72)`. (2) Profil recopié sur `<html>` : `html.verre[data-app="budget"]:has(> body.profil-lisa){ --accent:var(--lisa); … }` (`:has()` : iOS 15.4+).
+**Leçons généralisables** :
+- **Élément découpé par `clip-path` (ou `overflow:hidden` d'un parent)** : ne compter que sur des ombres **intérieures** pour lui donner du relief.
+- **Jeton dérivé d'un autre jeton** (`color-mix`, `rgba(var(--x-rgb), …)`) : le déclarer sur l'élément qui porte la variable source, ou remonter la source au niveau où le jeton est déclaré. Vérifier chaque app avec les **deux profils**.
+- **Ajouter un style par-dessus un design existant sans le casser** : tout préfixer par l'attribut du style (`html.verre[data-style]`), et comparer le style par défaut **au pixel près** avant/après (captures Chromium identiques).
+**Fichiers touchés** : `verre.css`, `commun.js`, `index.html`, `app.js`, `README.md`, `Budget/README.md`, `Course/README.md`, `Muscu/README.md`, `UX_UI_CHARTER.md`
+
+---
+
 ## 🔎 Course — barre de recherche collée et clavier de l'iPhone (29/09/2026, soir)
 
 ### 29/09/2026 — Course — la barre de recherche collée disparaissait quand le clavier s'ouvrait

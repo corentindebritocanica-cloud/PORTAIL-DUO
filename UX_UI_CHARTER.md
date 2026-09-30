@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 2.0 (design Verre, §12)  
+**Version** : 2.1 (design Verre §12 + styles au choix §13)  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **Référence visuelle** : `verre.css` (design Verre, §12) depuis le 28/09/2026 — avant : Muscu (Duo Training), dont les sections 1 à 11 sont extraites
@@ -475,6 +475,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
+| 30/09/26 | **Styles au choix** (§13) : Verre (défaut) · Relief (neumorphisme) · Argile (claymorphisme), choisi dans le Portail, appliqué aux 4 apps ; bleu Corentin / rose Lisa conservés dans chaque style. |
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
 | 18/09/26 | Suppression du rouge de marque fixe "Fonte & Craie" → tout passe en `--accent` dynamique |
@@ -599,6 +600,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 - **Activation** : classe `verre` en dur sur `<html>` + `data-app="…"` ; aucune option ni interrupteur (essai et curseur d'intensité retirés le 28/09).
 - **Thème** : sombre uniquement (le thème clair du verre a été retiré avec le bouton lune le 28/09).
+- **Styles au choix** (30/09/2026) : le Verre reste le style par défaut ; Relief et Argile s'y substituent sur demande (§13).
 
 - **Source unique** : `verre.css` à la racine, règles préfixées `html.verre` (+ `[data-app="…"]` pour une app). Aucune app ne redéfinit le verre dans son propre `style.css`.
 - **Fond** : `#08080a` (clair : `#e6e0d6`) éclairé par deux halos en `radial-gradient` : couleur du profil (`--accent`) et couleur de l'app (`--v-app`).
@@ -620,6 +622,31 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 ---
 
+## 13. 🧱 Styles au choix : Verre · Relief · Argile (30/09/2026)
+
+> Demande de Corentin : proposer, en plus du glassmorphisme, un style **neumorphisme** et un style **claymorphisme**, choisis dans le Portail et appliqués aux 4 apps.
+
+- **Choix** : Portail › « Style des apps » (sous la pile). Mémorisé par téléphone dans `localStorage duo-style` (`verre | relief | argile`), posé sur `<html data-style>` par `commun.js` **avant le 1er rendu**. Attribut absent = Verre.
+- **Source unique** : bloc « STYLES AU CHOIX » à la fin de `verre.css`. Comme pour le Verre, aucune app ne redéfinit ces styles dans son `style.css`.
+- **Identité couple (§1) respectée** : toutes les teintes partent de `--accent` / `--accent-rgb` → bleu Corentin, rose Lisa dans les trois styles.
+
+| | Verre (défaut) | Relief (neumorphisme) | Argile (claymorphisme) |
+|---|---|---|---|
+| Fond | `#08080a` + 2 halos animés | `#1d2026` uni, sans halo | teinté au profil (`--accent` 12 %) + halos atténués (0,34) |
+| Plaques / panneaux | verre dépoli translucide, flou 30 px | même matière que le fond, en relief (ombre claire haut-gauche + sombre bas-droite) | pleins, teintés au profil, gonflés (reflet + ombre **intérieurs**) |
+| Champs, jauges, cases | voile blanc 6 % | creusés (`inset`) | creusés (`inset`) |
+| Onglet / segment actif | voile 16 % + icône accent | creusé, texte et icône accent | pastille accent gonflée, texte blanc |
+| Action principale | verre teinté accent | dégradé accent en relief + lueur | aplat accent gonflé |
+| Flou (`backdrop-filter`) | oui (2–3 surfaces max) | **aucun** | **aucun** |
+
+- **Catégories de surfaces** (chaque nouvelle surface d'une app doit être rangée dans l'une d'elles) : plaques, barres/flottants/modales, panneaux, creux, états actifs, accent.
+- **Contraste** : le neumorphisme est réputé peu lisible (tout a la même couleur) → états actifs toujours marqués par la couleur d'accent, pas seulement par l'ombre ; textes inchangés (`--v-text`, `--v-dim`).
+- **Zones tactiles** : boutons du sélecteur 74 × 44 px (§6.4).
+- **Pile du Portail** : les vitres étant découpées par `clip-path`, leur relief est **intérieur** en Relief/Argile ; vitres du fond assombries (`brightness`) au lieu d'être transparentes.
+- **Changement de style** : bascule franche (transitions coupées le temps de deux images, classe `style-bascule`).
+
+---
+
 ## 🔗 Application aux Apps Existantes
 
 | App | Statut Conformité | Action Requise |
@@ -636,4 +663,4 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 ---
 
 **Auteur** : Lead Developer Full-Stack  
-**Dernière mise à jour** : 28 Septembre 2026
+**Dernière mise à jour** : 30 Septembre 2026
