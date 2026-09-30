@@ -19,6 +19,7 @@ service cloud.firestore {
     match /produits/{id}       { allow read, write: if compteDuo(); }
     match /rayons/{id}         { allow read, write: if compteDuo(); }
     match /portail/{id}        { allow read, write: if compteDuo(); }
+    match /listes/{id}         { allow read, write: if compteDuo(); }   // listes de courses (Maison, Apéro…), 30/09/2026
 
     // ---- MUSCU ----
     match /archives/{id}       { allow read, write: if compteDuo(); }

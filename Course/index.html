@@ -39,6 +39,10 @@
     <h1 id="titre-onglet">Liste</h1>
   </header>
 
+  <!-- Plusieurs listes de courses (30/09/2026) : Maison, Apéro, Vacances… Pastilles dessinées par
+       renderSelecteurListes() (app.js), visibles sur les onglets Liste et Course (masquées dans Réglages). -->
+  <div class="selecteur-listes" id="selecteur-listes" aria-label="Listes de courses"></div>
+
   <main>
     <section class="vue actif" id="vue-liste">
       <!-- Enveloppe collée en haut de l'écran pendant le défilement (29/09/2026) : voir .barre-recherche
@@ -67,6 +71,12 @@
             <button type="button" class="profile-switch-btn corentin" id="btn-profil-corentin" data-profil="Corentin">Corentin</button>
             <button type="button" class="profile-switch-btn lisa" id="btn-profil-lisa" data-profil="Lisa">Lisa</button>
           </div>
+        </div>
+        <div class="bloc-param">
+          <h3>Listes de courses</h3>
+          <p class="param-desc">Chaque liste a ses propres produits. Les rayons sont communs à toutes les listes.</p>
+          <div id="reglages-listes"></div>
+          <button class="btn-large btn-nouvelle-liste" id="btn-nouvelle-liste">+ Nouvelle liste</button>
         </div>
         <div class="bloc-param">
           <h3>Application</h3>
@@ -126,11 +136,33 @@
       <label for="modal-nouveau-rayon">Nom du nouveau rayon</label>
       <input type="text" id="modal-nouveau-rayon" placeholder="Ex: Surgelés">
     </div>
+    <!-- Liste du produit (30/09/2026) : affiché seulement s'il existe plus d'une liste -->
+    <div class="champ" id="champ-liste-produit" style="display:none;">
+      <label for="modal-liste-produit">Liste</label>
+      <select id="modal-liste-produit"></select>
+    </div>
     <div class="modal-actions">
       <button class="btn-annuler" id="btn-modal-annuler">Annuler</button>
       <button class="btn-enregistrer" id="btn-modal-enregistrer">Enregistrer</button>
     </div>
     <button class="btn-supprimer" id="btn-modal-supprimer" style="display:none;">Supprimer ce produit</button>
+  </div>
+</div>
+
+<!-- Création / renommage / suppression d'une liste de courses (30/09/2026) — voir « LISTES » dans app.js -->
+<div class="modal-fond" id="modal-liste" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-liste-titre">
+  <div class="modal-carte">
+    <h2 id="modal-liste-titre">Nouvelle liste</h2>
+    <div class="champ">
+      <label for="modal-liste-nom">Nom de la liste</label>
+      <input type="text" id="modal-liste-nom" placeholder="Ex: Apéro" maxlength="30" enterkeyhint="done">
+    </div>
+    <p class="modal-erreur" id="modal-liste-erreur" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="btn-liste-annuler">Annuler</button>
+      <button type="button" class="btn-enregistrer" id="btn-liste-enregistrer">Enregistrer</button>
+    </div>
+    <button type="button" class="btn-supprimer" id="btn-liste-supprimer" style="display:none;">Supprimer cette liste</button>
   </div>
 </div>
 

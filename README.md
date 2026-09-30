@@ -728,7 +728,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 
 | App | Projet avant | Projet depuis le 29/09/2026 | Collections |
 |---|---|---|---|
-| Course | `course-app-36e9d` | `course-app-36e9d` (inchangé) | `produits`, `rayons` |
+| Course | `course-app-36e9d` | `course-app-36e9d` (inchangé) | `produits`, `rayons`, `listes` (depuis le 30/09/2026) |
 | Portail | `course-app-36e9d` | inchangé | `portail/{muscu,budget,courses}` |
 | Budget | `lisa-et-corentin` | **`course-app-36e9d`** | `mois`, `config` |
 | Muscu | `duo-training-e835b` | **`course-app-36e9d`** | `archives`, `customSessions`, `coachChat`, `settings` |
@@ -747,7 +747,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 
 ### Règles de sécurité — `/firestore.rules` (versionné)
 
-- **Course / Portail** (`produits`, `rayons`, `portail`) : toute session, anonyme comprise — **jusqu'au 29/09/2026 au soir**, puis `compteDuo()` comme le reste (voir « Course et Portail réservés au compte du duo » ci-dessous).
+- **Course / Portail** (`produits`, `rayons`, `portail` ; `listes` ajoutée le 30/09/2026, directement en `compteDuo()`) : toute session, anonyme comprise — **jusqu'au 29/09/2026 au soir**, puis `compteDuo()` comme le reste (voir « Course et Portail réservés au compte du duo » ci-dessous).
 - **Muscu / Budget** : `compteDuo()` = connexion **par mot de passe** ET compte du duo (reconnu par son **UID** depuis le 29/09/2026 au soir ; avant : par son adresse e-mail, retirée du fichier public). Une session anonyme (que n'importe qui peut ouvrir avec la config publique du dépôt) **n'y a pas accès**, un autre compte e-mail non plus (ferme aussi le trou de l'inscription libre signalé dans `Muscu/README.md`).
 - **Tout le reste est fermé.** Une nouvelle app = ses collections déclarées explicitement dans `firestore.rules`.
 - ⚠️ **Le fichier du dépôt n'est pas déployé automatiquement.** Après modification : publier par la console Firebase (Firestore → Règles, copier-coller) ou par l'API Firebase Rules avec le compte de service (créer un `ruleset` puis mettre à jour la release `cloud.firestore`). Toujours tester avant (émulateur Firestore + `@firebase/rules-unit-testing` : 120 cas testés le 29/09/2026 — compte du duo, anonyme, autre e-mail, sans session).

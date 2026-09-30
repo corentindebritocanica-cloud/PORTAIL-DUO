@@ -78,6 +78,42 @@
   section.vue{display:none;}
   section.vue.actif{display:block;}
 
+  /* Sélecteur de listes (30/09/2026) : pastilles défilant horizontalement sous le titre, onglets
+     Liste et Course seulement. 40 px visuels + 2 px de marge haut/bas dans le conteneur pour la zone
+     tactile de 44 px (::after), qu'un overflow-x:auto couperait sinon. */
+  .selecteur-listes{
+    display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; flex-shrink:0;
+    padding:2px 18px 14px; scrollbar-width:none; overscroll-behavior-x:contain;
+  }
+  .selecteur-listes::-webkit-scrollbar{display:none;}
+  #app[data-onglet="parametres"] .selecteur-listes{display:none;}
+  .liste-chip{
+    position:relative; flex-shrink:0; display:inline-flex; align-items:center; gap:7px;
+    min-height:40px; padding:0 16px; border-radius:var(--r-pill);
+    border:1px solid var(--border); background:var(--card); color:var(--text-dim);
+    font-family:inherit; font-size:14px; font-weight:600; white-space:nowrap;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease;
+  }
+  .liste-chip::after{content:''; position:absolute; inset:-2px 0;}
+  .liste-chip:active{transform:scale(0.97);}
+  .liste-chip.actif{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+  .liste-chip-ajout{width:40px; padding:0; justify-content:center; font-size:22px; font-weight:400; line-height:1;}
+  .liste-badge{
+    min-width:20px; height:20px; padding:0 6px; border-radius:var(--r-pill);
+    background:var(--accent); color:#fff; font-size:11.5px; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  /* Réglages › Listes de courses : une ligne par liste (touche = renommer / supprimer) */
+  .ligne-liste{
+    width:100%; display:flex; align-items:center; gap:12px; min-height:56px; padding:8px 0;
+    background:none; border:none; border-bottom:1px solid var(--border); color:var(--text);
+    font-family:inherit; text-align:left;
+  }
+  .ligne-liste .nom-produit, .ligne-liste .rayon-produit{display:block;}
+  .ligne-liste:active{opacity:.7;}
+  .btn-nouvelle-liste{margin-top:14px;}
+  .modal-erreur{min-height:18px; margin:-6px 0 0; font-size:13px; color:var(--danger);}
+
   /* Barre de recherche */
   .searchbar{
     margin:14px 18px 4px; display:flex; align-items:center; gap:8px;

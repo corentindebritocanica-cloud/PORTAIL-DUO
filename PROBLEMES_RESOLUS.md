@@ -19,6 +19,22 @@
 
 ---
 
+## 🗂️ Course — ajouter un champ à des données existantes sans rien risquer : plusieurs listes de courses (30/09/2026)
+
+### 30/09/2026 — Course — passer d'une liste unique à plusieurs listes (Maison, Apéro…) sans perdre la liste en cours
+**Symptôme** : aucun bug — évolution de structure. Demande : la liste actuelle devient « Maison » et d'autres listes s'ajoutent ; la liste venait d'être faite (48 produits cochés) et ne devait rien perdre.
+**Fausses pistes explorées** : (1) faire créer `listes/maison` et le champ `listeId` par l'app au démarrage — écarté : c'est exactement le « réinjecter si absent » côté client qui a dupliqué le catalogue les 18 et 19/09 (voir « Course — doublons »). (2) Tester les règles par l'API `projects:test` de Firebase Rules — refusé (`firebaserules.rulesets.test` absent du compte de service) ; la création d'un ruleset, elle, est autorisée et **compile** les règles (refus en cas d'erreur).
+**Cause racine** : un nouveau champ obligatoire sur des documents existants + un nouveau document de référence créent deux risques : documents « orphelins » tant que la migration n'est pas faite (ou écrits par un téléphone resté sur l'ancienne version), et écrasement de champs si la migration réécrit les documents entiers.
+**Solution** :
+- **Valeur par défaut dans le code** : `listeId` absent = `maison` (`listeDe()`), et la liste Maison existe dans l'interface même sans son document (entrée virtuelle) → l'app fonctionne avant, pendant et après la migration, et avec un vieux téléphone.
+- **Migration côté serveur uniquement**, après sauvegarde JSON : un seul `commit` REST de 135 écritures, chaque produit mis à jour avec **`updateMask: { fieldPaths: ['listeId'] }`** et la précondition `exists: true` (jamais de recréation), `listes/maison` avec `exists: false` (jamais d'écrasement). Contrôle après : champs autres que `listeId` identiques au bit près.
+- **Ordre de mise en service** : règles (ajout d'une collection = rétro-compatible) → données → code.
+**Leçons généralisables** :
+- **Toute migration Firestore** : sauvegarde, puis écritures à **masque de champ** + **précondition** (`exists`), vérification champ par champ avant/après. Jamais de `set()` complet sur un document existant.
+- **Nouveau champ** : le code doit toujours comprendre son **absence** (valeur par défaut), jamais « réparer » la base au démarrage.
+- **Publier des règles par l'API** : créer le ruleset (compile) puis `PATCH releases/cloud.firestore` ; ensuite vérifier par une vraie requête sans session (`403` attendu).
+**Fichiers touchés** : `Course/index.html`, `Course/style.css`, `Course/app.js`, `verre.css`, `firestore.rules`, `Course/README.md`, `README.md`
+
 ## 🧱 4 apps — styles au choix (Verre / Relief / Argile) : ombres coupées et profil sur `<body>` (30/09/2026)
 
 ### 30/09/2026 — Portail, Budget — deux pièges en ajoutant le neumorphisme et le claymorphisme

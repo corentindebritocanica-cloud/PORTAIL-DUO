@@ -330,6 +330,18 @@ html.verre[data-app="course"] .qte-produit{ border-radius:999px; background:var(
 html.verre[data-app="course"] .btn-crayon{ background:var(--v-soft); border:1px solid var(--v-edge); }
 html.verre[data-app="course"] .carte-produit.achete-carte{ opacity:.5; }
 
+/* Sélecteur de listes (30/09/2026) : pastilles posées sur le fond, sous le titre — sans flou
+   (règle PERF : la plaque, la barre et le + restent les seules surfaces floutées). */
+html.verre[data-app="course"] .selecteur-listes{ padding:2px 20px 14px; margin-top:-4px; }
+html.verre[data-app="course"] .liste-chip{
+  background:var(--v-soft); border-color:var(--v-edge); color:var(--v-dim);
+  box-shadow:inset 0 1px 0 var(--v-hi);
+}
+html.verre[data-app="course"] .liste-chip.actif{
+  background:var(--v-soft-on); color:var(--v-text); border-color:rgba(var(--accent-rgb), .6);
+}
+html.verre[data-app="course"] .ligne-liste{ border-bottom-color:var(--v-hair); }
+
 /* Barre d'onglets et bouton + : verre plus dense (posé sur du contenu qui défile) */
 html.verre[data-app="course"] nav.tabbar,
 html.verre[data-app="course"] .nav-add{
@@ -876,6 +888,7 @@ html.verre[data-style][data-app="portail"] .dash-phrase,
 html.verre[data-style][data-app="portail"] .chip,
 html.verre[data-style][data-app="course"] .bloc-param,
 html.verre[data-style][data-app="course"] .btn-crayon,
+html.verre[data-style][data-app="course"] .liste-chip,
 html.verre[data-style][data-app="budget"] .year-group,
 html.verre[data-style][data-app="budget"] .card,
 html.verre[data-style][data-app="budget"] .revenus-box,
@@ -924,6 +937,7 @@ html.verre[data-style][data-app="course"] nav.tabbar button.actif,
 html.verre[data-style][data-app="budget"] .btn-tab.active,
 html.verre[data-style][data-app="budget"] .month-pill.active,
 html.verre[data-style][data-app="course"] .profile-switch-btn.selected,
+html.verre[data-style][data-app="course"] .liste-chip.actif,
 html.verre[data-style][data-app="budget"] .profile-switch-btn.selected,
 html.verre[data-style] .style-choix button[aria-checked="true"]{
   background:var(--t-actif-fond); border-color:transparent; color:var(--t-actif-texte); box-shadow:var(--t-o-actif);

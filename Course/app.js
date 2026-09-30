@@ -101,9 +101,55 @@ function lireProfilCommun(){
 function ecrireProfilCommun(nom){
   try { localStorage.setItem('duo_profile', nom === 'Lisa' ? 'lisa' : 'corentin'); } catch (e) {}
 }
+
+/* ============================================================
+   LISTES DE COURSES (30/09/2026, demande de Corentin)
+   Plusieurs listes : « Maison » (la liste d'origine), puis celles que Corentin crée (Apéro,
+   Vacances…). Collection Firestore `listes/{id}` = { nom, ordre } ; chaque produit porte
+   `listeId`. La liste d'origine a l'id fixe `maison` et ne peut pas être supprimée.
+   - Un produit SANS `listeId` appartient à Maison (produits créés par un téléphone resté sur une
+     ancienne version, ou avant la migration) : rien ne peut se perdre.
+   - Si le document `listes/maison` manque (règles pas encore publiées, 1re ouverture hors ligne),
+     Maison existe quand même dans l'interface (entrée virtuelle, jamais écrite par l'app).
+   - Liste affichée = mémorisée PAR TÉLÉPHONE (localStorage `courses_liste_active`) : Lisa et
+     Corentin peuvent regarder deux listes différentes.
+   - Les rayons restent communs à toutes les listes.
+   ============================================================ */
+const LISTE_DEFAUT = 'maison';
+const CLE_LISTE_ACTIVE = 'courses_liste_active';
+let listesConnues = false;   /* vrai dès que les listes sont connues (aperçu local ou Firestore) */
+function lireListeActive(){
+  try { return localStorage.getItem(CLE_LISTE_ACTIVE) || LISTE_DEFAUT; } catch (e) { return LISTE_DEFAUT; }
+}
+function listeDe(p){ return (p && p.listeId) || LISTE_DEFAUT; }
+function listesTriees(){
+  const l = Object.assign({}, state.listes);
+  if(!l[LISTE_DEFAUT]) l[LISTE_DEFAUT] = { nom:'Maison', ordre:0 };
+  return Object.entries(l).sort((a,b)=> ((a[1].ordre||0) - (b[1].ordre||0)) || (a[1].nom||'').localeCompare(b[1].nom||''));
+}
+/* Liste réellement affichée : la liste mémorisée, sauf si elle n'existe plus (supprimée depuis
+   l'autre téléphone) → Maison. Tant que les listes ne sont pas connues, on garde la mémorisée. */
+function idListeAffichee(){
+  if(!listesConnues) return state.listeActive;
+  return listesTriees().some(([id])=> id === state.listeActive) ? state.listeActive : LISTE_DEFAUT;
+}
+function produitsDeLaListe(){
+  const id = idListeAffichee();
+  return Object.entries(state.produits).filter(([,p])=> listeDe(p) === id);
+}
+function choisirListe(id){
+  state.listeActive = id;
+  try { localStorage.setItem(CLE_LISTE_ACTIVE, id); } catch (e) {}
+  render();
+  window.scrollTo(0, 0);
+  const actif = document.querySelector('.liste-chip.actif');
+  if(actif && actif.scrollIntoView) actif.scrollIntoView({ inline:'nearest', block:'nearest' });
+}
 const state = {
   produits: {},
   rayons: {},
+  listes: {},        // listes de courses (30/09/2026) : { id: { nom, ordre } } — voir « LISTES »
+  listeActive: lireListeActive(),
   profil: lireProfilCommun(),
   ongletActif: 'liste',
   recherche: '',
@@ -154,12 +200,14 @@ function renderListe(){
   const conteneur = document.getElementById('liste-produits');
   const recherche = state.recherche.trim().toLowerCase();
 
-  const items = Object.entries(state.produits).filter(([id,p])=>
+  const items = produitsDeLaListe().filter(([id,p])=>
     !recherche || (p.nom||'').toLowerCase().includes(recherche)
   );
 
   if(items.length===0){
-    conteneur.innerHTML = `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
+    conteneur.innerHTML = recherche
+      ? `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`
+      : `<div class="vide"><h2>Liste vide</h2><p>Ajoute les produits de cette liste avec le bouton +.</p></div>`;
     return;
   }
 
@@ -205,10 +253,10 @@ function updateQuantite(id, val){
    ============================================================ */
 function renderCourse(){
   const conteneur = document.getElementById('liste-course');
-  const items = Object.entries(state.produits).filter(([id,p])=> p.aAcheter);
+  const items = produitsDeLaListe().filter(([id,p])=> p.aAcheter);
   if(items.length===0){
     conteneur.innerHTML = `<div class="vide"><h2>Rien à acheter</h2><p>Coche des produits dans l'onglet Liste pour les voir apparaître ici.</p></div>`;
-    document.getElementById('btn-course-terminee').disabled = true;
+    document.getElementById('btn-course-terminee').classList.remove('visible');
     return;
   }
   const parRayon = {};
@@ -255,7 +303,7 @@ function toggleAchete(id){
 }
 
 document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
-  const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete);
+  const aEffacer = produitsDeLaListe().filter(([id,p])=> p.aAcheter && p.achete);   /* liste affichée seulement */
   if(aEffacer.length===0) return;
   firestorePret.then(()=>{
     const batch = db.batch();
@@ -352,12 +400,24 @@ selectRayon.addEventListener('change', ()=>{
   champNouveauRayon.style.display = selectRayon.value==='__nouveau__' ? 'block' : 'none';
 });
 
+/* Liste du produit (30/09/2026) : sélecteur visible seulement s'il y a plusieurs listes ;
+   permet de déplacer un produit d'une liste à l'autre. */
+const selectListeProduit = document.getElementById('modal-liste-produit');
+function peuplerSelectListes(listeIdSelectionnee){
+  const listes = listesTriees();
+  selectListeProduit.innerHTML = listes.map(([id,l])=>
+    `<option value="${id}" ${id===listeIdSelectionnee?'selected':''}>${escapeHtml(l.nom||'')}</option>`
+  ).join('');
+  document.getElementById('champ-liste-produit').style.display = listes.length > 1 ? 'block' : 'none';
+}
+
 function ouvrirModale(id){
   state.editionId = id || null;
   const p = id ? state.produits[id] : null;
   document.getElementById('modal-titre').textContent = id ? 'Modifier le produit' : 'Ajouter un produit';
   document.getElementById('modal-nom').value = p ? (p.nom||'') : '';
   peuplerSelectRayons(p ? p.rayonId : '');
+  peuplerSelectListes(p ? listeDe(p) : idListeAffichee());
   champNouveauRayon.style.display = 'none';
   document.getElementById('modal-nouveau-rayon').value = '';
   document.getElementById('btn-modal-supprimer').style.display = id ? 'block' : 'none';
@@ -389,10 +449,11 @@ document.getElementById('btn-modal-enregistrer').addEventListener('click', async
     }
   }
 
+  const listeId = selectListeProduit.value || idListeAffichee();
   if(state.editionId){
-    await dbUpdateDoc('produits', state.editionId, { nom, rayonId });
+    await dbUpdateDoc('produits', state.editionId, { nom, rayonId, listeId });
   } else {
-    await dbAddDoc('produits', { nom, rayonId, quantite:'', aAcheter:false, achete:false, compteur:0 });
+    await dbAddDoc('produits', { nom, rayonId, listeId, quantite:'', aAcheter:false, achete:false, compteur:0 });
   }
   fermerModale();
 });
@@ -405,6 +466,115 @@ document.getElementById('btn-modal-supprimer').addEventListener('click', async (
   if(!oui) return;
   await dbDeleteDoc('produits', id);
   fermerModale();
+});
+
+/* ============================================================
+   LISTES — sélecteur (pastilles), Réglages, fenêtre de création / renommage / suppression
+   (30/09/2026). Données : voir « LISTES DE COURSES » en haut du fichier.
+   ============================================================ */
+const sansAccentsListe = (s)=> (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function restantsDeListe(id){
+  return Object.values(state.produits).filter(p=> listeDe(p)===id && p.aAcheter && !p.achete).length;
+}
+function renderSelecteurListes(){
+  const conteneur = document.getElementById('selecteur-listes');
+  const active = idListeAffichee();
+  conteneur.innerHTML = listesTriees().map(([id,l])=>{
+    const n = restantsDeListe(id);
+    return `<button type="button" class="liste-chip ${id===active?'actif':''}" data-liste="${id}" aria-pressed="${id===active}">`
+      + `${escapeHtml(l.nom||'')}${n ? `<span class="liste-badge" aria-label="${n} à acheter">${n}</span>` : ''}</button>`;
+  }).join('') + `<button type="button" class="liste-chip liste-chip-ajout" data-liste-ajout aria-label="Nouvelle liste">+</button>`;
+}
+document.getElementById('selecteur-listes').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.hasAttribute('data-liste-ajout')) return ouvrirModaleListe(null);
+  if(b.dataset.liste && b.dataset.liste !== idListeAffichee()) choisirListe(b.dataset.liste);
+});
+
+function renderReglagesListes(){
+  const conteneur = document.getElementById('reglages-listes');
+  conteneur.innerHTML = listesTriees().map(([id,l])=>{
+    const n = Object.values(state.produits).filter(p=> listeDe(p)===id).length;
+    return `<button type="button" class="ligne-liste" data-liste="${id}">`
+      + `<span class="infos-produit"><span class="nom-produit">${escapeHtml(l.nom||'')}</span>`
+      + `<span class="rayon-produit">${n} produit${n>1?'s':''}</span></span>`
+      + `<span class="btn-crayon" aria-hidden="true">&#9998;</span></button>`;
+  }).join('');
+}
+document.getElementById('reglages-listes').addEventListener('click', (e)=>{
+  const b = e.target.closest('.ligne-liste'); if(b) ouvrirModaleListe(b.dataset.liste);
+});
+document.getElementById('btn-nouvelle-liste').addEventListener('click', ()=> ouvrirModaleListe(null));
+
+const modalListe = document.getElementById('modal-liste');
+const champNomListe = document.getElementById('modal-liste-nom');
+const erreurListe = document.getElementById('modal-liste-erreur');
+let listeEditionId = null;   /* null = création */
+function ouvrirModaleListe(id){
+  listeEditionId = id || null;
+  const l = id ? (listesTriees().find(([i])=> i===id) || [])[1] : null;
+  document.getElementById('modal-liste-titre').textContent = id ? 'Modifier la liste' : 'Nouvelle liste';
+  champNomListe.value = l ? (l.nom||'') : '';
+  erreurListe.textContent = '';
+  document.getElementById('btn-liste-supprimer').style.display = (id && id !== LISTE_DEFAUT) ? 'block' : 'none';
+  modalListe.style.display = 'flex';
+  setTimeout(()=> champNomListe.focus(), 50);
+}
+function fermerModaleListe(){ modalListe.style.display = 'none'; listeEditionId = null; }
+document.getElementById('btn-liste-annuler').addEventListener('click', fermerModaleListe);
+modalListe.addEventListener('click', (e)=>{ if(e.target===modalListe) fermerModaleListe(); });
+champNomListe.addEventListener('input', ()=>{ erreurListe.textContent = ''; });
+champNomListe.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); enregistrerListe(); } });
+document.getElementById('btn-liste-enregistrer').addEventListener('click', enregistrerListe);
+
+async function enregistrerListe(){
+  const nom = champNomListe.value.trim().replace(/\s+/g,' ');
+  if(!nom){ erreurListe.textContent = 'Donne un nom à la liste.'; return; }
+  const id = listeEditionId;
+  const doublon = listesTriees().find(([i,l])=> i!==id && sansAccentsListe(l.nom)===sansAccentsListe(nom));
+  if(doublon){
+    if(!id){ fermerModaleListe(); choisirListe(doublon[0]); return; }   /* création d'un nom existant : on ouvre simplement celle-ci */
+    erreurListe.textContent = 'Une liste porte déjà ce nom.'; return;
+  }
+  fermerModaleListe();
+  await firestorePret;
+  if(id){
+    /* set + merge : crée aussi le document `maison` s'il manquait (entrée virtuelle) */
+    const val = { nom };
+    if(!state.listes[id]) val.ordre = id===LISTE_DEFAUT ? 0 : Date.now();
+    docRef('listes', id).set(val, { merge:true }).catch(err=> console.warn('Liste non renommée :', err));
+  } else {
+    /* id créé localement : la nouvelle liste s'affiche tout de suite, même hors ligne
+       (l'écriture part au serveur dès que possible, on ne l'attend pas). */
+    const ref = colRef('listes').doc();
+    ref.set({ nom, ordre: Date.now() }).catch(err=> console.warn('Liste non créée :', err));
+    choisirListe(ref.id);
+  }
+}
+
+document.getElementById('btn-liste-supprimer').addEventListener('click', async ()=>{
+  const id = listeEditionId;
+  if(!id || id === LISTE_DEFAUT) return;   /* Maison ne se supprime jamais */
+  const l = state.listes[id] || {};
+  const produits = Object.entries(state.produits).filter(([,p])=> listeDe(p)===id);
+  const n = produits.length;
+  const oui = await dialogue({
+    titre: 'Supprimer « ' + (l.nom || 'cette liste') + ' » ?',
+    texte: n ? `La liste et ${n>1 ? `ses ${n} produits seront supprimés` : 'son produit seront supprimés'} définitivement. Les autres listes ne changent pas.` : 'La liste est vide. Les autres listes ne changent pas.',
+    ok: 'Supprimer'
+  });
+  if(!oui) return;
+  fermerModaleListe();
+  if(state.listeActive === id) choisirListe(LISTE_DEFAUT);
+  await firestorePret;
+  /* Lots de 400 écritures au plus (limite Firestore : 500 par lot) ; la liste elle-même en dernier. */
+  const refs = produits.map(([pid])=> docRef('produits', pid));
+  for(let i = 0; i < refs.length; i += 400){
+    const lot = db.batch();
+    refs.slice(i, i+400).forEach(r=> lot.delete(r));
+    lot.commit().catch(err=> console.warn('Produits non supprimés :', err));
+  }
+  docRef('listes', id).delete().catch(err=> console.warn('Liste non supprimée :', err));
 });
 
 /* ============================================================
@@ -515,8 +685,10 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
    RENDU GLOBAL + DÉMARRAGE
    ============================================================ */
 function render(){
+  renderSelecteurListes();
   renderListe();
   renderCourse();
+  renderReglagesListes();
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -538,13 +710,16 @@ let firestoreRecu = { produits:false, rayons:false };
     const a = JSON.parse(localStorage.getItem(CLE_APERCU) || 'null');
     if(a && a.produits && typeof a.produits === 'object' && a.rayons && typeof a.rayons === 'object'){
       state.produits = a.produits; state.rayons = a.rayons;
+      if(a.listes && typeof a.listes === 'object'){ state.listes = a.listes; listesConnues = true; }   /* 30/09/2026 */
       render();
     }
   } catch(e){ /* aperçu illisible : on attend simplement Firestore */ }
 })();
 function memoriserApercu(){
   if(!firestoreRecu.produits || !firestoreRecu.rayons) return;   /* jamais un état à moitié chargé */
-  try { localStorage.setItem(CLE_APERCU, JSON.stringify({ produits: state.produits, rayons: state.rayons })); } catch(e){}
+  const apercu = { produits: state.produits, rayons: state.rayons };
+  if(listesConnues) apercu.listes = state.listes;
+  try { localStorage.setItem(CLE_APERCU, JSON.stringify(apercu)); } catch(e){}
 }
 function recuDeFirestore(nom){
   firestoreRecu[nom] = true;
@@ -567,7 +742,14 @@ function demarrer(){
       if(ecoutes) return;
       ecoutes = [
         dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); }),
-        dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); })
+        dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); }),
+        /* Listes de courses (30/09/2026) : petite collection, une écoute de plus. Si elle échoue
+           (règles pas encore publiées), l'app reste utilisable avec la seule liste Maison. */
+        dbOnCollection('listes', (obj, cache)=>{
+          state.listes = obj;
+          if(!cache || Object.keys(obj).length) listesConnues = true;   /* un 1er cache vide ne fait pas foi */
+          render(); memoriserApercu();
+        })
       ];
     } else if(ecoutes){
       ecoutes.forEach(arret=> arret()); ecoutes = null;

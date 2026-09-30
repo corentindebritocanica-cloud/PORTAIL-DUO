@@ -9,6 +9,7 @@ Liste de courses partagée entre Corentin et Lisa. HTML/CSS/JS vanilla (3 fichie
 > - **Design Verre** (feuille commune `../verre.css`), **sombre uniquement**, titre de l’onglet (Liste / Course / Réglages) à gauche + pastille de connexion ; la page défile elle-même, barre d'onglets en `position:fixed`.
 > - **Noyau commun `../commun.js`** chargé dans le `<head>` (halos, transition, date de MAJ, service worker, vérification de version).
 > - **Profil** : `duo_profile`, commun aux 4 apps (Réglages › Profil). Retour au Portail : geste retour d'iOS.
+> - **Plusieurs listes de courses** (depuis le 30/09/2026) : Maison (la liste d'origine), Apéro, Vacances… — pastilles sous le titre, gestion dans Réglages. Voir « Plusieurs listes de courses » en fin de fichier.
 ## Fichiers (mis à jour le 28/09/2026)
 - `index.html` — structure + `DERNIERE_MAJ` (gérée par le workflow) ; charge `../commun.js`, `../verre.css`, `style.css`, `app.js`
 - `style.css` — styles de base (le verre vient de `../verre.css`)
@@ -36,6 +37,7 @@ Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton 
 Projet `course-app-36e9d`, deux collections de premier niveau :
 - `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool), `compteur` (nombre, incrémenté de 1 à chaque "Course terminée" — sert au tri par popularité de l'onglet Liste)
 - `rayons/{id}` — champ `nom`
+- `listes/{id}` — champs `nom`, `ordre` (depuis le 30/09/2026) ; chaque produit porte `listeId` (absent = `maison`). Voir « Plusieurs listes de courses ».
 
 Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme). *(Situation d'origine — depuis le 29/09/2026 au soir : réservé au compte du duo, voir « Réservée au compte du duo » en fin de fichier.)*
 
@@ -423,3 +425,37 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Surfaces de cette app prises en charge : plaque `main`, barre d'onglets, bouton +, « Course terminée », barre de recherche collée (fond = couleur de la plaque), cases, quantités, blocs des Réglages, sélecteur de profil, modales. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
 - **Bande iOS du bas** : le fond de `<html>` prend la couleur de la plaque du style choisi (même principe qu'en Verre).
 - Vérifié (Chromium, Firebase simulé) : Liste, Course, Réglages dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».
+
+
+## Plusieurs listes de courses (30/09/2026)
+
+**Demande de Corentin** : la liste existante est en fait la liste « Maison » ; pouvoir en créer d'autres (« Apéro », « Vacances »…), qu'il remplit lui-même. Consigne : ne rien perdre de la liste actuelle (48 produits cochés ce jour-là).
+
+**Interface**
+- **Pastilles sous le titre** (`#selecteur-listes`, onglets Liste et Course, masquées dans Réglages) : une par liste, avec un badge = nombre de produits encore à acheter (`aAcheter && !achete`) ; la pastille **+** crée une liste. Défilement horizontal si beaucoup de listes. 40 px visuels, zone tactile 44 px (`::after`).
+- **Onglets Liste et Course** : n'affichent que la liste choisie. **« Course terminée » ne décoche que la liste affichée.** La recherche cherche dans la liste affichée.
+- **Réglages › Listes de courses** : une ligne par liste (nom + nombre de produits) → fenêtre **renommer / supprimer** ; bouton « + Nouvelle liste ».
+- **Fiche produit** (+ ou ✎) : champ **Liste** (visible seulement s'il y a au moins 2 listes) — sert aussi à déplacer un produit d'une liste à l'autre. Nouveau produit : liste affichée par défaut.
+- **Maison ne peut pas être supprimée** (elle peut être renommée). Supprimer une autre liste supprime aussi ses produits, après confirmation (`dialogue()`, nombre de produits annoncé).
+- Créer une liste avec le nom d'une liste existante (sans accents ni casse) ouvre simplement celle-ci ; renommer vers un nom pris affiche une erreur.
+- Liste affichée **mémorisée par téléphone** (`localStorage courses_liste_active`) : Lisa et Corentin peuvent regarder deux listes différentes. Si elle a été supprimée depuis l'autre téléphone → retour sur Maison.
+
+**Données** (`course-app-36e9d`)
+- Nouvelle collection **`listes/{id}`** = `{ nom, ordre }` (`ordre` = 0 pour Maison, date de création sinon). La liste d'origine a l'id fixe **`maison`**.
+- Champ **`listeId`** sur chaque produit. **Absent = `maison`** (`listeDe()`) : un produit créé par un téléphone resté sur l'ancienne version, ou tout document d'avant la migration, reste visible dans Maison.
+- Si `listes/maison` manque (règles non publiées, première ouverture hors ligne), Maison existe quand même dans l'interface (entrée virtuelle, jamais écrite par l'app sauf si on la renomme : `set(…, {merge:true})`).
+- Les **rayons restent communs** à toutes les listes.
+- Nouvelle liste : id créé localement (`collection('listes').doc()`), affichée tout de suite, même hors ligne. Suppression : produits par lots de 400 au plus, puis la liste.
+- Une écoute `onSnapshot` de plus (collection de quelques documents : coût négligeable sur le quota partagé). Aperçu local (`courses_apercu_v1`) : contient aussi `listes`.
+- **Résumé du Portail** (`portail/courses`) : inchangé, il compte **toutes les listes** confondues.
+
+**Migration faite le 30/09/2026** (compte de service, jamais par le code client — même principe que le catalogue de départ) : sauvegarde JSON complète avant (134 produits, 13 rayons, 3 documents `portail`), puis en une seule écriture groupée : création de `listes/maison` (`nom: 'Maison', ordre: 0`) et `listeId: 'maison'` sur les 134 produits **avec un masque de champ** (`updateMask: listeId`) : aucun autre champ touché. Vérifié après : 134 produits, tous dans Maison, tous les autres champs identiques, 48 produits cochés « à acheter » comme avant.
+
+**Règles** : `match /listes/{id} { allow read, write: if compteDuo(); }` ajoutée à `/firestore.rules` et **publiée par l'API Firebase Rules le 30/09/2026** (avant la mise en ligne du code). Vérifié : `listes` refusée sans session.
+
+**Correctif au passage** : quand la liste de l'onglet Course devenait vide, le bouton « Course terminée » recevait `disabled` mais gardait sa classe `.visible` (il restait affiché). Il est maintenant masqué (`.visible` retirée) — visible surtout en changeant de liste.
+
+**Styles** (`../verre.css`) : pastilles et lignes des Réglages habillées en Verre (sans flou, règle PERF) ; ajoutées aux catégories « panneaux » (`.liste-chip`) et « états actifs » (`.liste-chip.actif`) du bloc « STYLES AU CHOIX » pour Relief et Argile.
+
+**Vérifié** (Chromium 440×956, Firebase simulé avec la vraie sauvegarde) : Maison affichée avec ses 134 produits et le badge 48 (document `listes/maison` absent comme avant migration) ; création d'« Apéro » → liste vide, ajout d'un produit, coche, badge 1 ; onglet Course par liste ; « Course terminée » sur Maison ne touche pas Apéro ; Réglages (compteurs, Maison non supprimable, doublon refusé, renommage) ; suppression d'Apéro et de son produit, Maison intacte ; styles Verre, Relief, Argile ; aucune erreur JS. **Non vérifié sur iPhone.**
+
