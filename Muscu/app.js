@@ -484,26 +484,115 @@ document.addEventListener('visibilitychange', () => {
 /* ---------- DISQUES À CHARGER SUR LA BARRE (30/09/2026) ----------
    Pour un exercice dont la méthode active est « Barre », le poids saisi est la
    charge TOTALE (barre + disques, voir EQUIPMENT_METHODS.barre). On en déduit
-   ce qu'il faut mettre de chaque côté, barre olympique de 20 kg supposée.
+   ce qu'il faut mettre de chaque côté.
+   Poids de la barre au choix, PAR EXERCICE (30/09/2026, même soir) : 20 kg,
+   13,5 kg ou une valeur à renseigner. Mémorisé sur le téléphone (préférence
+   locale `duo_bar_weights`, { nom d'exercice: kg }) : c'est une question de
+   matériel de la salle, pas une donnée de séance — rien n'est envoyé à
+   Firestore ni stocké dans l'archive.
    Purement informatif : la saisie et le tonnage ne changent pas. */
-const BAR_WEIGHT_KG = 20;
-function platePerSideText(weightValue){
+const BAR_WEIGHT_KG = 20;                 /* valeur par défaut */
+const BAR_WEIGHT_PRESETS = [20, 13.5];    /* boutons rapides, puis « Autre » */
+const BAR_WEIGHTS_KEY = 'duo_bar_weights';
+function readBarWeights(){
+  try{
+    const parsed = JSON.parse(storage.get(BAR_WEIGHTS_KEY) || '{}');
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  }catch(e){ return {}; }
+}
+function getBarWeight(ex){
+  const v = readBarWeights()[ex && ex.name];
+  return (typeof v === 'number' && v > 0) ? v : BAR_WEIGHT_KG;
+}
+function setBarWeight(ex, kg){
+  if(!ex || !ex.name || !(kg > 0)) return;
+  const all = readBarWeights();
+  all[ex.name] = kg;
+  storage.set(BAR_WEIGHTS_KEY, JSON.stringify(all));
+}
+function platePerSideText(weightValue, barKg){
+  const bar = barKg > 0 ? barKg : BAR_WEIGHT_KG;
+  const barStr = formatKg(bar);
   const total = parseNum(weightValue);
   if(isNaN(total) || total <= 0) return '';
-  if(total < BAR_WEIGHT_KG) return `Moins que la barre seule (${BAR_WEIGHT_KG} kg)`;
-  if(total === BAR_WEIGHT_KG) return `Barre seule (${BAR_WEIGHT_KG} kg), aucun disque`;
-  return `${formatKg((total - BAR_WEIGHT_KG) / 2)} de chaque côté · barre ${BAR_WEIGHT_KG} kg`;
+  if(total < bar) return `Moins que la barre seule (${barStr})`;
+  if(total === bar) return `Barre seule (${barStr}), aucun disque`;
+  return `${formatKg((total - bar) / 2)} de chaque côté · barre ${barStr}`;
 }
-function updatePlateHint(el, weightValue){
-  const text = platePerSideText(weightValue);
+function updatePlateHint(el, weightValue, barKg){
+  const text = platePerSideText(weightValue, barKg);
   el.textContent = text;
   el.style.display = text ? '' : 'none';
 }
-function buildPlateHint(weightValue){
+function buildPlateHint(weightValue, barKg){
   const el = document.createElement('div');
   el.className = 'plate-hint';
-  updatePlateHint(el, weightValue);
+  updatePlateHint(el, weightValue, barKg);
   return el;
+}
+/* Sélecteur « Poids de la barre » en tête d'un exercice à la barre.
+   `plateHints` : liste { el, weight() } des lignes de la carte, remplie au fil
+   du rendu des séries ; un changement de barre les met à jour sur place, sans
+   render() — sinon le champ « Autre » perdrait le focus à chaque chiffre. */
+function buildBarWeightPicker(ex, plateHints){
+  let barKg = getBarWeight(ex);
+  const wrap = document.createElement('div');
+  wrap.className = 'bar-weight-block';
+
+  const label = document.createElement('span');
+  label.className = 'bar-weight-label';
+  label.textContent = 'Poids de la barre';
+  wrap.appendChild(label);
+
+  const row = document.createElement('div');
+  row.className = 'variant-row bar-weight-row';
+  wrap.appendChild(row);
+
+  const custom = document.createElement('input');
+  custom.type = 'text'; custom.inputMode = 'decimal'; custom.autocomplete = 'off';
+  custom.className = 'bar-weight-input';
+  custom.placeholder = 'Poids de ta barre en kg';
+
+  const refreshHints = () => plateHints.forEach(h => updatePlateHint(h.el, h.weight(), barKg));
+  const buttons = [];
+  const select = (btn) => buttons.forEach(b => b.classList.toggle('selected', b === btn));
+
+  BAR_WEIGHT_PRESETS.forEach(kg => {
+    const b = document.createElement('button');
+    b.className = 'variant-btn';
+    b.innerHTML = `<span class="variant-name">${escapeHtml(formatKg(kg))}</span>`;
+    b.onclick = () => {
+      barKg = kg; setBarWeight(ex, kg);
+      select(b); custom.style.display = 'none';
+      refreshHints();
+    };
+    buttons.push(b); row.appendChild(b);
+  });
+  const other = document.createElement('button');
+  other.className = 'variant-btn';
+  other.innerHTML = '<span class="variant-name">Autre</span>';
+  other.onclick = () => {
+    select(other); custom.style.display = '';
+    custom.focus();
+  };
+  buttons.push(other); row.appendChild(other);
+
+  custom.oninput = () => {
+    sanitizeField(custom, 'decimal');
+    const kg = parseNum(custom.value);
+    if(!(kg > 0)) return;   /* saisie incomplète : on garde la barre précédente */
+    barKg = kg; setBarWeight(ex, kg);
+    refreshHints();
+  };
+  wrap.appendChild(custom);
+
+  const preset = buttons[BAR_WEIGHT_PRESETS.indexOf(barKg)];
+  if(preset){
+    select(preset); custom.style.display = 'none';
+  } else {
+    select(other); custom.value = String(barKg).replace('.', ',');
+  }
+  return { el: wrap, barKg: () => barKg };
 }
 
 /* ---------- CLÉS NOTES / VARIANTES ----------
@@ -1201,6 +1290,9 @@ function render(){
     const isCircuit = ex.logType === 'circuit';
     /* Barre : on affiche sous chaque série ce qu'il faut charger de chaque côté. */
     const isBarbell = !isCircuit && getExerciseEquipmentId(ex, exIdx, data) === 'barre';
+    const plateHints = [];
+    const barPicker = isBarbell ? buildBarWeightPicker(ex, plateHints) : null;
+    if(barPicker) body.appendChild(barPicker.el);
 
     const gridHeader = document.createElement('div');
     gridHeader.className = isCircuit ? 'set-grid-header circuit' : 'set-grid-header';
@@ -1229,8 +1321,9 @@ function render(){
         wNum.textContent = 'É';
         wRow.appendChild(wNum);
 
-        const wPlate = isBarbell ? buildPlateHint(wSet.weight) : null;
+        const wPlate = barPicker ? buildPlateHint(wSet.weight, barPicker.barKg()) : null;
         const wWeight = document.createElement('input');
+        if(wPlate) plateHints.push({ el: wPlate, weight: () => wWeight.value });
         wWeight.type = 'text'; wWeight.inputMode = 'decimal'; wWeight.autocomplete = 'off';
         wWeight.placeholder = 'kg';
         wWeight.value = wSet.weight;
@@ -1242,7 +1335,7 @@ function render(){
           d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
           d.sets[wKey].weight = wWeight.value;
           saveDayData(currentSessionId, currentProfile, d);
-          if(wPlate) updatePlateHint(wPlate, wWeight.value);
+          if(wPlate) updatePlateHint(wPlate, wWeight.value, barPicker.barKg());
         };
         wRow.appendChild(wWeight);
 
@@ -1352,9 +1445,10 @@ function render(){
         row.appendChild(circuitInfo);
       }
 
-      const plateHint = isBarbell ? buildPlateHint(savedSet.weight) : null;
+      const plateHint = barPicker ? buildPlateHint(savedSet.weight, barPicker.barKg()) : null;
       if(!isCircuit){
         const weightInput = document.createElement('input');
+        if(plateHint) plateHints.push({ el: plateHint, weight: () => weightInput.value });
         /* type="text" et non "number" : avec un clavier français, "22,5" est jugé
            invalide par Safari et `input.value` renvoie une chaîne vide — la saisie
            disparaissait silencieusement. parseNum() gère la virgule au calcul. */
@@ -1375,7 +1469,7 @@ function render(){
           d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
           d.sets[setKey].weight = weightInput.value;
           saveDayData(currentSessionId, currentProfile, d);
-          if(plateHint) updatePlateHint(plateHint, weightInput.value);
+          if(plateHint) updatePlateHint(plateHint, weightInput.value, barPicker.barKg());
           updateSessionProgress(); /* tonnage recalculé en direct */
           refreshRecordBadge();
         };
@@ -1427,7 +1521,7 @@ function render(){
               saveDayData(currentSessionId, currentProfile, d);
               weightInput.value = prev.weight;
               repsInput.value = prev.reps;
-              if(plateHint) updatePlateHint(plateHint, prev.weight);
+              if(plateHint) updatePlateHint(plateHint, prev.weight, barPicker.barKg());
               refreshRecordBadge();
               dupBtn.classList.remove('done'); void dupBtn.offsetWidth; dupBtn.classList.add('done');
               showToast('Série recopiée');

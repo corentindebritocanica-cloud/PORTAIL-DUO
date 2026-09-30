@@ -506,6 +506,19 @@
   /* Le numéro de la ligne d'échauffement se distingue visuellement du reste. */
   .set-num.kind-warmup{ color:var(--text-dim); border-color:var(--border-strong); font-weight:700; }
   .warmup-row{ opacity:.82; }
+  /* Poids de la barre (30/09/2026) : réutilise .variant-row / .variant-btn
+     (même langage que le choix de méthode), hauteur portée à 44 px (zone tactile). */
+  .bar-weight-block{ display:flex; flex-direction:column; gap:6px; }
+  .bar-weight-label{
+    font-size:11px; font-weight:700; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:0.5px; padding-left:2px;
+  }
+  .bar-weight-row .variant-btn{ min-height:44px; justify-content:center; }
+  .bar-weight-input{
+    width:100%; padding:10px 12px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .bar-weight-input:focus{ outline:none; border-color:var(--accent); }
   /* Disques à charger de chaque côté de la barre (30/09/2026) : ligne discrète
      calée sous la colonne « Poids » de la série qu'elle concerne (30 px de
      numéro + 8 px d'écart), remontée pour se lire comme partie de la série. */

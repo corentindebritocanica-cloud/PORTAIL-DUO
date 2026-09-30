@@ -285,7 +285,8 @@ Proposé à la fin de **chaque** séance, y compris celles qui n'en prévoient p
 
 ### Disques à charger sur la barre (30/09/2026)
 Sur un exercice dont la méthode active est **Barre** (`getExerciseEquipmentId(...) === 'barre'` : Squat, Fentes arrière, RDL, Hip Thrust, Développé incliné en mode barre…), une ligne s'affiche sous chaque série — échauffements compris — dès qu'un poids est tapé : « 37,5 kg de chaque côté · barre 20 kg » pour 95 kg.
-- Barre supposée de **20 kg** (`BAR_WEIGHT_KG`). Calcul : `(poids saisi − 20) / 2` (`platePerSideText()`). Cas limites : 20 kg → « Barre seule, aucun disque » ; moins de 20 kg → « Moins que la barre seule ».
+- **Poids de la barre au choix, par exercice** (même soir) : sélecteur « Poids de la barre » en tête de la carte — **20 kg** (défaut, `BAR_WEIGHT_KG`), **13,5 kg** (`BAR_WEIGHT_PRESETS`) ou **Autre** (champ à renseigner, 16 px). Mémorisé **sur le téléphone** par nom d'exercice (préférence locale `duo_bar_weights`, `{ "Squat": 13.5 }`) : c'est du matériel de salle, pas une donnée de séance — rien dans Firestore ni dans l'archive. Changer de barre met à jour les lignes sur place (`plateHints`, sans `render()`, sinon le champ « Autre » perdrait le focus à chaque chiffre).
+- Calcul : `(poids saisi − barre) / 2` (`platePerSideText(poids, barre)`). Cas limites : poids = barre → « Barre seule, aucun disque » ; poids < barre → « Moins que la barre seule ».
 - Le poids saisi reste la **charge totale** (règle de `EQUIPMENT_METHODS.barre`) : rien ne change pour le tonnage, les records ni l'export.
 - Mis à jour à la frappe (`updatePlateHint`) et par le bouton ⇊ ; changer de méthode relance `render()`, la ligne apparaît ou disparaît. Seul le poids tapé compte, jamais le placeholder gris.
 - Pas de détail disque par disque (20 + 10 + 5…) : le jeu de disques de la salle n'est pas connu. À ajouter si demandé.
