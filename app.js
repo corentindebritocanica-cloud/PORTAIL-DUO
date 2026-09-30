@@ -401,7 +401,7 @@
     /* ============================================================
        NOTIFICATIONS DU DUO (30/09/2026) — abonnement de CE téléphone
        Demande de Corentin : être prévenu quand l'autre ajoute une dépense (Budget) et quand la
-       liste de courses atteint 5 articles (Course). Voir README, « Notifications ».
+       liste de courses change et quand les courses sont faites (Course). Voir README, « Notifications ».
        - Firebase Cloud Messaging (SDK compat chargé à la demande) avec le service worker RACINE
          du Portail (sw.js, portée « ./ ») : c'est lui qui affiche les notifications.
        - Abonnement enregistré dans notifAbonnes/{id} (firestore.rules : compte du duo) :
@@ -441,7 +441,7 @@
         ? "Ajoute le Portail à l'écran d'accueil (Partager › Sur l'écran d'accueil), puis ouvre-le depuis son icône pour activer les notifications."
         : 'Ce navigateur ne gère pas les notifications.';
       else if (Notification.permission === 'denied') t = 'Notifications refusées : Réglages iOS › Notifications › Portail Duo.';
-      else if (actif) t = 'Tu es prévenu(e) des dépenses de ' + prenomAutre() + ' et quand la liste de courses atteint 5 articles.';
+      else if (actif) t = 'Tu es prévenu(e) des dépenses de ' + prenomAutre() + ', de ses changements dans la liste de courses et quand les courses sont faites.';
       aideNotif.textContent = t;
     }
 

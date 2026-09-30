@@ -276,33 +276,51 @@ function carteProduitListe(id, p){
 function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
   const ici = idListeAffichee();
-  if(!p.aAcheter){
-    const avant = restantsDeListe(TOUTES);
-    dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici });
-    if(!p.achete) verifierSeuilCourses(avant, avant + 1, p);
-  }
-  else if(listeDe(p) === ici) dbUpdateDoc('produits', id, { aAcheter: false });
-  else dbUpdateDoc('produits', id, { listeId: ici });
+  if(!p.aAcheter){ dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici }); planifierNotifListe(); }
+  else if(listeDe(p) === ici){ dbUpdateDoc('produits', id, { aAcheter: false }); planifierNotifListe(); }
+  else dbUpdateDoc('produits', id, { listeId: ici });   /* simple changement de liste : le nombre à acheter ne bouge pas */
 }
-/* NOTIFICATIONS DU DUO (30/09/2026) — voir README, « Notifications ».
-   Quand le nombre d'articles à acheter (toutes listes, pas encore achetés en magasin — le même
-   compte que « restants » du Portail) PASSE de SEUIL_NOTIF_COURSES − 1 à SEUIL_NOTIF_COURSES grâce
-   à une coche faite sur CE téléphone, l'autre profil est prévenu (notifierDuo, ../commun.js).
-   Une seule notification par franchissement : la suivante n'arrive qu'après être redescendu sous
-   le seuil (« Course terminée », décoche) puis l'avoir de nouveau atteint. Seulement une fois la
-   liste reçue de Firestore (jamais sur le seul aperçu localStorage de l'ouverture, qui peut être en retard). */
-const SEUIL_NOTIF_COURSES = 5;
-function verifierSeuilCourses(avant, apres, produit){
-  if(!(avant < SEUIL_NOTIF_COURSES && apres >= SEUIL_NOTIF_COURSES)) return;
+/* NOTIFICATIONS DU DUO — voir README, « Notifications » (Course).
+   Demande de Corentin (30/09/2026, remplace la notification « seuil de 5 articles » du même jour) :
+   1. « Lisa a modifié la liste de courses — Vous avez 12 articles à acheter. » à chaque mise à jour de
+      la liste (coche ou décoche dans l'onglet Liste). Regroupé : envoyé NOTIF_LISTE_DELAI_MS après la
+      DERNIÈRE coche (cocher 10 produits d'affilée = 1 notification, avec le total final), ou tout de suite
+      si l'app passe en arrière-plan. tag courses-liste : sur le téléphone qui reçoit, la nouvelle remplace
+      l'ancienne. Les coches « acheté » en magasin (onglet Course) ne notifient pas.
+   2. « Les courses sont faites ! » au bouton Course terminée (annule une notification de liste en attente).
+   Seulement une fois la liste reçue de Firestore (jamais sur le seul aperçu localStorage de l'ouverture).
+   Envoi par notifierDuo() (../commun.js) à l'autre profil. */
+const NOTIF_LISTE_DELAI_MS = 20000;
+let notifListeMinuteur = null;
+const pluriel = (n, mot)=> n + ' ' + mot + (n > 1 ? 's' : '');
+function planifierNotifListe(){
+  clearTimeout(notifListeMinuteur);
+  notifListeMinuteur = setTimeout(()=> envoyerNotifListe(false), NOTIF_LISTE_DELAI_MS);
+}
+function envoyerNotifListe(keepalive){
+  if(!notifListeMinuteur) return;
+  clearTimeout(notifListeMinuteur); notifListeMinuteur = null;
   if(!firestoreRecu.produits || typeof window.notifierDuo !== 'function') return;
-  const qui = lireProfilCommun();
+  const n = restantsDeListe(TOUTES);
   window.notifierDuo({
-    titre: 'Courses : ' + apres + ' articles à acheter',
-    corps: qui + ' vient d\'ajouter ' + String((produit && produit.nom) || 'un produit').slice(0, 50) + '. Qui passe au magasin ?',
-    url: './Course/',
-    tag: 'courses-seuil'
+    titre: lireProfilCommun() + ' a modifié la liste de courses',
+    corps: n === 0 ? 'Plus rien à acheter.' : 'Vous avez ' + pluriel(n, 'article') + ' à acheter.',
+    url: './Course/', tag: 'courses-liste', keepalive
   });
 }
+function notifierCoursesFaites(nbAchetes){
+  clearTimeout(notifListeMinuteur); notifListeMinuteur = null;   /* « courses faites » remplace une notification de liste en attente */
+  if(!firestoreRecu.produits || typeof window.notifierDuo !== 'function') return;
+  const reste = restantsDeListe(TOUTES);
+  window.notifierDuo({
+    titre: 'Les courses sont faites !',
+    corps: lireProfilCommun() + ' a terminé les courses : ' + pluriel(nbAchetes, 'article') + ' acheté' + (nbAchetes > 1 ? 's' : '') + '.'
+      + (reste > 0 ? ' Il reste ' + pluriel(reste, 'article') + ' à acheter.' : ''),
+    url: './Course/', tag: 'courses-faites'
+  });
+}
+window.addEventListener('pagehide', ()=> envoyerNotifListe(true));
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') envoyerNotifListe(true); });
 function updateQuantite(id, val){
   dbUpdateDoc('produits', id, { quantite: val });
 }
@@ -381,6 +399,7 @@ document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
     }));
     batch.commit();
   });
+  notifierCoursesFaites(aEffacer.length);   /* NOTIFICATIONS : « Les courses sont faites ! » à l'autre */
 });
 
 /* ============================================================
