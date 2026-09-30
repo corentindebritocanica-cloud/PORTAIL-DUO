@@ -19,6 +19,21 @@
 
 ---
 
+## ⌚ Muscu — données d'une montre connectée (Suunto, Garmin…) dans une PWA (30/09/2026)
+
+### 30/09/2026 — Muscu — importer FC et calories d'Apple Santé sans serveur ni mot de passe hors de l'app
+**Symptôme** : besoin de rattacher la fréquence cardiaque et les calories de la montre de Lisa (Suunto) à ses séances. Une PWA Safari **ne peut pas lire Apple Santé** (aucune API HealthKit côté web).
+**Fausses pistes explorées** : API officielles Garmin/Suunto (programme développeur réservé aux partenaires + serveur OAuth : disproportionné) ; Raccourci qui se connecte avec l'e-mail et le mot de passe du duo (identifiants en clair sur le téléphone) ; retour des données par le presse-papiers (un appui de plus + demande « Autoriser le collage » d'iOS).
+**Cause racine** : seul un Raccourci iOS (« Rechercher des échantillons de santé ») lit Santé. Il faut donc un pont PWA → Raccourci → Firestore.
+**Solution** :
+- La PWA ouvre `shortcuts://run-shortcut?name=…&input=text&text=<JSON>` avec la fenêtre de la séance, l'URL REST de l'archive et **son propre jeton de session Firebase** (`getIdTokenResult()`, valable 1 h). Le Raccourci fait un `PATCH` Firestore REST avec `Authorization: Bearer <jeton>` : les règles `compteDuo()` s'appliquent normalement, aucun identifiant n'est stocké dans le Raccourci.
+- **Jeton préparé à l'avance** (au rendu de la liste) : ouvrir une autre app depuis une promesse, après le tap, peut être bloqué par iOS. Si le jeton manque, un toast demande un second appui.
+- `PATCH …?updateMask.fieldPaths=montre&currentDocument.exists=true` : n'écrit que ce champ, et renvoie 404 au lieu de **créer une archive fantôme** si l'id est faux (vérifié).
+- ⚠️ **Firestore REST refuse `"integerValue": "132,4"`** (400) : un Raccourci en français formate les nombres avec une virgule, voire une espace pour les milliers. Les valeurs sont envoyées en `stringValue` et converties par l'app (`montreNombre()`).
+**Fichiers touchés** : `Muscu/index.html`, `Muscu/app.js`, `Muscu/style.css`, `Muscu/README.md`
+
+---
+
 ## ⏱ Chronomètre dans une PWA iOS (30/09/2026)
 
 ### 30/09/2026 — Muscu — chrono de séance fiable malgré la mise en veille de l'iPhone

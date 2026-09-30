@@ -2485,21 +2485,28 @@ function renderArchivesList(){
     return;
   }
 
+  const montreBtn = !inTrash && montreActivee();
+  if(montreBtn) preparerJetonMontre();
   archives.forEach(arc => {
     const item = document.createElement('div');
     item.className = 'archive-item';
     const tonnageStr = arc.tonnage ? `· 💪 ${arc.tonnage.toLocaleString('fr-FR')} kg` : '';
     const durationStr = arc.durationSec != null ? ` · ⏱ ${formatDuration(arc.durationSec)}` : '';
+    const montreStr = montreResume(arc.montre);
+    const avecMontre = montreBtn && archiveMontreEligible(arc);
     item.innerHTML = `
       <div class="archive-info">
         <span class="archive-date">${escapeHtml(arc.dateLabel)} · ${escapeHtml(arc.timeLabel)} ${tonnageStr}${durationStr}</span>
         <span class="archive-title">${escapeHtml(arc.sessionLabel)} — ${escapeHtml(arc.sessionTitle)}</span>
+        ${montreStr ? `<span class="archive-montre">${escapeHtml(montreStr)}</span>` : ''}
       </div>
       <div class="archive-actions">
+        ${avecMontre ? `<button class="archive-montre-btn" aria-label="${arc.montre ? 'Réimporter' : 'Importer'} les données de la montre">❤️</button>` : ''}
         <button class="archive-view-btn">Voir</button>
         <button class="archive-delete-btn">${inTrash ? '♻️' : '🗑️'}</button>
       </div>
     `;
+    if(avecMontre) item.querySelector('.archive-montre-btn').onclick = () => importerMontre(arc);
     item.querySelector('.archive-view-btn').onclick = () => viewArchive(arc.id);
     item.querySelector('.archive-delete-btn').onclick = () =>
       inTrash ? restoreArchive(arc.id) : askDeleteArchive(arc.id);
@@ -2512,8 +2519,9 @@ function viewArchive(id){
   const archives = getArchivesList(currentProfile).concat(getTrashList(currentProfile));
   const arc = archives.find(a => a.id === id);
   if(!arc) return;
-  document.getElementById('export-text').value = arc.exportText;
-  document.getElementById('motivation-line').textContent = `Archivée le ${arc.dateLabel} à ${arc.timeLabel}`;
+  document.getElementById('export-text').value = archiveExportText(arc);
+  const montreStr = montreResume(arc.montre);
+  document.getElementById('motivation-line').textContent = `Archivée le ${arc.dateLabel} à ${arc.timeLabel}` + (montreStr ? ` · ${montreStr}` : '');
   coachViewedDate = arc.dateLabel;
   renderCoachBlock();
   document.getElementById('export-modal').classList.add('open');
@@ -2639,7 +2647,97 @@ function goToSettingsView(){
   const derniereMaj = document.getElementById('settings-derniere-maj');
   if(derniereMaj) derniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
   renderSettingsProfileToggle();
+  renderSettingsMontreToggle();
   showView('view-settings', 'fwd');
+}
+
+/* ---------- MONTRE CONNECTÉE via Apple Santé (30/09/2026) ----------
+   La montre (Suunto de Lisa) synchronise FC et calories vers Apple Santé. Une PWA ne peut pas lire
+   Santé : le bouton ❤️ d'une archive ouvre le raccourci iOS « Muscu Santé » en lui passant la fenêtre
+   de la séance (startedAt → startedAt + durationSec, posée par le bouton GO), l'URL REST de l'archive
+   et le jeton de session de l'app (1 h). Le raccourci lit Santé et écrit le champ `montre` de
+   l'archive (PATCH, masque `montre`, archive obligatoirement existante) ; onSnapshot fait le reste.
+   Valeurs envoyées en TEXTE par le raccourci (un « 132,4 » à la française est refusé par Firestore
+   en nombre) : `montreNombre()` les convertit à la lecture. Réglage local au téléphone. */
+const MONTRE_PREF_KEY = 'duo_montre';
+const RACCOURCI_MONTRE = 'Muscu Santé';
+function montreActivee(){ return storage.get(MONTRE_PREF_KEY) === '1'; }
+function archiveMontreEligible(arc){ return !!(arc && arc.startedAt && arc.durationSec > 0); }
+function montreNombre(v){
+  if(v == null) return 0;
+  if(typeof v === 'number') return isFinite(v) ? Math.round(v) : 0;
+  const n = parseFloat(String(v).replace(/[\s  ]/g, '').replace(',', '.'));
+  return isFinite(n) ? Math.round(n) : 0;
+}
+/* « ❤️ 132 bpm moy · 168 max · 🔥 310 kcal » ; '' si aucune donnée importée. */
+function montreResume(m){
+  if(!m) return '';
+  const moy = montreNombre(m.fcMoy), max = montreNombre(m.fcMax), kcal = montreNombre(m.kcal);
+  const parts = [];
+  if(moy > 0) parts.push(`❤️ ${moy} bpm moy` + (max > 0 ? ` · ${max} max` : ''));
+  if(kcal > 0) parts.push(`🔥 ${kcal} kcal`);
+  if(!parts.length) return 'Aucune donnée trouvée dans Santé';
+  /* Une seule mesure = la montre n'envoie qu'une valeur globale : la moyenne n'en est pas une. */
+  if(montreNombre(m.mesures) === 1) parts.push('1 mesure');
+  return parts.join(' · ');
+}
+/* Texte d'export d'une archive, complété par la montre si elle a été importée après coup. */
+function archiveExportText(arc){
+  const r = montreResume(arc && arc.montre);
+  return r ? `${arc.exportText}\n⌚ Montre : ${r}` : arc.exportText;
+}
+/* ISO 8601 avec le décalage local (2026-09-30T18:05:00+02:00), lisible par Raccourcis. */
+function isoLocal(ms){
+  const d = new Date(ms), pad = n => String(Math.abs(n)).padStart(2, '0');
+  const off = -d.getTimezoneOffset();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    + `${off >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+}
+function jetonMontreFrais(){
+  const j = window.__montre && window.__montre.jeton();
+  return j && j.exp - Date.now() > 5 * 60 * 1000 ? j : null;
+}
+/* Appelée au rendu des archives : le jeton doit être prêt AVANT le tap. */
+function preparerJetonMontre(){
+  if(window.__montre && montreActivee() && !jetonMontreFrais()) window.__montre.preparer();
+}
+function importerMontre(arc){
+  if(!archiveMontreEligible(arc)) return;
+  if(!window.__montre || !window.__authUser){ showToast('Connecte-toi pour importer les données de la montre'); return; }
+  const lancer = (j) => {
+    const entree = {
+      id: arc.id,
+      debut: isoLocal(arc.startedAt),
+      fin: isoLocal(arc.startedAt + arc.durationSec * 1000),
+      url: `https://firestore.googleapis.com/v1/projects/${window.__montre.projet}/databases/(default)/documents/archives/`
+        + `${encodeURIComponent(arc.id)}?updateMask.fieldPaths=montre&currentDocument.exists=true`,
+      jeton: j.t
+    };
+    window.location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(RACCOURCI_MONTRE)
+      + '&input=text&text=' + encodeURIComponent(JSON.stringify(entree));
+  };
+  const j = jetonMontreFrais();
+  if(j){ lancer(j); return; }
+  /* Jeton absent ou expirant : on le prépare, un second tap ouvrira le raccourci. */
+  window.__montre.preparer().then(n => showToast(n ? 'Prêt — appuie de nouveau sur ❤️' : 'Session introuvable, reconnecte-toi'));
+}
+function renderSettingsMontreToggle(){
+  const wrap = document.getElementById('settings-montre-toggle');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  [['0', 'Non'], ['1', 'Oui']].forEach(([val, label]) => {
+    const b = document.createElement('button');
+    const actif = (montreActivee() ? '1' : '0') === val;
+    b.className = 'segmented-btn' + (actif ? ' selected' : '');
+    b.textContent = label;
+    b.onclick = () => {
+      if(actif) return;
+      storage.set(MONTRE_PREF_KEY, val);
+      renderSettingsMontreToggle();
+      showToast(val === '1' ? 'Bouton ❤️ ajouté aux archives de ce téléphone' : 'Bouton ❤️ retiré des archives');
+    };
+    wrap.appendChild(b);
+  });
 }
 
 /* Identité explicite du téléphone, réglable sans passer par "Entraînement".
@@ -3063,7 +3161,7 @@ function exportLatestSessions(){
       txt += `${label} : aucune séance archivée.\n`;
       return;
     }
-    txt += last.exportText + '\n';
+    txt += archiveExportText(last) + '\n';
     if(last.dateLabel !== today) warnings.push(`${label} : dernière séance le ${last.dateLabel} (pas aujourd'hui)`);
   });
   document.getElementById('export-text').value = txt;
@@ -3110,7 +3208,7 @@ function exportAllArchives(){
   let txt = `📚 HISTORIQUE COMPLET — ${profileName}\n${archives.length} séance(s) archivée(s)\n`;
   archives.slice().reverse().forEach(arc => {
     txt += `\n==============================\n`;
-    txt += arc.exportText;
+    txt += archiveExportText(arc);
     txt += `\n`;
   });
   document.getElementById('export-text').value = txt;

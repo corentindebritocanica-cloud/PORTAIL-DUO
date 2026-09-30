@@ -6,6 +6,7 @@ Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de muscul
 > - **Design Verre** (`../verre.css`, section MUSCU), titre de chaque écran à gauche + pastille de connexion ; une plaque de verre par écran.
 > - **Noyau commun `../commun.js`** : halos, transition, `formaterDerniereMaj()` (utilisée par les Réglages), service worker, vérification de version.
 > - **Disques de barre (poids de barre au choix) + bouton GO / chrono de séance (30/09/2026)** : voir « Disques à charger sur la barre » et « Durée de séance » dans « Écran de saisie ».
+> - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives chronométrées → raccourci iOS « Muscu Santé » → FC et calories d'Apple Santé écrites dans `archive.montre`. Voir « Montre connectée ».
 - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
 
 
@@ -1040,4 +1041,30 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 ## Notifications du duo (30/09/2026)
 
 Aucun changement dans le code de Muscu. Le noyau commun `../commun.js` contient désormais `notifierDuo()` (section 7), utilisé par Budget et Course, **pas encore par Muscu** — piste possible : « Lisa a terminé sa séance ». Le changement de `commun.js` a entraîné un rebump automatique de la version de Muscu (workflow). Architecture : README racine, « Notifications du duo ».
+
+
+## Montre connectée — FC et calories via Apple Santé (30/09/2026)
+
+Demande de Corentin : rattacher aux séances de Lisa la fréquence cardiaque et les calories de sa montre **Suunto** (app Suunto connectée à Apple Santé). Une PWA ne peut pas lire Santé : c'est un **Raccourci iOS** qui lit Santé et écrit dans Firestore. Leçons techniques : `PROBLEMES_RESOLUS.md`, « Montre connectée ».
+
+**Côté app**
+- **Réglages › « Montre connectée »** (Non/Oui) : préférence **locale au téléphone** `localStorage duo_montre = '1'`. À activer sur le téléphone de Lisa uniquement.
+- **Archives** : bouton ❤️ (`.archive-montre-btn`) sur chaque archive **chronométrée** (`startedAt` + `durationSec`, bouton GO — les archives d'avant le 30/09/2026 n'en ont pas), jamais dans la corbeille. Appui = `importerMontre(arc)` → ouvre `shortcuts://run-shortcut?name=Muscu%20Santé&input=text&text=<JSON>` avec :
+  `{ id, debut, fin, url, jeton }` — `debut`/`fin` en ISO 8601 avec décalage local (`isoLocal()`), `url` = `PATCH` REST de `archives/<id>?updateMask.fieldPaths=montre&currentDocument.exists=true` (404 si l'archive n'existe pas : jamais d'archive fantôme), `jeton` = jeton de session Firebase de l'app (1 h).
+- **Aucun identifiant dans le Raccourci** : l'app lui prête son jeton (`window.__montre`, module d'`index.html` : `getIdTokenResult()`), les règles `compteDuo()` s'appliquent comme depuis l'app. Jeton **préparé au rendu de la liste** (`preparerJetonMontre()`) : ouvrir le Raccourci doit rester synchrone au tap ; s'il manque ou expire dans moins de 5 min, un toast demande un second appui.
+- **Champ `montre` de l'archive** : `{ fcMoy, fcMax, kcal, mesures, source }`, **en texte** (le Raccourci formate « 132,4 » à la française, refusé par Firestore en nombre). Lecture par `montreNombre()` (virgule, espaces, arrondi).
+- **Affichage** : ligne `.archive-montre` sous le titre (« ❤️ 132 bpm moy · 168 max · 🔥 310 kcal », « 1 mesure » si la montre n'a envoyé qu'une valeur, « Aucune donnée trouvée dans Santé » si tout est à 0) ; même résumé dans la modale « Voir » ; ligne « ⌚ Montre : … » ajoutée aux exports (Voir, Exporter tout, Suivi) par `archiveExportText()` — `exportText` stocké, lui, n'est jamais modifié.
+- Réimport possible (le ❤️ reste affiché) : écrase `montre`. Aucune règle Firestore ni collection nouvelle.
+
+**Raccourci « Muscu Santé » à créer sur l'iPhone de Lisa** (nom exact, app Raccourcis) :
+1. *Obtenir le dictionnaire à partir de* : Entrée du raccourci.
+2. *Obtenir la valeur de* `debut`, puis `fin`, `url`, `jeton` (4 actions, variables renommées Début, Fin, URL, Jeton). *Obtenir les dates à partir de* Début, et de Fin.
+3. *Rechercher des échantillons de santé* : Fréquence cardiaque, **Tous** les filtres suivants : Date de début est après Début ; Date de fin est avant Fin. → *Obtenir les détails des échantillons* : Valeur → *Calculer les statistiques* Moyenne (→ *Arrondir* : Moy), Maximum (Max), *Compter* les éléments (Nb).
+4. *Rechercher des échantillons de santé* : Énergie active, filtres : Date de fin est après Début ; Date de début est avant Fin → Valeur → *Calculer les statistiques* Somme → *Arrondir* (Kcal).
+5. *Texte* : `{"fields":{"montre":{"mapValue":{"fields":{"fcMoy":{"stringValue":"Moy"},"fcMax":{"stringValue":"Max"},"kcal":{"stringValue":"Kcal"},"mesures":{"stringValue":"Nb"},"source":{"stringValue":"Apple Santé"}}}}}}` (Moy, Max, Kcal, Nb = variables insérées entre les guillemets).
+6. *Obtenir le contenu de l'URL* : URL ; Méthode **PATCH** ; En-têtes `Authorization` = `Bearer ` + Jeton, `Content-Type` = `application/json` ; Corps **Fichier** = Texte.
+7. *Afficher la notification* « ✅ Envoyé à Muscu » (revenir dans Muscu : la ligne apparaît via `onSnapshot`).
+Premières fois : autoriser l'accès à Santé et l'envoi vers `firestore.googleapis.com`. Aucune mesure de FC dans la fenêtre → le Raccourci s'arrête sur une erreur, rien n'est écrit.
+
+**Vérifié** : écriture REST du format exact sur un document jetable (200 ; 404 sur archive absente ; 400 avec « 132,4 » en `integerValue` → d'où le texte) ; fonctions testées en isolation (formats français, 1 mesure, vide) ; liste des archives dans Chromium (bouton seulement sur les archives chronométrées, URL `shortcuts://` générée, aucune erreur JS). **Non vérifié** : iPhone, Raccourci réel, granularité de la FC écrite par Suunto dans Santé (à contrôler : Santé › Cœur › Fréquence cardiaque › Afficher toutes les données, plusieurs mesures pendant la séance).
 

@@ -127,6 +127,13 @@
       <div class="segmented" id="settings-profile-toggle"></div>
     </div>
 
+    <!-- Montre connectée (30/09/2026) : FC + calories lues dans Apple Santé par le raccourci iOS « Muscu Santé » -->
+    <div class="progress-section">
+      <span class="section-label">Montre connectée</span>
+      <p class="setting-desc">Suunto, Garmin… synchronisée avec Apple Santé. Ajoute un bouton ❤️ sur les archives pour importer la fréquence cardiaque et les calories de la séance. Nécessite le raccourci iOS « Muscu Santé » sur ce téléphone.</p>
+      <div class="segmented" id="settings-montre-toggle"></div>
+    </div>
+
     <div class="progress-section">
       <span class="section-label">Compte</span>
       <p class="setting-desc" id="settings-account"></p>
@@ -529,6 +536,24 @@
        de la page (app.js) — au moment du départ, on ne peut plus attendre de promesse. */
     jeton: () => portailJeton,
     rafraichirJeton: () => { const u = compteDuo(); if(u) u.getIdToken().then(t => { portailJeton = t; }).catch(() => {}); }
+  };
+
+  /* ---------- MONTRE CONNECTÉE (30/09/2026) : jeton transmis au raccourci « Muscu Santé » ----------
+     Le raccourci iOS écrit la FC et les calories lues dans Apple Santé directement dans l'archive
+     (API REST Firestore). Il n'a AUCUN identifiant : l'app lui passe son jeton de session (valable
+     1 h). Jeton préparé à l'avance (liste des archives) : au moment du tap, iOS peut refuser
+     d'ouvrir une autre app après une promesse, l'ouverture doit rester synchrone. */
+  let jetonMontre = null;
+  window.__montre = {
+    projet: firebaseConfig.projectId,
+    jeton: () => jetonMontre,
+    preparer: () => {
+      const u = compteDuo();
+      if(!u) return Promise.resolve(null);
+      return u.getIdTokenResult()
+        .then(r => { jetonMontre = { t: r.token, exp: Date.parse(r.expirationTime) || 0 }; return jetonMontre; })
+        .catch(() => null);
+    }
   };
 
   function updateSyncStatus(hasPendingWrites, fromCache){
