@@ -19,6 +19,21 @@
 
 ---
 
+## ⏱ Chronomètre dans une PWA iOS (30/09/2026)
+
+### 30/09/2026 — Muscu — chrono de séance fiable malgré la mise en veille de l'iPhone
+**Symptôme** : aucun bug — leçon de conception pour le chrono de séance (bouton GO → archivage). Entre deux séries, le téléphone est verrouillé ou l'app passe en arrière-plan pendant plusieurs minutes.
+**Fausses pistes explorées** : compter le temps avec un `setInterval` qui incrémente une variable chaque seconde — écarté d'emblée : iOS **suspend le JavaScript** d'une PWA en arrière-plan (même constat que le tableau de bord du Portail, section « onSnapshot » plus bas), le compteur perdrait tout le temps passé téléphone verrouillé et repartirait de là où il s'était figé. Autre piste écartée : démarrer le chrono automatiquement à la première série saisie (1re version du soir) — techniquement fiable, mais ne correspondait pas à l'usage réel ; remplacé par un bouton GO explicite.
+**Cause racine** : un minuteur JS ne garantit rien sur iOS hors premier plan ; seule l'horloge système continue d'avancer.
+**Solution** :
+- Stocker **uniquement l'heure de départ** (`startedAt`, horodatage ms) avec les données de la séance, et toujours calculer `Date.now() − startedAt`. L'intervalle d'une seconde ne sert qu'à **rafraîchir l'affichage**, et s'arrête hors de l'écran concerné.
+- Sur `visibilitychange` (retour visible), remettre l'affichage à l'heure immédiatement plutôt qu'au tic suivant.
+- Si l'app a une pile d'annulation qui restaure des instantanés entiers, **exclure le chrono de l'annulation** (recopier le `startedAt` actuel dans l'état restauré) : sinon annuler une saisie antérieure au départ arrête le chrono en silence.
+- **Règle pour toutes les apps** : tout minuteur, compte à rebours ou durée écoulée se calcule depuis un horodatage stocké, jamais en accumulant des tics.
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/style.css`, `Muscu/README.md`
+
+---
+
 ## 🔔 4 apps — notifications push sur iPhone sans serveur payant (30/09/2026)
 
 ### 30/09/2026 — Portail, Budget, Course — envoyer des notifications push à une PWA iOS depuis un site statique (GitHub Pages)

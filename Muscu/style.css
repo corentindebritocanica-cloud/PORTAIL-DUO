@@ -506,6 +506,45 @@
   /* Le numéro de la ligne d'échauffement se distingue visuellement du reste. */
   .set-num.kind-warmup{ color:var(--text-dim); border-color:var(--border-strong); font-weight:700; }
   .warmup-row{ opacity:.82; }
+  /* Bouton « GO » (30/09/2026) : lance la séance et son chrono. Seul gros
+     bouton plein avant les exercices — dégradé du profil actif, « GO » en
+     Bebas Neue, halo qui respire (opacity/transform uniquement, charte §11.3),
+     coupé en mouvement réduit. Vu une fois par séance : l'animation ne lasse pas. */
+  .go-btn{
+    position:relative; overflow:hidden; isolation:isolate;
+    width:100%; min-height:96px; padding:14px 16px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    border:none; border-radius:var(--r-xl); color:#fff; font-family:inherit;
+    background:linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    box-shadow:0 12px 30px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.22);
+    transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .go-btn:active{ transform:scale(.97); box-shadow:0 6px 16px var(--accent-glow); }
+  .go-word{
+    font-family:var(--f-display); font-size:48px; line-height:.95; letter-spacing:.06em;
+    text-shadow:0 2px 12px rgba(0,0,0,0.25);
+  }
+  .go-sub{ font-size:12.5px; font-weight:700; opacity:.9; letter-spacing:.02em; }
+  /* Reflet qui balaie le bouton en boucle + anneau lumineux qui respire. */
+  .go-btn::after{
+    content:''; position:absolute; top:0; bottom:0; left:0; width:40%; z-index:-1;
+    background:linear-gradient(100deg, transparent, var(--sheen), transparent);
+    opacity:.35; transform:translateX(-120%);
+    animation: goSheen 3.2s ease-in-out infinite;
+  }
+  .go-ring{
+    position:absolute; inset:0; z-index:-1; border-radius:inherit;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,0.35);
+    animation: goBreath 2.4s ease-in-out infinite;
+  }
+  @keyframes goSheen{ 0%{ transform:translateX(-120%); } 55%,100%{ transform:translateX(320%); } }
+  @keyframes goBreath{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .go-btn::after, .go-ring{ animation:none; }
+    .go-btn::after{ display:none; }
+  }
+
   /* Poids de la barre (30/09/2026) : réutilise .variant-row / .variant-btn
      (même langage que le choix de méthode), hauteur portée à 44 px (zone tactile). */
   .bar-weight-block{ display:flex; flex-direction:column; gap:6px; }

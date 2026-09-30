@@ -401,40 +401,31 @@ function loadDayData(sessionId, profile){
   });
 }
 function saveDayData(day, profile, data){
-  stampSessionStart(data);
   storage.set(dataKey(day, profile), JSON.stringify(data));
 }
 
 /* ---------- DURÉE DE SÉANCE (30/09/2026) ----------
-   Le chrono démarre à la PREMIÈRE saisie dans une série, échauffement compris
-   (poids, reps, RPE, résultat de circuit ou coche), et s'arrête à l'archivage.
+   Le chrono démarre à l'appui sur le bouton « GO » (carte en tête de séance,
+   avant le premier exercice) et s'arrête à l'archivage. Première version du
+   même soir : départ automatique à la première série saisie — remplacée à la
+   demande de Corentin par ce départ explicite.
    On ne stocke que l'heure de départ `startedAt` dans les données de la séance
    (LocalStorage) : la durée est toujours recalculée `Date.now() - startedAt`,
    jamais accumulée seconde par seconde — iOS suspend le JS d'une PWA en
    arrière-plan, un compteur incrémenté perdrait tout ce temps-là.
-   Le marquage est fait dans saveDayData(), point de passage unique de toutes
-   les saisies : aucun gestionnaire de champ ne peut l'oublier. Si toutes les
-   séries redeviennent vides (saisie effacée, réinitialisation, archivage), le
-   départ est retiré : le chrono repartira à la prochaine vraie saisie. */
-function daySetsHaveEntry(data){
-  const sets = (data && data.sets) || {};
-  return Object.keys(sets).some(k => {
-    const s = sets[k];
-    if(!s) return false;
-    if(s.done) return true;
-    return [s.weight, s.reps, s.rpe, s.info, s.duration]
-      .some(v => v != null && String(v).trim() !== '');
-  });
-}
-function stampSessionStart(data){
-  if(!data || typeof data !== 'object') return;
-  if(daySetsHaveEntry(data)){
-    if(!data.startedAt) data.startedAt = Date.now();
-  } else {
-    delete data.startedAt;
+   `startedAt` disparaît avec les données de la séance (archivage, 🔄) ; ↩️ ne
+   l'efface jamais (voir undoLastAction). */
+function launchSessionChrono(){
+  const d = loadDayData(currentSessionId, currentProfile);
+  if(!d.startedAt){
+    d.startedAt = Date.now();
+    saveDayData(currentSessionId, currentProfile, d);
   }
+  vibrate();
+  render();
+  showToast("C'est parti 💪");
 }
-/* Durée écoulée en secondes depuis la première saisie, ou null si pas démarrée. */
+/* Durée écoulée en secondes depuis l'appui sur GO, ou null si pas démarrée. */
 function sessionElapsedSec(data, now){
   if(!data || !data.startedAt) return null;
   return Math.max(0, Math.floor(((now || Date.now()) - data.startedAt) / 1000));
@@ -468,7 +459,7 @@ function updateSessionTimer(){
   const elapsed = sessionElapsedSec(loadDayData(currentSessionId, currentProfile));
   label.classList.toggle('running', elapsed != null);
   label.textContent = elapsed == null
-    ? '⏱ Le chrono démarre à ta première série'
+    ? '⏱ Appuie sur GO pour lancer le chrono'
     : `⏱ ${formatChrono(elapsed)} de séance`;
 }
 function startSessionTimer(){
@@ -639,7 +630,17 @@ function undoLastAction(){
     showToast('Rien à annuler');
     return;
   }
-  const previous = stack.pop();
+  let previous = stack.pop();
+  /* Le chrono n'est pas une saisie : annuler une série ne doit ni l'arrêter
+     ni le décaler. On garde l'heure de départ actuelle quel que soit l'état
+     restauré. */
+  try{
+    const current = loadDayData(currentSessionId, currentProfile);
+    const restored = JSON.parse(previous);
+    if(current.startedAt) restored.startedAt = current.startedAt;
+    else delete restored.startedAt;
+    previous = JSON.stringify(restored);
+  }catch(e){ /* snapshot illisible : restauré tel quel */ }
   try{
     storage.set(key, previous);
   }catch(e){ /* ignore */ }
@@ -1126,6 +1127,22 @@ function render(){
   };
   sessionNoteWrap.appendChild(sessionNoteInput);
   main.appendChild(sessionNoteWrap);
+
+  /* Bouton « GO » (30/09/2026) : lance le chrono de séance, juste avant le
+     premier exercice. Disparaît une fois la séance lancée — le chrono reste
+     affiché dans l'en-tête jusqu'à l'archivage. */
+  if(!data.startedAt){
+    const goBtn = document.createElement('button');
+    goBtn.className = 'go-btn';
+    goBtn.setAttribute('aria-label', 'Lancer la séance et le chrono');
+    goBtn.innerHTML = `
+      <span class="go-ring" aria-hidden="true"></span>
+      <span class="go-word">GO</span>
+      <span class="go-sub">Lancer la séance · démarre le chrono</span>
+    `;
+    goBtn.onclick = launchSessionChrono;
+    main.appendChild(goBtn);
+  }
 
   dayProgram.exercises.forEach((ex, exIdx) => {
     const card = document.createElement('div');
