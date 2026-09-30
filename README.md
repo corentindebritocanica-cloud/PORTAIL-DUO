@@ -730,7 +730,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 | App | Projet avant | Projet depuis le 29/09/2026 | Collections |
 |---|---|---|---|
 | Course | `course-app-36e9d` | `course-app-36e9d` (inchangé) | `produits`, `rayons`, `listes` (depuis le 30/09/2026) |
-| Portail | `course-app-36e9d` | inchangé | `portail/{muscu,budget,courses}` |
+| Portail | `course-app-36e9d` | inchangé | `portail/{muscu,budget,courses}`, `notifAbonnes` (téléphones abonnés aux notifications, depuis le 30/09/2026) |
 | Budget | `lisa-et-corentin` | **`course-app-36e9d`** | `mois`, `config` |
 | Muscu | `duo-training-e835b` | **`course-app-36e9d`** | `archives`, `customSessions`, `coachChat`, `settings` |
 

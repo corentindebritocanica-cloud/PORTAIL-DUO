@@ -1018,3 +1018,8 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 - Surfaces de cette app prises en charge : plaques `.plaque` et zone des exercices, en-tête et barre du bas des exercices, boutons de menu, séances, cartes d'exercice, hero, jauges, boutons forts (Entraînement, Séance terminée), modales, confirmations, toasts, écran de connexion. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
 - En Relief, la lueur de la carte hero (`.menu-hero::after`) est masquée (matière unie).
 - Vérifié (Chromium, Firebase simulé) : menu principal, séance dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».
+
+## Notifications du duo (30/09/2026)
+
+Aucun changement dans le code de Muscu. Le noyau commun `../commun.js` contient désormais `notifierDuo()` (section 7), utilisé par Budget et Course, **pas encore par Muscu** — piste possible : « Lisa a terminé sa séance ». Le changement de `commun.js` a entraîné un rebump automatique de la version de Muscu (workflow). Architecture : README racine, « Notifications du duo ».
+

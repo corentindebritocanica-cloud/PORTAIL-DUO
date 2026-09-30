@@ -155,6 +155,13 @@ iOS tue les applications web en arrière-plan très rapidement pour économiser 
 
 ### ✅ Ce qui fonctionne bien sur iOS (vérifié à jour, sept. 2026)
 - **Notifications Push Web (depuis iOS 16.4)** : Supporté, y compris en France/UE (voir section 6bis ci-dessous sur l'épisode DMA). Condition stricte : l'app doit être ajoutée à l'écran d'accueil pour pouvoir demander l'autorisation de push. Sur Safari normal (onglet, non installé), ça ne marche pas. Les badges rouges sur l'icône fonctionnent (API Badging).
+  - **En place sur PORTAIL-DUO depuis le 30/09/2026, confirmé sur iPhone (iOS 27)** — détail : README racine, « Notifications du duo ». Règles apprises :
+    - `PushManager` n'existe **que** dans la PWA installée : tester `'PushManager' in window` et expliquer à l'utilisateur d'ouvrir l'app depuis son icône sinon.
+    - `Notification.requestPermission()` doit être appelé **directement dans le toucher**, avant tout `await` (chargement de script, lecture réseau…), sinon iOS refuse.
+    - **Chaque push reçu doit afficher une notification** (`showNotification` dans l'événement `push`, toujours, même si la charge est illisible) : un push « silencieux » fait retirer l'autorisation par Safari.
+    - Abonnement lié à **un** service worker : celui dont la portée couvre l'app installée (ici la racine `./` du Portail). Les apps des sous-dossiers ont leur propre service worker et ne reçoivent rien.
+    - Au toucher d'une notification : `clients.openWindow()` (ou `focus()` d'une fenêtre existante) ; pas `navigate()` sur une page tenue par le service worker d'un autre dossier.
+    - Envoi sans serveur payant : Firebase Cloud Messaging (chiffrement et acheminement vers Apple) + un relais Google Apps Script qui détient la clé du compte de service.
 - **Caméra / Micro (WebRTC)** : Fonctionne pour prendre des photos, scanner des QR codes, faire des appels vidéo en direct (API `getUserMedia()`).
 - **Géolocalisation** : Fonctionne avec l'API standard.
 - **Web Share API** : Pour déclencher le menu de partage natif d'iOS (Envoyer un lien par SMS, WhatsApp, etc.).
