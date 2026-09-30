@@ -20,6 +20,9 @@ service cloud.firestore {
     match /rayons/{id}         { allow read, write: if compteDuo(); }
     match /portail/{id}        { allow read, write: if compteDuo(); }
     match /listes/{id}         { allow read, write: if compteDuo(); }   // listes de courses (Maison, Apéro…), 30/09/2026
+    // Téléphones abonnés aux notifications (écrit par le Portail, lu par le relais Apps Script
+    // avec le compte de service — qui ne passe pas par ces règles), 30/09/2026
+    match /notifAbonnes/{id}   { allow read, write: if compteDuo(); }
 
     // ---- MUSCU ----
     match /archives/{id}       { allow read, write: if compteDuo(); }

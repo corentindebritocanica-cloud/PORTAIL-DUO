@@ -479,3 +479,11 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 
 **Vérifié** (Chromium 440×956, Firebase simulé avec les vraies données) : 134 produits et 48 coches vertes visibles dans « Apéro Juju nico » ; cocher un produit libre → orange ; toucher un produit coché Maison → passe en orange ; retoucher → décoché ; badges ; Course : « Toutes » (48), filtre par liste, « Course terminée » filtrée sur Apéro sans toucher Maison ; changement de couleur ; suppression de la liste sans perte de produit ; Verre, Relief, Argile ; aucune erreur JS. **Non vérifié sur iPhone.**
 
+## Notifications — liste de courses à 5 articles (30/09/2026)
+
+Quand le nombre d'articles **à acheter** (toutes listes, pas encore achetés en magasin — le même compte que « restants » du Portail) **passe de 4 à 5** à cause d'une coche faite sur ce téléphone, l'autre profil reçoit : « Courses : 5 articles à acheter — Corentin vient d'ajouter Tomates. Qui passe au magasin ? ». Architecture : README racine, « Notifications du duo ».
+- `app.js` : `toggleAAcheter()` compte les restants avant la coche, puis `verifierSeuilCourses(avant, après, produit)` ; seuil `SEUIL_NOTIF_COURSES = 5`.
+- **Une notification par franchissement** : la suivante n'arrive qu'après être redescendu sous 5 (décoche, « Course terminée ») puis remonté à 5. `tag: courses-seuil` → sur le téléphone, une nouvelle notification de seuil remplace l'ancienne.
+- Seulement une fois la liste **reçue de Firestore** (`firestoreRecu.produits`), jamais sur le seul aperçu local de l'ouverture.
+**Vérifié** (Chromium + émulateurs, relais simulé) : 4 → 5 → notification ; 5 → 4 → 3 → 4 → rien ; 4 → 5 à nouveau → 2e notification. **Non vérifié sur iPhone.**
+

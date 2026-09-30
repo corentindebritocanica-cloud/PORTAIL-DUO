@@ -15,6 +15,7 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 > - **Profil Corentin/Lisa unique** : `localStorage duo_profile`, réglable dans les Réglages de Muscu, Course ou Budget.
 > - **Style au choix (30/09/2026)** : **Verre** (défaut) · **Relief** (neumorphisme) · **Argile** (claymorphisme), choisi sous la pile du Portail, appliqué aux 4 apps (`localStorage duo-style` → `<html data-style>`, posé par `commun.js`). Bleu Corentin / rose Lisa dans les 3 styles. Voir « Styles au choix » en fin de fichier.
 > - **Portail** : pile de 3 vitres (toucher une vitre du fond → devant ; toucher celle de devant → ouvre l'app avec la transition ; glisser haut/bas → fait tourner la pile), aperçu du jour de chaque app (résumés `portail/*` dans Firebase), bouton ↻ de rechargement forcé. Retour depuis une app : geste retour d'iOS.
+> - **Notifications (30/09/2026)** : interrupteur sous « Style des apps » ; dépense ajoutée dans Budget et liste de courses à 5 articles → notification à **l'autre** profil. Relais Google Apps Script (hors dépôt, copie dans `outils/Notifications.gs`). Voir « Notifications du duo » en fin de fichier.
 > - **Fichiers du Portail** : `index.html`, `style.css` (base), `app.js`, `sw.js`, `manifest.json`, icônes ; partagés : `verre.css`, `commun.js` ; versionnage auto : `.github/workflows/auto-version.yml`.
 
 Depuis le 22/09/2026, le Portail est un **tableau de bord** : chaque carte ouvre son app et affiche un aperçu du jour (prochaine séance, reste à vivre, produits à acheter). Il lit pour cela un petit résumé écrit par chaque app dans Firebase, en **connexion anonyme** (aucun mot de passe) — voir « Tableau de bord » en fin de fichier. HTML/CSS/JS sans build, avec un manifest PWA.
@@ -831,3 +832,62 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 **Fichiers touchés** : `commun.js` (section 0), `verre.css` (bloc final), `index.html` + `app.js` du Portail (sélecteur). Aucun fichier des 3 apps modifié : elles suivent via `commun.js` et `verre.css` (versions `?v=` mises à jour par le workflow).
 
 **Vérifié** (Chromium 390 × 844, Firebase simulé, profils Corentin et Lisa) : Portail, Course (Liste, Course, Réglages), Budget (Mois, Fixes, Réglages), Muscu (menu, séance) dans les 3 styles ; clic sur « Argile » → `data-style="argile"` + `duo-style` enregistré, Course ouverte ensuite en Argile, retour à « Verre » → attribut retiré ; Verre identique au pixel près à avant ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+## Notifications du duo (30/09/2026)
+
+**Demande de Corentin** : être prévenu quand l'autre **ajoute une dépense dans Budget**, et quand **la liste de courses atteint 5 articles** à acheter. Choix de Corentin : **seul l'autre profil** reçoit la notification (Lisa ajoute → Corentin est prévenu, et inversement) ; « coché » = mis dans la liste **à acheter** (onglet Liste de Course).
+
+### Architecture
+```
+Budget / Course ──notifierDuo()──► Relais Apps Script ──► Firebase Cloud Messaging ──► Apple ──► sw.js du Portail
+ (commun.js §7)    POST text/plain   (vérifie le jeton       (envoi « data »)                    (affiche la
+                   + jeton Firebase   du compte du duo,                                           notification)
+                                      lit notifAbonnes)
+Portail (app.js) ──abonnement──► notifAbonnes/{id} = { token, profil, maj, appareil }
+```
+- **Pourquoi un relais** : envoyer une notification exige la clé du compte de service, qui ne doit jamais être dans le dépôt (public). Les Cloud Functions de Firebase exigent l'offre payante (Blaze) ; **Google Apps Script est gratuit** et avait déjà la clé (propriété `SA_BUDGET`, sauvegardes du dimanche).
+- **Firebase Cloud Messaging** plutôt que le push web « brut » : Apps Script ne sait pas chiffrer une charge utile de push web (ECDH/HKDF/AES-GCM) ; FCM le fait. Gratuit et sans quota pratique. API FCM, FCM Registration et Installations : déjà actives sur `course-app-36e9d` (vérifié le 30/09/2026).
+
+### Abonnement — Portail (`index.html`, `style.css`, `app.js` bloc « NOTIFICATIONS DU DUO », `sw.js`)
+- Sélecteur **Notifications : Désactivées · Activées** sous « Style des apps » (même habillage `.style-choix`, donc aussi en Relief/Argile) + ligne d'explication `#notif-aide`.
+- **Activées** : `Notification.requestPermission()` **en tout premier dans le toucher** (iOS refuse une demande qui ne suit pas directement un geste), puis SDK `firebase-messaging-compat` (10.12.2) chargé à la demande, `getToken({ serviceWorkerRegistration })` avec le **service worker racine** du Portail, puis écriture de `notifAbonnes/{id}`. `id` aléatoire propre au téléphone (`localStorage duo-notif-id`), état local `duo-notif-etat` (`{token, profil, maj}`).
+- **À chaque ouverture** (session confirmée) et au retour sur le Portail : jeton FCM revérifié ; document réécrit si le jeton a changé, **si le profil du téléphone a changé** (Réglages d'une app), ou au plus tard tous les 7 jours.
+- **Désactivées** : document supprimé, `deleteToken()`, état local effacé.
+- Clé VAPID : `NOTIF_VAPID` vide = clé par défaut de Firebase. Si un jour les jetons étaient refusés sur iPhone : console Firebase → Paramètres du projet → Cloud Messaging → Certificats Web Push → Générer, et coller la clé publique dans `NOTIF_VAPID`.
+- **Indisponible** (boutons grisés + explication) : Safari hors écran d'accueil (sur iPhone, `PushManager` n'existe que dans l'app installée), autorisation refusée dans les Réglages iOS.
+- `sw.js` (racine) : `push` → **toujours** `showNotification` (sur iOS, un push sans notification affichée finit par faire retirer l'autorisation) ; lien limité à une page sous la portée du Portail ; `tag` = remplace la notification précédente du même type. `notificationclick` → ramène la fenêtre déjà ouverte sur la bonne app, sinon `openWindow` (pas `navigate()` : impossible sur une page tenue par le service worker d'une autre app).
+
+### Envoi — `commun.js` section 7 (`window.notifierDuo({ titre, corps, url, tag })`)
+- `RELAIS_NOTIF` = URL `…/exec` du relais. **Vide = rien n'est envoyé** (fonction sans effet).
+- Requête `POST` en **`text/plain`** (requête « simple » : pas de pré-vérification CORS, que les applications Web Apps Script ne savent pas traiter) et en **`mode: 'no-cors'`** (réponse volontairement non lue : seule une coupure réseau fait réessayer — une réponse illisible ne doit jamais provoquer un renvoi, donc une notification en double), avec le **jeton Firebase** de la session du duo et le **profil de l'expéditeur**.
+- Hors ligne / relais injoignable : **file d'attente** `localStorage duo-notif-file` (10 max, 12 h max), reprise au retour du réseau, au retour au premier plan et 5 s après l'ouverture.
+- **Déclencheurs** : Budget (dépense avec montant > 0, 15 s après la dernière saisie de la ligne, voir `Budget/README.md`) ; Course (passage de 4 à 5 articles à acheter, voir `Course/README.md`).
+
+### Relais — Google Apps Script (`outils/Notifications.gs`, copie de référence, sans secret)
+- `doPost` : vérifie le jeton par `accounts:lookup` (Identity Toolkit, clé web publique) → **UID du duo exigé** ; limite 20 demandes/minute ; nettoie la demande (titre 60, corps 180 caractères, lien limité à `./`, `./Budget/`, `./Course/`, `./Muscu/`) ; lit `notifAbonnes` avec le compte de service ; envoie à ceux dont `profil` ≠ expéditeur ; **retire les abonnements périmés** (réponse FCM 404 / `UNREGISTERED`).
+- Jeton d'accès du compte de service signé dans le script (JWT RS256, `Utilities.computeRsaSha256Signature`), gardé 50 min en cache. Portées : `datastore` + `firebase.messaging`.
+- Fonctions préfixées `notif` / `NOTIF_` : aucune collision avec le code des sauvegardes (même espace de noms dans un projet Apps Script).
+- Tests depuis l'éditeur : `notifTester` (envoie « Test » à tous les abonnés) et `notifListerAbonnes`.
+- ⚠️ **Toute modification du script** : Déployer → Gérer les déploiements → crayon → Version « Nouvelle version » → Déployer (l'URL ne change pas). Sans ça, l'ancienne version reste servie.
+
+### Mise en service
+1. ✅ `firestore.rules` : `notifAbonnes` en `compteDuo()` — **publiée par l'API le 30/09/2026** (ajout seul, reste identique à la version en ligne, vérifié par comparaison).
+2. Corentin : dans « Projet sans titre », nouveau fichier `Notifications` ← contenu d'`outils/Notifications.gs` ; Déployer → Nouveau déploiement → Application Web, « Exécuter en tant que : moi », « Qui a accès : tout le monde » ; autoriser.
+3. URL `…/exec` → `RELAIS_NOTIF` dans `commun.js`.
+4. Sur chaque iPhone : Portail (ouvert depuis l'écran d'accueil) → Notifications → **Activées** → Autoriser.
+5. Test : `notifTester` dans l'éditeur Apps Script, puis une vraie dépense.
+
+### Limites connues
+- Uniquement via le **Portail installé** sur l'écran d'accueil. Budget ou Course installés à part ne reçoivent rien (le toucher de la notification ouvre quand même la bonne app, dans le Portail).
+- Un seul compte Firebase pour les deux : le destinataire est choisi par le **profil du téléphone** (`duo_profile`). Deux téléphones réglés sur le même profil ne se préviennent pas l'un l'autre.
+- Saisie hors ligne : la notification part au retour du réseau, à la prochaine ouverture d'une app.
+
+### Vérifié / non vérifié
+- **Relais** (le vrai `Notifications.gs`, exécuté sous Node avec des équivalents d'`UrlFetchApp`, `Utilities`, `CacheService`… et les **vrais** services Google) : jeton du compte de service obtenu ; mauvais jeton → refus ; sans titre → refus ; bon jeton → lecture de `notifAbonnes`, abonné du même profil ignoré, abonné de l'autre profil envoyé à FCM, jeton invalide → abonnement retiré. Documents de test supprimés après.
+- **Règles** (émulateur, 18 cas) : compte du duo → lecture, liste, écriture, suppression ; anonyme, autre compte, même UID par un autre fournisseur, sans session → refusés.
+- **Portail** (Chromium + émulateurs Auth/Firestore, SDK Messaging simulé) : activation → document écrit avec le profil ; profil changé puis retour sur le Portail → document réécrit (`lisa`) et texte mis à jour ; désactivation → document supprimé, `deleteToken` appelé. Envoi : requête `text/plain` sans pré-vérification CORS ; hors ligne → mise en file, envoyée au retour du réseau.
+- **sw.js** (push réel injecté par le protocole DevTools) : notification affichée avec titre, texte et lien ; lien extérieur ramené à la racine ; charge illisible → notification « Portail Duo » quand même.
+- **Budget et Course** (Chromium + émulateurs) : voir leurs README.
+- **Non vérifié** : réception réelle sur iPhone (Chromium de test sans service push) et le relais réellement déployé sur Apps Script — à tester par Corentin (étape 5 ci-dessus).
+

@@ -276,9 +276,32 @@ function carteProduitListe(id, p){
 function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
   const ici = idListeAffichee();
-  if(!p.aAcheter) dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici });
+  if(!p.aAcheter){
+    const avant = restantsDeListe(TOUTES);
+    dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici });
+    if(!p.achete) verifierSeuilCourses(avant, avant + 1, p);
+  }
   else if(listeDe(p) === ici) dbUpdateDoc('produits', id, { aAcheter: false });
   else dbUpdateDoc('produits', id, { listeId: ici });
+}
+/* NOTIFICATIONS DU DUO (30/09/2026) — voir README, « Notifications ».
+   Quand le nombre d'articles à acheter (toutes listes, pas encore achetés en magasin — le même
+   compte que « restants » du Portail) PASSE de SEUIL_NOTIF_COURSES − 1 à SEUIL_NOTIF_COURSES grâce
+   à une coche faite sur CE téléphone, l'autre profil est prévenu (notifierDuo, ../commun.js).
+   Une seule notification par franchissement : la suivante n'arrive qu'après être redescendu sous
+   le seuil (« Course terminée », décoche) puis l'avoir de nouveau atteint. Seulement une fois la
+   liste reçue de Firestore (jamais sur le seul aperçu localStorage de l'ouverture, qui peut être en retard). */
+const SEUIL_NOTIF_COURSES = 5;
+function verifierSeuilCourses(avant, apres, produit){
+  if(!(avant < SEUIL_NOTIF_COURSES && apres >= SEUIL_NOTIF_COURSES)) return;
+  if(!firestoreRecu.produits || typeof window.notifierDuo !== 'function') return;
+  const qui = lireProfilCommun();
+  window.notifierDuo({
+    titre: 'Courses : ' + apres + ' articles à acheter',
+    corps: qui + ' vient d\'ajouter ' + String((produit && produit.nom) || 'un produit').slice(0, 50) + '. Qui passe au magasin ?',
+    url: './Course/',
+    tag: 'courses-seuil'
+  });
 }
 function updateQuantite(id, val){
   dbUpdateDoc('produits', id, { quantite: val });

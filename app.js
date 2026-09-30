@@ -264,6 +264,7 @@
           const compte = !!(user && !user.isAnonymous);
           afficherConnexion(!compte);
           if (compte) { ecouter(); sonder(); } else arreterEcoute();
+          notifSession(compte);                             /* NOTIFICATIONS : abonnement de ce téléphone */
         });
       } catch (err) {
         console.warn('[portail] base indisponible, affichage du dernier état connu :', err);
@@ -395,6 +396,132 @@
       ecouter();
       sonder();
       demarrerSondage();
+    }
+
+    /* ============================================================
+       NOTIFICATIONS DU DUO (30/09/2026) — abonnement de CE téléphone
+       Demande de Corentin : être prévenu quand l'autre ajoute une dépense (Budget) et quand la
+       liste de courses atteint 5 articles (Course). Voir README, « Notifications ».
+       - Firebase Cloud Messaging (SDK compat chargé à la demande) avec le service worker RACINE
+         du Portail (sw.js, portée « ./ ») : c'est lui qui affiche les notifications.
+       - Abonnement enregistré dans notifAbonnes/{id} (firestore.rules : compte du duo) :
+         { token, profil, maj, appareil }. id aléatoire propre au téléphone (localStorage
+         duo-notif-id) → un téléphone = un document, réécrit au besoin.
+       - Le relais Apps Script lit cette collection et n'envoie qu'aux téléphones de L'AUTRE profil.
+       - iPhone : uniquement depuis le Portail installé sur l'écran d'accueil (iOS 16.4+), et la
+         demande d'autorisation DOIT partir d'un toucher (Notification.requestPermission en tout
+         premier dans le gestionnaire de clic, avant toute attente).
+       - Jeton FCM revérifié à chaque ouverture (connexion) : réécrit s'il a changé, si le profil
+         du téléphone a changé, ou au plus tard tous les 7 jours (1 écriture/semaine).
+       ============================================================ */
+    const CLE_NOTIF_ID = 'duo-notif-id', CLE_NOTIF_ETAT = 'duo-notif-etat';
+    const NOTIF_RAFRAICHIR_MS = 7 * 86400000;
+    /* Clé VAPID « Certificats Web Push » de la console Firebase : vide = clé par défaut de Firebase. */
+    const NOTIF_VAPID = '';
+    const choixNotif = el('notif-choix'), aideNotif = el('notif-aide');
+    let notifSessionOk = false, notifTravail = false;
+    const lsLire = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const lsEcrire = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
+    function lireEtatNotif(){ try { return JSON.parse(lsLire(CLE_NOTIF_ETAT)) || null; } catch (e) { return null; } }
+    const estIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const estInstalle = () => navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    const notifPossible = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    const prenomAutre = () => profilActif() === 'lisa' ? 'Corentin' : 'Lisa';
+
+    function afficherNotif(message){
+      if (!choixNotif) return;
+      const actif = !!lireEtatNotif() && notifPossible() && Notification.permission === 'granted';
+      choixNotif.querySelectorAll('[data-notif]').forEach((b) => {
+        b.setAttribute('aria-checked', String((b.dataset.notif === 'oui') === actif));
+        b.disabled = notifTravail || !notifPossible() || (Notification && Notification.permission === 'denied' && b.dataset.notif === 'oui');
+      });
+      let t = '';
+      if (message) t = message;
+      else if (!notifPossible()) t = estIOS() && !estInstalle()
+        ? "Ajoute le Portail à l'écran d'accueil (Partager › Sur l'écran d'accueil), puis ouvre-le depuis son icône pour activer les notifications."
+        : 'Ce navigateur ne gère pas les notifications.';
+      else if (Notification.permission === 'denied') t = 'Notifications refusées : Réglages iOS › Notifications › Portail Duo.';
+      else if (actif) t = 'Tu es prévenu(e) des dépenses de ' + prenomAutre() + ' et quand la liste de courses atteint 5 articles.';
+      aideNotif.textContent = t;
+    }
+
+    let messagingPret = null;
+    function messaging(){
+      if (!messagingPret) messagingPret = chargerScript(SDK + 'firebase-messaging-compat.js')
+        .then(() => firebase.messaging())
+        .catch((e) => { messagingPret = null; throw e; });
+      return messagingPret;
+    }
+    async function jetonFCM(){
+      const m = await messaging();
+      const reg = await navigator.serviceWorker.ready;       /* service worker racine du Portail */
+      const opts = { serviceWorkerRegistration: reg };
+      if (NOTIF_VAPID) opts.vapidKey = NOTIF_VAPID;
+      return m.getToken(opts);
+    }
+    function appareil(){
+      const ua = navigator.userAgent;
+      return (/iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : 'Ordinateur');
+    }
+    async function enregistrerAbonnement(token){
+      let id = lsLire(CLE_NOTIF_ID);
+      if (!id || !/^[a-z0-9]{8,32}$/.test(id)) { id = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)); lsEcrire(CLE_NOTIF_ID, id); }
+      const doc = { token, profil: profilActif(), maj: Date.now(), appareil: appareil() };
+      await db.collection('notifAbonnes').doc(id).set(doc);
+      lsEcrire(CLE_NOTIF_ETAT, JSON.stringify({ token, profil: doc.profil, maj: doc.maj }));
+    }
+    /* Au démarrage (session du duo confirmée) et au retour sur le Portail : jeton toujours à jour. */
+    async function verifierAbonnement(){
+      const etat = lireEtatNotif();
+      if (!etat || !notifSessionOk || !db || !notifPossible() || Notification.permission !== 'granted' || notifTravail) return;
+      try {
+        const token = await jetonFCM();
+        if (token && (token !== etat.token || etat.profil !== profilActif() || Date.now() - (etat.maj || 0) > NOTIF_RAFRAICHIR_MS)) {
+          await enregistrerAbonnement(token);
+        }
+      } catch (e) { console.warn('[notif] vérification de l\'abonnement impossible :', e); }
+      afficherNotif();
+    }
+    function notifSession(compte){
+      notifSessionOk = compte;
+      if (compte) verifierAbonnement();
+    }
+    async function activerNotif(){
+      /* ⚠️ En TOUT PREMIER dans le toucher : iOS refuse une demande d'autorisation qui ne suit
+         pas directement un geste de l'utilisateur. */
+      const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      if (perm !== 'granted') { afficherNotif(); return; }
+      if (!notifSessionOk || !db) { afficherNotif('Connecte-toi au compte du duo, puis réessaie.'); return; }
+      notifTravail = true; afficherNotif('Activation…');
+      try {
+        const token = await jetonFCM();
+        if (!token) throw new Error('aucun jeton');
+        await enregistrerAbonnement(token);
+        notifTravail = false; afficherNotif();
+      } catch (e) {
+        console.warn('[notif] activation impossible :', e);
+        notifTravail = false; afficherNotif('Activation impossible (' + ((e && (e.code || e.message)) || 'erreur') + '). Réessaie connecté à internet.');
+      }
+    }
+    async function desactiverNotif(){
+      notifTravail = true; afficherNotif('Désactivation…');
+      const id = lsLire(CLE_NOTIF_ID);
+      try { if (id && db && notifSessionOk) await db.collection('notifAbonnes').doc(id).delete(); } catch (e) { console.warn('[notif] suppression de l\'abonnement impossible :', e); }
+      try { const m = await messaging(); await m.deleteToken(); } catch (e) { console.warn('[notif] jeton non supprimé :', e); }
+      lsEcrire(CLE_NOTIF_ETAT, null);
+      notifTravail = false; afficherNotif();
+    }
+    if (choixNotif) {
+      choixNotif.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-notif]');
+        if (!b || b.disabled || notifTravail) return;
+        const actif = !!lireEtatNotif() && Notification.permission === 'granted';
+        if (b.dataset.notif === 'oui' && !actif) activerNotif();
+        else if (b.dataset.notif === 'non' && lireEtatNotif()) desactiverNotif();
+      });
+      afficherNotif();
+      /* Retour sur le Portail : le profil a pu changer dans une app (Réglages) → texte et document à jour. */
+      window.addEventListener('pageshow', (e) => { if (e.persisted) { afficherNotif(); verifierAbonnement(); } });
     }
 
     try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }

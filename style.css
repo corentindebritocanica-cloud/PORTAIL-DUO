@@ -231,3 +231,14 @@
   }
 
 
+
+/* ---------- Notifications du duo (30/09/2026) : sélecteur sous « Style des apps » ----------
+   Même habillage que .style-choix (verre.css, y compris Relief et Argile) ; ici seulement
+   l'état indisponible et la ligne d'explication. */
+#notif-choix button:disabled{ opacity:.45; cursor:default; }
+#notif-choix button:disabled:active{ transform:none; }
+.notif-aide{
+  max-width:300px; margin:8px auto 0; text-align:center;
+  font-size:12px; line-height:1.45; color:var(--v-dim, #8a97a8);
+}
+.notif-aide:empty{ display:none; }

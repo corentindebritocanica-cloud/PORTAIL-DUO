@@ -19,6 +19,7 @@
    4. Service worker : enregistrement + détection d'une nouvelle version
    5. Vérification de version au retour dans l'app (rechargement auto ou bandeau)
    6. Connexion du duo pour Course et le Portail (connexionDuo, #connexion)
+   7. Notifications du duo : envoi au relais Apps Script (notifierDuo, 30/09/2026)
 
    CE QUI RESTE DANS CHAQUE APP : la constante DERNIERE_MAJ (index.html, mise à
    jour par le workflow), le bandeau #maj-toast (index.html : sa position dépend
@@ -205,4 +206,92 @@
     });
     return function(visible){ ecran.classList.toggle('open', !!visible); };
   };
+
+  /* ---------- 7. NOTIFICATIONS DU DUO — envoi (30/09/2026) ----------
+     window.notifierDuo({ titre, corps, url, tag }) : demande au relais (Google Apps Script
+     « Notifications.gs », hors dépôt) d'envoyer une notification aux téléphones abonnés de
+     L'AUTRE profil (Corentin ↔ Lisa). L'abonnement se fait dans le Portail (app.js, bloc
+     « NOTIFICATIONS ») ; l'affichage dans sw.js (racine). Voir README, « Notifications ».
+     - Le relais vérifie le jeton Firebase de la session : seul le compte du duo est servi.
+       Aucune clé ici : l'URL du relais n'est pas un secret.
+     - Hors ligne ou relais injoignable : la demande attend dans localStorage (duo-notif-file,
+       12 h max, 10 max) et repart au retour du réseau ou à la prochaine ouverture d'une app.
+     - Tolérant : une erreur n'empêche jamais l'app de fonctionner (console.warn seulement). */
+  var RELAIS_NOTIF = '';                    /* URL …/exec du relais Apps Script (à remplir après son déploiement) */
+  var CLE_FILE_NOTIF = 'duo-notif-file';
+  var FILE_NOTIF_MAX = 10, FILE_NOTIF_DUREE = 12 * 3600 * 1000;
+  function lireFileNotif(){
+    try { var f = JSON.parse(localStorage.getItem(CLE_FILE_NOTIF)); return Array.isArray(f) ? f : []; } catch (e) { return []; }
+  }
+  function ecrireFileNotif(f){
+    try { if (f.length) localStorage.setItem(CLE_FILE_NOTIF, JSON.stringify(f)); else localStorage.removeItem(CLE_FILE_NOTIF); } catch (e) {}
+  }
+  function profilNotif(){
+    try { return localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin'; } catch (e) { return 'corentin'; }
+  }
+  /* Session du duo (application Firebase par défaut, SDK « compat » de la page). */
+  function utilisateurDuo(){
+    try {
+      if (!window.firebase || !firebase.apps || !firebase.apps.length || !firebase.auth) return null;
+      var u = firebase.auth().currentUser;
+      return (u && !u.isAnonymous) ? u : null;
+    } catch (e) { return null; }
+  }
+  /* Envoie UNE demande ; résout true si le relais l'a reçue (réponse lisible ou non). */
+  function envoyerAuRelais(demande, keepalive){
+    var u = utilisateurDuo();
+    if (!RELAIS_NOTIF || !u || !navigator.onLine) return Promise.resolve(false);
+    return u.getIdToken().then(function(jeton){
+      var corps = JSON.stringify({
+        idToken: jeton, profil: demande.profil, titre: demande.titre, corps: demande.corps,
+        url: demande.url, tag: demande.tag
+      });
+      /* text/plain (défaut d'un corps texte) : requête « simple », pas de pré-vérification CORS,
+         que les applications Web Apps Script ne savent pas traiter. mode 'no-cors' : la réponse
+         (après redirection vers script.googleusercontent.com) n'a pas à être lisible — seule une
+         vraie coupure réseau fait échouer fetch. Sans ça, une réponse illisible (en-tête CORS
+         absent) ferait échouer une demande pourtant reçue, puis la renverrait : notification en double. */
+      return fetch(RELAIS_NOTIF, { method: 'POST', body: corps, mode: 'no-cors', keepalive: !!keepalive, redirect: 'follow' });
+    }).then(function(rep){
+      if (rep && rep.type === 'opaque') return true;      /* reçue (réponse volontairement illisible) */
+      if (!rep || !rep.ok) return false;
+      return rep.json().then(function(r){
+        if (r && r.ok === false) console.warn('[notif] refusée par le relais :', r.erreur);
+        return true;                          /* reçue : un refus ne se réessaie pas */
+      }, function(){ return true; });
+    }).catch(function(err){ console.warn('[notif] relais injoignable, mise en attente :', err); return false; });
+  }
+  var videEnCours = false;
+  function viderFileNotif(keepalive){
+    if (videEnCours) return;
+    var f = lireFileNotif().filter(function(d){ return Date.now() - d.cree < FILE_NOTIF_DUREE; });
+    ecrireFileNotif(f);
+    if (!f.length || !utilisateurDuo()) return;
+    videEnCours = true;
+    var tete = f[0];
+    envoyerAuRelais(tete, keepalive).then(function(ok){
+      videEnCours = false;
+      if (!ok) return;
+      ecrireFileNotif(lireFileNotif().filter(function(d){ return d.id !== tete.id; }));
+      viderFileNotif(keepalive);
+    });
+  }
+  window.notifierDuo = function(msg){
+    try {
+      if (!msg || !msg.titre || !RELAIS_NOTIF) return;   /* relais pas encore déployé : rien à faire */
+      var f = lireFileNotif();
+      f.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), cree: Date.now(),
+        profil: profilNotif(), titre: String(msg.titre).slice(0, 60), corps: String(msg.corps || '').slice(0, 180),
+        url: msg.url || './', tag: msg.tag || ''
+      });
+      ecrireFileNotif(f.slice(-FILE_NOTIF_MAX));
+      viderFileNotif(!!msg.keepalive);
+    } catch (e) { console.warn('[notif] non envoyée :', e); }
+  };
+  /* Reprise de la file : retour du réseau, retour au premier plan, et quelques secondes après
+     l'ouverture (le temps que la session Firebase soit restaurée). */
+  window.addEventListener('online', function(){ viderFileNotif(false); });
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') setTimeout(function(){ viderFileNotif(false); }, 3000); });
+  window.addEventListener('load', function(){ setTimeout(function(){ viderFileNotif(false); }, 5000); });
 })();

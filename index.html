@@ -123,6 +123,15 @@
       <button type="button" role="radio" data-style-choix="argile" aria-checked="false">Argile</button>
     </div>
 
+    <!-- Notifications du duo (30/09/2026) : abonnement de CE téléphone (Firebase Cloud Messaging,
+         service worker racine). Voir « NOTIFICATIONS » dans app.js et README, « Notifications ». -->
+    <p class="style-choix-titre" id="notif-titre">Notifications</p>
+    <div class="style-choix" id="notif-choix" role="radiogroup" aria-labelledby="notif-titre">
+      <button type="button" role="radio" data-notif="non" aria-checked="true">Désactivées</button>
+      <button type="button" role="radio" data-notif="oui" aria-checked="false">Activées</button>
+    </div>
+    <p class="notif-aide" id="notif-aide" aria-live="polite"></p>
+
     <div class="reload-row">
       <button class="reload-btn" id="hardReload" title="Vider le cache et recharger" aria-label="Vider le cache et recharger">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">

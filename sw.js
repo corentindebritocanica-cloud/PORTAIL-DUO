@@ -181,3 +181,47 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+/* ============================================================
+   NOTIFICATIONS DU DUO (30/09/2026) — voir README, « Notifications »
+   Le Portail abonne le téléphone (Firebase Cloud Messaging, app.js) avec CE service worker
+   (portée racine « ./ »). Le relais Apps Script envoie un message FCM « data » seulement :
+   c'est ce code qui l'affiche. ⚠️ Sur iOS, CHAQUE push reçu doit afficher une notification,
+   sinon Safari finit par retirer l'autorisation : on affiche donc toujours quelque chose.
+   Pas de SDK Firebase ici : le message FCM arrive comme un push web ordinaire, en JSON
+   ({ data: {…}, from, fcmMessageId… }).
+   ============================================================ */
+function urlNotifSure(u){
+  /* Seulement une page de ce site, sous la portée du Portail (jamais une adresse extérieure). */
+  try {
+    const cible = new URL(typeof u === 'string' && u ? u : './', self.registration.scope);
+    return cible.href.startsWith(self.registration.scope) ? cible.href : self.registration.scope;
+  } catch (e) { return self.registration.scope; }
+}
+self.addEventListener('push', (event) => {
+  let p = {};
+  try { p = event.data ? event.data.json() : {}; } catch (e) { p = {}; }
+  const d = Object.assign({}, (p && p.notification) || {}, (p && p.data) || {});
+  const titre = String(d.titre || d.title || 'Portail Duo').slice(0, 60);
+  const options = {
+    body: String(d.corps || d.body || '').slice(0, 180),
+    icon: new URL('icone-192.png', self.registration.scope).href,
+    data: { url: urlNotifSure(d.url) }
+  };
+  /* tag : une notification du même type remplace la précédente (ex. seuil de Courses). */
+  if (typeof d.tag === 'string' && d.tag) options.tag = d.tag.slice(0, 40);
+  event.waitUntil(self.registration.showNotification(titre, options));
+});
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const cible = urlNotifSure(event.notification.data && event.notification.data.url);
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenetres) => {
+      /* Une fenêtre déjà sur la bonne app : on la ramène devant. Sinon on ouvre la cible
+         (navigate() est impossible sur une page tenue par le service worker d'une autre app). */
+      const deja = fenetres.find((f) => f.url.split('#')[0].split('?')[0] === cible.split('?')[0] && 'focus' in f);
+      if (deja) return deja.focus();
+      return self.clients.openWindow(cible);
+    })
+  );
+});

@@ -457,3 +457,14 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Surfaces de cette app prises en charge : plaque `.main-content`, barre d'onglets, `#toast`, `.btn-icon`, cartes, revenus, réglages, mois, champs et jauges (creux), boutons `.bg-primary`/`.bg-danger`, `.popup-box`, écran de connexion. **Nouvelle surface ajoutée à l'app** → la déclarer dans la bonne catégorie du bloc « STYLES AU CHOIX » de `verre.css`, sinon elle reste translucide en Relief/Argile.
 - **Profil sur `<body>`** (`body.profil-lisa`) : recopié sur `<html>` par `:has()` dans `verre.css`, sinon les teintes calculées sur `<html>` restaient bleues pour Lisa (voir `PROBLEMES_RESOLUS.md`).
 - Vérifié (Chromium, Firebase simulé) : Mois, Fixes, Réglages dans les 3 styles, profils Corentin et Lisa. Non vérifié sur iPhone. Détails : README racine, « Styles au choix ».
+
+## Notifications — dépense ajoutée (30/09/2026)
+
+Une dépense ajoutée ici envoie une notification au téléphone de **l'autre** profil (Lisa ↔ Corentin) : « Dépense de Lisa — 23,40 € — Resto · 🍽️ Restaurants ». Architecture, abonnement et relais : README racine, « Notifications du duo ».
+- `app.js`, bloc « NOTIFICATIONS DU DUO » (avant `setupTableListeners`) : une dépense se saisit **ligne par ligne**, sans bouton « Valider ». Au `change` d'un champ d'une ligne de `depenses`, `planifierNotifDepense()` arme un minuteur de **15 s** (`NOTIF_DELAI_MS`), relancé à chaque champ modifié : le libellé a le temps d'arriver, et c'est la valeur finale qui part.
+- **Envoi anticipé** si l'app passe en arrière-plan (`pagehide` / `visibilitychange` caché), avec `keepalive`.
+- La ligne reçoit **`notifie: true`** (enregistré dans le mois) : une seule notification par dépense, même modifiée ensuite, sur l'un ou l'autre téléphone.
+- **Pas de notification** : montant nul ou négatif (remboursement), ligne supprimée entre-temps, dépense datée de plus de 2 jours (anciennes lignes modifiées, antérieures à la fonction), relais non configuré.
+- Envoi par `notifierDuo()` (`../commun.js`, section 7), avec la session e-mail de Budget.
+**Vérifié** (Chromium + émulateurs Auth/Firestore, relais simulé) : rien à 5 s, envoi à 15 s avec libellé, montant et catégorie ; montant modifié ensuite → pas de 2e envoi ; app quittée juste après la saisie → envoi immédiat ; montant négatif → rien ; `notifie: true` en base. **Non vérifié sur iPhone.**
+

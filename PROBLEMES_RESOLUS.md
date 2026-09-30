@@ -19,6 +19,26 @@
 
 ---
 
+## 🔔 4 apps — notifications push sur iPhone sans serveur payant (30/09/2026)
+
+### 30/09/2026 — Portail, Budget, Course — envoyer des notifications push à une PWA iOS depuis un site statique (GitHub Pages)
+**Symptôme** : aucun bug — nouvelle fonction. Contraintes : site statique public, projet Firebase en offre gratuite (Spark), aucune clé secrète possible dans le code, iPhone uniquement.
+**Fausses pistes explorées** : (1) Cloud Functions déclenchées par Firestore — exigent l'offre payante Blaze. (2) Push web « brut » envoyé depuis Apps Script — impossible : la charge utile doit être chiffrée (ECDH P-256, HKDF, AES-GCM, RFC 8291), Apps Script n'a pas ces primitives. (3) Vérifier la signature du jeton Firebase dans Apps Script — pas de vérification RSA disponible (`Utilities` sait signer, pas vérifier). (4) Tester la réception réelle dans le Chromium de test — `getToken()` échoue (`AbortError`, code 20) : les Chromium sans clés Google n'ont pas de service push (connexion `mtalk.google.com:5228` refusée).
+**Cause racine** : l'envoi d'un push exige un serveur qui détient une clé secrète ; il fallait un serveur gratuit, et une façon de l'authentifier sans secret côté client.
+**Solution** :
+- **Google Apps Script en application Web** comme relais (gratuit, déjà en place pour les sauvegardes avec la clé du compte de service) + **Firebase Cloud Messaging** pour le chiffrement et l'acheminement vers Apple.
+- **Authentification sans secret** : le client envoie son **jeton Firebase (ID token)** ; le relais le fait vérifier par `identitytoolkit … accounts:lookup?key=<clé web>` et exige l'UID du duo. Fonctionne sans en-tête `Referer` (vérifié : la clé web n'est pas restreinte).
+- **CORS avec Apps Script** : `POST` en `text/plain` = requête « simple », sans pré-vérification `OPTIONS` (qu'une application Web Apps Script ne sait pas traiter), et `mode: 'no-cors'` : la réponse (redirigée vers `script.googleusercontent.com`) n'est pas lue. Leçon : **avec une file de renvoi, ne jamais faire dépendre le « reçu » de la lisibilité de la réponse** — une réponse illisible ferait renvoyer une demande déjà traitée (notification en double) ; seule une vraie coupure réseau (fetch rejeté) doit déclencher le renvoi.
+- **Service worker** : message FCM « data » seulement, affiché par notre gestionnaire `push` (pas de SDK Firebase dans le service worker) ; **toujours** afficher une notification.
+**Leçons généralisables** :
+- **iOS** : `Notification.requestPermission()` doit être le **premier** `await` du gestionnaire de toucher (aucun chargement de script avant) ; `PushManager` n'existe **que** dans la PWA installée ; chaque push reçu **doit** afficher une notification, sinon Safari retire l'autorisation.
+- **Choisir le destinataire sans comptes séparés** : avec un compte Firebase partagé, le « qui » vient du **profil du téléphone** (`duo_profile`) enregistré avec l'abonnement, relu à chaque ouverture (le profil peut changer dans une autre app).
+- **Saisie sans bouton « Valider »** (lignes de Budget) : minuteur relancé à chaque champ + envoi anticipé au départ de la page + marqueur `notifie` en base, sinon soit on notifie trop tôt (libellé vide), soit plusieurs fois.
+- **Seuil** (Course) : notifier au **franchissement** (4 → 5) détecté par le téléphone qui fait l'action, pas « tant que ≥ 5 », et jamais sur un aperçu local non confirmé.
+- **Tests Playwright** : les requêtes faites par un **service worker** échappent à `page.route()` / `context.route()` (après rechargement, le code patché pour les émulateurs était remplacé par la version servie par le service worker) → simuler le retour par `pageshow` plutôt que recharger, ou bloquer les service workers (`service_workers='block'`) quand ils ne sont pas l'objet du test. Un push réel s'injecte par CDP : `ServiceWorker.deliverPushMessage`.
+- **Tester un script Apps Script hors de Google** : l'exécuter sous Node avec de petits équivalents d'`UrlFetchApp` (curl), `Utilities` (crypto), `CacheService`, `PropertiesService`, `ContentService`, contre les vrais services Google.
+**Fichiers touchés** : `index.html`, `style.css`, `app.js`, `sw.js`, `commun.js`, `Budget/app.js`, `Course/app.js`, `firestore.rules`, `outils/Notifications.gs`, `README.md`, `Budget/README.md`, `Course/README.md`
+
 ## 🗂️ Course — ajouter un champ à des données existantes sans rien risquer : plusieurs listes de courses (30/09/2026)
 
 ### 30/09/2026 — Course — passer d'une liste unique à plusieurs listes (Maison, Apéro…) sans perdre la liste en cours

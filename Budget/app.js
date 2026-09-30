@@ -869,9 +869,12 @@
                 }
             });
 
-            document.getElementById(containerId).addEventListener('change', () => {
+            document.getElementById(containerId).addEventListener('change', (e) => {
                 sauvegarderDonnees();
                 rafraichirTouteLInterface();
+                // NOTIFICATIONS (30/09/2026) : une dépense qui vient de recevoir un montant prévient l'autre
+                const d = e.target && e.target.dataset;
+                if (d && d.type === 'depenses' && d.id) planifierNotifDepense(state.moisActifId, d.id);
             });
 
             document.getElementById(containerId).addEventListener('click', (e) => {
@@ -973,6 +976,53 @@
             document.getElementById(containerId).addEventListener('pointerup', finirGlisserMixte);
             document.getElementById(containerId).addEventListener('pointercancel', finirGlisserMixte);
         };
+
+        // NOTIFICATIONS DU DUO (30/09/2026) — voir README, « Notifications »
+        // Une dépense est saisie ligne par ligne (bouton +, puis libellé et montant dans n'importe quel
+        // ordre) : il n'y a pas de bouton « Valider ». On attend donc NOTIF_DELAI_MS après le dernier
+        // champ modifié (le libellé a le temps d'arriver), puis on envoie UNE notification à l'autre
+        // profil via notifierDuo() (../commun.js → relais Apps Script). Envoi anticipé si l'app passe
+        // en arrière-plan (keepalive). La ligne reçoit notifie:true (enregistré dans le mois) : jamais
+        // deux notifications pour la même dépense, même modifiée ensuite ou sur l'autre téléphone.
+        // Pas de notification pour : montant nul ou négatif (remboursement), ligne supprimée entre-temps,
+        // dépense datée de plus de 2 jours (anciennes lignes modifiées, antérieures à cette fonction).
+        const NOTIF_DELAI_MS = 15000;
+        const notifsEnAttente = new Map();   // id de ligne → { moisId, minuteur }
+        const ilYaJours = (j) => { const d = new Date(); d.setDate(d.getDate() - j); return d.toISOString().split('T')[0]; };
+        const trouverDepense = (moisId, id) => {
+            const m = state.donnees.find(x => x.id === moisId);
+            return { mois: m, item: m && (m.depenses || []).find(x => x.id === id) };
+        };
+        function planifierNotifDepense(moisId, id) {
+            const { item } = trouverDepense(moisId, id);
+            if (!item || item.notifie || !(parseFloat(item.montant) > 0) || (item.date && item.date < ilYaJours(2))) return;
+            const avant = notifsEnAttente.get(id);
+            if (avant) clearTimeout(avant.minuteur);
+            notifsEnAttente.set(id, { moisId, minuteur: setTimeout(() => envoyerNotifDepense(id, false), NOTIF_DELAI_MS) });
+        }
+        function envoyerNotifDepense(id, keepalive) {
+            const attente = notifsEnAttente.get(id);
+            if (!attente) return;
+            clearTimeout(attente.minuteur);
+            notifsEnAttente.delete(id);
+            const { mois, item } = trouverDepense(attente.moisId, id);
+            const montant = item ? parseFloat(item.montant) : 0;
+            if (!item || item.notifie || !(montant > 0) || typeof window.notifierDuo !== 'function') return;
+            item.notifie = true;
+            sauvegarderMois(mois);
+            const qui = localStorage.getItem('duo_profile') === 'lisa' ? 'Lisa' : 'Corentin';
+            const libelle = String(item.libelle || '').trim().split('\n')[0].slice(0, 60);
+            const details = [libelle, item.categorie || ''].filter(Boolean).join(' · ');
+            window.notifierDuo({
+                titre: 'Dépense de ' + qui,
+                corps: montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' + (details ? ' — ' + details : ''),
+                url: './Budget/',
+                keepalive
+            });
+        }
+        const envoyerNotifsEnAttente = () => { Array.from(notifsEnAttente.keys()).forEach((id) => envoyerNotifDepense(id, true)); };
+        window.addEventListener('pagehide', envoyerNotifsEnAttente);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') envoyerNotifsEnAttente(); });
 
         setupTableListeners('mois-content-wrapper');
         setupTableListeners('vue-fixes');
