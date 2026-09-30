@@ -401,7 +401,109 @@ function loadDayData(sessionId, profile){
   });
 }
 function saveDayData(day, profile, data){
+  stampSessionStart(data);
   storage.set(dataKey(day, profile), JSON.stringify(data));
+}
+
+/* ---------- DURÉE DE SÉANCE (30/09/2026) ----------
+   Le chrono démarre à la PREMIÈRE saisie dans une série, échauffement compris
+   (poids, reps, RPE, résultat de circuit ou coche), et s'arrête à l'archivage.
+   On ne stocke que l'heure de départ `startedAt` dans les données de la séance
+   (LocalStorage) : la durée est toujours recalculée `Date.now() - startedAt`,
+   jamais accumulée seconde par seconde — iOS suspend le JS d'une PWA en
+   arrière-plan, un compteur incrémenté perdrait tout ce temps-là.
+   Le marquage est fait dans saveDayData(), point de passage unique de toutes
+   les saisies : aucun gestionnaire de champ ne peut l'oublier. Si toutes les
+   séries redeviennent vides (saisie effacée, réinitialisation, archivage), le
+   départ est retiré : le chrono repartira à la prochaine vraie saisie. */
+function daySetsHaveEntry(data){
+  const sets = (data && data.sets) || {};
+  return Object.keys(sets).some(k => {
+    const s = sets[k];
+    if(!s) return false;
+    if(s.done) return true;
+    return [s.weight, s.reps, s.rpe, s.info, s.duration]
+      .some(v => v != null && String(v).trim() !== '');
+  });
+}
+function stampSessionStart(data){
+  if(!data || typeof data !== 'object') return;
+  if(daySetsHaveEntry(data)){
+    if(!data.startedAt) data.startedAt = Date.now();
+  } else {
+    delete data.startedAt;
+  }
+}
+/* Durée écoulée en secondes depuis la première saisie, ou null si pas démarrée. */
+function sessionElapsedSec(data, now){
+  if(!data || !data.startedAt) return null;
+  return Math.max(0, Math.floor(((now || Date.now()) - data.startedAt) / 1000));
+}
+/* Chrono en direct : « 12:34 », puis « 1:02:34 » au-delà d'une heure. */
+function formatChrono(sec){
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+/* Durée lisible pour l'export et les archives : « 42 min », « 1 h 05 min ». */
+function formatDuration(sec){
+  if(sec == null || isNaN(sec)) return '';
+  const totalMin = Math.max(1, Math.round(sec / 60));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min`;
+}
+let sessionTimerInterval = null;
+function updateSessionTimer(){
+  const view = document.getElementById('view-exercises');
+  const label = document.getElementById('session-timer-label');
+  /* Le minuteur ne tourne que sur l'écran de saisie : ailleurs, on l'arrête. */
+  if(!view || !view.classList.contains('active')){
+    if(sessionTimerInterval){ clearInterval(sessionTimerInterval); sessionTimerInterval = null; }
+    return;
+  }
+  if(!label) return;
+  const elapsed = sessionElapsedSec(loadDayData(currentSessionId, currentProfile));
+  label.classList.toggle('running', elapsed != null);
+  label.textContent = elapsed == null
+    ? '⏱ Le chrono démarre à ta première série'
+    : `⏱ ${formatChrono(elapsed)} de séance`;
+}
+function startSessionTimer(){
+  updateSessionTimer();
+  if(!sessionTimerInterval) sessionTimerInterval = setInterval(updateSessionTimer, 1000);
+}
+/* Au retour au premier plan, iOS a pu suspendre l'intervalle : on remet
+   l'affichage à l'heure immédiatement plutôt qu'au tic suivant. */
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') updateSessionTimer();
+});
+
+/* ---------- DISQUES À CHARGER SUR LA BARRE (30/09/2026) ----------
+   Pour un exercice dont la méthode active est « Barre », le poids saisi est la
+   charge TOTALE (barre + disques, voir EQUIPMENT_METHODS.barre). On en déduit
+   ce qu'il faut mettre de chaque côté, barre olympique de 20 kg supposée.
+   Purement informatif : la saisie et le tonnage ne changent pas. */
+const BAR_WEIGHT_KG = 20;
+function platePerSideText(weightValue){
+  const total = parseNum(weightValue);
+  if(isNaN(total) || total <= 0) return '';
+  if(total < BAR_WEIGHT_KG) return `Moins que la barre seule (${BAR_WEIGHT_KG} kg)`;
+  if(total === BAR_WEIGHT_KG) return `Barre seule (${BAR_WEIGHT_KG} kg), aucun disque`;
+  return `${formatKg((total - BAR_WEIGHT_KG) / 2)} de chaque côté · barre ${BAR_WEIGHT_KG} kg`;
+}
+function updatePlateHint(el, weightValue){
+  const text = platePerSideText(weightValue);
+  el.textContent = text;
+  el.style.display = text ? '' : 'none';
+}
+function buildPlateHint(weightValue){
+  const el = document.createElement('div');
+  el.className = 'plate-hint';
+  updatePlateHint(el, weightValue);
+  return el;
 }
 
 /* ---------- CLÉS NOTES / VARIANTES ----------
@@ -887,6 +989,7 @@ function updateSessionProgress(){
     const formatted = Math.round(tonnage).toLocaleString('fr-FR');
     tonnageLabel.textContent = tonnage > 0 ? `💪 ${formatted} kg soulevés cette séance` : '';
   }
+  updateSessionTimer();
 }
 
 function render(){
@@ -1096,6 +1199,8 @@ function render(){
     }
 
     const isCircuit = ex.logType === 'circuit';
+    /* Barre : on affiche sous chaque série ce qu'il faut charger de chaque côté. */
+    const isBarbell = !isCircuit && getExerciseEquipmentId(ex, exIdx, data) === 'barre';
 
     const gridHeader = document.createElement('div');
     gridHeader.className = isCircuit ? 'set-grid-header circuit' : 'set-grid-header';
@@ -1124,6 +1229,7 @@ function render(){
         wNum.textContent = 'É';
         wRow.appendChild(wNum);
 
+        const wPlate = isBarbell ? buildPlateHint(wSet.weight) : null;
         const wWeight = document.createElement('input');
         wWeight.type = 'text'; wWeight.inputMode = 'decimal'; wWeight.autocomplete = 'off';
         wWeight.placeholder = 'kg';
@@ -1136,6 +1242,7 @@ function render(){
           d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
           d.sets[wKey].weight = wWeight.value;
           saveDayData(currentSessionId, currentProfile, d);
+          if(wPlate) updatePlateHint(wPlate, wWeight.value);
         };
         wRow.appendChild(wWeight);
 
@@ -1195,6 +1302,7 @@ function render(){
         wRow.appendChild(wCheck);
 
         body.appendChild(wRow);
+        if(wPlate) body.appendChild(wPlate);
       }
 
       if(nWarm < 4){
@@ -1244,6 +1352,7 @@ function render(){
         row.appendChild(circuitInfo);
       }
 
+      const plateHint = isBarbell ? buildPlateHint(savedSet.weight) : null;
       if(!isCircuit){
         const weightInput = document.createElement('input');
         /* type="text" et non "number" : avec un clavier français, "22,5" est jugé
@@ -1266,6 +1375,7 @@ function render(){
           d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
           d.sets[setKey].weight = weightInput.value;
           saveDayData(currentSessionId, currentProfile, d);
+          if(plateHint) updatePlateHint(plateHint, weightInput.value);
           updateSessionProgress(); /* tonnage recalculé en direct */
           refreshRecordBadge();
         };
@@ -1317,6 +1427,7 @@ function render(){
               saveDayData(currentSessionId, currentProfile, d);
               weightInput.value = prev.weight;
               repsInput.value = prev.reps;
+              if(plateHint) updatePlateHint(plateHint, prev.weight);
               refreshRecordBadge();
               dupBtn.classList.remove('done'); void dupBtn.offsetWidth; dupBtn.classList.add('done');
               showToast('Série recopiée');
@@ -1351,6 +1462,7 @@ function render(){
       row.appendChild(checkBtn);
 
       body.appendChild(row);
+      if(plateHint) body.appendChild(plateHint);
     }
 
     const noteWrap = document.createElement('div');
@@ -1526,6 +1638,7 @@ function render(){
   }
 
   updateSessionProgress();
+  startSessionTimer();
 }
 
 /* ---------- CONFIRMATION GÉNÉRIQUE ---------- */
@@ -1574,6 +1687,8 @@ function buildExportText(){
   }
   txt += `Date : ${dateStr}\n`;
   txt += `Séance : ${dayProgram.label} — ${dayProgram.title}\n`;
+  const elapsedSec = sessionElapsedSec(data);
+  if(elapsedSec != null) txt += `⏱ Durée : ${formatDuration(elapsedSec)}\n`;
   txt += `------------------------------\n`;
 
   dayProgram.exercises.forEach((ex, exIdx) => {
@@ -1767,6 +1882,10 @@ function finishArchive(){
        resterait invérifiable et non recalculable. */
     variants: data.variants || {},
     tonnage: Math.round(computeSessionTonnage(dayProgram, data)),
+    /* Durée (30/09/2026) : de la première série saisie jusqu'à maintenant,
+       l'archivage. null si aucune série n'a été saisie (séance sans chrono). */
+    startedAt: data.startedAt || null,
+    durationSec: sessionElapsedSec(data, now.getTime()),
     exerciseNames: dayProgram.exercises.map(ex => ex.name),
     rawSets: data.sets || {}
   };
@@ -2259,9 +2378,10 @@ function renderArchivesList(){
     const item = document.createElement('div');
     item.className = 'archive-item';
     const tonnageStr = arc.tonnage ? `· 💪 ${arc.tonnage.toLocaleString('fr-FR')} kg` : '';
+    const durationStr = arc.durationSec != null ? ` · ⏱ ${formatDuration(arc.durationSec)}` : '';
     item.innerHTML = `
       <div class="archive-info">
-        <span class="archive-date">${escapeHtml(arc.dateLabel)} · ${escapeHtml(arc.timeLabel)} ${tonnageStr}</span>
+        <span class="archive-date">${escapeHtml(arc.dateLabel)} · ${escapeHtml(arc.timeLabel)} ${tonnageStr}${durationStr}</span>
         <span class="archive-title">${escapeHtml(arc.sessionLabel)} — ${escapeHtml(arc.sessionTitle)}</span>
       </div>
       <div class="archive-actions">

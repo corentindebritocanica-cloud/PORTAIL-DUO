@@ -339,6 +339,13 @@
   .session-tonnage-label{
     font-size:11px; color:var(--text-dim); font-weight:500; margin:0; opacity:0.8;
   }
+  /* Durée de séance (30/09/2026) : grisée tant que le chrono n'a pas démarré,
+     puis en chiffres tabulaires pour que la ligne ne tressaute pas chaque seconde. */
+  .session-timer-label{
+    font-size:11px; color:var(--text-dim); font-weight:500; margin:0; opacity:0.8;
+    font-variant-numeric:tabular-nums;
+  }
+  .session-timer-label.running{ color:var(--text); font-weight:700; opacity:1; }
 
   /* MAIN */
   main{
@@ -499,6 +506,14 @@
   /* Le numéro de la ligne d'échauffement se distingue visuellement du reste. */
   .set-num.kind-warmup{ color:var(--text-dim); border-color:var(--border-strong); font-weight:700; }
   .warmup-row{ opacity:.82; }
+  /* Disques à charger de chaque côté de la barre (30/09/2026) : ligne discrète
+     calée sous la colonne « Poids » de la série qu'elle concerne (30 px de
+     numéro + 8 px d'écart), remontée pour se lire comme partie de la série. */
+  .plate-hint{
+    margin-top:-6px; padding-left:38px;
+    font-size:11.5px; line-height:1.3; font-weight:600; color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
   .add-warmup-btn{
     width:100%; padding:9px; margin-top:2px; border-radius:var(--r-sm);
     border:1px dashed var(--border-strong); background:transparent;

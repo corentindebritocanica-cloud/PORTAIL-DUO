@@ -5,7 +5,8 @@ Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de muscul
 > **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
 > - **Design Verre** (`../verre.css`, section MUSCU), titre de chaque écran à gauche + pastille de connexion ; une plaque de verre par écran.
 > - **Noyau commun `../commun.js`** : halos, transition, `formaterDerniereMaj()` (utilisée par les Réglages), service worker, vérification de version.
-> - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
+> - **Disques de barre + chrono de séance (30/09/2026)** : voir « Disques à charger sur la barre » et « Durée de séance » dans « Écran de saisie ».
+- **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
 
 
 ## Où vit le projet
@@ -176,7 +177,7 @@ Points d'implémentation :
 - **La base est fermée.** Les règles exigent `request.auth != null` sur toutes les collections. Un **compte unique** (e-mail/mot de passe) est utilisé sur les deux téléphones.
 - ⚠️ **Les abonnements `onSnapshot` sont regroupés dans `subscribeAll()` et ne démarrent qu'après `onAuthStateChanged`.** S'abonner avant la connexion provoquerait un `permission-denied` sur chaque écoute.
 - **Le mode hors-ligne survit** : Firebase conserve la session localement, donc après une première connexion l'app fonctionne en salle sans réseau.
-- **Champs d'une archive** : `id, dateLabel, timeLabel, createdAt, profile, sessionId, sessionLabel, sessionTitle, exportText, sessionNote, tonnage, exerciseNames, rawSets, variants` — plus `coachFeedback` et `coachProfile` après un bilan. ⚠️ `variants` a été ajouté tardivement : sans lui, un poids archivé ne disait pas s'il était par main. Les archives antérieures ne l'ont pas.
+- **Champs d'une archive** : `id, dateLabel, timeLabel, createdAt, profile, sessionId, sessionLabel, sessionTitle, exportText, sessionNote, tonnage, exerciseNames, rawSets, variants`, plus `startedAt` / `durationSec` depuis le 30/09/2026 (durée de séance) — plus `coachFeedback` et `coachProfile` après un bilan. ⚠️ `variants` a été ajouté tardivement : sans lui, un poids archivé ne disait pas s'il était par main. Les archives antérieures ne l'ont pas.
 - **Collections** : `archives`, `customSessions`, `coachChat`, et `settings` (document `coach` uniquement — les conversations du coach vivent dans son champ `threads`, pas dans un document séparé, voir ci-dessous). La corbeille (`deletedAt`), le catalogue d'exercices (dérivé), les surcharges de séances fixes et le suivi corporel n'ont demandé aucune collection supplémentaire.
 - Règles à publier (console → Firestore → Règles) :
 
@@ -281,6 +282,21 @@ Proposé à la fin de **chaque** séance, y compris celles qui n'en prévoient p
 - Le cardio **optionnel** ne compte pas dans la progression ; le cardio **prévu** par la séance compte, lui, comme avant.
 - L'export ne le mentionne que s'il est prévu ou coché ; un cardio fait en plus apparaît comme « Cardio (hors programme) ».
 - Champs : minutes, % inclinaison, vitesse (⚠️ niveau affiché sur les tapis Basic Fit, pas des km/h), note libre.
+
+### Disques à charger sur la barre (30/09/2026)
+Sur un exercice dont la méthode active est **Barre** (`getExerciseEquipmentId(...) === 'barre'` : Squat, Fentes arrière, RDL, Hip Thrust, Développé incliné en mode barre…), une ligne s'affiche sous chaque série — échauffements compris — dès qu'un poids est tapé : « 37,5 kg de chaque côté · barre 20 kg » pour 95 kg.
+- Barre supposée de **20 kg** (`BAR_WEIGHT_KG`). Calcul : `(poids saisi − 20) / 2` (`platePerSideText()`). Cas limites : 20 kg → « Barre seule, aucun disque » ; moins de 20 kg → « Moins que la barre seule ».
+- Le poids saisi reste la **charge totale** (règle de `EQUIPMENT_METHODS.barre`) : rien ne change pour le tonnage, les records ni l'export.
+- Mis à jour à la frappe (`updatePlateHint`) et par le bouton ⇊ ; changer de méthode relance `render()`, la ligne apparaît ou disparaît. Seul le poids tapé compte, jamais le placeholder gris.
+- Pas de détail disque par disque (20 + 10 + 5…) : le jeu de disques de la salle n'est pas connu. À ajouter si demandé.
+
+### Durée de séance (30/09/2026)
+Chrono affiché dans l'en-tête de l'écran de saisie (`#session-timer-label`, sous le tonnage) : « ⏱ Le chrono démarre à ta première série » tant que rien n'est saisi, puis « ⏱ 12:34 de séance ».
+- **Départ** : première saisie dans n'importe quelle série, **échauffement compris** (poids, reps, RPE, résultat de circuit ou coche). Heure stockée dans `data.startedAt` (données locales de la séance), posée par `stampSessionStart()` **dans `saveDayData()`** — point de passage unique de toutes les saisies, aucun champ ne peut l'oublier. Une note, le cardio ou le choix de méthode ne démarrent pas le chrono.
+- Si toutes les séries redeviennent vides (saisie effacée, 🔄, archivage), `startedAt` est retiré : le chrono repartira à la prochaine vraie saisie. ↩️ restaure l'état précédent, `startedAt` compris.
+- **Arrêt** : l'archivage. L'archive reçoit `startedAt` et `durationSec` (null si aucune série saisie), et l'export une ligne « ⏱ Durée : 1 h 05 min » (donc lue par le coach). La liste des archives affiche « · ⏱ 42 min » (anciennes archives : rien).
+- ⚠️ **La durée est toujours recalculée `Date.now() − startedAt`**, jamais comptée seconde par seconde : iOS suspend le JS d'une PWA en arrière-plan (téléphone verrouillé entre deux séries), un compteur incrémenté perdrait ce temps. L'intervalle d'une seconde (`startSessionTimer`, lancé par `render()`) ne sert qu'à rafraîchir l'affichage ; il s'arrête tout seul hors de l'écran de saisie, et `visibilitychange` remet l'affichage à l'heure au retour au premier plan.
+- Une séance commencée et jamais archivée garde son heure de départ (le chrono continue le lendemain) : l'archiver ou la réinitialiser.
 
 ### Note de séance
 Distincte des notes par exercice : un champ en tête d'écran pour le contexte du jour (fatigue, douleur, matériel indisponible). Stockée dans `data.sessionNote`, reprise dans l'export et dans l'archive (`sessionNote`) — donc lue par le coach.
