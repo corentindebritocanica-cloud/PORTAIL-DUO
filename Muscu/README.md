@@ -6,7 +6,7 @@ Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de muscul
 > - **Design Verre** (`../verre.css`, section MUSCU), titre de chaque écran à gauche + pastille de connexion ; une plaque de verre par écran.
 > - **Noyau commun `../commun.js`** : halos, transition, `formaterDerniereMaj()` (utilisée par les Réglages), service worker, vérification de version.
 > - **Disques de barre (poids de barre au choix) + bouton GO / chrono de séance (30/09/2026)** : voir « Disques à charger sur la barre » et « Durée de séance » dans « Écran de saisie ».
-> - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives chronométrées → raccourci iOS « Muscu Santé » → FC et calories d'Apple Santé écrites dans `archive.montre`. Voir « Montre connectée ».
+> - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives de Lisa → relais Apps Script (`outils/Strava.gs`) → séance Suunto retrouvée sur **Strava** → FC et calories écrites dans `archive.montre`. Voir « Montre connectée — via Strava ».
 - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
 
 
@@ -1043,7 +1043,33 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 Aucun changement dans le code de Muscu. Le noyau commun `../commun.js` contient désormais `notifierDuo()` (section 7), utilisé par Budget et Course, **pas encore par Muscu** — piste possible : « Lisa a terminé sa séance ». Le changement de `commun.js` a entraîné un rebump automatique de la version de Muscu (workflow). Architecture : README racine, « Notifications du duo ».
 
 
-## Montre connectée — FC et calories via Apple Santé (30/09/2026)
+## Montre connectée — via Strava (30/09/2026, version en service)
+
+La montre **Suunto** de Lisa envoie chaque séance sur **Strava** (synchro Suunto → Strava automatique, séances pouvant rester privées). Le bouton ❤️ d'une archive fait retrouver la séance Strava correspondante par le relais Apps Script, qui écrit FC et calories dans l'archive. Remplace le même soir la version « raccourci iOS + Apple Santé » (section suivante, gardée pour l'historique) : depuis l'iPhone de Lisa, la recherche Santé ne trouvait aucune mesure.
+
+**Côté app** (`app.js`, bloc « MONTRE CONNECTÉE via Strava »)
+- ❤️ (`.archive-montre-btn`) sur **toutes les archives de Lisa** (`MONTRE_PROFIL = 'lisa'`, compte Strava relié au relais), hors corbeille, **depuis n'importe quel téléphone**. Plus de réglage ni de raccourci.
+- Appui = `importerMontre(arc, btn)` : `POST` `text/plain` vers `window.RELAIS_DUO` (URL du relais, exposée par `../commun.js` §7, la même que les notifications) avec `{ action:'strava', idToken, archive }`. Réponse **lue** (pas de `no-cors` ici : le relais renvoie `Access-Control-Allow-Origin: *`). Bouton « … » pendant l'import.
+- Messages : réussite « ❤️ Données de la montre importées » (la ligne arrive par `onSnapshot`) ; `absente` → « Séance pas encore sur Strava — réessaie dans quelques minutes » (synchro montre → téléphone → Strava pas encore faite) ; relais injoignable ; session absente ; hors ligne.
+- Jeton de session : `window.__montre.preparer()` (module d'`index.html`, `getIdTokenResult()`).
+- **Champ `montre`** (écrit par le relais, nombres entiers) : `{ fcMoy, fcMax, kcal, source:'Strava', activite, debut, dureeSec, stravaId, importeLe }`. Affichage : ligne `.archive-montre` ; modale et exports : « … (Strava « Musculation », 1 h 15 min) » (`montreResumeArchive()`). Les données Santé des tests du même soir (texte, `source:'Apple Santé'`) restent lisibles et sont écrasées au prochain ❤️.
+
+**Côté relais** (`outils/Strava.gs`, dans le même projet Apps Script que `Notifications.gs` ; `doPost`/`doGet` de `Notifications.gs` aiguillent vers lui)
+- Vérifie le jeton du duo (`notifVerifierJeton_`), limite de débit partagée, id `arc_…` validé, archive lue avec le compte de service ; **seules les archives de Lisa** sont servies.
+- Fenêtre de la séance : chrono GO si présent, sinon **archivage − 50 min → archivage**. Recherche Strava ±4 h ; séance choisie = **plus grand chevauchement**, à défaut celle **terminée le plus près avant** la fin de la fenêtre (< 3 h, archivage tardif). Détail de la séance lu pour les calories.
+- Écriture `PATCH` du seul champ `montre`, archive obligatoirement existante.
+- Clés Strava **uniquement** dans les propriétés du script (`STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH` écrit à la connexion) ; jeton d'accès Strava en cache (6 h), refresh token renouvelé automatiquement.
+- Connexion (une fois) : `stravaLienConnexion` (journal) → Lisa ouvre le lien › Autoriser (portée `activity:read_all`, séances privées comprises ; paramètre `state` vérifié) → retour sur le relais (`doGet`) → « ✅ Strava connecté ». Test : `stravaTester`.
+
+**Mise en service**
+1. Lisa : strava.com/settings/api → créer l'application (**Domaine du rappel d'autorisation : `script.google.com`**) → noter Client ID et Client Secret. (Une nouvelle application Strava ne sert que le compte qui l'a créée : c'est donc à Lisa de la créer.)
+2. Apps Script « Projet sans titre » : propriétés `STRAVA_CLIENT_ID` et `STRAVA_CLIENT_SECRET` ; nouveau fichier `Strava` = `outils/Strava.gs` ; `Notifications` remplacé par `outils/Notifications.gs` (aiguillage) ; Déployer › Gérer les déploiements › Nouvelle version.
+3. Exécuter `stravaLienConnexion`, Lisa ouvre le lien › Autoriser ; `stravaTester` liste ses 5 dernières séances.
+4. ❤️ sur une archive de Lisa.
+
+**Vérifié** : relais exécuté sous Node (services Google et Strava simulés, 17 cas : non connecté, lien, `state` falsifié, portée incomplète, connexion, mauvais jeton, id invalide, archive absente, archive de Corentin, séance chronométrée choisie parmi deux, ancienne archive, archivage 2 h après la séance, aucune séance, jeton Strava en cache, notifications inchangées) ; corps du `PATCH` accepté par le vrai Firestore (document jetable supprimé) ; app dans Chromium avec relais simulé (bouton seulement sur Lisa, réussite / absente / panne, modale et export, réglage retiré, aucune erreur JS). **Non vérifié** : vraie API Strava, relais déployé, iPhone.
+
+## ~~Montre connectée — FC et calories via Apple Santé~~ (30/09/2026, remplacée le même soir par Strava)
 
 Demande de Corentin : rattacher aux séances de Lisa la fréquence cardiaque et les calories de sa montre **Suunto** (app Suunto connectée à Apple Santé). Une PWA ne peut pas lire Santé : c'est un **Raccourci iOS** qui lit Santé et écrit dans Firestore. Leçons techniques : `PROBLEMES_RESOLUS.md`, « Montre connectée ».
 

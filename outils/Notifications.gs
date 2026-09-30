@@ -37,13 +37,17 @@ var NOTIF_CFG = {
 };
 
 /* ---------- Points d'entrée de l'application Web ---------- */
-function doGet() {
+function doGet(e) {
+  /* Retour de Strava après « Autoriser » (Strava.gs, connexion faite une seule fois). */
+  if (e && e.parameter && (e.parameter.code || e.parameter.error) && typeof stravaRetour_ === 'function') return stravaRetour_(e);
   return notifJson_({ ok: true, service: 'Relais des notifications PORTAIL-DUO' });
 }
 
 function doPost(e) {
   try {
     var q = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    /* Bouton ❤️ de Muscu (30/09/2026) : FC et calories de la séance, lues sur Strava (Strava.gs). */
+    if (q.action === 'strava') return notifJson_(stravaTraiter_(q));
     notifVerifierJeton_(q.idToken);
     notifLimiter_();
     var msg = notifNettoyer_(q);

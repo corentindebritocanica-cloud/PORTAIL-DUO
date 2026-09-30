@@ -1273,12 +1273,13 @@
     width:36px; height:36px; border-radius:var(--r-sm); border:1px solid var(--border);
     background:var(--card-2); color:var(--text-dim); font-size:14px;
   }
-  /* Montre connectée (30/09/2026) : ligne FC/calories importée d'Apple Santé + bouton ❤️ */
+  /* Montre connectée (30/09/2026) : ligne FC/calories importée de Strava + bouton ❤️ (… pendant l'import) */
   .archive-montre{ font-size:12px; font-weight:700; color:var(--accent); margin-top:2px; }
   .archive-montre-btn{
     width:36px; height:36px; border-radius:var(--r-sm); border:1px solid var(--border);
     background:var(--card-2); font-size:14px;
   }
+  .archive-montre-btn.loading{ opacity:.6; color:var(--text-dim); }
   /* ---------- SQUELETTES DE CHARGEMENT (130) ----------
      Les classes étaient utilisées par le JS mais n'avaient aucun style : les
      placeholders s'affichaient donc vides, ce qui était pire que rien. */

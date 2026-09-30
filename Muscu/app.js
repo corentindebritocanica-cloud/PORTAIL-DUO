@@ -2485,7 +2485,7 @@ function renderArchivesList(){
     return;
   }
 
-  const montreBtn = !inTrash && montreActivee();
+  const montreBtn = !inTrash && archives.some(archiveMontreEligible);
   if(montreBtn) preparerJetonMontre();
   archives.forEach(arc => {
     const item = document.createElement('div');
@@ -2493,7 +2493,8 @@ function renderArchivesList(){
     const tonnageStr = arc.tonnage ? `· 💪 ${arc.tonnage.toLocaleString('fr-FR')} kg` : '';
     const durationStr = arc.durationSec != null ? ` · ⏱ ${formatDuration(arc.durationSec)}` : '';
     const montreFen = fenetreMontre(arc);
-    const montreStr = montreResume(arc.montre) ? (montreFen && montreFen.estimee ? '≈ ' : '') + montreResume(arc.montre) : '';
+    const estimee = arc.montre && arc.montre.source !== 'Strava' && montreFen && montreFen.estimee;
+    const montreStr = montreResume(arc.montre) ? (estimee ? '≈ ' : '') + montreResume(arc.montre) : '';
     const avecMontre = montreBtn && archiveMontreEligible(arc);
     item.innerHTML = `
       <div class="archive-info">
@@ -2507,7 +2508,7 @@ function renderArchivesList(){
         <button class="archive-delete-btn">${inTrash ? '♻️' : '🗑️'}</button>
       </div>
     `;
-    if(avecMontre) item.querySelector('.archive-montre-btn').onclick = () => importerMontre(arc);
+    if(avecMontre){ const b = item.querySelector('.archive-montre-btn'); b.onclick = () => importerMontre(arc, b); }
     item.querySelector('.archive-view-btn').onclick = () => viewArchive(arc.id);
     item.querySelector('.archive-delete-btn').onclick = () =>
       inTrash ? restoreArchive(arc.id) : askDeleteArchive(arc.id);
@@ -2648,24 +2649,20 @@ function goToSettingsView(){
   const derniereMaj = document.getElementById('settings-derniere-maj');
   if(derniereMaj) derniereMaj.textContent = 'Dernière mise à jour du code : ' + formaterDerniereMaj(DERNIERE_MAJ);
   renderSettingsProfileToggle();
-  renderSettingsMontreToggle();
   showView('view-settings', 'fwd');
 }
 
-/* ---------- MONTRE CONNECTÉE via Apple Santé (30/09/2026) ----------
-   La montre (Suunto de Lisa) synchronise FC et calories vers Apple Santé. Une PWA ne peut pas lire
-   Santé : le bouton ❤️ d'une archive ouvre le raccourci iOS « Muscu Santé » en lui passant la fenêtre
-   de la séance (startedAt → startedAt + durationSec, posée par le bouton GO), l'URL REST de l'archive
-   et le jeton de session de l'app (1 h). Le raccourci lit Santé et écrit le champ `montre` de
-   l'archive (PATCH, masque `montre`, archive obligatoirement existante) ; onSnapshot fait le reste.
-   Valeurs envoyées en TEXTE par le raccourci (un « 132,4 » à la française est refusé par Firestore
-   en nombre) : `montreNombre()` les convertit à la lecture. Réglage local au téléphone. */
-const MONTRE_PREF_KEY = 'duo_montre';
-const RACCOURCI_MONTRE = 'Muscu Santé';
-function montreActivee(){ return storage.get(MONTRE_PREF_KEY) === '1'; }
-/* Fenêtre de la séance lue dans Santé. Séance chronométrée (GO) : startedAt → startedAt + durée.
-   Archive d'avant le chrono (30/09/2026, demande de Corentin) : on ne connaît que l'heure
-   d'archivage (`createdAt`) → fin = archivage, début = 50 min avant (`estimee: true`). */
+/* ---------- MONTRE CONNECTÉE via Strava (30/09/2026) ----------
+   La montre Suunto de Lisa envoie chaque séance sur Strava (synchro automatique Suunto → Strava).
+   Le bouton ❤️ d'une archive de Lisa demande au relais Apps Script (outils/Strava.gs, même URL que
+   les notifications) de retrouver la séance Strava correspondante et d'écrire le champ `montre` de
+   l'archive ; onSnapshot met la ligne à jour. Le relais vérifie le jeton de session du duo et
+   garde seul les clés Strava (jamais dans ce dépôt public). Fonctionne depuis n'importe quel téléphone.
+   Même soir, version précédente abandonnée : raccourci iOS « Muscu Santé » lisant Apple Santé
+   (zéro mesure trouvée depuis l'iPhone de Lisa) — les données `source: 'Apple Santé'` restent lisibles. */
+const MONTRE_PROFIL = 'lisa';              /* compte Strava relié au relais = celui de Lisa */
+/* Fenêtre utilisée pour chercher la séance : chrono (GO) si présent, sinon archivage − 50 min.
+   Seulement pour la mention « estimée » des anciennes données Santé : Strava donne, lui, la vraie séance. */
 const MONTRE_DUREE_ESTIMEE_MIN = 50;
 function fenetreMontre(arc){
   if(!arc) return null;
@@ -2673,7 +2670,7 @@ function fenetreMontre(arc){
   if(arc.createdAt) return { debut: arc.createdAt - MONTRE_DUREE_ESTIMEE_MIN * 60000, fin: arc.createdAt, estimee: true };
   return null;
 }
-function archiveMontreEligible(arc){ return !!fenetreMontre(arc); }
+function archiveMontreEligible(arc){ return !!(arc && arc.profile === MONTRE_PROFIL && fenetreMontre(arc)); }
 function montreNombre(v){
   if(v == null) return 0;
   if(typeof v === 'number') return isFinite(v) ? Math.round(v) : 0;
@@ -2687,15 +2684,21 @@ function montreResume(m){
   const parts = [];
   if(moy > 0) parts.push(`❤️ ${moy} bpm moy` + (max > 0 ? ` · ${max} max` : ''));
   if(kcal > 0) parts.push(`🔥 ${kcal} kcal`);
-  if(!parts.length) return 'Aucune donnée trouvée dans Santé';
+  if(!parts.length) return m.source === 'Strava' ? 'Séance Strava sans FC ni calories' : 'Aucune donnée trouvée dans Santé';
   /* Une seule mesure = la montre n'envoie qu'une valeur globale : la moyenne n'en est pas une. */
   if(montreNombre(m.mesures) === 1) parts.push('1 mesure');
   return parts.join(' · ');
 }
-/* Résumé + mention de la fenêtre estimée (archives d'avant le chrono). */
+/* Précision ajoutée dans la modale et les exports : séance Strava (nom, durée réelle) ou,
+   pour d'anciennes données Santé sans chrono, la fenêtre estimée. */
 function montreResumeArchive(arc){
-  const r = montreResume(arc && arc.montre);
+  const m = arc && arc.montre;
+  const r = montreResume(m);
   if(!r) return '';
+  if(m.source === 'Strava'){
+    const infos = [m.activite ? `« ${m.activite} »` : '', m.dureeSec > 0 ? formatDuration(montreNombre(m.dureeSec)) : ''].filter(Boolean).join(', ');
+    return infos ? `${r} (Strava ${infos})` : r;
+  }
   const f = fenetreMontre(arc);
   return f && f.estimee ? `${r} (${MONTRE_DUREE_ESTIMEE_MIN} min estimées avant l'archivage)` : r;
 }
@@ -2704,59 +2707,43 @@ function archiveExportText(arc){
   const r = montreResumeArchive(arc);
   return r ? `${arc.exportText}\n⌚ Montre : ${r}` : arc.exportText;
 }
-/* ISO 8601 avec le décalage local (2026-09-30T18:05:00+02:00), lisible par Raccourcis. */
-function isoLocal(ms){
-  const d = new Date(ms), pad = n => String(Math.abs(n)).padStart(2, '0');
-  const off = -d.getTimezoneOffset();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-    + `${off >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
-}
-function jetonMontreFrais(){
-  const j = window.__montre && window.__montre.jeton();
-  return j && j.exp - Date.now() > 5 * 60 * 1000 ? j : null;
-}
-/* Appelée au rendu des archives : le jeton doit être prêt AVANT le tap. */
+/* Appelée au rendu des archives : le jeton de session est prêt avant l'appui. */
 function preparerJetonMontre(){
-  if(window.__montre && montreActivee() && !jetonMontreFrais()) window.__montre.preparer();
+  const j = window.__montre && window.__montre.jeton();
+  if(window.__montre && !(j && j.exp - Date.now() > 5 * 60 * 1000)) window.__montre.preparer();
 }
-function importerMontre(arc){
-  const fenetre = fenetreMontre(arc);
-  if(!fenetre) return;
+const MONTRE_MESSAGES = {
+  absente: 'Séance pas encore sur Strava — réessaie dans quelques minutes',
+  profil: 'Strava n’est relié que pour les séances de Lisa'
+};
+let montreImportEnCours = false;
+function importerMontre(arc, btn){
+  if(!archiveMontreEligible(arc) || montreImportEnCours) return;
   if(!window.__montre || !window.__authUser){ showToast('Connecte-toi pour importer les données de la montre'); return; }
-  const lancer = (j) => {
-    const entree = {
-      id: arc.id,
-      debut: isoLocal(fenetre.debut),
-      fin: isoLocal(fenetre.fin),
-      url: `https://firestore.googleapis.com/v1/projects/${window.__montre.projet}/databases/(default)/documents/archives/`
-        + `${encodeURIComponent(arc.id)}?updateMask.fieldPaths=montre&currentDocument.exists=true`,
-      jeton: j.t
-    };
-    window.location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(RACCOURCI_MONTRE)
-      + '&input=text&text=' + encodeURIComponent(JSON.stringify(entree));
+  if(!window.RELAIS_DUO){ showToast('Relais indisponible, réessaie plus tard'); return; }
+  if(!navigator.onLine){ showToast('Pas de réseau : l’import Strava demande une connexion'); return; }
+  montreImportEnCours = true;
+  if(btn){ btn.disabled = true; btn.classList.add('loading'); btn.textContent = '…'; }
+  const fin = () => {
+    montreImportEnCours = false;
+    if(btn && btn.isConnected){ btn.disabled = false; btn.classList.remove('loading'); btn.textContent = '❤️'; }
   };
-  const j = jetonMontreFrais();
-  if(j){ lancer(j); return; }
-  /* Jeton absent ou expirant : on le prépare, un second tap ouvrira le raccourci. */
-  window.__montre.preparer().then(n => showToast(n ? 'Prêt — appuie de nouveau sur ❤️' : 'Session introuvable, reconnecte-toi'));
-}
-function renderSettingsMontreToggle(){
-  const wrap = document.getElementById('settings-montre-toggle');
-  if(!wrap) return;
-  wrap.innerHTML = '';
-  [['0', 'Non'], ['1', 'Oui']].forEach(([val, label]) => {
-    const b = document.createElement('button');
-    const actif = (montreActivee() ? '1' : '0') === val;
-    b.className = 'segmented-btn' + (actif ? ' selected' : '');
-    b.textContent = label;
-    b.onclick = () => {
-      if(actif) return;
-      storage.set(MONTRE_PREF_KEY, val);
-      renderSettingsMontreToggle();
-      showToast(val === '1' ? 'Bouton ❤️ ajouté aux archives de ce téléphone' : 'Bouton ❤️ retiré des archives');
-    };
-    wrap.appendChild(b);
-  });
+  window.__montre.preparer()
+    .then(j => {
+      if(!j) throw new Error('session');
+      /* text/plain : requête « simple », sans pré-vérification CORS (voir commun.js §7). */
+      return fetch(window.RELAIS_DUO, { method: 'POST', body: JSON.stringify({ action: 'strava', idToken: j.t, archive: arc.id }), redirect: 'follow' });
+    })
+    .then(rep => rep.json())
+    .then(r => {
+      fin();
+      if(r && r.ok){ showToast('❤️ Données de la montre importées'); return; }
+      showToast(MONTRE_MESSAGES[r && r.code] || ('Import impossible : ' + ((r && r.erreur) || 'erreur inconnue')));
+    })
+    .catch(err => {
+      fin();
+      showToast(err && err.message === 'session' ? 'Session introuvable, reconnecte-toi' : 'Relais injoignable, réessaie dans un instant');
+    });
 }
 
 /* Identité explicite du téléphone, réglable sans passer par "Entraînement".

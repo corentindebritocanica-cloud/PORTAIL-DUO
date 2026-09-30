@@ -220,6 +220,8 @@
   /* URL …/exec du relais Apps Script (déployé le 30/09/2026). Pas un secret : sans jeton du compte du duo,
      le relais refuse tout. Si le relais est redéployé en NOUVEAU déploiement, l'URL change : la remplacer ici. */
   var RELAIS_NOTIF = 'https://script.google.com/macros/s/AKfycbzAXlg12huM_bGd4YWuyln8DAWbjjDCyole8IwI3fSEqRuc7D98W_M8oTzcQdbdzl4sXg/exec';
+  /* Même relais pour le bouton ❤️ de Muscu (import Strava, 30/09/2026) : une seule URL à tenir à jour. */
+  window.RELAIS_DUO = RELAIS_NOTIF;
   var CLE_FILE_NOTIF = 'duo-notif-file';
   var FILE_NOTIF_MAX = 10, FILE_NOTIF_DUREE = 12 * 3600 * 1000;
   function lireFileNotif(){

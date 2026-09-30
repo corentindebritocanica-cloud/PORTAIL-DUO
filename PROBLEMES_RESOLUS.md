@@ -30,7 +30,9 @@
 - **Jeton préparé à l'avance** (au rendu de la liste) : ouvrir une autre app depuis une promesse, après le tap, peut être bloqué par iOS. Si le jeton manque, un toast demande un second appui.
 - `PATCH …?updateMask.fieldPaths=montre&currentDocument.exists=true` : n'écrit que ce champ, et renvoie 404 au lieu de **créer une archive fantôme** si l'id est faux (vérifié).
 - ⚠️ **Firestore REST refuse `"integerValue": "132,4"`** (400) : un Raccourci en français formate les nombres avec une virgule, voire une espace pour les milliers. Les valeurs sont envoyées en `stringValue` et converties par l'app (`montreNombre()`).
-**Fichiers touchés** : `Muscu/index.html`, `Muscu/app.js`, `Muscu/style.css`, `Muscu/README.md`
+**Suite du même soir — abandon de Santé pour Strava** : le raccourci fonctionnait de bout en bout (écriture reçue), mais **aucune mesure** n'était trouvée dans Santé depuis l'iPhone de Lisa. Pièges rencontrés avant ça : Apple Intelligence (Raccourcis iOS 27) **double les accolades** d'un JSON demandé dans un prompt (`{{"fields"…` → 400 « Expected an object key ») et laisse les **noms de variables en texte brut** au lieu de pastilles (la base reçoit littéralement « MOY »). Diagnostic rapide : relire l'archive avec le compte de service pour voir ce qui a réellement été écrit.
+**Solution retenue** : Suunto → **Strava** (synchro automatique) ; le ❤️ appelle le relais Apps Script existant (`outils/Strava.gs`) qui lit l'API Strava (clés dans les propriétés du script, jamais dans le dépôt) et écrit l'archive. Leçons : une **nouvelle application API Strava ne sert que le compte qui l'a créée** (à créer par Lisa) ; un seul `doPost`/`doGet` par projet Apps Script → aiguiller par un champ `action` plutôt que de créer un 2e projet ; le retour OAuth peut arriver directement sur l'URL `…/exec` du relais (domaine de rappel `script.google.com`, `state` vérifié).
+**Fichiers touchés** : `Muscu/index.html`, `Muscu/app.js`, `Muscu/style.css`, `Muscu/README.md`, `commun.js`, `outils/Strava.gs`, `outils/Notifications.gs`
 
 ---
 
