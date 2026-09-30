@@ -6,7 +6,7 @@ Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de muscul
 > - **Design Verre** (`../verre.css`, section MUSCU), titre de chaque écran à gauche + pastille de connexion ; une plaque de verre par écran.
 > - **Noyau commun `../commun.js`** : halos, transition, `formaterDerniereMaj()` (utilisée par les Réglages), service worker, vérification de version.
 > - **Disques de barre (poids de barre au choix) + bouton GO / chrono de séance (30/09/2026)** : voir « Disques à charger sur la barre » et « Durée de séance » dans « Écran de saisie ».
-> - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives de Lisa → relais Apps Script (`outils/Strava.gs`) → séance Suunto retrouvée sur **Strava** → FC et calories écrites dans `archive.montre`. Voir « Montre connectée — via Strava ».
+> - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives de Lisa → relais Apps Script (`outils/Strava.gs`) → séance Suunto retrouvée sur **Strava** → FC et calories écrites dans `archive.montre`. Voir « Montre connectée — via Strava » **⏳ Pas encore en service** : il reste la clé API Strava de Lisa et le déploiement du relais (voir « Mise en service » de cette section). D'ici là, un ❤️ affiche « Import impossible : Strava pas encore connecté ».
 - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
 
 
@@ -1061,11 +1061,12 @@ La montre **Suunto** de Lisa envoie chaque séance sur **Strava** (synchro Suunt
 - Clés Strava **uniquement** dans les propriétés du script (`STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH` écrit à la connexion) ; jeton d'accès Strava en cache (6 h), refresh token renouvelé automatiquement.
 - Connexion (une fois) : `stravaLienConnexion` (journal) → Lisa ouvre le lien › Autoriser (portée `activity:read_all`, séances privées comprises ; paramètre `state` vérifié) → retour sur le relais (`doGet`) → « ✅ Strava connecté ». Test : `stravaTester`.
 
-**Mise en service**
+**Mise en service** — ⏳ **à faire** (code publié le 30/09/2026, clé Strava de Lisa attendue le 01/10/2026). Cocher ici au fur et à mesure.
 1. Lisa : strava.com/settings/api → créer l'application (**Domaine du rappel d'autorisation : `script.google.com`**) → noter Client ID et Client Secret. (Une nouvelle application Strava ne sert que le compte qui l'a créée : c'est donc à Lisa de la créer.)
 2. Apps Script « Projet sans titre » : propriétés `STRAVA_CLIENT_ID` et `STRAVA_CLIENT_SECRET` ; nouveau fichier `Strava` = `outils/Strava.gs` ; `Notifications` remplacé par `outils/Notifications.gs` (aiguillage) ; Déployer › Gérer les déploiements › Nouvelle version.
 3. Exécuter `stravaLienConnexion`, Lisa ouvre le lien › Autoriser ; `stravaTester` liste ses 5 dernières séances.
 4. ❤️ sur une archive de Lisa.
+5. Supprimer le raccourci « Muscu Santé » des deux iPhone (inutile depuis le passage à Strava).
 
 **Vérifié** : relais exécuté sous Node (services Google et Strava simulés, 17 cas : non connecté, lien, `state` falsifié, portée incomplète, connexion, mauvais jeton, id invalide, archive absente, archive de Corentin, séance chronométrée choisie parmi deux, ancienne archive, archivage 2 h après la séance, aucune séance, jeton Strava en cache, notifications inchangées) ; corps du `PATCH` accepté par le vrai Firestore (document jetable supprimé) ; app dans Chromium avec relais simulé (bouton seulement sur Lisa, réussite / absente / panne, modale et export, réglage retiré, aucune erreur JS). **Non vérifié** : vraie API Strava, relais déployé, iPhone.
 
