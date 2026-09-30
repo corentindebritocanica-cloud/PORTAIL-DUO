@@ -103,20 +103,26 @@ function ecrireProfilCommun(nom){
 }
 
 /* ============================================================
-   LISTES DE COURSES (30/09/2026, demande de Corentin)
-   Plusieurs listes : « Maison » (la liste d'origine), puis celles que Corentin crée (Apéro,
-   Vacances…). Collection Firestore `listes/{id}` = { nom, ordre } ; chaque produit porte
-   `listeId`. La liste d'origine a l'id fixe `maison` et ne peut pas être supprimée.
-   - Un produit SANS `listeId` appartient à Maison (produits créés par un téléphone resté sur une
-     ancienne version, ou avant la migration) : rien ne peut se perdre.
-   - Si le document `listes/maison` manque (règles pas encore publiées, 1re ouverture hors ligne),
-     Maison existe quand même dans l'interface (entrée virtuelle, jamais écrite par l'app).
-   - Liste affichée = mémorisée PAR TÉLÉPHONE (localStorage `courses_liste_active`) : Lisa et
-     Corentin peuvent regarder deux listes différentes.
-   - Les rayons restent communs à toutes les listes.
+   LISTES DE COURSES (30/09/2026, demandes de Corentin) — v2 « catalogue commun »
+   - UN SEUL CATALOGUE : tous les produits apparaissent dans toutes les listes.
+   - UNE SEULE COCHE par produit (`aAcheter`) ; `listeId` = la liste qui l'a coché, dont la
+     COULEUR habille la coche. Cocher dans la liste X un produit coché par Y le fait passer
+     dans X (il reste à acheter) ; le cocher dans sa propre liste le décoche.
+   - Onglet Course : TOUTES les listes ensemble (chaque produit à la couleur de sa liste),
+     pastille « Toutes » par défaut, les autres pastilles filtrent une seule liste.
+   - Collection `listes/{id}` = { nom, ordre, couleur } ; liste d'origine = id fixe `maison`,
+     jamais supprimable. `listeId` absent = `maison`. Si `listes/maison` manque, Maison existe
+     quand même dans l'interface (entrée virtuelle, jamais écrite par l'app sauf renommage).
+   - Liste choisie (onglet Liste) mémorisée PAR TÉLÉPHONE (localStorage `courses_liste_active`).
+   - Rayons communs à toutes les listes.
    ============================================================ */
 const LISTE_DEFAUT = 'maison';
 const CLE_LISTE_ACTIVE = 'courses_liste_active';
+const TOUTES = '__toutes__';   /* filtre de l'onglet Course : toutes les listes */
+/* Palette des listes : couleurs lisibles sur fond sombre, distinctes du bleu/rose des profils
+   en tête de liste. Maison = vert « Frigo » (couleur d'identité de Course). */
+const PALETTE_LISTES = ['#12b981','#ff8a2b','#a855f7','#ffb800','#22c3e6','#ef4444','#ff3d7e','#1f8fff'];
+const COULEUR_MAISON = PALETTE_LISTES[0];
 let listesConnues = false;   /* vrai dès que les listes sont connues (aperçu local ou Firestore) */
 function lireListeActive(){
   try { return localStorage.getItem(CLE_LISTE_ACTIVE) || LISTE_DEFAUT; } catch (e) { return LISTE_DEFAUT; }
@@ -127,19 +133,36 @@ function listesTriees(){
   if(!l[LISTE_DEFAUT]) l[LISTE_DEFAUT] = { nom:'Maison', ordre:0 };
   return Object.entries(l).sort((a,b)=> ((a[1].ordre||0) - (b[1].ordre||0)) || (a[1].nom||'').localeCompare(b[1].nom||''));
 }
-/* Liste réellement affichée : la liste mémorisée, sauf si elle n'existe plus (supprimée depuis
-   l'autre téléphone) → Maison. Tant que les listes ne sont pas connues, on garde la mémorisée. */
+function infoListe(id){
+  const e = listesTriees().find(([i])=> i === id);
+  return e ? e[1] : (state.listes[LISTE_DEFAUT] || { nom:'Maison' });
+}
+/* Couleur d'une liste : celle choisie, sinon une couleur de la palette déduite de sa place
+   (stable tant que l'ordre des listes ne change pas). Toujours un hex de la palette. */
+function couleurListe(id){
+  const l = state.listes[id];
+  if(l && PALETTE_LISTES.includes(l.couleur)) return l.couleur;
+  if(id === LISTE_DEFAUT) return COULEUR_MAISON;
+  const i = listesTriees().findIndex(([x])=> x === id);
+  return PALETTE_LISTES[(i < 0 ? 0 : i) % PALETTE_LISTES.length];
+}
+/* Liste choisie : la mémorisée, sauf si elle n'existe plus → Maison. */
 function idListeAffichee(){
   if(!listesConnues) return state.listeActive;
   return listesTriees().some(([id])=> id === state.listeActive) ? state.listeActive : LISTE_DEFAUT;
 }
-function produitsDeLaListe(){
-  const id = idListeAffichee();
-  return Object.entries(state.produits).filter(([,p])=> listeDe(p) === id);
+/* Filtre de l'onglet Course (non mémorisé : « Toutes » à chaque ouverture). */
+function filtreCourse(){
+  if(state.filtreCourse === TOUTES) return TOUTES;
+  return listesTriees().some(([id])=> id === state.filtreCourse) ? state.filtreCourse : TOUTES;
 }
 function choisirListe(id){
-  state.listeActive = id;
-  try { localStorage.setItem(CLE_LISTE_ACTIVE, id); } catch (e) {}
+  if(state.ongletActif === 'course'){
+    state.filtreCourse = id;
+  } else {
+    state.listeActive = id;
+    try { localStorage.setItem(CLE_LISTE_ACTIVE, id); } catch (e) {}
+  }
   render();
   window.scrollTo(0, 0);
   const actif = document.querySelector('.liste-chip.actif');
@@ -148,8 +171,9 @@ function choisirListe(id){
 const state = {
   produits: {},
   rayons: {},
-  listes: {},        // listes de courses (30/09/2026) : { id: { nom, ordre } } — voir « LISTES »
+  listes: {},        // listes de courses (30/09/2026) : { id: { nom, ordre, couleur } } — voir « LISTES »
   listeActive: lireListeActive(),
+  filtreCourse: TOUTES,
   profil: lireProfilCommun(),
   ongletActif: 'liste',
   recherche: '',
@@ -185,6 +209,7 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     document.querySelectorAll('nav.tabbar button').forEach(b=> b.classList.toggle('actif', b===btn));
     document.querySelectorAll('section.vue').forEach(s=> s.classList.toggle('actif', s.id==='vue-'+btn.dataset.tab));
     document.getElementById('titre-onglet').textContent = titres[btn.dataset.tab];
+    renderSelecteurListes();   /* pastilles différentes selon l'onglet (« Toutes » dans Course) */
     window.scrollTo(0, 0);   /* 28/09/2026 : la page défile désormais (plus <main>) — chaque onglet s'ouvre en haut */
   });
 });
@@ -200,14 +225,13 @@ function renderListe(){
   const conteneur = document.getElementById('liste-produits');
   const recherche = state.recherche.trim().toLowerCase();
 
-  const items = produitsDeLaListe().filter(([id,p])=>
+  /* Catalogue commun (30/09/2026, v2) : tous les produits, quelle que soit la liste choisie. */
+  const items = Object.entries(state.produits).filter(([id,p])=>
     !recherche || (p.nom||'').toLowerCase().includes(recherche)
   );
 
   if(items.length===0){
-    conteneur.innerHTML = recherche
-      ? `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`
-      : `<div class="vide"><h2>Liste vide</h2><p>Ajoute les produits de cette liste avec le bouton +.</p></div>`;
+    conteneur.innerHTML = `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
     return;
   }
 
@@ -223,16 +247,21 @@ function renderListe(){
   conteneur.innerHTML = items.map(([id,p])=> carteProduitListe(id,p)).join('');
 }
 
+/* Coche à la couleur de la liste qui a coché le produit (--c-liste). Coché par une AUTRE liste
+   que celle choisie : le nom de cette liste s'affiche en couleur sous le produit. */
 function carteProduitListe(id, p){
   const rayon = state.rayons[p.rayonId];
+  const lid = listeDe(p), couleur = couleurListe(lid);
+  const autre = p.aAcheter && lid !== idListeAffichee();
+  const nomListe = escapeHtml(infoListe(lid).nom || '');
   return `
     <div class="carte-produit">
-      <button class="case ${p.aAcheter?'checked':''}" onclick="toggleAAcheter('${id}')" aria-label="À acheter">
+      <button class="case ${p.aAcheter?'checked':''}" style="--c-liste:${couleur}" onclick="toggleAAcheter('${id}')" aria-label="À acheter${p.aAcheter ? ' (' + nomListe + ')' : ''}">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
       <div class="infos-produit">
         <p class="nom-produit">${escapeHtml(p.nom||'')}</p>
-        <p class="rayon-produit">${escapeHtml(rayon ? rayon.nom : 'Sans rayon')}</p>
+        <p class="rayon-produit">${escapeHtml(rayon ? rayon.nom : 'Sans rayon')}${autre ? ` · <span class="nom-liste" style="--c-liste:${couleur}">${nomListe}</span>` : ''}</p>
       </div>
       <input class="qte-produit" value="${escapeHtml(p.quantite||'')}" placeholder="Qté/info"
         onchange="updateQuantite('${id}', this.value)">
@@ -240,9 +269,16 @@ function carteProduitListe(id, p){
     </div>`;
 }
 
+/* Une seule coche par produit (30/09/2026, v2) :
+   - pas coché → coché pour la liste choisie ;
+   - coché par la liste choisie → décoché ;
+   - coché par une autre liste → passe dans la liste choisie (reste à acheter). */
 function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
-  dbUpdateDoc('produits', id, { aAcheter: !p.aAcheter });
+  const ici = idListeAffichee();
+  if(!p.aAcheter) dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici });
+  else if(listeDe(p) === ici) dbUpdateDoc('produits', id, { aAcheter: false });
+  else dbUpdateDoc('produits', id, { listeId: ici });
 }
 function updateQuantite(id, val){
   dbUpdateDoc('produits', id, { quantite: val });
@@ -253,7 +289,8 @@ function updateQuantite(id, val){
    ============================================================ */
 function renderCourse(){
   const conteneur = document.getElementById('liste-course');
-  const items = produitsDeLaListe().filter(([id,p])=> p.aAcheter);
+  const filtre = filtreCourse();   /* toutes les listes, ou une seule (pastilles) */
+  const items = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && (filtre === TOUTES || listeDe(p) === filtre));
   if(items.length===0){
     conteneur.innerHTML = `<div class="vide"><h2>Rien à acheter</h2><p>Coche des produits dans l'onglet Liste pour les voir apparaître ici.</p></div>`;
     document.getElementById('btn-course-terminee').classList.remove('visible');
@@ -280,15 +317,22 @@ function renderCourse(){
   document.getElementById('btn-course-terminee').classList.toggle('visible', items.some(([id,p])=> p.achete));
 }
 
+/* Onglet Course : coche (et contour de la case) à la couleur de la liste du produit ; nom de la
+   liste en couleur sous le produit quand plusieurs listes sont affichées ensemble. */
 function carteProduitCourse(id, p){
+  const lid = listeDe(p), couleur = couleurListe(lid);
+  const details = [];
+  if(filtreCourse() === TOUTES && listesTriees().length > 1)
+    details.push(`<span class="nom-liste" style="--c-liste:${couleur}">${escapeHtml(infoListe(lid).nom || '')}</span>`);
+  if(p.quantite) details.push(escapeHtml(p.quantite));
   return `
     <div class="carte-produit ${p.achete?'achete-carte':''}">
-      <button class="case ${p.achete?'checked':''}" onclick="toggleAchete('${id}')" aria-label="Acheté">
+      <button class="case case-liste ${p.achete?'checked':''}" style="--c-liste:${couleur}" onclick="toggleAchete('${id}')" aria-label="Acheté">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
       <div class="infos-produit">
         <p class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom||'')}</p>
-        ${p.quantite ? `<p class="rayon-produit">${escapeHtml(p.quantite)}</p>` : ''}
+        ${details.length ? `<p class="rayon-produit">${details.join(' · ')}</p>` : ''}
       </div>
     </div>`;
 }
@@ -303,7 +347,8 @@ function toggleAchete(id){
 }
 
 document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
-  const aEffacer = produitsDeLaListe().filter(([id,p])=> p.aAcheter && p.achete);   /* liste affichée seulement */
+  const filtre = filtreCourse();   /* ce qui est affiché : toutes les listes, ou la liste filtrée */
+  const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete && (filtre === TOUTES || listeDe(p) === filtre));
   if(aEffacer.length===0) return;
   firestorePret.then(()=>{
     const batch = db.batch();
@@ -400,24 +445,12 @@ selectRayon.addEventListener('change', ()=>{
   champNouveauRayon.style.display = selectRayon.value==='__nouveau__' ? 'block' : 'none';
 });
 
-/* Liste du produit (30/09/2026) : sélecteur visible seulement s'il y a plusieurs listes ;
-   permet de déplacer un produit d'une liste à l'autre. */
-const selectListeProduit = document.getElementById('modal-liste-produit');
-function peuplerSelectListes(listeIdSelectionnee){
-  const listes = listesTriees();
-  selectListeProduit.innerHTML = listes.map(([id,l])=>
-    `<option value="${id}" ${id===listeIdSelectionnee?'selected':''}>${escapeHtml(l.nom||'')}</option>`
-  ).join('');
-  document.getElementById('champ-liste-produit').style.display = listes.length > 1 ? 'block' : 'none';
-}
-
 function ouvrirModale(id){
   state.editionId = id || null;
   const p = id ? state.produits[id] : null;
   document.getElementById('modal-titre').textContent = id ? 'Modifier le produit' : 'Ajouter un produit';
   document.getElementById('modal-nom').value = p ? (p.nom||'') : '';
   peuplerSelectRayons(p ? p.rayonId : '');
-  peuplerSelectListes(p ? listeDe(p) : idListeAffichee());
   champNouveauRayon.style.display = 'none';
   document.getElementById('modal-nouveau-rayon').value = '';
   document.getElementById('btn-modal-supprimer').style.display = id ? 'block' : 'none';
@@ -449,11 +482,12 @@ document.getElementById('btn-modal-enregistrer').addEventListener('click', async
     }
   }
 
-  const listeId = selectListeProduit.value || idListeAffichee();
+  /* Catalogue commun (30/09/2026, v2) : un produit n'appartient à aucune liste ; `listeId` n'est
+     posé qu'au moment où on le coche (toggleAAcheter). */
   if(state.editionId){
-    await dbUpdateDoc('produits', state.editionId, { nom, rayonId, listeId });
+    await dbUpdateDoc('produits', state.editionId, { nom, rayonId });
   } else {
-    await dbAddDoc('produits', { nom, rayonId, listeId, quantite:'', aAcheter:false, achete:false, compteur:0 });
+    await dbAddDoc('produits', { nom, rayonId, quantite:'', aAcheter:false, achete:false, compteur:0 });
   }
   fermerModale();
 });
@@ -469,35 +503,45 @@ document.getElementById('btn-modal-supprimer').addEventListener('click', async (
 });
 
 /* ============================================================
-   LISTES — sélecteur (pastilles), Réglages, fenêtre de création / renommage / suppression
-   (30/09/2026). Données : voir « LISTES DE COURSES » en haut du fichier.
+   LISTES — sélecteur (pastilles), Réglages, fenêtre de création / renommage / couleur /
+   suppression (30/09/2026). Données : voir « LISTES DE COURSES » en haut du fichier.
    ============================================================ */
 const sansAccentsListe = (s)=> (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 function restantsDeListe(id){
-  return Object.values(state.produits).filter(p=> listeDe(p)===id && p.aAcheter && !p.achete).length;
+  return Object.values(state.produits).filter(p=> p.aAcheter && !p.achete && (id === TOUTES || listeDe(p)===id)).length;
 }
+function chipListe(id, nom, couleur, actif){
+  const n = restantsDeListe(id);
+  const style = couleur ? ` style="--c-liste:${couleur}"` : '';
+  return `<button type="button" class="liste-chip ${actif?'actif':''}" data-liste="${id}" aria-pressed="${actif}"${style}>`
+    + (couleur ? `<span class="liste-pastille" aria-hidden="true"></span>` : '')
+    + `${escapeHtml(nom)}${n ? `<span class="liste-badge" aria-label="${n} à acheter">${n}</span>` : ''}</button>`;
+}
+/* Onglet Liste : la liste pour laquelle on coche (+ pour en créer une).
+   Onglet Course : « Toutes » (par défaut) puis un filtre par liste. */
 function renderSelecteurListes(){
   const conteneur = document.getElementById('selecteur-listes');
-  const active = idListeAffichee();
-  conteneur.innerHTML = listesTriees().map(([id,l])=>{
-    const n = restantsDeListe(id);
-    return `<button type="button" class="liste-chip ${id===active?'actif':''}" data-liste="${id}" aria-pressed="${id===active}">`
-      + `${escapeHtml(l.nom||'')}${n ? `<span class="liste-badge" aria-label="${n} à acheter">${n}</span>` : ''}</button>`;
-  }).join('') + `<button type="button" class="liste-chip liste-chip-ajout" data-liste-ajout aria-label="Nouvelle liste">+</button>`;
+  const enCourse = state.ongletActif === 'course';
+  const active = enCourse ? filtreCourse() : idListeAffichee();
+  let html = enCourse ? chipListe(TOUTES, 'Toutes', '', active === TOUTES) : '';
+  html += listesTriees().map(([id,l])=> chipListe(id, l.nom||'', couleurListe(id), id === active)).join('');
+  if(!enCourse) html += `<button type="button" class="liste-chip liste-chip-ajout" data-liste-ajout aria-label="Nouvelle liste">+</button>`;
+  conteneur.innerHTML = html;
 }
 document.getElementById('selecteur-listes').addEventListener('click', (e)=>{
   const b = e.target.closest('button'); if(!b) return;
   if(b.hasAttribute('data-liste-ajout')) return ouvrirModaleListe(null);
-  if(b.dataset.liste && b.dataset.liste !== idListeAffichee()) choisirListe(b.dataset.liste);
+  if(b.dataset.liste && !b.classList.contains('actif')) choisirListe(b.dataset.liste);
 });
 
 function renderReglagesListes(){
   const conteneur = document.getElementById('reglages-listes');
   conteneur.innerHTML = listesTriees().map(([id,l])=>{
-    const n = Object.values(state.produits).filter(p=> listeDe(p)===id).length;
-    return `<button type="button" class="ligne-liste" data-liste="${id}">`
+    const n = restantsDeListe(id);
+    return `<button type="button" class="ligne-liste" data-liste="${id}" style="--c-liste:${couleurListe(id)}">`
+      + `<span class="liste-pastille liste-pastille-grande" aria-hidden="true"></span>`
       + `<span class="infos-produit"><span class="nom-produit">${escapeHtml(l.nom||'')}</span>`
-      + `<span class="rayon-produit">${n} produit${n>1?'s':''}</span></span>`
+      + `<span class="rayon-produit">${n ? `${n} à acheter` : 'Rien à acheter'}</span></span>`
       + `<span class="btn-crayon" aria-hidden="true">&#9998;</span></button>`;
   }).join('');
 }
@@ -509,16 +553,34 @@ document.getElementById('btn-nouvelle-liste').addEventListener('click', ()=> ouv
 const modalListe = document.getElementById('modal-liste');
 const champNomListe = document.getElementById('modal-liste-nom');
 const erreurListe = document.getElementById('modal-liste-erreur');
+const choixCouleur = document.getElementById('modal-liste-couleurs');
 let listeEditionId = null;   /* null = création */
+let couleurChoisie = COULEUR_MAISON;
+function dessinerCouleurs(){
+  choixCouleur.innerHTML = PALETTE_LISTES.map(c=>
+    `<button type="button" class="couleur-choix ${c===couleurChoisie?'choisie':''}" data-couleur="${c}" style="--c-liste:${c}" role="radio" aria-checked="${c===couleurChoisie}" aria-label="Couleur ${c}"></button>`
+  ).join('');
+}
+choixCouleur.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-couleur]'); if(!b) return;
+  couleurChoisie = b.dataset.couleur; dessinerCouleurs();
+});
+/* Nouvelle liste : 1re couleur de la palette pas encore prise (sinon la suivante dans l'ordre). */
+function couleurLibre(){
+  const prises = listesTriees().map(([id])=> couleurListe(id));
+  return PALETTE_LISTES.find(c=> !prises.includes(c)) || PALETTE_LISTES[listesTriees().length % PALETTE_LISTES.length];
+}
 function ouvrirModaleListe(id){
   listeEditionId = id || null;
-  const l = id ? (listesTriees().find(([i])=> i===id) || [])[1] : null;
+  const l = id ? infoListe(id) : null;
   document.getElementById('modal-liste-titre').textContent = id ? 'Modifier la liste' : 'Nouvelle liste';
   champNomListe.value = l ? (l.nom||'') : '';
+  couleurChoisie = id ? couleurListe(id) : couleurLibre();
+  dessinerCouleurs();
   erreurListe.textContent = '';
   document.getElementById('btn-liste-supprimer').style.display = (id && id !== LISTE_DEFAUT) ? 'block' : 'none';
   modalListe.style.display = 'flex';
-  setTimeout(()=> champNomListe.focus(), 50);
+  if(!id) setTimeout(()=> champNomListe.focus(), 50);   /* en modification : pas de clavier d'office (souvent pour la couleur) */
 }
 function fermerModaleListe(){ modalListe.style.display = 'none'; listeEditionId = null; }
 document.getElementById('btn-liste-annuler').addEventListener('click', fermerModaleListe);
@@ -530,7 +592,7 @@ document.getElementById('btn-liste-enregistrer').addEventListener('click', enreg
 async function enregistrerListe(){
   const nom = champNomListe.value.trim().replace(/\s+/g,' ');
   if(!nom){ erreurListe.textContent = 'Donne un nom à la liste.'; return; }
-  const id = listeEditionId;
+  const id = listeEditionId, couleur = couleurChoisie;
   const doublon = listesTriees().find(([i,l])=> i!==id && sansAccentsListe(l.nom)===sansAccentsListe(nom));
   if(doublon){
     if(!id){ fermerModaleListe(); choisirListe(doublon[0]); return; }   /* création d'un nom existant : on ouvre simplement celle-ci */
@@ -540,64 +602,43 @@ async function enregistrerListe(){
   await firestorePret;
   if(id){
     /* set + merge : crée aussi le document `maison` s'il manquait (entrée virtuelle) */
-    const val = { nom };
+    const val = { nom, couleur };
     if(!state.listes[id]) val.ordre = id===LISTE_DEFAUT ? 0 : Date.now();
-    docRef('listes', id).set(val, { merge:true }).catch(err=> console.warn('Liste non renommée :', err));
+    docRef('listes', id).set(val, { merge:true }).catch(err=> console.warn('Liste non modifiée :', err));
   } else {
     /* id créé localement : la nouvelle liste s'affiche tout de suite, même hors ligne
        (l'écriture part au serveur dès que possible, on ne l'attend pas). */
     const ref = colRef('listes').doc();
-    ref.set({ nom, ordre: Date.now() }).catch(err=> console.warn('Liste non créée :', err));
-    choisirListe(ref.id);
+    ref.set({ nom, couleur, ordre: Date.now() }).catch(err=> console.warn('Liste non créée :', err));
+    state.ongletActif === 'course' ? render() : choisirListe(ref.id);
   }
 }
 
+/* Suppression d'une liste (jamais Maison). Catalogue commun : AUCUN produit n'est supprimé ;
+   ceux qu'elle avait cochés passent dans Maison (toujours à acheter). */
 document.getElementById('btn-liste-supprimer').addEventListener('click', async ()=>{
   const id = listeEditionId;
-  if(!id || id === LISTE_DEFAUT) return;   /* Maison ne se supprime jamais */
+  if(!id || id === LISTE_DEFAUT) return;
   const l = state.listes[id] || {};
-  const produits = Object.entries(state.produits).filter(([,p])=> listeDe(p)===id);
-  const n = produits.length;
+  const coches = Object.entries(state.produits).filter(([,p])=> p.aAcheter && listeDe(p)===id);
+  const n = coches.length;
   const oui = await dialogue({
     titre: 'Supprimer « ' + (l.nom || 'cette liste') + ' » ?',
-    texte: n ? `La liste et ${n>1 ? `ses ${n} produits seront supprimés` : 'son produit seront supprimés'} définitivement. Les autres listes ne changent pas.` : 'La liste est vide. Les autres listes ne changent pas.',
+    texte: 'Aucun produit n’est supprimé.' + (n ? (n>1 ? ` Ses ${n} produits cochés passent dans Maison.` : ' Son produit coché passe dans Maison.') : ''),
     ok: 'Supprimer'
   });
   if(!oui) return;
   fermerModaleListe();
   if(state.listeActive === id) choisirListe(LISTE_DEFAUT);
+  if(state.filtreCourse === id) state.filtreCourse = TOUTES;
   await firestorePret;
-  /* Lots de 400 écritures au plus (limite Firestore : 500 par lot) ; la liste elle-même en dernier. */
-  const refs = produits.map(([pid])=> docRef('produits', pid));
+  const refs = coches.map(([pid])=> docRef('produits', pid));
   for(let i = 0; i < refs.length; i += 400){
     const lot = db.batch();
-    refs.slice(i, i+400).forEach(r=> lot.delete(r));
-    lot.commit().catch(err=> console.warn('Produits non supprimés :', err));
+    refs.slice(i, i+400).forEach(r=> lot.update(r, { listeId: LISTE_DEFAUT }));
+    lot.commit().catch(err=> console.warn('Produits non déplacés :', err));
   }
   docRef('listes', id).delete().catch(err=> console.warn('Liste non supprimée :', err));
-});
-
-/* ============================================================
-   VIDER LE CACHE (Réglages) — scope strictement limité à Course,
-   avec confirmation (mêmes précautions que le bouton du Portail
-   corrigé le 18/09/2026 : jamais toucher aux caches/SW des autres apps).
-   ============================================================ */
-document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
-  const ok = await dialogue({ titre:"Recharger l'application ?", texte:"Le cache de Courses sera vidé. L'app ne sera plus disponible hors-ligne tant qu'elle n'aura pas été rouverte au moins une fois avec une connexion.", ok:'Recharger', danger:false });
-  if(!ok) return;
-  try{
-    if('caches' in window){
-      const CACHE_PREFIX = 'courses-lc-shell-';
-      const names = await caches.keys();
-      await Promise.all(names.filter(n=> n.startsWith(CACHE_PREFIX)).map(n=> caches.delete(n)));
-    }
-    if('serviceWorker' in navigator){
-      const scopeCourse = new URL('./', window.location.href).href;
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.filter(r=> r.scope===scopeCourse).map(r=> r.unregister()));
-    }
-  } catch(err){ /* silencieux : on recharge quand même */ }
-  window.location.href = window.location.pathname + '?_r=' + Date.now();
 });
 
 /* ============================================================

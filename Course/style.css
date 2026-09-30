@@ -96,11 +96,14 @@
   }
   .liste-chip::after{content:''; position:absolute; inset:-2px 0;}
   .liste-chip:active{transform:scale(0.97);}
-  .liste-chip.actif{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+  .liste-chip.actif{background:var(--accent-soft); border-color:var(--c-liste, var(--accent)); color:var(--text);}
+  .liste-pastille{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c-liste, var(--accent));}
+  .liste-pastille-grande{width:14px; height:14px;}
   .liste-chip-ajout{width:40px; padding:0; justify-content:center; font-size:22px; font-weight:400; line-height:1;}
   .liste-badge{
     min-width:20px; height:20px; padding:0 6px; border-radius:var(--r-pill);
-    background:var(--accent); color:#fff; font-size:11.5px; font-weight:700;
+    background:var(--c-liste, var(--accent)); color:#fff; font-size:11.5px; font-weight:700;
+    text-shadow:0 1px 1px rgba(0,0,0,.25);
     display:inline-flex; align-items:center; justify-content:center;
   }
   /* Réglages › Listes de courses : une ligne par liste (touche = renommer / supprimer) */
@@ -112,6 +115,15 @@
   .ligne-liste .nom-produit, .ligne-liste .rayon-produit{display:block;}
   .ligne-liste:active{opacity:.7;}
   .btn-nouvelle-liste{margin-top:14px;}
+  /* Choix de la couleur d'une liste (fenêtre liste) : pastilles de 44 px (zone tactile charte §6.4) */
+  .couleurs-liste{display:flex; flex-wrap:wrap; gap:10px;}
+  .couleur-choix{
+    width:44px; height:44px; padding:0; border-radius:50%; border:none; background:var(--c-liste);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
+    transition:transform var(--t-fast) ease-out;
+  }
+  .couleur-choix:active{transform:scale(0.94);}
+  .couleur-choix.choisie{outline:2.5px solid var(--text); outline-offset:3px;}
   .modal-erreur{min-height:18px; margin:-6px 0 0; font-size:13px; color:var(--danger);}
 
   /* Barre de recherche */
@@ -149,7 +161,11 @@
     flex-shrink:0; width:30px; height:30px; border-radius:var(--r-sm); border:2px solid var(--border);
     display:flex; align-items:center; justify-content:center; background:var(--card-2);
   }
-  .case.checked{ background:var(--accent); border-color:var(--accent); }
+  /* Couleur de la coche = couleur de la liste qui a coché le produit (--c-liste, posée par app.js
+     sur la case, 30/09/2026) ; repli sur l'accent du profil. */
+  .case.checked{ background:var(--c-liste, var(--accent)); border-color:var(--c-liste, var(--accent)); }
+  .case.case-liste:not(.checked){ border-color:var(--c-liste, var(--border)); }   /* onglet Course : anneau à la couleur de la liste */
+  .nom-liste{ color:var(--c-liste, var(--accent)); font-weight:700; }
   .case:active{ transform:scale(0.94); }
   .case svg{width:16px; height:16px; stroke:white; fill:none; stroke-width:3; display:none;}
   .case.checked svg{display:block;}

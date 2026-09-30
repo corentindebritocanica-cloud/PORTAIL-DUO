@@ -9,7 +9,7 @@ Liste de courses partagée entre Corentin et Lisa. HTML/CSS/JS vanilla (3 fichie
 > - **Design Verre** (feuille commune `../verre.css`), **sombre uniquement**, titre de l’onglet (Liste / Course / Réglages) à gauche + pastille de connexion ; la page défile elle-même, barre d'onglets en `position:fixed`.
 > - **Noyau commun `../commun.js`** chargé dans le `<head>` (halos, transition, date de MAJ, service worker, vérification de version).
 > - **Profil** : `duo_profile`, commun aux 4 apps (Réglages › Profil). Retour au Portail : geste retour d'iOS.
-> - **Plusieurs listes de courses** (depuis le 30/09/2026) : Maison (la liste d'origine), Apéro, Vacances… — pastilles sous le titre, gestion dans Réglages. Voir « Plusieurs listes de courses » en fin de fichier.
+> - **Plusieurs listes de courses** (depuis le 30/09/2026, modèle v2 « catalogue commun ») : tous les produits dans toutes les listes, une seule coche par produit à la couleur de la liste qui l'a coché, onglet Course = toutes les listes. Voir « Plusieurs listes de courses » et « v2 » en fin de fichier.
 ## Fichiers (mis à jour le 28/09/2026)
 - `index.html` — structure + `DERNIERE_MAJ` (gérée par le workflow) ; charge `../commun.js`, `../verre.css`, `style.css`, `app.js`
 - `style.css` — styles de base (le verre vient de `../verre.css`)
@@ -37,7 +37,7 @@ Une barre de recherche filtre par nom, avec une croix pour l'effacer. Un bouton 
 Projet `course-app-36e9d`, deux collections de premier niveau :
 - `produits/{id}` — champs `nom`, `quantite` (texte libre), `rayonId`, `aAcheter` (bool), `achete` (bool), `compteur` (nombre, incrémenté de 1 à chaque "Course terminée" — sert au tri par popularité de l'onglet Liste)
 - `rayons/{id}` — champ `nom`
-- `listes/{id}` — champs `nom`, `ordre` (depuis le 30/09/2026) ; chaque produit porte `listeId` (absent = `maison`). Voir « Plusieurs listes de courses ».
+- `listes/{id}` — champs `nom`, `ordre`, `couleur` (depuis le 30/09/2026) ; `listeId` d'un produit = la liste qui l'a **coché** (absent = `maison`). Voir « Plusieurs listes de courses » (v2).
 
 Synchronisation en temps réel via `onSnapshot` sur les deux collections. Règles de sécurité : `allow read, write: if request.auth != null` (tout utilisateur authentifié, y compris anonyme). *(Situation d'origine — depuis le 29/09/2026 au soir : réservé au compte du duo, voir « Réservée au compte du duo » en fin de fichier.)*
 
@@ -429,6 +429,8 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 
 ## Plusieurs listes de courses (30/09/2026)
 
+> ⚠️ **Première version (v1), remplacée le même jour par la v2 « catalogue commun » ci-dessous** : les points « chaque liste a ses propres produits », « champ Liste dans la fiche produit », « supprimer une liste supprime ses produits » et « Course = liste choisie » ne valent plus.
+
 **Demande de Corentin** : la liste existante est en fait la liste « Maison » ; pouvoir en créer d'autres (« Apéro », « Vacances »…), qu'il remplit lui-même. Consigne : ne rien perdre de la liste actuelle (48 produits cochés ce jour-là).
 
 **Interface**
@@ -458,4 +460,22 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 **Styles** (`../verre.css`) : pastilles et lignes des Réglages habillées en Verre (sans flou, règle PERF) ; ajoutées aux catégories « panneaux » (`.liste-chip`) et « états actifs » (`.liste-chip.actif`) du bloc « STYLES AU CHOIX » pour Relief et Argile.
 
 **Vérifié** (Chromium 440×956, Firebase simulé avec la vraie sauvegarde) : Maison affichée avec ses 134 produits et le badge 48 (document `listes/maison` absent comme avant migration) ; création d'« Apéro » → liste vide, ajout d'un produit, coche, badge 1 ; onglet Course par liste ; « Course terminée » sur Maison ne touche pas Apéro ; Réglages (compteurs, Maison non supprimable, doublon refusé, renommage) ; suppression d'Apéro et de son produit, Maison intacte ; styles Verre, Relief, Argile ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+
+### v2 — catalogue commun et couleur par liste (30/09/2026, 17h55)
+
+**Demande de Corentin** (après essai de la v1) : retrouver **tous les articles dans chaque liste**, y compris ceux déjà cochés ; une liste commune où la coche prend **la couleur de la liste** qui l'a faite. Choix de Corentin : **une seule coche par produit** (pas de coche indépendante par liste) ; onglet Course = **toutes les listes ensemble**.
+
+- **Catalogue commun** : l'onglet Liste montre les 134 produits quelle que soit la liste choisie (tri par popularité inchangé). La pastille choisie = la liste **pour laquelle on coche**.
+- **Coche** (`toggleAAcheter`) : pas coché → coché pour la liste choisie (`aAcheter:true, listeId`) ; coché par cette liste → décoché ; coché par **une autre liste** → passe dans la liste choisie (reste à acheter). Sous le produit, le nom de l'autre liste s'affiche en couleur.
+- **Sens de `listeId`** : la liste qui a coché le produit (sans signification quand il n'est pas coché). Nouveau produit : pas de `listeId`. Champ « Liste » de la fiche produit **retiré**.
+- **Couleurs** : champ `couleur` sur `listes/{id}`, choisi dans la fenêtre de la liste parmi 8 pastilles (`PALETTE_LISTES` : vert, orange, violet, jaune, cyan, rouge, rose, bleu). Maison = vert `#12b981` (couleur d'identité de Course) ; nouvelle liste = 1re couleur libre. Appliqué par la variable CSS `--c-liste` posée sur la case (`.case.checked`), la pastille de liste (`.liste-pastille`), le badge, la pastille active et le nom de liste (`.nom-liste`) — accent du profil en repli. Les autres éléments (onglets, +, profil) gardent le bleu/rose du profil.
+- **Onglet Course** : pastille **« Toutes »** (par défaut, non mémorisée) + une par liste pour filtrer ; chaque produit a une case cerclée de la couleur de sa liste (`.case-liste`), remplie une fois acheté, et le nom de sa liste sous le produit. **« Course terminée » agit sur ce qui est affiché** (toutes les listes, ou la liste filtrée). Pas de + dans les pastilles de Course.
+- **Réglages › Listes de courses** : pastille de couleur, nom, « N à acheter ».
+- **Supprimer une liste** (jamais Maison) : **aucun produit supprimé** ; ceux qu'elle avait cochés passent dans Maison (toujours à acheter).
+- **Styles** (`../verre.css`) : coche et lueur à la couleur de la liste en Verre (`color-mix`) ; Relief/Argile : `.case.checked` à `--c-liste`, anneau de couleur sur les cases de Course, contour de couleur sur la pastille active.
+
+**Données** : aucune migration de produits (les 48 cochés étaient déjà `listeId: 'maison'` → verts). `couleur` écrite côté serveur (masque de champ) : Maison `#12b981`, « Apéro Juju nico » (créée par Corentin entre-temps, vide) `#ff8a2b`. Vérifié après : 134 produits, 48 à acheter.
+
+**Vérifié** (Chromium 440×956, Firebase simulé avec les vraies données) : 134 produits et 48 coches vertes visibles dans « Apéro Juju nico » ; cocher un produit libre → orange ; toucher un produit coché Maison → passe en orange ; retoucher → décoché ; badges ; Course : « Toutes » (48), filtre par liste, « Course terminée » filtrée sur Apéro sans toucher Maison ; changement de couleur ; suppression de la liste sans perte de produit ; Verre, Relief, Argile ; aucune erreur JS. **Non vérifié sur iPhone.**
 

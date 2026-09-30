@@ -40,7 +40,8 @@
   </header>
 
   <!-- Plusieurs listes de courses (30/09/2026) : Maison, Apéro, Vacances… Pastilles dessinées par
-       renderSelecteurListes() (app.js), visibles sur les onglets Liste et Course (masquées dans Réglages). -->
+       renderSelecteurListes() (app.js). Onglet Liste : la liste pour laquelle on coche ; onglet Course :
+       « Toutes » + filtre par liste ; masquées dans Réglages. -->
   <div class="selecteur-listes" id="selecteur-listes" aria-label="Listes de courses"></div>
 
   <main>
@@ -74,7 +75,7 @@
         </div>
         <div class="bloc-param">
           <h3>Listes de courses</h3>
-          <p class="param-desc">Chaque liste a ses propres produits. Les rayons sont communs à toutes les listes.</p>
+          <p class="param-desc">Tous les produits sont dans toutes les listes. Un produit coché prend la couleur de la liste où tu l'as coché ; l'onglet Course montre toutes les listes ensemble.</p>
           <div id="reglages-listes"></div>
           <button class="btn-large btn-nouvelle-liste" id="btn-nouvelle-liste">+ Nouvelle liste</button>
         </div>
@@ -136,11 +137,6 @@
       <label for="modal-nouveau-rayon">Nom du nouveau rayon</label>
       <input type="text" id="modal-nouveau-rayon" placeholder="Ex: Surgelés">
     </div>
-    <!-- Liste du produit (30/09/2026) : affiché seulement s'il existe plus d'une liste -->
-    <div class="champ" id="champ-liste-produit" style="display:none;">
-      <label for="modal-liste-produit">Liste</label>
-      <select id="modal-liste-produit"></select>
-    </div>
     <div class="modal-actions">
       <button class="btn-annuler" id="btn-modal-annuler">Annuler</button>
       <button class="btn-enregistrer" id="btn-modal-enregistrer">Enregistrer</button>
@@ -156,6 +152,10 @@
     <div class="champ">
       <label for="modal-liste-nom">Nom de la liste</label>
       <input type="text" id="modal-liste-nom" placeholder="Ex: Apéro" maxlength="30" enterkeyhint="done">
+    </div>
+    <div class="champ">
+      <label id="modal-liste-couleurs-label">Couleur des coches</label>
+      <div class="couleurs-liste" id="modal-liste-couleurs" role="radiogroup" aria-labelledby="modal-liste-couleurs-label"></div>
     </div>
     <p class="modal-erreur" id="modal-liste-erreur" aria-live="polite"></p>
     <div class="modal-actions">

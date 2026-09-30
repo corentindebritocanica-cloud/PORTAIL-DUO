@@ -322,10 +322,11 @@ html.verre[data-app="course"] .case{
   border-radius:50%; width:28px; height:28px; border:1.5px solid var(--v-edge);
   background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi);
 }
-html.verre[data-app="course"] .case.checked{
-  background:var(--accent); border-color:rgba(255,255,255,.35);
-  box-shadow:0 0 14px rgba(var(--accent-rgb), .75), inset 0 1px 0 rgba(255,255,255,.45);
+html.verre[data-app="course"] .case.checked{   /* couleur de la liste (--c-liste, 30/09/2026), accent en repli */
+  background:var(--c-liste, var(--accent)); border-color:rgba(255,255,255,.35);
+  box-shadow:0 0 14px color-mix(in srgb, var(--c-liste, var(--accent)) 75%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
 }
+html.verre[data-app="course"] .case.case-liste:not(.checked){ border-color:var(--c-liste, var(--v-edge)); border-width:2px; }
 html.verre[data-app="course"] .qte-produit{ border-radius:999px; background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi); }
 html.verre[data-app="course"] .btn-crayon{ background:var(--v-soft); border:1px solid var(--v-edge); }
 html.verre[data-app="course"] .carte-produit.achete-carte{ opacity:.5; }
@@ -338,7 +339,7 @@ html.verre[data-app="course"] .liste-chip{
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
 html.verre[data-app="course"] .liste-chip.actif{
-  background:var(--v-soft-on); color:var(--v-text); border-color:rgba(var(--accent-rgb), .6);
+  background:var(--v-soft-on); color:var(--v-text); border-color:var(--c-liste, rgba(var(--accent-rgb), .6));
 }
 html.verre[data-app="course"] .ligne-liste{ border-bottom-color:var(--v-hair); }
 
@@ -960,9 +961,11 @@ html.verre[data-style] .connexion-duo button{
   background:var(--t-accent-fond); border-color:transparent; color:#fff; box-shadow:var(--t-o-accent);
 }
 html.verre[data-style][data-app="course"] .case.checked{
-  background:var(--accent); border-color:transparent; box-shadow:var(--t-o-accent);
+  background:var(--c-liste, var(--accent)); border-color:transparent; box-shadow:var(--t-o-accent);
 }
 html.verre[data-style][data-app="course"] .nav-add{ outline-color:var(--accent); }
+html.verre[data-style][data-app="course"] .case.case-liste:not(.checked){ box-shadow:var(--t-o-creux), inset 0 0 0 2px var(--c-liste); }
+html.verre[data-style][data-app="course"] .liste-chip.actif{ box-shadow:var(--t-o-actif), inset 0 0 0 1.5px var(--c-liste, transparent); }
 html.verre[data-style][data-app="budget"] .bg-danger,
 html.verre[data-style][data-app="muscu"] .btn-confirm{
   background:color-mix(in srgb, #ef4444 70%, var(--t-panneau)); border-color:transparent; color:#fff; box-shadow:var(--t-o-panneau);

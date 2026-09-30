@@ -33,6 +33,7 @@
 - **Toute migration Firestore** : sauvegarde, puis écritures à **masque de champ** + **précondition** (`exists`), vérification champ par champ avant/après. Jamais de `set()` complet sur un document existant.
 - **Nouveau champ** : le code doit toujours comprendre son **absence** (valeur par défaut), jamais « réparer » la base au démarrage.
 - **Publier des règles par l'API** : créer le ruleset (compile) puis `PATCH releases/cloud.firestore` ; ensuite vérifier par une vraie requête sans session (`403` attendu).
+**Suite le même jour** : passage au modèle « catalogue commun » (tous les produits dans toutes les listes, `listeId` = liste qui a coché, couleur par liste) sans aucune migration de produits — grâce au défaut `listeId` absent = `maison` et à des données de liste séparées des produits. Leçon : **faire valider le modèle de données sur un essai réel avant de le figer** ; ici la v1 (produits propres à chaque liste) ne correspondait pas à l'usage.
 **Fichiers touchés** : `Course/index.html`, `Course/style.css`, `Course/app.js`, `verre.css`, `firestore.rules`, `Course/README.md`, `README.md`
 
 ## 🧱 4 apps — styles au choix (Verre / Relief / Argile) : ombres coupées et profil sur `<body>` (30/09/2026)
