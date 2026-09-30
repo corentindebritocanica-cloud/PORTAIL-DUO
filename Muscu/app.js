@@ -2492,7 +2492,8 @@ function renderArchivesList(){
     item.className = 'archive-item';
     const tonnageStr = arc.tonnage ? `· 💪 ${arc.tonnage.toLocaleString('fr-FR')} kg` : '';
     const durationStr = arc.durationSec != null ? ` · ⏱ ${formatDuration(arc.durationSec)}` : '';
-    const montreStr = montreResume(arc.montre);
+    const montreFen = fenetreMontre(arc);
+    const montreStr = montreResume(arc.montre) ? (montreFen && montreFen.estimee ? '≈ ' : '') + montreResume(arc.montre) : '';
     const avecMontre = montreBtn && archiveMontreEligible(arc);
     item.innerHTML = `
       <div class="archive-info">
@@ -2520,7 +2521,7 @@ function viewArchive(id){
   const arc = archives.find(a => a.id === id);
   if(!arc) return;
   document.getElementById('export-text').value = archiveExportText(arc);
-  const montreStr = montreResume(arc.montre);
+  const montreStr = montreResumeArchive(arc);
   document.getElementById('motivation-line').textContent = `Archivée le ${arc.dateLabel} à ${arc.timeLabel}` + (montreStr ? ` · ${montreStr}` : '');
   coachViewedDate = arc.dateLabel;
   renderCoachBlock();
@@ -2662,7 +2663,17 @@ function goToSettingsView(){
 const MONTRE_PREF_KEY = 'duo_montre';
 const RACCOURCI_MONTRE = 'Muscu Santé';
 function montreActivee(){ return storage.get(MONTRE_PREF_KEY) === '1'; }
-function archiveMontreEligible(arc){ return !!(arc && arc.startedAt && arc.durationSec > 0); }
+/* Fenêtre de la séance lue dans Santé. Séance chronométrée (GO) : startedAt → startedAt + durée.
+   Archive d'avant le chrono (30/09/2026, demande de Corentin) : on ne connaît que l'heure
+   d'archivage (`createdAt`) → fin = archivage, début = 50 min avant (`estimee: true`). */
+const MONTRE_DUREE_ESTIMEE_MIN = 50;
+function fenetreMontre(arc){
+  if(!arc) return null;
+  if(arc.startedAt && arc.durationSec > 0) return { debut: arc.startedAt, fin: arc.startedAt + arc.durationSec * 1000, estimee: false };
+  if(arc.createdAt) return { debut: arc.createdAt - MONTRE_DUREE_ESTIMEE_MIN * 60000, fin: arc.createdAt, estimee: true };
+  return null;
+}
+function archiveMontreEligible(arc){ return !!fenetreMontre(arc); }
 function montreNombre(v){
   if(v == null) return 0;
   if(typeof v === 'number') return isFinite(v) ? Math.round(v) : 0;
@@ -2681,9 +2692,16 @@ function montreResume(m){
   if(montreNombre(m.mesures) === 1) parts.push('1 mesure');
   return parts.join(' · ');
 }
+/* Résumé + mention de la fenêtre estimée (archives d'avant le chrono). */
+function montreResumeArchive(arc){
+  const r = montreResume(arc && arc.montre);
+  if(!r) return '';
+  const f = fenetreMontre(arc);
+  return f && f.estimee ? `${r} (${MONTRE_DUREE_ESTIMEE_MIN} min estimées avant l'archivage)` : r;
+}
 /* Texte d'export d'une archive, complété par la montre si elle a été importée après coup. */
 function archiveExportText(arc){
-  const r = montreResume(arc && arc.montre);
+  const r = montreResumeArchive(arc);
   return r ? `${arc.exportText}\n⌚ Montre : ${r}` : arc.exportText;
 }
 /* ISO 8601 avec le décalage local (2026-09-30T18:05:00+02:00), lisible par Raccourcis. */
@@ -2702,13 +2720,14 @@ function preparerJetonMontre(){
   if(window.__montre && montreActivee() && !jetonMontreFrais()) window.__montre.preparer();
 }
 function importerMontre(arc){
-  if(!archiveMontreEligible(arc)) return;
+  const fenetre = fenetreMontre(arc);
+  if(!fenetre) return;
   if(!window.__montre || !window.__authUser){ showToast('Connecte-toi pour importer les données de la montre'); return; }
   const lancer = (j) => {
     const entree = {
       id: arc.id,
-      debut: isoLocal(arc.startedAt),
-      fin: isoLocal(arc.startedAt + arc.durationSec * 1000),
+      debut: isoLocal(fenetre.debut),
+      fin: isoLocal(fenetre.fin),
       url: `https://firestore.googleapis.com/v1/projects/${window.__montre.projet}/databases/(default)/documents/archives/`
         + `${encodeURIComponent(arc.id)}?updateMask.fieldPaths=montre&currentDocument.exists=true`,
       jeton: j.t
