@@ -893,3 +893,9 @@ Portail (app.js) ──abonnement──► notifAbonnes/{id} = { token, profil, 
 - **Budget et Course** (Chromium + émulateurs) : voir leurs README.
 - **iPhone** : réception réelle confirmée par Corentin le 30/09/2026 au soir (notification de Course). Relais déployé testé depuis l'extérieur (voir « Mise en service »).
 
+## Publication sans Jekyll — fichier `.nojekyll` (01/10/2026)
+
+- **`.nojekyll`** (vide, à la racine) : GitHub Pages publie les fichiers tels quels, sans passer par Jekyll. Avant, Jekyll convertissait les `.md` avec le langage de modèles Liquid ; une entrée de `PROBLEMES_RESOLUS.md` contenant deux accolades collées a fait échouer **toutes** les publications du 30/09 au soir au 01/10 (code des apps compris). Détail : `PROBLEMES_RESOLUS.md`, « mise en ligne bloquée par un fichier de documentation ».
+- Effet de bord : les `.md` sont servis bruts sur Pages (plus de version HTML) — ils se lisent sur GitHub.
+- **Après chaque fusion** : vérifier que `DERNIERE_MAJ` de la page en ligne a changé (1 à 2 min). Sinon : onglet Actions → « pages build and deployment ».
+
