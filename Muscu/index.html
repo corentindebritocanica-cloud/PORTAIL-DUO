@@ -421,6 +421,33 @@
   </div>
 </div>
 
+<!-- SÉANCE DU JOUR ADAPTÉE (01/10/2026) : remplacer un exercice / changer l'ordre, pour cette
+     séance seulement — voir « SÉANCE DU JOUR : REMPLACEMENTS ET ORDRE » dans app.js. -->
+<div class="modal-overlay" id="remplacement-modal" onclick="if(event.target === this) fermerRemplacement()">
+  <div class="modal">
+    <h3 id="remplacement-titre">⇄ Remplacer l'exercice</h3>
+    <p class="adapt-sub">Pour cette séance seulement : à l'archivage, la séance revient à l'original.</p>
+    <input type="text" id="remplacement-recherche" class="builder-input" placeholder="Chercher ou taper un exercice…" autocomplete="off" autocapitalize="sentences" oninput="afficherChoixRemplacement()">
+    <div class="adapt-liste" id="remplacement-liste"></div>
+    <button type="button" class="adapt-retour" id="remplacement-retour" onclick="revenirExercicePrevu()"></button>
+    <div class="modal-actions">
+      <button type="button" class="btn-close-modal" onclick="fermerRemplacement()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ordre-modal" onclick="if(event.target === this) fermerOrdre()">
+  <div class="modal">
+    <h3>⇅ Ordre de la séance</h3>
+    <p class="adapt-sub">Pour cette séance seulement : à l'archivage, l'ordre prévu revient.</p>
+    <div class="adapt-liste" id="ordre-liste"></div>
+    <button type="button" class="adapt-retour" id="ordre-retablir" onclick="retablirOrdre()">↺ Rétablir l'ordre prévu</button>
+    <div class="modal-actions">
+      <button type="button" class="btn-close-modal" onclick="fermerOrdre()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- POPUP FIN DE SÉANCE -->
 <div class="confirm-overlay" id="finish-modal">
   <div class="confirm-box finish-box">
