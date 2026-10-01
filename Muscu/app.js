@@ -383,7 +383,7 @@ function dataKey(sessionId, profile){
   return `duo_data_${sessionId}_${profile}`;
 }
 function blankDayData(){
-  return { sets:{}, variants:{}, notes:{}, warmups:{}, sessionNote:'', cardioDone:false, cardioMinutes:'', cardioIncline:'', cardioSpeed:'', cardioNote:'' };
+  return { sets:{}, variants:{}, notes:{}, warmups:{}, remplacements:{}, sessionNote:'', cardioDone:false, cardioMinutes:'', cardioIncline:'', cardioSpeed:'', cardioNote:'' };
 }
 function loadDayData(sessionId, profile){
   const raw = storage.get(dataKey(sessionId, profile));
@@ -397,11 +397,90 @@ function loadDayData(sessionId, profile){
     sets: parsed.sets || {},
     variants: parsed.variants || {},
     notes: parsed.notes || {},
-    warmups: parsed.warmups || {}
+    warmups: parsed.warmups || {},
+    remplacements: parsed.remplacements || {}
   });
 }
 function saveDayData(day, profile, data){
   storage.set(dataKey(day, profile), JSON.stringify(data));
+}
+
+/* ---------- SÉANCE DU JOUR : REMPLACEMENTS ET ORDRE (01/10/2026) ----------
+   Demande de Corentin : selon les machines libres, remplacer un exercice ou changer l'ordre
+   pour CETTE séance seulement, sans passer par Build Training. Tout vit dans les données de
+   la séance en cours (LocalStorage : `remplacements`, `ordre`) : l'archivage les efface avec
+   le reste (blankDayData), la séance revient donc d'elle-même à l'original la fois suivante.
+   - Les clés de saisie restent celles de l'EMPLACEMENT d'origine (`ex<i>_set<n>`, i = place
+     dans la séance prévue) : réordonner ne déplace aucune donnée, et l'archive garde
+     `exerciseNames` dans cet ordre (remplaçants compris) — seul format que lisent records,
+     « Dernière fois » et progression (getSetsForExercise).
+   - `ordre` (emplacements dans l'ordre réellement suivi) ne sert qu'à l'affichage et au
+     compte rendu.
+   - Une séance archivée avec un remplacement sort de « Tonnage par séance » (elle n'est plus
+     comparable) ; ses exercices, eux, comptent normalement chacun dans leur propre suivi. */
+function programmeDuJour(sessionId, data){
+  const base = getSession(sessionId);
+  const r = (data && data.remplacements) || {};
+  if(Object.keys(r).length === 0) return base;
+  return Object.assign({}, base, {
+    exercises: base.exercises.map((ex, i) => (r[i] && r[i].name) ? r[i] : ex)
+  });
+}
+function ordreDuJour(data, n){
+  const o = (data && Array.isArray(data.ordre)) ? data.ordre : null;
+  const valide = !!o && o.length === n && new Set(o).size === n
+    && o.every(i => Number.isInteger(i) && i >= 0 && i < n);
+  return valide ? o.slice() : Array.from({ length:n }, (_, i) => i);
+}
+function ordreEstModifie(data, n){
+  return ordreDuJour(data, n).some((slot, pos) => slot !== pos);
+}
+/* Remplacements dans l'ordre suivi, avec le nom de l'exercice PRÉVU (compte rendu, archive). */
+function listeRemplacements(data, sessionId){
+  const base = getSession(sessionId);
+  const r = (data && data.remplacements) || {};
+  return ordreDuJour(data, base.exercises.length)
+    .filter(slot => r[slot] && r[slot].name && base.exercises[slot])
+    .map(slot => ({ de: base.exercises[slot].name, par: r[slot].name }));
+}
+/* Un remplaçant déjà présent dans une séance (fixe, éventuellement modifiée dans Build
+   Training, ou personnalisée) garde SES réglages : séries, cibles, méthodes de charge.
+   Sinon il reprend les séries et la cible de l'exercice prévu, sans méthode (×1). */
+function exerciceDuCatalogue(nom){
+  const cle = normalizeExerciseName(nom);
+  const seances = SESSIONS.map(s => getSession(s.id)).concat(getPureCustomSessions());
+  for(const s of seances){
+    const ex = (s.exercises || []).find(e => normalizeExerciseName(e.name) === cle);
+    if(ex) return ex;
+  }
+  return null;
+}
+function definitionRemplacant(nom, prevu){
+  const connu = exerciceDuCatalogue(nom);
+  const modele = connu || prevu;
+  const def = {
+    name: connu ? connu.name : nom,
+    sets: Math.max(1, parseInt(modele.sets, 10) || 3),
+    target: Object.assign({}, modele.target || {}),
+    equipment: connu ? (connu.equipment || []).slice() : []
+  };
+  if(connu && connu.logType) def.logType = connu.logType;
+  return def;
+}
+/* Saisies d'un emplacement (séries de travail et d'échauffement). */
+function clesEmplacement(d, slot){
+  const motif = new RegExp('^ex' + slot + '_(set|warm)\\d+$');
+  return Object.keys(d.sets || {}).filter(k => motif.test(k));
+}
+function emplacementSaisi(d, slot){
+  return clesEmplacement(d, slot).some(k => {
+    const v = d.sets[k] || {};
+    return v.done || (v.weight !== '' && v.weight != null) || (v.reps !== '' && v.reps != null)
+      || (v.info != null && v.info !== '');
+  });
+}
+function archiveModifiee(arc){
+  return !!(arc && Array.isArray(arc.remplacements) && arc.remplacements.length > 0);
 }
 
 /* ---------- DURÉE DE SÉANCE (30/09/2026) ----------
@@ -1038,8 +1117,8 @@ function computeSessionTonnage(dayProgram, data){
 }
 
 function updateSessionProgress(){
-  const dayProgram = getSession(currentSessionId);
   const data = loadDayData(currentSessionId, currentProfile);
+  const dayProgram = programmeDuJour(currentSessionId, data);
   let total = 0, done = 0;
   const tonnage = computeSessionTonnage(dayProgram, data);
 
@@ -1087,9 +1166,9 @@ function render(){
 
   const main = document.getElementById('main-content');
   main.innerHTML = '';
-  const dayProgram = getSession(currentSessionId);
-
   const data = loadDayData(currentSessionId, currentProfile);
+  const prevuProgram = getSession(currentSessionId);
+  const dayProgram = programmeDuJour(currentSessionId, data);
 
   const titleEl = document.createElement('div');
   titleEl.className = 'session-title';
@@ -1144,7 +1223,23 @@ function render(){
     main.appendChild(goBtn);
   }
 
-  dayProgram.exercises.forEach((ex, exIdx) => {
+  /* Ordre du jour (01/10/2026) : bouton en tête de séance, feuille #ordre-modal. */
+  if(dayProgram.exercises.length > 1){
+    const adaptRow = document.createElement('div');
+    adaptRow.className = 'adapt-row';
+    const ordreBtn = document.createElement('button');
+    ordreBtn.type = 'button';
+    const ordreChange = ordreEstModifie(data, dayProgram.exercises.length);
+    ordreBtn.className = 'adapt-btn' + (ordreChange ? ' actif' : '');
+    ordreBtn.textContent = ordreChange ? '⇅ Ordre modifié' : '⇅ Changer l\'ordre';
+    ordreBtn.onclick = ouvrirOrdre;
+    adaptRow.appendChild(ordreBtn);
+    main.appendChild(adaptRow);
+  }
+
+  /* Ordre suivi aujourd'hui ; exIdx reste l'EMPLACEMENT d'origine (clés de saisie). */
+  ordreDuJour(data, dayProgram.exercises.length).forEach(exIdx => {
+    const ex = dayProgram.exercises[exIdx];
     const card = document.createElement('div');
     card.className = 'exercise-card';
 
@@ -1165,7 +1260,22 @@ function render(){
       <div class="exercise-name">${escapeHtml(ex.name)}</div>
       <div class="exercise-target">${escapeHtml((ex.target && ex.target[currentProfile]) || '')}</div>
     `;
+    /* Remplacement du jour (01/10/2026) : rappel de l'exercice prévu, et bouton ⇄. */
+    const prevu = prevuProgram.exercises[exIdx];
+    if(prevu && ex !== prevu){
+      const tag = document.createElement('div');
+      tag.className = 'exercise-swap-tag';
+      tag.textContent = '⇄ À la place de « ' + prevu.name + ' » · cette séance seulement';
+      head.appendChild(tag);
+    }
     headWrap.appendChild(head);
+    const swapBtn = document.createElement('button');
+    swapBtn.type = 'button';
+    swapBtn.className = 'exercise-swap-btn';
+    swapBtn.textContent = '⇄';
+    swapBtn.setAttribute('aria-label', 'Remplacer cet exercice pour cette séance');
+    swapBtn.onclick = () => ouvrirRemplacement(exIdx);
+    headWrap.appendChild(swapBtn);
 
     /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
     const isCircuitEx = ex.logType === 'circuit';
@@ -1752,6 +1862,189 @@ function render(){
   startSessionTimer();
 }
 
+/* ---------- FEUILLE « REMPLACER L'EXERCICE » (01/10/2026) ----------
+   Voir « SÉANCE DU JOUR : REMPLACEMENTS ET ORDRE ». Liste = catalogue des exercices connus
+   (séances + archives), sans ceux déjà dans la séance du jour (un même nom deux fois
+   mélangerait leurs séries dans l'archive) ; un nom inconnu peut être tapé. Remplacer efface
+   les saisies de l'emplacement (après confirmation s'il y en a) ; ↩️ annule. */
+let remplacementEmplacement = null;
+function ouvrirRemplacement(slot){
+  const prevu = getSession(currentSessionId).exercises[slot];
+  if(!prevu) return;
+  remplacementEmplacement = slot;
+  document.getElementById('remplacement-recherche').value = '';
+  afficherChoixRemplacement();
+  document.getElementById('remplacement-modal').classList.add('open');
+}
+function fermerRemplacement(){
+  document.getElementById('remplacement-modal').classList.remove('open');
+  remplacementEmplacement = null;
+}
+function afficherChoixRemplacement(){
+  const slot = remplacementEmplacement;
+  if(slot == null) return;
+  const data = loadDayData(currentSessionId, currentProfile);
+  const prevu = getSession(currentSessionId).exercises[slot];
+  const actuel = programmeDuJour(currentSessionId, data).exercises[slot];
+  document.getElementById('remplacement-titre').textContent = '⇄ Remplacer « ' + actuel.name + ' »';
+
+  const retour = document.getElementById('remplacement-retour');
+  retour.style.display = actuel !== prevu ? '' : 'none';
+  retour.textContent = '↩︎ Revenir à « ' + prevu.name + ' » (prévu)';
+
+  const dejaLa = new Set(programmeDuJour(currentSessionId, data).exercises.map(e => normalizeExerciseName(e.name)));
+  dejaLa.add(normalizeExerciseName(prevu.name));
+  const saisie = document.getElementById('remplacement-recherche').value.trim().replace(/\s+/g, ' ');
+  const cle = normalizeExerciseName(saisie);
+  const catalogue = getExerciseCatalog();
+  let noms = catalogue.filter(n => !dejaLa.has(normalizeExerciseName(n)));
+  if(cle){
+    const debut = [], dedans = [];
+    noms.forEach(n => {
+      const k = normalizeExerciseName(n);
+      if(k.indexOf(cle) === 0) debut.push(n);
+      else if(k.indexOf(cle) !== -1) dedans.push(n);
+    });
+    noms = debut.concat(dedans);
+  }
+
+  const liste = document.getElementById('remplacement-liste');
+  liste.innerHTML = '';
+  const ajouterChoix = (texte, nom) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'suggest-item';
+    b.textContent = texte;
+    b.onclick = () => choisirRemplacant(nom);
+    liste.appendChild(b);
+  };
+  if(cle && dejaLa.has(cle)){
+    const p = document.createElement('p');
+    p.className = 'adapt-vide';
+    p.textContent = '« ' + saisie + ' » est déjà dans la séance du jour.';
+    liste.appendChild(p);
+  }
+  noms.forEach(n => ajouterChoix(n, n));
+  /* Nom inconnu : proposé en DERNIER, les exercices existants d'abord (suivi par nom). */
+  if(cle && !dejaLa.has(cle) && !catalogue.some(n => normalizeExerciseName(n) === cle)){
+    ajouterChoix('➕ Nouvel exercice : « ' + saisie + ' »', saisie);
+  }
+  if(liste.children.length === 0){
+    const p = document.createElement('p');
+    p.className = 'adapt-vide';
+    p.textContent = 'Aucun exercice trouvé.';
+    liste.appendChild(p);
+  }
+}
+function choisirRemplacant(nom){
+  const slot = remplacementEmplacement;
+  if(slot == null) return;
+  const data = loadDayData(currentSessionId, currentProfile);
+  const prevu = getSession(currentSessionId).exercises[slot];
+  const actuel = programmeDuJour(currentSessionId, data).exercises[slot];
+  const retourPrevu = normalizeExerciseName(nom) === normalizeExerciseName(prevu.name);
+  const appliquer = () => {
+    pushUndoSnapshot();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.remplacements = d.remplacements || {};
+    clesEmplacement(d, slot).forEach(k => { delete d.sets[k]; });
+    if(d.warmups) delete d.warmups[exerciseKey(actuel, slot)];
+    let nouveau = prevu.name;
+    if(retourPrevu){
+      delete d.remplacements[slot];
+    } else {
+      d.remplacements[slot] = definitionRemplacant(canonicalExerciseName(nom), prevu);
+      nouveau = d.remplacements[slot].name;
+    }
+    saveDayData(currentSessionId, currentProfile, d);
+    fermerRemplacement();
+    render();
+    showToast(retourPrevu
+      ? 'Retour à « ' + prevu.name + ' »'
+      : '« ' + prevu.name + ' » remplacé par « ' + nouveau + ' » pour cette séance');
+  };
+  if(emplacementSaisi(data, slot)){
+    showConfirm('Les séries déjà saisies pour « ' + actuel.name + ' » seront effacées. Continuer ?', appliquer);
+  } else {
+    appliquer();
+  }
+}
+function revenirExercicePrevu(){
+  const slot = remplacementEmplacement;
+  if(slot == null) return;
+  choisirRemplacant(getSession(currentSessionId).exercises[slot].name);
+}
+
+/* ---------- FEUILLE « ORDRE DE LA SÉANCE » (01/10/2026) ---------- */
+function ouvrirOrdre(){
+  afficherOrdre();
+  document.getElementById('ordre-modal').classList.add('open');
+}
+function fermerOrdre(){
+  document.getElementById('ordre-modal').classList.remove('open');
+}
+function afficherOrdre(){
+  const data = loadDayData(currentSessionId, currentProfile);
+  const prevuProgram = getSession(currentSessionId);
+  const dayProgram = programmeDuJour(currentSessionId, data);
+  const n = dayProgram.exercises.length;
+  const liste = document.getElementById('ordre-liste');
+  liste.innerHTML = '';
+  ordreDuJour(data, n).forEach((slot, pos) => {
+    const ex = dayProgram.exercises[slot];
+    const ligne = document.createElement('div');
+    ligne.className = 'ordre-ligne';
+    const num = document.createElement('span');
+    num.className = 'ordre-num';
+    num.textContent = String(pos + 1);
+    const nom = document.createElement('span');
+    nom.className = 'ordre-nom';
+    nom.textContent = ex.name;
+    if(ex !== prevuProgram.exercises[slot]){
+      const petit = document.createElement('small');
+      petit.textContent = 'à la place de « ' + prevuProgram.exercises[slot].name + ' »';
+      nom.appendChild(petit);
+    }
+    ligne.appendChild(num);
+    ligne.appendChild(nom);
+    [[-1, '↑', 'Monter'], [1, '↓', 'Descendre']].forEach(([sens, fleche, libelle]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'builder-move-btn';
+      b.textContent = fleche;
+      b.setAttribute('aria-label', libelle + ' « ' + ex.name + ' »');
+      b.disabled = pos + sens < 0 || pos + sens >= n;
+      b.onclick = () => deplacerExercice(pos, sens);
+      ligne.appendChild(b);
+    });
+    liste.appendChild(ligne);
+  });
+  document.getElementById('ordre-retablir').style.display = ordreEstModifie(data, n) ? '' : 'none';
+}
+function deplacerExercice(pos, sens){
+  const d = loadDayData(currentSessionId, currentProfile);
+  const n = programmeDuJour(currentSessionId, d).exercises.length;
+  const ordre = ordreDuJour(d, n);
+  const cible = pos + sens;
+  if(cible < 0 || cible >= n) return;
+  pushUndoSnapshot();
+  const tmp = ordre[pos]; ordre[pos] = ordre[cible]; ordre[cible] = tmp;
+  if(ordre.every((slot, i) => slot === i)) delete d.ordre;
+  else d.ordre = ordre;
+  saveDayData(currentSessionId, currentProfile, d);
+  afficherOrdre();
+  render();
+}
+function retablirOrdre(){
+  pushUndoSnapshot();
+  const d = loadDayData(currentSessionId, currentProfile);
+  delete d.ordre;
+  saveDayData(currentSessionId, currentProfile, d);
+  afficherOrdre();
+  render();
+  showToast('Ordre prévu rétabli');
+}
+
 /* ---------- CONFIRMATION GÉNÉRIQUE ---------- */
 let pendingConfirmCallback = null;
 function showConfirm(message, onConfirm){
@@ -1783,12 +2076,13 @@ function doReset(){
 
 /* ---------- EXPORT ---------- */
 function buildExportText(){
-  const dayProgram = getSession(currentSessionId);
   const profileName = currentProfile === 'corentin' ? 'Corentin' : 'Lisa';
   const today = new Date();
   const dateStr = today.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
 
   const data = loadDayData(currentSessionId, currentProfile);
+  const prevuProgram = getSession(currentSessionId);
+  const dayProgram = programmeDuJour(currentSessionId, data);
   data.variants = data.variants || {};
   data.notes = data.notes || {};
   let txt = `🏋️ BILAN DE SÉANCE\n`;
@@ -1798,12 +2092,19 @@ function buildExportText(){
   }
   txt += `Date : ${dateStr}\n`;
   txt += `Séance : ${dayProgram.label} — ${dayProgram.title}\n`;
+  /* Séance du jour adaptée (01/10/2026) : mis en avant en tête du compte rendu. */
+  listeRemplacements(data, currentSessionId).forEach(r => {
+    txt += `⇄ ${r.de} remplacé par ${r.par} (cette séance seulement)\n`;
+  });
+  if(ordreEstModifie(data, dayProgram.exercises.length)) txt += `⇅ Ordre des exercices modifié pour cette séance\n`;
   const elapsedSec = sessionElapsedSec(data);
   if(elapsedSec != null) txt += `⏱ Durée : ${formatDuration(elapsedSec)}\n`;
   txt += `------------------------------\n`;
 
-  dayProgram.exercises.forEach((ex, exIdx) => {
-    txt += `\n${ex.name}\n`;
+  ordreDuJour(data, dayProgram.exercises.length).forEach(exIdx => {
+    const ex = dayProgram.exercises[exIdx];
+    const prevu = prevuProgram.exercises[exIdx];
+    txt += `\n${ex.name}${prevu && ex !== prevu ? ` (à la place de ${prevu.name})` : ''}\n`;
     if(ex.logType !== 'circuit' && (ex.equipment || []).length > 1){
       const equipId = getExerciseEquipmentId(ex, exIdx, data);
       const info = equipmentInfo(equipId);
@@ -1975,8 +2276,8 @@ function finishArchive(){
     showToast('Connexion au cloud en cours, réessaie dans un instant');
     return;
   }
-  const dayProgram = getSession(currentSessionId);
   const data = loadDayData(currentSessionId, currentProfile);
+  const dayProgram = programmeDuJour(currentSessionId, data);
   const now = new Date();
   const archive = {
     id: 'arc_' + now.getTime() + '_' + Math.random().toString(36).slice(2,7),
@@ -1998,7 +2299,11 @@ function finishArchive(){
     startedAt: data.startedAt || null,
     durationSec: sessionElapsedSec(data, now.getTime()),
     exerciseNames: dayProgram.exercises.map(ex => ex.name),
-    rawSets: data.sets || {}
+    rawSets: data.sets || {},
+    /* Séance du jour adaptée (01/10/2026) : remplacements [{de, par}] (une séance remplacée
+       sort de « Tonnage par séance ») et ordre suivi (emplacements d'origine), null sinon. */
+    remplacements: listeRemplacements(data, currentSessionId),
+    ordre: ordreEstModifie(data, dayProgram.exercises.length) ? ordreDuJour(data, dayProgram.exercises.length) : null
   };
 
   /* Firestore ne résout la promesse de `setDoc` qu'après confirmation du serveur.
@@ -2496,10 +2801,15 @@ function renderArchivesList(){
     const estimee = arc.montre && arc.montre.source !== 'Strava' && montreFen && montreFen.estimee;
     const montreStr = montreResume(arc.montre) ? (estimee ? '≈ ' : '') + montreResume(arc.montre) : '';
     const avecMontre = montreBtn && archiveMontreEligible(arc);
+    const adapte = (archiveModifiee(arc) ? arc.remplacements : [])
+      .map(r => `⇄ ${r.de} → ${r.par}`)
+      .concat(Array.isArray(arc.ordre) ? ['⇅ ordre modifié'] : [])
+      .join(' · ');
     item.innerHTML = `
       <div class="archive-info">
         <span class="archive-date">${escapeHtml(arc.dateLabel)} · ${escapeHtml(arc.timeLabel)} ${tonnageStr}${durationStr}</span>
         <span class="archive-title">${escapeHtml(arc.sessionLabel)} — ${escapeHtml(arc.sessionTitle)}</span>
+        ${adapte ? `<span class="archive-adapt">${escapeHtml(adapte)}</span>` : ''}
         ${montreStr ? `<span class="archive-montre">${escapeHtml(montreStr)}</span>` : ''}
       </div>
       <div class="archive-actions">
@@ -3357,7 +3667,8 @@ function archiveExerciseMethodId(archive, exerciseName){
 function getArchivedSessions(profile){
   const seen = new Map();
   getArchivesList(profile).forEach(arc => {
-    if(!arc.sessionId || seen.has(arc.sessionId)) return;
+    /* une séance avec un exercice remplacé n'est pas comparable (01/10/2026) */
+    if(!arc.sessionId || seen.has(arc.sessionId) || archiveModifiee(arc)) return;
     seen.set(arc.sessionId, {
       id: arc.sessionId,
       label: arc.sessionLabel || 'Séance',
@@ -3602,8 +3913,9 @@ function getProgressPoints(profile, selection){
   archives.forEach(arc => {
     let value = null, weight = null, reps = null;
     if(wantedSession !== null){
-      /* seules les occurrences de CETTE séance entrent dans la courbe */
-      if(arc.sessionId === wantedSession && arc.tonnage > 0) value = arc.tonnage;
+      /* seules les occurrences de CETTE séance entrent dans la courbe — sans exercice
+         remplacé (01/10/2026) : elle ne serait plus comparable aux autres */
+      if(arc.sessionId === wantedSession && arc.tonnage > 0 && !archiveModifiee(arc)) value = arc.tonnage;
     } else if(isMethodSel){
       /* seules les séances où CETTE méthode a été utilisée pour cet exercice */
       if(archiveExerciseMethodId(arc, methodExerciseName) === methodId){
