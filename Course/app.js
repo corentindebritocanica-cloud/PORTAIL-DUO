@@ -276,7 +276,11 @@ function carteProduitListe(id, p){
 function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
   const ici = idListeAffichee();
-  if(!p.aAcheter){ dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici }); planifierNotifListe(); }
+  if(!p.aAcheter){
+    /* ajoutePar / ajouteLe (01/10/2026) : servent à la fenêtre « Ajouté à la liste » de l'autre téléphone. */
+    dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici, ajoutePar: lireProfilCommun().toLowerCase(), ajouteLe: Date.now() });
+    planifierNotifListe();
+  }
   else if(listeDe(p) === ici){ dbUpdateDoc('produits', id, { aAcheter: false }); planifierNotifListe(); }
   else dbUpdateDoc('produits', id, { listeId: ici });   /* simple changement de liste : le nombre à acheter ne bouge pas */
 }
@@ -321,6 +325,93 @@ function notifierCoursesFaites(nbAchetes){
 }
 window.addEventListener('pagehide', ()=> envoyerNotifListe(true));
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') envoyerNotifListe(true); });
+
+/* AJOUTÉ À LA LISTE — fenêtre à l'ouverture (01/10/2026, demande de Corentin) : quand l'autre a coché
+   des produits « à acheter » (ce que la notification annonce), Course les liste en s'ouvrant.
+   - Chaque coche « à acheter » enregistre qui l'a faite et quand (`ajoutePar`, `ajouteLe` : toggleAAcheter).
+   - Ce téléphone retient jusqu'à quand il a vu la liste (localStorage `courses_vu`) : mis à jour à la
+     fermeture de la fenêtre, et quand l'app passe en arrière-plan (ce qui était à l'écran a été vu).
+   - Vérifié à l'ouverture de l'app ET au retour au premier plan (toucher une notification ramène souvent
+     l'app déjà ouverte), dès que la liste arrive du serveur : FENETRE_OUVERTURE_MS. Pendant l'utilisation,
+     les ajouts de l'autre apparaissent dans la liste sans fenêtre (marqués vus).
+   - Seulement ce qui est encore à acheter, coché par l'AUTRE profil (pas ses propres coches, faites sur
+     un autre téléphone). Première ouverture sur ce téléphone : rien (on ne liste pas tout l'historique). */
+const CLE_VU = 'courses_vu';
+const FENETRE_OUVERTURE_MS = 10000;
+let finOuverture = Date.now() + FENETRE_OUVERTURE_MS;
+function lireVu(){
+  try { const v = parseInt(localStorage.getItem(CLE_VU), 10); return isNaN(v) ? null : v; } catch (e) { return null; }
+}
+function marquerVu(){ try { localStorage.setItem(CLE_VU, String(Date.now())); } catch (e) {} }
+const fenetreNouveautes = ()=> document.getElementById('nouveautes');
+const nouveautesOuverte = ()=> fenetreNouveautes().style.display !== 'none';
+function nouveautesDeLautre(vu){
+  const moi = lireProfilCommun().toLowerCase();
+  return Object.values(state.produits)
+    .filter(p=> p && p.aAcheter && !p.achete && p.ajoutePar && p.ajoutePar !== moi && (p.ajouteLe || 0) > vu)
+    .sort((a, b)=> (a.ajouteLe || 0) - (b.ajouteLe || 0));
+}
+function verifierNouveautes(){
+  if(document.visibilityState !== 'visible') return;
+  const vu = lireVu();
+  if(vu === null){ marquerVu(); finOuverture = 0; return; }
+  const ajouts = nouveautesDeLautre(vu);
+  if(ajouts.length === 0) return;   /* la fenêtre d'ouverture reste armée : la liste du serveur peut arriver après */
+  finOuverture = 0;
+  afficherNouveautes(ajouts);
+}
+function afficherNouveautes(ajouts){
+  const autre = lireProfilCommun() === 'Lisa' ? 'Corentin' : 'Lisa';
+  const plusieursListes = listesTriees().length > 1;
+  document.getElementById('nouveautes-texte').textContent =
+    autre + ' a ajouté ' + pluriel(ajouts.length, 'article') + ' depuis ta dernière visite :';
+  const ul = document.getElementById('nouveautes-liste');
+  ul.innerHTML = '';
+  ajouts.forEach(p=>{
+    const li = document.createElement('li');
+    li.className = 'nouveaute';
+    li.style.setProperty('--c-liste', couleurListe(listeDe(p)));
+    const pastille = document.createElement('span');
+    pastille.className = 'liste-pastille';
+    const textes = document.createElement('span');
+    textes.className = 'nouveaute-textes';
+    const nom = document.createElement('span');
+    nom.className = 'nouveaute-nom';
+    nom.textContent = p.nom || '';
+    const rayon = state.rayons[p.rayonId];
+    const details = [p.quantite || '', rayon ? rayon.nom : '', plusieursListes ? (infoListe(listeDe(p)).nom || '') : '']
+      .filter(Boolean).join(' · ');
+    textes.appendChild(nom);
+    if(details){
+      const d = document.createElement('span');
+      d.className = 'nouveaute-detail';
+      d.textContent = details;
+      textes.appendChild(d);
+    }
+    li.appendChild(pastille);
+    li.appendChild(textes);
+    ul.appendChild(li);
+  });
+  const fond = fenetreNouveautes();
+  const fermer = ()=>{ fond.style.display = 'none'; marquerVu(); };
+  document.getElementById('nouveautes-ok').onclick = fermer;
+  fond.onclick = (e)=>{ if(e.target === fond) fermer(); };
+  fond.style.display = 'flex';
+}
+/* Appelé à chaque liste reçue du SERVEUR (pas du cache local). */
+function nouveautesAuServeur(){
+  if(Date.now() < finOuverture) verifierNouveautes();
+  else if(document.visibilityState === 'visible' && !nouveautesOuverte()) marquerVu();
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){
+    finOuverture = Date.now() + FENETRE_OUVERTURE_MS;
+    if(firestoreRecu.produits) verifierNouveautes();
+  } else if(!nouveautesOuverte() && lireVu() !== null){
+    marquerVu();
+  }
+});
+window.addEventListener('pagehide', ()=>{ if(!nouveautesOuverte() && lireVu() !== null) marquerVu(); });
 function updateQuantite(id, val){
   dbUpdateDoc('produits', id, { quantite: val });
 }
@@ -824,7 +915,7 @@ function demarrer(){
     if(compte){
       if(ecoutes) return;
       ecoutes = [
-        dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); }),
+        dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); if(!cache) nouveautesAuServeur(); }),
         dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); }),
         /* Listes de courses (30/09/2026) : petite collection, une écoute de plus. Si elle échoue
            (règles pas encore publiées), l'app reste utilisable avec la seule liste Maison. */
