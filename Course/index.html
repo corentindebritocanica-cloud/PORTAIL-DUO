@@ -167,6 +167,19 @@
 </div>
 
 <!-- Boite de dialogue maison (bottom-sheet) : remplace window.confirm() — voir dialogue() dans app.js -->
+<!-- Ajouté à la liste (01/10/2026) : produits cochés par l'autre depuis la dernière visite, montrés à
+     l'ouverture — voir « AJOUTÉ À LA LISTE » dans app.js. -->
+<div class="modal-fond" id="nouveautes" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="nouveautes-titre">
+  <div class="modal-carte">
+    <h2 id="nouveautes-titre">🛒 Ajouté à la liste</h2>
+    <p class="dialogue-texte" id="nouveautes-texte"></p>
+    <ul class="nouveautes-liste" id="nouveautes-liste"></ul>
+    <div class="modal-actions">
+      <button type="button" class="btn-enregistrer" id="nouveautes-ok">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-fond" id="dialogue" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
   <div class="modal-carte">
     <h2 id="dialogue-titre"></h2>

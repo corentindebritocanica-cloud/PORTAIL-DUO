@@ -291,6 +291,13 @@
   /* Boite de dialogue maison (remplace window.confirm) : par-dessus la modale produit */
   #dialogue{z-index:110;}
   .dialogue-texte{margin:-8px 0 4px; font-size:14px; line-height:1.45; color:var(--text-dim);}
+  /* Ajouté à la liste (01/10/2026) : produits cochés par l'autre depuis la dernière visite */
+  .nouveautes-liste{list-style:none; margin:10px 0 0; padding:0; max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .nouveaute{display:flex; align-items:center; gap:12px; padding:11px 2px; border-top:1px solid var(--border);}
+  .nouveaute:first-child{border-top:none;}
+  .nouveaute-textes{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .nouveaute-nom{font-size:15.5px; font-weight:700; color:var(--text);}
+  .nouveaute-detail{font-size:12.5px; color:var(--text-dim);}
   .modal-carte h2{margin:0 0 18px; font-size:19px;}
   .champ{margin-bottom:16px;}
   .champ label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
