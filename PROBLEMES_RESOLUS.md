@@ -19,6 +19,20 @@
 
 ---
 
+## 🚧 4 apps — mise en ligne bloquée par un fichier de documentation (01/10/2026)
+
+### 01/10/2026 — 4 apps — GitHub Pages ne publiait plus rien depuis le 30/09 au soir
+**Symptôme** : nouvelles versions fusionnées dans `main` (import Strava le 30/09, séance du jour adaptée de Muscu le 01/10) mais rien en ligne : `DERNIERE_MAJ` restait au 30/09 23:29. Le workflow « Auto-version » était vert ; c'est le workflow **« pages build and deployment »** qui échouait, à chaque push.
+**Fausses pistes explorées** : aucune — le journal du build (onglet Actions) donne la cause directement : `Liquid syntax error (line 33)` dans `PROBLEMES_RESOLUS.md`.
+**Cause racine** : sans fichier `.nojekyll`, GitHub Pages passe le dépôt dans **Jekyll**, qui interprète les fichiers Markdown avec le langage de modèles **Liquid**. Une entrée de documentation contenait deux accolades ouvrantes collées (un extrait de JSON) : Liquid y voit une variable, le build plante, et **plus aucun fichier n'est publié** — code des apps compris.
+**Solution** : fichier vide **`.nojekyll`** à la racine : Pages publie les fichiers tels quels, sans Jekyll (qui ne servait à rien : les apps sont du HTML/JS statique, aucune page n'utilise Liquid). Conséquence : les `.md` sont servis bruts au lieu d'être convertis en pages HTML — sans importance, ils se lisent sur GitHub.
+**Leçons généralisables** :
+- **Après une fusion, vérifier la mise en ligne**, pas seulement le workflow « Auto-version » : `DERNIERE_MAJ` de la page en ligne doit changer en 1 à 2 minutes ; sinon, onglet Actions → « pages build and deployment ».
+- Un fichier de **documentation** peut bloquer la publication du **code** quand un outil de build le lit : ne pas laisser un générateur traiter des fichiers dont il n'a pas besoin (`.nojekyll`).
+**Fichiers touchés** : `.nojekyll` (nouveau), README racine
+
+---
+
 ## ⌚ Muscu — données d'une montre connectée (Suunto, Garmin…) dans une PWA (30/09/2026)
 
 ### 30/09/2026 — Muscu — importer FC et calories d'Apple Santé sans serveur ni mot de passe hors de l'app
