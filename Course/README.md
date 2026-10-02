@@ -507,3 +507,9 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 - **Correctif** (`app.js`, bouton `#btn-course-terminee`) : produits relus au moment d'écrire (seuls ceux qui existent encore) ; si le lot échoue, une écriture **par produit** décoche tout ce qui peut l'être ; s'il en reste, fenêtre « Course terminée incomplète » avec le nombre et la raison.
 - **Vérifié** (Chromium + émulateurs) : cas normal → les 2 achetés décochés (`aAcheter` et `achete` à faux), l'article non acheté reste à acheter ; lot avec un produit inexistant → avant : rien décoché ; maintenant : les 2 vrais décochés et message « 1 article n'a pas pu être décoché (not-found) ». **Cause exacte de l'essai de Corentin non confirmée** : le message dira désormais ce qui bloque si ça se reproduit.
 
+## Articles achetés en bas de l'onglet Course (02/10/2026)
+
+**Demande de Corentin** : un article coché (dans le caddie) ne doit plus encombrer ce qu'il reste à acheter.
+- `renderCourse()` : les articles `achete` quittent leur rayon et vont dans une dernière section **« 🛒 Dans le caddie (N) »** (triés par nom, séparée par un filet pointillé, `.section-caddie`). Les rayons ne montrent plus que ce qu'il reste à acheter. Décocher un article le remet dans son rayon.
+- « Course terminée » inchangé (agit sur les articles du caddie affichés).
+

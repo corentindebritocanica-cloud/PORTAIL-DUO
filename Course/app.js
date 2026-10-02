@@ -428,8 +428,11 @@ function renderCourse(){
     document.getElementById('btn-course-terminee').classList.remove('visible');
     return;
   }
+  /* 02/10/2026 (demande de Corentin) : un article coché « acheté » quitte son rayon et descend dans la
+     section « Dans le caddie », tout en bas — en haut ne reste que ce qu'il reste à acheter. */
   const parRayon = {};
-  items.forEach(([id,p])=> (parRayon[p.rayonId||''] ||= []).push([id,p]));
+  const caddie = items.filter(([id,p])=> p.achete).sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+  items.filter(([id,p])=> !p.achete).forEach(([id,p])=> (parRayon[p.rayonId||''] ||= []).push([id,p]));
 
   let html = '';
   nomsRayonsTries().forEach(([rayonId, rayon])=>{
@@ -443,6 +446,11 @@ function renderCourse(){
   if(parRayon['']){
     html += `<div class="section-rayon"><p class="titre-rayon">Sans rayon</p>`;
     parRayon[''].forEach(([id,p])=> html += carteProduitCourse(id,p));
+    html += `</div>`;
+  }
+  if(caddie.length){
+    html += `<div class="section-rayon section-caddie"><p class="titre-rayon">🛒 Dans le caddie (${caddie.length})</p>`;
+    caddie.forEach(([id,p])=> html += carteProduitCourse(id,p));
     html += `</div>`;
   }
   conteneur.innerHTML = html;
