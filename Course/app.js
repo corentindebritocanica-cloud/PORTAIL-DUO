@@ -482,13 +482,27 @@ document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
   const filtre = filtreCourse();   /* ce qui est affiché : toutes les listes, ou la liste filtrée */
   const aEffacer = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && p.achete && (filtre === TOUTES || listeDe(p) === filtre));
   if(aEffacer.length===0) return;
+  /* 02/10/2026 (retour de Corentin : articles achetés restés cochés après « Course terminée »).
+     Avant : un seul lot (batch) sans gestion d'erreur — si UNE écriture du lot était refusée (produit
+     supprimé entre-temps depuis l'autre téléphone, session expirée…), TOUT le lot échouait en silence
+     et les articles revenaient cochés. Désormais : produits relus au moment d'écrire (seuls ceux qui
+     existent encore), et en cas d'échec du lot, une écriture par produit pour décocher tout ce qui
+     peut l'être, avec un message si certains restent. */
+  const maj = ()=> ({ aAcheter:false, achete:false, compteur: firebase.firestore.FieldValue.increment(1) });
   firestorePret.then(()=>{
+    const ids = aEffacer.map(([id])=> id).filter(id=> state.produits[id]);
     const batch = db.batch();
-    aEffacer.forEach(([id])=> batch.update(docRef('produits', id), {
-      aAcheter:false, achete:false,
-      compteur: firebase.firestore.FieldValue.increment(1)
-    }));
-    batch.commit();
+    ids.forEach(id=> batch.update(docRef('produits', id), maj()));
+    return batch.commit().catch(err=>{
+      console.warn('Course terminée : lot refusé, écriture produit par produit', err);
+      return Promise.all(ids.map(id=> docRef('produits', id).update(maj()).then(()=> null, e=> e)))
+        .then(erreurs=>{
+          const ko = erreurs.filter(Boolean);
+          if(ko.length) dialogue({ titre:'Course terminée incomplète',
+            texte: ko.length + ' article' + (ko.length > 1 ? 's' : '') + ' n\'' + (ko.length > 1 ? 'ont' : 'a') + ' pas pu être décoché' + (ko.length > 1 ? 's' : '') + ' (' + (ko[0].code || ko[0].message || 'erreur') + '). Réessaie dans un instant.',
+            ok:'OK', annuler:'', danger:false });
+        });
+    });
   });
   notifierCoursesFaites(aEffacer.length);   /* NOTIFICATIONS : « Les courses sont faites ! » à l'autre */
 });
