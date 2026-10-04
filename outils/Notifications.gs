@@ -9,6 +9,11 @@
    du compte du duo, puis envoyer la notification aux téléphones abonnés de L'AUTRE
    profil (Corentin ↔ Lisa) via Firebase Cloud Messaging.
 
+   ⚠️ UN SEUL doPost DANS TOUT LE PROJET (04/10/2026) : c'est celui-ci. Il aiguille
+   action:'strava' → Strava.gs et action:'sauvegarde' → Sauvegarde.gs. Aucun autre fichier
+   du projet (en particulier celui des sauvegardes du dimanche) ne doit définir doPost :
+   dans Apps Script, deux fonctions du même nom s'écrasent silencieusement.
+
    CLÉ : réutilise la propriété de script SA_BUDGET (clé du compte de service de
    course-app-36e9d, déjà là pour les sauvegardes). Rien d'autre à configurer.
 
@@ -33,7 +38,8 @@ var NOTIF_CFG = {
   proprieteCle: 'SA_BUDGET',                            // clé du compte de service (propriétés du script)
   collection: 'notifAbonnes',
   profils: ['corentin', 'lisa'],
-  maxParMinute: 20                                      // garde-fou : au-delà, les demandes sont refusées
+  maxParMinute: 20,                                     // garde-fou : au-delà, les demandes (authentifiées) sont refusées
+  maxGlobalParMinute: 60                                // toutes demandes confondues, AVANT la vérification du jeton
 };
 
 /* ---------- Points d'entrée de l'application Web ---------- */
@@ -45,9 +51,15 @@ function doGet(e) {
 
 function doPost(e) {
   try {
+    /* 04/10/2026 (audit) : compteur global AVANT tout travail — une avalanche de demandes anonymes
+       (faux jetons) ne peut plus épuiser les quotas UrlFetch / temps d'exécution du compte Google. */
+    notifCompter_('relais-minute-' + Math.floor(Date.now() / 60000), NOTIF_CFG.maxGlobalParMinute, 120);
     var q = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     /* Bouton ❤️ de Muscu (30/09/2026) : FC et calories de la séance, lues sur Strava (Strava.gs). */
     if (q.action === 'strava') return notifJson_(stravaTraiter_(q));
+    /* Boutons « ✉️ Envoyer fichier .json par mail » de Budget et Muscu (04/10/2026, Sauvegarde.gs) :
+       remplacent l'ancien doPost des sauvegardes, qui acceptait n'importe quel envoi sans jeton. */
+    if (q.action === 'sauvegarde') return notifJson_(sauvegardeTraiter_(q));
     notifVerifierJeton_(q.idToken);
     notifLimiter_();
     var msg = notifNettoyer_(q);
@@ -78,6 +90,7 @@ function notifListerAbonnes() {
    RSA seul ; ce contrôle par l'API fait foi. */
 function notifVerifierJeton_(idToken) {
   if (typeof idToken !== 'string' || idToken.length < 100) throw new Error('jeton absent');
+  notifPreVerifier_(idToken);
   var rep = UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + NOTIF_CFG.cleWeb, {
     method: 'post', contentType: 'application/json', payload: JSON.stringify({ idToken: idToken }), muteHttpExceptions: true
   });
@@ -85,12 +98,34 @@ function notifVerifierJeton_(idToken) {
   var u = r.users && r.users[0];
   if (rep.getResponseCode() !== 200 || !u || u.localId !== NOTIF_CFG.uidDuo) throw new Error('jeton refusé');
 }
+/* 04/10/2026 (audit) : tri local SANS réseau avant accounts:lookup. Le contenu du jeton (non signé
+   à ce stade) doit déjà annoncer le bon projet, le bon compte et une date valide ; un faux jeton
+   est donc refusé sans coûter d'appel UrlFetch. La vérification qui fait foi reste accounts:lookup. */
+function notifPreVerifier_(idToken) {
+  var parts = idToken.split('.');
+  if (parts.length !== 3) throw new Error('jeton refusé');
+  var c;
+  try {
+    var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    c = JSON.parse(Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString());
+  } catch (err) { throw new Error('jeton refusé'); }
+  if (!c || c.aud !== NOTIF_CFG.projet || c.sub !== NOTIF_CFG.uidDuo || !(Number(c.exp) * 1000 > Date.now())) throw new Error('jeton refusé');
+}
 function notifLimiter_() {
-  var cache = CacheService.getScriptCache();
-  var cle = 'notif-minute-' + Math.floor(Date.now() / 60000);
-  var n = Number(cache.get(cle) || 0) + 1;
-  cache.put(cle, String(n), 120);
-  if (n > NOTIF_CFG.maxParMinute) throw new Error('trop de demandes');
+  notifCompter_('notif-minute-' + Math.floor(Date.now() / 60000), NOTIF_CFG.maxParMinute, 120);
+}
+/* Compteur atomique (verrou du script) : sans verrou, deux demandes simultanées lisaient la même
+   valeur et le plafond pouvait être dépassé. */
+function notifCompter_(cle, max, dureeS) {
+  var verrou = LockService.getScriptLock();
+  if (!verrou.tryLock(3000)) throw new Error('trop de demandes');
+  try {
+    var cache = CacheService.getScriptCache();
+    var n = Number(cache.get(cle) || 0) + 1;
+    cache.put(cle, String(n), dureeS);
+    if (n > max) throw new Error('trop de demandes');
+  } finally { verrou.releaseLock(); }
 }
 /* Rien de ce qui arrive n'est utilisé tel quel : longueurs bornées, lien limité aux apps du site. */
 function notifNettoyer_(q) {

@@ -111,6 +111,51 @@
             annee: m.annee || parseInt(m.nom.split(' ')[1])
         });
 
+        // 04/10/2026 (audit) : contrôle d'un fichier .json AVANT la restauration (qui remplace toute la
+        // collection « mois »). Avant : seul « tableau + nom texte » était vérifié — un mois sans id
+        // s'écrivait dans mois/undefined (plusieurs mois écrasant le même document), un id « a/b/c »
+        // créait une sous-collection, un montant texte restait texte. Lève une erreur au moindre écart.
+        // Identifiants réels observés : 9 caractères base 36, ou horodatage avec décimales (« 1772714252130.8916 »).
+        const ID_IMPORT = /^[A-Za-z0-9._-]{1,40}$/;
+        const LISTES_MOIS = ['charges', 'depenses', 'provisions', 'fixes'];
+        const validerImport = (imported) => {
+            if (!Array.isArray(imported) || !imported.length || imported.length > 600) throw new Error('fichier : tableau de mois attendu');
+            const vus = new Set();
+            return imported.map((m) => {
+                if (!m || typeof m !== 'object' || Array.isArray(m)) throw new Error('mois invalide');
+                const id = (typeof m.id === 'string' || typeof m.id === 'number') ? String(m.id) : '';
+                if (!ID_IMPORT.test(id) || id === '.' || id === '..' || vus.has(id)) throw new Error('identifiant de mois invalide : ' + id);
+                vus.add(id);
+                const [nomMois, anneeTxt] = typeof m.nom === 'string' ? m.nom.split(' ') : [];
+                if (!NOMS_MOIS.includes(nomMois) || !/^\d{4}$/.test(anneeTxt || '')) throw new Error('nom de mois invalide');
+                const annee = m.annee === undefined ? parseInt(anneeTxt, 10) : Number(m.annee);
+                if (!Number.isInteger(annee) || annee < 2000 || annee > 2100) throw new Error('année invalide');
+                const nombre = (v, champ) => {
+                    if (v === undefined || v === null || v === '') return 0;
+                    const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
+                    if (!Number.isFinite(n) || Math.abs(n) > 1e7) throw new Error(champ + ' invalide');
+                    return n;
+                };
+                const propre = { ...m, id, annee, revenus: nombre(m.revenus, 'revenus'), revenus_add: nombre(m.revenus_add, 'revenus_add'), especes_add: nombre(m.especes_add, 'especes_add') };
+                LISTES_MOIS.forEach((cle) => {
+                    const brut = m[cle];
+                    if (brut === undefined || brut === null) return;
+                    const liste = Array.isArray(brut) ? brut : (typeof brut === 'object' ? Object.values(brut) : null);
+                    if (!liste || liste.length > 2000) throw new Error(cle + ' invalide');
+                    propre[cle] = liste.map((it) => {
+                        if (!it || typeof it !== 'object' || Array.isArray(it)) throw new Error('ligne invalide');
+                        ['id', 'libelle', 'categorie', 'date', 'moyenPaiement'].forEach((k) => {
+                            if (it[k] !== undefined && it[k] !== null && (typeof it[k] !== 'string' || it[k].length > 500)) throw new Error('ligne invalide (' + k + ')');
+                        });
+                        const ligne = { ...it, montant: nombre(it.montant, 'montant') };
+                        if (it.montantEspeces !== undefined) ligne.montantEspeces = nombre(it.montantEspeces, 'montantEspeces');
+                        return ligne;
+                    });
+                });
+                return propre;
+            });
+        };
+
         const trierMois = (arr) => {
             return arr.sort((a,b) => {
                 if(a.annee !== b.annee) return a.annee - b.annee;
@@ -448,7 +493,7 @@
                 const open = state.anneesOuvertes.has(parseInt(annee));
                 const div = document.createElement('div');
                 div.className = 'year-group';
-                div.innerHTML = `<div class="year-header ${!open ? 'collapsed' : ''}" data-year="${annee}">${annee}</div>
+                div.innerHTML = `<div class="year-header ${!open ? 'collapsed' : ''}" data-year="${esc(annee)}">${esc(annee)}</div>
                                  <div class="month-sublist ${!open ? 'hidden' : ''}"></div>`;
                 const sub = div.querySelector('.month-sublist');
                 groupes[annee].reverse().forEach(m => {
@@ -502,23 +547,27 @@
                 row.className = 'item-row';
                 row.dataset.id = item.id;
 
+                // 04/10/2026 (audit) : le champ affiche le montant AVEC son signe. Avant, il affichait la
+                // valeur absolue et la saisie enregistrait ce qui était tapé : toucher le chiffre d'un
+                // remboursement (−20 €) l'enregistrait en dépense (+20 €), sans aucun message.
                 const isNeg = item.montant < 0;
                 const negCls = isNeg ? 'montant-neg' : '';
-                const mntFinal = isNeg ? Math.abs(item.montant || 0) : (item.montant || 0);
+                const mntFinal = Number(item.montant) || 0;
+                const options = state.categories.map(c => `<option value="${esc(c)}" ${item.categorie === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
 
                 // CONDITION SPECIALE: ONGLET FIXES MINIMALISTE
                 if (type === 'fixes') {
                     row.innerHTML = `
                         <div class="drag-handle">☰</div>
                         <div class="item-content fix-content">
-                            <select class="fix-cat" data-id="${item.id}" data-type="${type}" data-field="categorie">
-                                ${state.categories.map(c => `<option value="${c}" ${item.categorie === c ? 'selected' : ''}>${c}</option>`).join('')}
+                            <select class="fix-cat" data-id="${esc(item.id)}" data-type="${type}" data-field="categorie">
+                                ${options}
                             </select>
                             <div class="item-montant">
-                                <input type="number" value="${mntFinal}" class="fix-montant ${negCls}" data-id="${item.id}" data-type="${type}" data-field="montant">
+                                <input type="number" value="${mntFinal}" class="fix-montant ${negCls}" data-id="${esc(item.id)}" data-type="${type}" data-field="montant">
                             </div>
                         </div>
-                        <button class="btn-delete" data-del-type="${type}" data-del-id="${item.id}">✕</button>
+                        <button class="btn-delete" data-del-type="${type}" data-del-id="${esc(item.id)}">✕</button>
                     `;
                 } 
                 // AFFICHAGE CLASSIQUE POUR LES AUTRES ONGLETS
@@ -528,7 +577,7 @@
                     if (type === 'depenses') {
                         const meth = item.moyenPaiement || 'CB';
                         const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : '💳';
-                        payIcon = `<button class="btn-pay-method" data-pay="${item.id}" title="Mode de paiement">${icon}</button>`;
+                        payIcon = `<button class="btn-pay-method" data-pay="${esc(item.id)}" title="Mode de paiement">${icon}</button>`;
                         if (meth === 'MIXTE') {
                             const especes = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
                             const carte = Math.max((parseFloat(item.montant) || 0) - especes, 0);
@@ -536,11 +585,11 @@
                             <div class="item-mixte">
                                 <div class="mixte-label">💵 Espèces — par paliers de 5 €</div>
                                 <div class="mixte-row">
-                                    <button class="mixte-btn" data-mixte-decr="${item.id}" aria-label="Retirer 5 € d'espèces">−</button>
-                                    <div class="mixte-scrub" data-mixte-scrub="${item.id}">
+                                    <button class="mixte-btn" data-mixte-decr="${esc(item.id)}" aria-label="Retirer 5 € d'espèces">−</button>
+                                    <div class="mixte-scrub" data-mixte-scrub="${esc(item.id)}">
                                         <div class="mixte-value">${especes.toFixed(0)} €</div>
                                     </div>
-                                    <button class="mixte-btn" data-mixte-incr="${item.id}" aria-label="Ajouter 5 € d'espèces">+</button>
+                                    <button class="mixte-btn" data-mixte-incr="${esc(item.id)}" aria-label="Ajouter 5 € d'espèces">+</button>
                                 </div>
                                 <div class="mixte-hint">↕ glisser pour ajuster</div>
                                 <div class="mixte-recap">
@@ -555,21 +604,21 @@
                         <div class="drag-handle">☰</div>
                         <div class="item-content">
                             <div class="item-top">
-                                <textarea data-id="${item.id}" data-type="${type}" data-field="libelle" placeholder="Note...">${item.libelle || ''}</textarea>
+                                <textarea data-id="${esc(item.id)}" data-type="${type}" data-field="libelle" placeholder="Note...">${esc(item.libelle || '')}</textarea>
                                 <div class="item-montant">
-                                    ${isNeg ? '-' : ''}<input type="number" value="${mntFinal}" class="${negCls}" data-id="${item.id}" data-type="${type}" data-field="montant">
+                                    <input type="number" value="${mntFinal}" class="${negCls}" data-id="${esc(item.id)}" data-type="${type}" data-field="montant">
                                     ${payIcon}
                                 </div>
                             </div>
                             <div class="item-bottom">
-                                <input type="date" value="${item.date || ''}" data-id="${item.id}" data-type="${type}" data-field="date">
-                                <select data-id="${item.id}" data-type="${type}" data-field="categorie">
-                                    ${state.categories.map(c => `<option value="${c}" ${item.categorie === c ? 'selected' : ''}>${c}</option>`).join('')}
+                                <input type="date" value="${esc(item.date || '')}" data-id="${esc(item.id)}" data-type="${type}" data-field="date">
+                                <select data-id="${esc(item.id)}" data-type="${type}" data-field="categorie">
+                                    ${options}
                                 </select>
                             </div>
                             ${mixteRow}
                         </div>
-                        <button class="btn-delete" data-del-type="${type}" data-del-id="${item.id}">✕</button>
+                        <button class="btn-delete" data-del-type="${type}" data-del-id="${esc(item.id)}">✕</button>
                     `;
                 }
                 
@@ -712,7 +761,7 @@
                 const pct = Math.min(Math.round((totalObj / obj.montant) * 100), 100);
                 bloc.innerHTML += `
                     <div class="obj-bloc">
-                        <div class="progress-header"><span>🎯 ${obj.nom}</span><span>${totalObj.toFixed(2)} / ${obj.montant}€</span></div>
+                        <div class="progress-header"><span>🎯 ${esc(obj.nom)}</span><span>${totalObj.toFixed(2)} / ${esc(obj.montant)}€</span></div>
                         <div class="progress-track"><div class="progress-fill fill-provisions" style="width:${pct}%"></div></div>
                     </div>
                 `;
@@ -724,7 +773,7 @@
             const objDiv = document.getElementById('admin-objectifs');
             objDiv.innerHTML = state.objectifsProvisions.map((o, i) => `
                 <div class="month-pill obj-pill">
-                    <span>${o.nom} (${o.montant}€)</span><button class="btn-delete" data-del-obj="${i}">✕</button>
+                    <span>${esc(o.nom)} (${esc(o.montant)}€)</span><button class="btn-delete" data-del-obj="${i}">✕</button>
                 </div>
             `).join('');
 
@@ -733,7 +782,7 @@
             else {
                 corbDiv.innerHTML = state.corbeille.slice(0,5).map((item, i) => `
                     <div class="corb-row">
-                        <span>${item.libelle || item.categorie} (${item.montant}€)</span>
+                        <span>${esc(item.libelle || item.categorie)} (${esc(item.montant)}€)</span>
                         <button class="btn-small bg-primary" data-restore="${i}">Restaurer</button>
                     </div>
                 `).join('');
@@ -960,7 +1009,7 @@
                 const deltaY = mixteDragStartY - e.clientY;
                 const steps = Math.round(deltaY / 18);
                 mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), max);
-                const valueEl = document.querySelector(`[data-mixte-scrub="${mixteDragId}"] .mixte-value`);
+                const valueEl = document.querySelector(`[data-mixte-scrub="${CSS.escape(String(mixteDragId))}"] .mixte-value`);
                 if (valueEl) valueEl.textContent = mixteDragLive.toFixed(0) + ' €';
             }, { passive: false });
             const finirGlisserMixte = () => {
@@ -1101,14 +1150,28 @@
             }
         }));
 
-        // Sauvegarde Mail
+        // Sauvegarde Mail — 04/10/2026 (audit) : passe par le RELAIS (window.RELAIS_DUO, commun.js §7) avec le
+        // jeton de la session : seul le compte du duo peut déclencher le mail (outils/Sauvegarde.gs).
+        // L'ancienne URL (…AKfycbwW3w…) acceptait n'importe quel envoi sans jeton. Réponse lisible :
+        // l'app affiche le vrai résultat au lieu d'un « envoyée » systématique.
         document.getElementById('btn-sauvegarde-mail').onclick = (e) => {
-            const btn = e.target;
+            const btn = e.currentTarget;
+            const u = auth.currentUser;
+            if (!u || u.isAnonymous) { dialogue({ titre: 'Connexion requise' }); return; }
+            if (!state.donnees.length) { dialogue({ titre: 'Rien à sauvegarder' }); return; }
+            if (!window.RELAIS_DUO) { dialogue({ titre: '❌ Erreur', texte: 'Relais indisponible.' }); return; }
             const originalText = btn.innerText; btn.innerText = "⏳ Envoi..."; btn.disabled = true;
-            const urlScript = "https://script.google.com/macros/s/AKfycbwW3w-ScyWzRousgkNA7tdUeifNqB_kr2fXbGH1AqUSduOEdqjegbllEcxkkhVAko3ZIA/exec";
-            fetch(urlScript, { method: 'POST', mode: 'no-cors', body: JSON.stringify(state.donnees) })
-            .then(() => { dialogue({ titre: '✅ Sauvegarde envoyée' }); btn.innerText = originalText; btn.disabled = false; })
-            .catch(() => { dialogue({ titre: '❌ Erreur', texte: "La sauvegarde n'a pas pu être envoyée." }); btn.innerText = originalText; btn.disabled = false; });
+            const fin = () => { btn.innerText = originalText; btn.disabled = false; };
+            u.getIdToken()
+                // text/plain : requête « simple », sans pré-vérification CORS (voir commun.js §7)
+                .then((jeton) => fetch(window.RELAIS_DUO, { method: 'POST', redirect: 'follow', body: JSON.stringify({ action: 'sauvegarde', app: 'budget', idToken: jeton, donnees: state.donnees }) }))
+                .then((rep) => rep.json())
+                .then((r) => {
+                    fin();
+                    if (r && r.ok) dialogue({ titre: '✅ Sauvegarde envoyée', texte: 'Vérifie ta boîte mail.' });
+                    else dialogue({ titre: '❌ Sauvegarde refusée', texte: (r && r.erreur) || 'Erreur inconnue.' });
+                })
+                .catch(() => { fin(); dialogue({ titre: '❌ Erreur', texte: "La sauvegarde n'a pas pu être envoyée." }); });
         };
 
         // Importation manuelle
@@ -1119,8 +1182,11 @@
                 reader.onload = function(evt) {
                     try {
                         const imported = JSON.parse(evt.target.result);
-                        const nouvellesDonnees = trierMois(imported.map(normaliserMois)); // lève une erreur si le fichier est invalide
-                        dialogue({ titre: 'Écraser les données ?', texte: 'Les données actuelles seront remplacées par celles du fichier.', ok: 'Écraser', annuler: 'Annuler', danger: true }).then((oui) => {
+                        const nouvellesDonnees = trierMois(validerImport(imported).map(normaliserMois)); // lève une erreur si le fichier est invalide
+                        const nbSupprimes = state.donnees.filter(m => !nouvellesDonnees.some(n => String(n.id) === String(m.id))).length;
+                        const texte = nouvellesDonnees.length + ' mois dans le fichier. Les données actuelles seront remplacées'
+                            + (nbSupprimes ? ' et ' + nbSupprimes + ' mois absent(s) du fichier seront supprimés.' : '.');
+                        dialogue({ titre: 'Écraser les données ?', texte, ok: 'Écraser', annuler: 'Annuler', danger: true }).then((oui) => {
                             if (!oui) { importInput.value = ''; return; }
                             restaurerCollectionComplete(nouvellesDonnees).then(() => {
                                 state.donnees = nouvellesDonnees;
@@ -1129,7 +1195,7 @@
                                 changerVue('mensuelle');
                             }).catch(() => dialogue({ titre: '❌ Erreur', texte: "Erreur lors de la restauration, rien n'a été modifié." }));
                         });
-                    } catch(err) { dialogue({ titre: 'Fichier invalide' }); }
+                    } catch(err) { importInput.value = ''; dialogue({ titre: 'Fichier invalide', texte: (err && err.message) || '' }); }
                 }; reader.readAsText(file);
             });
         }

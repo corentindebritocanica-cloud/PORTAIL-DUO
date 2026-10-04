@@ -19,6 +19,23 @@
 
 ---
 
+## 🔐 4 apps — audit de sécurité : point d'entrée Apps Script public sans jeton (04/10/2026)
+
+### 04/10/2026 — Budget + Muscu + relais — la sauvegarde par mail acceptait n'importe quel appelant
+**Symptôme** : aucun symptôme visible — trouvé par audit. Les boutons « ✉️ Envoyer fichier .json par mail » appelaient une URL Apps Script `…/exec` (écrite en clair dans le dépôt public) en `no-cors`, **sans jeton**. Le script l'envoyait par mail depuis le compte de Corentin. Conséquences possibles : faux mail « Sauvegarde Budget » indiscernable d'un vrai (même expéditeur, même objet) dont la restauration aurait écrit n'importe quoi dans Firestore — y compris du HTML exécuté par Budget, qui n'échappait pas ses libellés ; quota de mails épuisé → sauvegarde du dimanche en échec **et** mail « ⚠️ Échec » non envoyé.
+**Fausses pistes explorées** : « l'URL n'est pas un secret, donc ce n'est pas grave » — vrai pour le relais des notifications, qui vérifie le jeton ; faux pour un `doPost` qui ne vérifie rien. Restreindre la clé web Firebase par domaine : bloquerait le relais (Apps Script appelle `accounts:lookup` sans en-tête de domaine).
+**Cause racine** : deux `doPost` dans le même projet Apps Script (sauvegardes + relais). Un seul peut gagner : le déploiement des sauvegardes ne fonctionnait que parce qu'il restait figé sur une ancienne version — la vérification de jeton du relais n'avait jamais pu s'y appliquer. Et un `fetch` en `no-cors` affiche « ✅ envoyée » quoi qu'il arrive.
+**Solution** : un seul `doPost` (relais, `Notifications.gs`) qui aiguille `action: 'sauvegarde'` vers `Sauvegarde.gs` après vérification du jeton du duo ; plafond 6 envois/heure ; destinataire = `Session.getEffectiveUser()` (aucune adresse dans le code) ; ancien déploiement **archivé** (un déploiement figé sur une ancienne version reste appelable tant qu'il existe). Côté apps : jeton envoyé, réponse lue (`text/plain`, pas de `no-cors`), vrai résultat affiché. Relais durci : compteur global avant vérification, tri local du jeton (projet/UID/expiration) avant tout appel réseau, compteurs sous `LockService`. Budget : `esc()` partout, import `.json` validé (id, nom, année, montants), signe des montants conservé à l'édition.
+**Leçons généralisables** :
+- **Tout point d'entrée public (`doPost`, `doGet`, webhook) doit exiger une preuve d'identité**, même s'il « ne fait qu'envoyer un mail à soi-même » : un mail de soi-même est la source la plus crédible qui soit.
+- **Un seul `doPost` par projet Apps Script** ; aiguiller par `action`. Après un changement de code : « Nouvelle version » sur le bon déploiement, et **archiver** les déploiements obsolètes.
+- Un limiteur placé **après** une vérification réseau ne protège pas les quotas : compter d'abord, vérifier ensuite.
+- Une fonction d'échappement qui existe mais n'est appliquée qu'à un endroit est un faux sentiment de sécurité : à chaque `innerHTML`, échapper **chaque** interpolation, attributs compris.
+- Un champ `type=number` qui affiche `Math.abs(x)` et enregistre la saisie telle quelle perd le signe : afficher la valeur réelle.
+**Fichiers touchés** : `outils/Notifications.gs`, `outils/Sauvegarde.gs` (nouveau), `Budget/app.js`, `Muscu/app.js`, `Muscu/backups/` (supprimé), README racine, `Budget/README.md`, `Muscu/README.md`
+
+---
+
 ## 🚧 4 apps — mise en ligne bloquée par un fichier de documentation (01/10/2026)
 
 ### 01/10/2026 — 4 apps — GitHub Pages ne publiait plus rien depuis le 30/09 au soir

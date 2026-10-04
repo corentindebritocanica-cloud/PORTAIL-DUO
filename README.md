@@ -50,7 +50,7 @@ PORTAIL-DUO/
 ├── commun.js               ← noyau JS commun aux 4 apps
 ├── UX_UI_CHARTER.md, GUIDE_PWA_IOS.md, PROBLEMES_RESOLUS.md, FUTURE_APPS_ROADMAP.md
 ├── .github/workflows/auto-version.yml  ← DERNIERE_MAJ, ?v=, CACHE_NAME automatiques
-├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png, backups/
+├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png
 ├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
 └── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
 ```
@@ -900,3 +900,32 @@ Portail (app.js) ──abonnement──► notifAbonnes/{id} = { token, profil, 
 - Effet de bord : les `.md` sont servis bruts sur Pages (plus de version HTML) — ils se lisent sur GitHub.
 - **Après chaque fusion** : vérifier que `DERNIERE_MAJ` de la page en ligne a changé (1 à 2 min). Sinon : onglet Actions → « pages build and deployment ».
 
+
+## Audit de sécurité du dépôt (04/10/2026)
+
+Audit en lecture seule par 5 auditeurs (secrets et historique Git, modèle d'accès Firebase, XSS Muscu, XSS Portail/Course/Budget, PWA/CI/Apps Script), puis contre-vérification indépendante de chaque constat dans le code. Vérifié en direct le même jour : règles Firestore publiées = `/firestore.rules` ; connexion anonyme désactivée ; Realtime Database fermée (`.read`/`.write` à `false`) et vidée (ancienne copie de Course, 124 produits et 13 rayons, sauvegardée avant suppression) ; Storage non activé.
+
+**Résultat** : aucun constat critique ni élevé ; **aucun secret** (clé de compte de service, token GitHub, clé IA, secret Strava) ni dans les fichiers ni dans les 639 commits. Seules des clés **web** Firebase (publiques par nature) et des URL Apps Script `/exec` apparaissent.
+
+### Corrigé le 04/10/2026
+- **Sauvegarde par mail authentifiée** (Budget, Muscu) : l'ancien `doPost` des sauvegardes (URL …AKfycbwW3w…) acceptait n'importe quel envoi sans jeton. Les deux boutons passent maintenant par le relais (`action: 'sauvegarde'` + jeton du duo), nouveau fichier `outils/Sauvegarde.gs`, plafond 6 envois/heure, adresse = propriétaire du script (aucune adresse dans le code).
+- **Relais** (`outils/Notifications.gs`) : compteur global (60/min) **avant** toute vérification ; tri local du jeton **sans réseau** (projet, UID, expiration lus dans le jeton) avant `accounts:lookup` ; compteurs atomiques (`LockService`). Un faux jeton ne coûte plus d'appel UrlFetch. Le relais reste le **seul** `doPost` du projet Apps Script (aiguillage `strava` / `sauvegarde` / notification).
+- **Budget** : affichage échappé partout, restauration `.json` validée, signe des montants conservé à l'édition (détails dans `Budget/README.md`).
+- **`Muscu/backups/`** retiré du site (ancienne version exécutable sur la même origine).
+
+### ⚠️ Mise en service côté Apps Script (à faire par Corentin, une fois)
+Projet « Projet sans titre » :
+1. Coller la nouvelle version de `outils/Notifications.gs` (fichier « Notifications ») et créer un fichier « Sauvegarde » avec `outils/Sauvegarde.gs`.
+2. **Supprimer la fonction `doPost`** de l'ancien fichier des sauvegardes (celui de `sauvegardeHebdomadaireBudget`). Ne rien toucher d'autre : le déclencheur du dimanche continue.
+3. Déployer › Gérer les déploiements › déploiement du **relais** (…AKfycbzAXl…) › crayon › « Nouvelle version » › Déployer. Autoriser si Google redemande l'accès (envoi de mails).
+4. Dans la même liste, **archiver** l'ancien déploiement des sauvegardes (…AKfycbwW3w…) : tant qu'il existe, il reste appelable sans jeton avec son ancien code.
+5. Tester ✉️ dans Budget puis dans Muscu : l'app affiche le vrai résultat. Tant que l'étape 3 n'est pas faite, le relais répond « titre absent » (il prend la demande pour une notification et la refuse : aucun envoi).
+
+### Reste à traiter (faible / info, non corrigé)
+- Origine `corentindebritocanica-cloud.github.io` partagée avec les autres dépôts du compte (session Firebase lisible par leurs scripts) : risque faible tant que les apps sont utilisées installées sur l'écran d'accueil (stockage séparé sur iOS). Solution de fond : domaine dédié ou organisation GitHub.
+- Service workers : `caches.match()` sans nom de cache (cherche dans les caches de toutes les apps) ; SDK mis en cache en `no-cors` sans contrôle de statut (Portail, Course).
+- Pas de CSP ni de SRI (`onclick` en ligne et `<script>` `DERNIERE_MAJ` empêchent une CSP stricte).
+- Données gardées sur le téléphone non purgées à la déconnexion ; pas de bouton de déconnexion dans Budget/Course/Portail.
+- Montants réels du budget dans des README publics ; adresse e-mail dans les métadonnées d'anciens commits.
+- Muscu : `muscleIcon` (`Muscu/app.js` l.1026) et `tonnage` (l.2798) non échappés ; Course : identifiants dans des `onclick` en ligne ; `firestore.rules` sans validation de forme et jokers `{document=**}` sur `mois`/`config`.
+- **Ne pas restreindre la clé web Firebase par domaine** : le relais appelle `accounts:lookup` depuis Apps Script, sans en-tête de domaine — il serait bloqué.

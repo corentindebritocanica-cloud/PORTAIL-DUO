@@ -3533,13 +3533,14 @@ function exportAllArchives(){
 }
 
 /* ---------- SAUVEGARDE PAR MAIL (bouton des Réglages) ----------
-   Même mécanisme que l'app Budget : POST du JSON vers le Google Apps Script
-   (fonction doPost) qui le renvoie en pièce jointe par mail. Structure identique à
-   exportFullDataJSON (réimportable), plus les messages du coach (`coachChat`),
-   et le marqueur `_app: 'muscu'` qui permet au script de choisir l'objet du mail.
+   Même mécanisme que l'app Budget : POST du JSON vers le RELAIS Apps Script
+   (window.RELAIS_DUO, commun.js §7 ; action 'sauvegarde', outils/Sauvegarde.gs) qui le
+   renvoie en pièce jointe par mail. Structure identique à exportFullDataJSON, plus les
+   messages du coach (`coachChat`) et le marqueur `_app: 'muscu'`.
    ⚠️ La clé API du coach est RETIRÉE avant l'envoi : elle ne doit jamais partir par mail.
-   L'envoi est en `no-cors` : impossible de lire la réponse, le mail reçu fait foi. */
-const BACKUP_MAIL_URL = "https://script.google.com/macros/s/AKfycbwW3w-ScyWzRousgkNA7tdUeifNqB_kr2fXbGH1AqUSduOEdqjegbllEcxkkhVAko3ZIA/exec";
+   04/10/2026 (audit) : envoi AVEC le jeton de la session (seul le compte du duo peut
+   déclencher le mail ; l'ancienne URL …AKfycbwW3w… acceptait tout envoi sans jeton) et
+   réponse lisible : le toast affiche le vrai résultat. */
 
 function buildMailBackupPayload(){
   const cs = Object.assign({}, coachSettings());
@@ -3574,14 +3575,26 @@ function sendBackupByMail(btn){
     showToast("Aucune donnée à sauvegarder pour l'instant");
     return;
   }
+  if(!window.__montre || !window.__authUser){ showToast('Connecte-toi pour envoyer la sauvegarde'); return; }
+  if(!window.RELAIS_DUO){ showToast('Relais indisponible, réessaie plus tard'); return; }
   const label = btn.textContent;
   btn.textContent = '⏳ Envoi…';
   btn.disabled = true;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 30000);
-  fetch(BACKUP_MAIL_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload), signal: ctrl.signal })
-    .then(() => showToast("✅ Sauvegarde envoyée — vérifie ta boîte mail"))
-    .catch(() => showToast("❌ Envoi impossible — vérifie ta connexion"))
+  window.__montre.preparer()
+    .then(j => {
+      if(!j) throw new Error('session');
+      /* text/plain : requête « simple », sans pré-vérification CORS (voir commun.js §7). */
+      return fetch(window.RELAIS_DUO, { method: 'POST', redirect: 'follow', signal: ctrl.signal,
+        body: JSON.stringify({ action: 'sauvegarde', app: 'muscu', idToken: j.t, donnees: payload }) });
+    })
+    .then(rep => rep.json())
+    .then(r => {
+      if(r && r.ok) showToast("✅ Sauvegarde envoyée — vérifie ta boîte mail");
+      else showToast('❌ Sauvegarde refusée : ' + ((r && r.erreur) || 'erreur inconnue'));
+    })
+    .catch(err => showToast(err && err.message === 'session' ? 'Session introuvable, reconnecte-toi' : "❌ Envoi impossible — vérifie ta connexion"))
     .finally(() => { clearTimeout(timer); btn.textContent = label; btn.disabled = false; });
 }
 
