@@ -537,9 +537,19 @@ function updateSessionTimer(){
   if(!label) return;
   const elapsed = sessionElapsedSec(loadDayData(currentSessionId, currentProfile));
   label.classList.toggle('running', elapsed != null);
-  label.textContent = elapsed == null
-    ? '⏱ Appuie sur GO pour lancer le chrono'
-    : `⏱ ${formatChrono(elapsed)} de séance`;
+  /* En-tête de séance (05/10/2026) : le chrono vit à droite du titre. Avant le lancement, le
+     même bouton affiche « GO » et lance la séance (clicChrono) — remplace le gros bouton GO. */
+  label.textContent = elapsed == null ? 'GO' : formatChrono(elapsed);
+  const btn = document.getElementById('exo-chrono');
+  if(btn){
+    btn.classList.toggle('attente', elapsed == null);
+    btn.setAttribute('aria-label', elapsed == null ? 'Lancer la séance et le chrono' : 'Durée de la séance : ' + formatChrono(elapsed));
+  }
+  const lbl = document.getElementById('exo-chrono-lbl');
+  if(lbl) lbl.textContent = elapsed == null ? 'Lancer' : 'Chrono';
+}
+function clicChrono(){
+  if(!loadDayData(currentSessionId, currentProfile).startedAt) launchSessionChrono();
 }
 function startSessionTimer(){
   updateSessionTimer();
@@ -1158,6 +1168,13 @@ function updateSessionProgress(){
     const formatted = Math.round(tonnage).toLocaleString('fr-FR');
     tonnageLabel.textContent = tonnage > 0 ? `💪 ${formatted} kg soulevés` : '';
   }
+  /* Sous-titre de l'en-tête (05/10/2026) : titre de la séance · profil · tonnage du jour. */
+  const sousTitre = document.getElementById('exo-sous-titre');
+  if(sousTitre){
+    const parts = [dayProgram.title, currentProfile === 'lisa' ? 'Lisa' : 'Corentin'];
+    if(tonnage > 0) parts.push(Math.round(tonnage).toLocaleString('fr-FR') + ' kg');
+    sousTitre.textContent = parts.filter(Boolean).join(' · ');
+  }
   updateSessionTimer();
   majRail(false);
 }
@@ -1171,10 +1188,11 @@ function render(){
   const prevuProgram = getSession(currentSessionId);
   const dayProgram = programmeDuJour(currentSessionId, data);
 
-  const titleEl = document.createElement('div');
-  titleEl.className = 'session-title';
-  titleEl.textContent = `${dayProgram.label} — ${dayProgram.title}`;
-  main.appendChild(titleEl);
+  /* En-tête de séance (05/10/2026) : nom de la séance en titre (pastille de connexion à côté,
+     dessinée par verre.css), titre long + profil (+ tonnage, updateSessionProgress) dessous.
+     Remplace le titre « Séance 1 — … » qui ouvrait la plaque. */
+  const nomEl = document.getElementById('exercises-profile-label');
+  if(nomEl) nomEl.textContent = dayProgram.label || dayProgram.title || 'Séance';
 
   data.variants = data.variants || {};
   data.notes = data.notes || {};
@@ -1204,21 +1222,8 @@ function render(){
   /* Séance par exercice (05/10/2026) : la note de séance est ajoutée tout en bas de la page,
      sous les boutons Précédent / Suivant (voir la fin de render()). */
 
-  /* Bouton « GO » (30/09/2026) : lance le chrono de séance, juste avant le
-     premier exercice. Disparaît une fois la séance lancée — le chrono reste
-     affiché dans l'en-tête jusqu'à l'archivage. */
-  if(!data.startedAt){
-    const goBtn = document.createElement('button');
-    goBtn.className = 'go-btn';
-    goBtn.setAttribute('aria-label', 'Lancer la séance et le chrono');
-    goBtn.innerHTML = `
-      <span class="go-ring" aria-hidden="true"></span>
-      <span class="go-word">GO</span>
-      <span class="go-sub">Lancer la séance · démarre le chrono</span>
-    `;
-    goBtn.onclick = launchSessionChrono;
-    main.appendChild(goBtn);
-  }
+  /* Bouton « GO » (30/09/2026) : depuis le 05/10/2026, c'est le chrono de l'en-tête qui affiche
+     « GO » tant que la séance n'est pas lancée (updateSessionTimer / clicChrono). */
 
   /* Ordre du jour (01/10/2026) : bouton ⇅ de la barre du bas (#btn-ordre, 05/10/2026 —
      avant : en tête de séance), feuille #ordre-modal. */
@@ -1252,7 +1257,7 @@ function render(){
     const head = document.createElement('div');
     head.className = 'exercise-head';
     head.innerHTML = `
-      <div class="exercise-rang">Exercice ${pos + 1} / ${ordreAffiche.length}</div>
+      <div class="exercise-rang">Exercice ${pos + 1} sur ${ordreAffiche.length}</div>
       <div class="exercise-name">${escapeHtml(ex.name)}</div>
       <div class="exercise-target">${escapeHtml((ex.target && ex.target[currentProfile]) || '')}</div>
     `;
@@ -1268,7 +1273,7 @@ function render(){
     const swapBtn = document.createElement('button');
     swapBtn.type = 'button';
     swapBtn.className = 'exercise-swap-btn';
-    swapBtn.textContent = '⇄';
+    swapBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>';
     swapBtn.setAttribute('aria-label', 'Remplacer cet exercice pour cette séance');
     swapBtn.onclick = () => ouvrirRemplacement(exIdx);
     headWrap.appendChild(swapBtn);
@@ -1291,7 +1296,7 @@ function render(){
         const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
         const span = document.createElement('span');
         span.className = 'hist-last';
-        span.textContent = 'Dernière fois : ' + formatKg(best.weight)
+        span.textContent = 'Dernière fois · ' + formatKg(best.weight)
           + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel
           + (methodInfo ? ' (' + methodInfo.label + ')' : '');
         histRow.appendChild(span);
@@ -1307,7 +1312,7 @@ function render(){
         const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
         const rec = document.createElement('span');
         rec.className = 'hist-record';
-        rec.textContent = 'Record ' + formatKg(record.weight) + ' × ' + record.reps
+        rec.textContent = 'Record · ' + formatKg(record.weight) + ' × ' + record.reps
           + (methodInfo ? ' (' + methodInfo.label + ')' : '');
         histRow.appendChild(rec);
       }
@@ -1411,6 +1416,7 @@ function render(){
     }
 
     const isCircuit = ex.logType === 'circuit';
+    let addWarm = null;
     /* Barre : on affiche sous chaque série ce qu'il faut charger de chaque côté. */
     const isBarbell = !isCircuit && getExerciseEquipmentId(ex, exIdx, data) === 'barre';
     const plateHints = [];
@@ -1424,7 +1430,7 @@ function render(){
     gridHeader.className = 'set-grid-header' + (isCircuit ? ' circuit' : '') + (showRpe ? ' with-rpe' : '');
     gridHeader.innerHTML = isCircuit
       ? `<span>Tour</span><span>Résultat</span><span>✓</span>`
-      : `<span>#</span><span>${perHand ? 'Poids / main' : 'Poids (kg)'}</span><span>${perHand ? 'Reps / bras' : 'Reps'}</span>${showRpe ? '<span>RPE</span>' : ''}<span></span><span>✓</span>`;
+      : `<span>Sér.</span><span>${perHand ? 'Kg / main' : 'Poids kg'}</span><span>${perHand ? 'Reps / bras' : 'Reps'}</span>${showRpe ? '<span>RPE</span>' : ''}<span></span><span>✓</span>`;
     body.appendChild(gridHeader);
 
     /* Séries d'échauffement : rendues AVANT les séries de travail, avec leurs
@@ -1522,11 +1528,12 @@ function render(){
       }
 
       if(nWarm < 4){
-        const addWarm = document.createElement('button');
+        /* Rangé sous les séries, à côté de « + Note » (05/10/2026) — les échauffements
+           ajoutés s'affichent toujours AVANT les séries de travail. */
+        addWarm = document.createElement('button');
         addWarm.className = 'add-warmup-btn';
-        addWarm.textContent = '+ Ajouter un échauffement';
+        addWarm.textContent = '+ Échauffement';
         addWarm.onclick = () => { pushUndoSnapshot(); setWarmupCount(ex, exIdx, nWarm + 1); };
-        body.appendChild(addWarm);
       }
     }
 
@@ -1535,7 +1542,8 @@ function render(){
       const savedSet = data.sets[setKey] || { weight:'', reps:'', duration:'', info:'', rpe:'', done:false };
 
       const row = document.createElement('div');
-      row.className = (isCircuit ? 'set-row circuit' : 'set-row') + (!isCircuit && rpeEnabled() ? ' with-rpe' : '');
+      row.className = (isCircuit ? 'set-row circuit' : 'set-row') + (!isCircuit && rpeEnabled() ? ' with-rpe' : '')
+        + (savedSet.done ? ' fait' : '');   /* série validée : ligne teintée verte (05/10/2026) */
 
       const num = document.createElement('div');
       num.className = 'set-num';
@@ -1669,6 +1677,7 @@ function render(){
         d.sets[setKey].done = !d.sets[setKey].done;
         saveDayData(currentSessionId, currentProfile, d);
         checkBtn.classList.toggle('checked', d.sets[setKey].done);
+        row.classList.toggle('fait', d.sets[setKey].done);
         if(d.sets[setKey].done){
           checkBtn.classList.remove('pulse'); void checkBtn.offsetWidth; checkBtn.classList.add('pulse');
           vibrate();
@@ -1704,6 +1713,25 @@ function render(){
       saveDayData(currentSessionId, currentProfile, d);
     };
     noteWrap.appendChild(noteInput);
+    /* « + Note » (05/10/2026) : la note d'exercice reste repliée tant qu'elle est vide. */
+    const ajouts = document.createElement('div');
+    ajouts.className = 'exo-ajouts';
+    if(addWarm) ajouts.appendChild(addWarm);
+    if(!noteInput.value){
+      noteWrap.style.display = 'none';
+      const noteBtn = document.createElement('button');
+      noteBtn.type = 'button';
+      noteBtn.className = 'add-warmup-btn add-note-btn';
+      noteBtn.textContent = '+ Note';
+      noteBtn.onclick = () => {
+        noteWrap.style.display = '';
+        noteBtn.remove();
+        if(!ajouts.children.length) ajouts.remove();
+        noteInput.focus();
+      };
+      ajouts.appendChild(noteBtn);
+    }
+    if(ajouts.children.length) body.appendChild(ajouts);
     body.appendChild(noteWrap);
 
     main.appendChild(card);
@@ -1720,6 +1748,10 @@ function render(){
 
     const topRow = document.createElement('div');
     topRow.className = 'cardio-top-row';
+    const cardioRang = document.createElement('div');
+    cardioRang.className = 'exercise-rang';
+    cardioRang.textContent = 'Pour finir';
+    cardioCard.appendChild(cardioRang);
     topRow.innerHTML = `
       <div class="label">
         <span class="icon">🏃</span>
@@ -1957,7 +1989,7 @@ function construireRail(dayProgram, ordre, prevuProgram){
     const remplace = !estCardio && prevuProgram.exercises[Number(pos)] && ex !== prevuProgram.exercises[Number(pos)];
     if(remplace) btn.classList.add('remplace');
     btn.setAttribute('aria-label', (estCardio ? 'Cardio : ' : 'Exercice ' + (i + 1) + ' : ') + nom);
-    btn.innerHTML = '<span class="rail-haut"><span class="rail-num">' + (estCardio ? '🏃' : (i + 1)) + '</span>'
+    btn.innerHTML = '<span class="rail-haut"><span class="rail-num">' + (i + 1) + '</span>'
       + (remplace ? '<span class="rail-remplace" aria-hidden="true">⇄</span>' : '')
       + '<span class="rail-ok" aria-hidden="true">✓</span></span>'
       + '<span class="rail-nom">' + escapeHtml(estCardio ? 'Cardio' : nom) + '</span>'
@@ -2000,7 +2032,7 @@ function majRail(montrerActif){
   const suiv = document.getElementById('exo-suivant');
   if(prec){
     prec.style.display = i > 0 ? '' : 'none';
-    prec.textContent = '‹ Préc.';
+    prec.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Préc.</span>';
     prec.setAttribute('aria-label', i > 0 ? 'Exercice précédent : ' + nomDe(positions[i - 1]) : '');
   }
   if(suiv){
@@ -2009,7 +2041,9 @@ function majRail(montrerActif){
     if(reste){
       const pret = exoTermine(data, dayProgram, exoActif);
       suiv.classList.toggle('pret', pret);
-      suiv.textContent = (pret ? '✓ Suivant : ' : 'Suivant : ') + nomDe(positions[i + 1]) + ' ›';
+      suiv.innerHTML = '<span class="exo-nav-txt">' + escapeHtml((pret ? 'Terminé · ' : '') + nomDe(positions[i + 1])) + '</span>'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+      suiv.setAttribute('aria-label', 'Exercice suivant : ' + nomDe(positions[i + 1]));
     }
   }
 }

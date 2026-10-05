@@ -475,7 +475,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
-| 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. |
+| 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. 2e passe le même soir : exercice posé directement sur la plaque (pas de carte), chrono / GO dans l'en-tête, séries validées teintées vertes, segments en pilule. |
 | 30/09/26 | **Styles au choix** (§13) : Verre (défaut) · Relief (neumorphisme) · Argile (claymorphisme), choisi dans le Portail, appliqué aux 4 apps ; bleu Corentin / rose Lisa conservés dans chaque style. |
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |

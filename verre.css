@@ -623,6 +623,102 @@ html.verre[data-app="muscu"] .bottom-bar{
    sur le verre dense de l'en-tête) et boutons Précédent / Suivant sous l'exercice affiché. */
 html.verre[data-app="muscu"] .rail-exo{ border-radius:18px; box-shadow:inset 0 1px 0 var(--v-hi); }
 html.verre[data-app="muscu"] .exo-nav-btn{ box-shadow:inset 0 1px 0 var(--v-hi); }
+/* Écran de séance au plus près de la maquette validée (05/10/2026, 2e passe) : l'exercice n'est plus
+   une carte dans la plaque mais posé DIRECTEMENT sur la plaque (sans fond, bord ni ombre) ; titres
+   en Unbounded, puces « Dernière fois » / « Record », méthode en pilule, séries validées teintées
+   vertes, champs à 44 px, cases ✓ arrondies. Tous les fonds viennent des jetons → Relief / Argile suivent. */
+html.verre[data-app="muscu"] #view-exercises header{ gap:10px; }
+html.verre[data-app="muscu"] #view-exercises .header-row{ padding-right:0; gap:10px; }
+html.verre[data-app="muscu"] #view-exercises .exo-retour,
+html.verre[data-app="muscu"] #view-exercises .undo-btn{ background:var(--v-soft); border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="muscu"] #exercises-profile-label{
+  font-family:var(--v-f-chiffres); font-weight:600; font-size:20px; letter-spacing:-.2px; text-transform:none; color:var(--v-text); line-height:1.15;
+}
+html.verre[data-app="muscu"] .exo-chrono .session-timer-label{ font-family:var(--v-f-chiffres); font-weight:300; font-variant-numeric:tabular-nums; }
+html.verre[data-app="muscu"] .exo-chrono.attente .session-timer-label{ font-weight:600; }
+html.verre[data-app="muscu"] .session-progress-track{ height:4px; }
+html.verre[data-app="muscu"] #view-exercises .session-progress-fill{ background:var(--accent); }
+html.verre[data-app="muscu"] #view-exercises .session-progress-track.complete .session-progress-fill{ background:var(--done); }
+html.verre[data-app="muscu"] #view-exercises main{ padding:20px 16px calc(112px + env(safe-area-inset-bottom, 0px)); gap:22px; }
+
+html.verre[data-app="muscu"] #view-exercises .exercise-card,
+html.verre[data-app="muscu"] #view-exercises .cardio-card{
+  background:transparent; border:none; box-shadow:none; border-radius:0; overflow:visible; padding:0;
+}
+html.verre[data-app="muscu"] #view-exercises .exercise-headwrap{ background:transparent; border:none; padding:0; gap:12px; }
+html.verre[data-app="muscu"] #view-exercises .exercise-card.complete .exercise-headwrap::before{ display:none; }
+html.verre[data-app="muscu"] #view-exercises .exercise-body{ padding:14px 0 0; gap:12px; }
+html.verre[data-app="muscu"] #view-exercises .exercise-head{ gap:6px; padding-right:54px; }
+html.verre[data-app="muscu"] .exercise-rang{ font-size:11px; font-weight:800; letter-spacing:.9px; color:var(--v-dim); }
+html.verre[data-app="muscu"] #view-exercises .exercise-name{
+  font-family:var(--v-f-chiffres); font-weight:400; font-size:22px; line-height:1.15; letter-spacing:-.3px;
+}
+html.verre[data-app="muscu"] #view-exercises .exercise-target{ font-size:13.5px; font-weight:700; }
+html.verre[data-app="muscu"] #view-exercises .exercise-swap-btn{
+  top:0; right:0; width:44px; height:44px; color:var(--v-text);
+  background:var(--v-soft); border:1px solid var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi);
+}
+html.verre[data-app="muscu"] #view-exercises .exercise-swap-btn::after{ display:none; }
+html.verre[data-app="muscu"] #view-exercises .exercise-history{ border:none; padding:0; gap:8px; font-size:12.5px; }
+html.verre[data-app="muscu"] #view-exercises .hist-last{
+  padding:7px 11px; border-radius:999px; background:var(--v-soft); color:var(--v-text); opacity:.85; font-weight:600;
+}
+html.verre[data-app="muscu"] #view-exercises .hist-record{
+  margin-left:0; padding:6px 11px; border-radius:999px; background:transparent; border:1px solid rgba(255,184,0,.55);
+}
+/* Méthode de charge et poids de la barre : segments en pilule */
+html.verre[data-app="muscu"] #view-exercises .variant-row{
+  flex-wrap:nowrap; gap:4px; padding:4px; border-radius:999px;
+  background:var(--v-soft); border:1px solid var(--v-hair);
+}
+html.verre[data-app="muscu"] #view-exercises .variant-btn{
+  min-height:38px; padding:0 8px; border:none; border-radius:999px; justify-content:center; animation:none;
+  background:transparent; color:var(--v-dim);
+}
+html.verre[data-app="muscu"] #view-exercises .variant-btn.selected{ background:rgba(var(--accent-rgb),.22); color:var(--v-text); }
+html.verre[data-app="muscu"] #view-exercises .variant-name{ font-size:13.5px; }
+html.verre[data-app="muscu"] #view-exercises .variant-icon,
+html.verre[data-app="muscu"] #view-exercises .variant-row:not(.bar-weight-row) .variant-sub{ display:none; }
+html.verre[data-app="muscu"] #view-exercises .bar-weight-input{ border-radius:999px; }
+/* Grille des séries */
+html.verre[data-app="muscu"] #view-exercises .set-grid-header{ font-size:10.5px; font-weight:800; letter-spacing:.8px; color:var(--v-dim); margin-bottom:-6px; }
+html.verre[data-app="muscu"] #view-exercises .set-row{ padding:6px 2px; border-radius:14px; }
+html.verre[data-app="muscu"] #view-exercises .set-num{ font-family:var(--v-f-chiffres); font-weight:400; font-size:14px; color:var(--v-dim); }
+html.verre[data-app="muscu"] #view-exercises .set-row input,
+html.verre[data-app="muscu"] #view-exercises select.rpe-input{
+  height:44px; padding:0 4px; border-radius:12px; font-weight:600;
+  background:var(--v-soft); border:1px solid var(--v-hair);
+}
+html.verre[data-app="muscu"] #view-exercises .set-row input::placeholder{ color:var(--v-dim); opacity:.55; }
+html.verre[data-app="muscu"] #view-exercises .set-row input:focus,
+html.verre[data-app="muscu"] #view-exercises select.rpe-input:focus{ border-color:rgba(255,255,255,.40); }
+html.verre[data-app="muscu"] #view-exercises .set-row.fait{ background:rgba(18,185,129,.08); }
+html.verre[data-app="muscu"] #view-exercises .set-row.fait .set-num{ color:var(--done); }
+html.verre[data-app="muscu"] #view-exercises .set-row.fait select.rpe-input{ color:var(--v-dim); }
+html.verre[data-app="muscu"] #view-exercises .set-row.fait input,
+html.verre[data-app="muscu"] #view-exercises .set-row.fait select.rpe-input{ background:transparent; border-color:transparent; box-shadow:none; font-weight:700; }
+html.verre[data-app="muscu"] #view-exercises .dup-btn{ border-color:var(--v-hair); }
+html.verre[data-app="muscu"] #view-exercises .check-btn{
+  border-radius:14px; background:var(--v-soft); border:1px solid var(--v-edge); color:var(--v-dim); opacity:1;
+}
+html.verre[data-app="muscu"] #view-exercises .check-btn.checked{ background:rgba(18,185,129,.9); border-color:var(--done); color:#fff; }
+html.verre[data-app="muscu"] #view-exercises .check-btn.pulse::after{ border-radius:16px; }
+html.verre[data-app="muscu"] #view-exercises .add-warmup-btn{ border-color:rgba(255,255,255,.22); color:var(--v-text); opacity:.85; }
+html.verre[data-app="muscu"] #view-exercises .note-wrap{ border-top:none; padding-top:0; }
+/* Cardio, posé sur la plaque comme un exercice */
+html.verre[data-app="muscu"] #view-exercises .cardio-card{ gap:14px; }
+html.verre[data-app="muscu"] #view-exercises .cardio-card .icon{ display:none; }
+html.verre[data-app="muscu"] #view-exercises .cardio-card .name{ font-family:var(--v-f-chiffres); font-weight:400; font-size:22px; line-height:1.15; }
+html.verre[data-app="muscu"] #view-exercises .cardio-suggestion{ font-size:13.5px; font-weight:700; color:var(--accent); }
+/* Barre du bas : ronds de 52 px + pilule « Séance terminée » */
+html.verre[data-app="muscu"] #view-exercises .bottom-btn{ min-height:52px; }
+html.verre[data-app="muscu"] #view-exercises .btn-reset{
+  flex:0 0 52px; width:52px; height:52px; padding:0; border-radius:50%;
+  background:var(--v-soft); border:1px solid var(--v-edge); color:var(--v-text); box-shadow:inset 0 1px 0 var(--v-hi);
+  -webkit-backdrop-filter:none; backdrop-filter:none;
+}
+html.verre[data-app="muscu"] #view-exercises .btn-ordre.actif{ color:var(--gold); border-color:rgba(255,184,0,.55); }
+html.verre[data-app="muscu"] #view-exercises .btn-export{ font-size:15px; letter-spacing:.3px; }
 
 /* Surfaces flottantes : doivent rester lisibles au-dessus du contenu (jamais le verre fin des panneaux) */
 html.verre[data-app="muscu"] .modal,
@@ -908,6 +1004,12 @@ html.verre[data-style][data-app="muscu"] .session-btn,
 html.verre[data-style][data-app="muscu"] .menu-hero,
 html.verre[data-style][data-app="muscu"] .exercise-card,
 html.verre[data-style][data-app="muscu"] .rail-exo,
+html.verre[data-style][data-app="muscu"] #view-exercises .exo-retour,
+html.verre[data-style][data-app="muscu"] #view-exercises .undo-btn,
+html.verre[data-style][data-app="muscu"] #view-exercises .exercise-swap-btn,
+html.verre[data-style][data-app="muscu"] #view-exercises .btn-reset,
+html.verre[data-style][data-app="muscu"] #view-exercises .hist-last,
+html.verre[data-style][data-app="muscu"] #view-exercises .check-btn:not(.checked),
 html.verre[data-style][data-app="muscu"] .exo-nav-btn,
 html.verre[data-style][data-app="muscu"] .lifetime-card,
 html.verre[data-style][data-app="muscu"] .big-choice-btn .choice-icon,
@@ -933,6 +1035,9 @@ html.verre[data-style][data-app="budget"] .item-bottom input[type="date"],
 html.verre[data-style][data-app="budget"] .item-bottom select,
 html.verre[data-style][data-app="budget"] .login-box input,
 html.verre[data-style][data-app="muscu"] .session-progress-track,
+html.verre[data-style][data-app="muscu"] #view-exercises .set-row:not(.fait) input,
+html.verre[data-style][data-app="muscu"] #view-exercises .set-row:not(.fait) select.rpe-input,
+html.verre[data-style][data-app="muscu"] #view-exercises .variant-row,
 html.verre[data-style] .connexion-duo input,
 html.verre[data-style] .style-choix{
   background:color-mix(in srgb, var(--t-panneau) 80%, #000); border-color:transparent; box-shadow:var(--t-o-creux);
@@ -947,6 +1052,7 @@ html.verre[data-style][data-app="course"] .profile-switch-btn.selected,
 html.verre[data-style][data-app="course"] .liste-chip.actif,
 html.verre[data-style][data-app="budget"] .profile-switch-btn.selected,
 html.verre[data-style][data-app="muscu"] .rail-exo.actif,
+html.verre[data-style][data-app="muscu"] #view-exercises .variant-btn.selected,
 html.verre[data-style] .style-choix button[aria-checked="true"]{
   background:var(--t-actif-fond); border-color:transparent; color:var(--t-actif-texte); box-shadow:var(--t-o-actif);
 }
@@ -966,6 +1072,7 @@ html.verre[data-style][data-app="budget"] .btn-small.bg-primary,
 html.verre[data-style][data-app="budget"] .login-btn,
 html.verre[data-style][data-app="muscu"] .big-choice-btn.primary,
 html.verre[data-style][data-app="muscu"] .btn-export,
+html.verre[data-style][data-app="muscu"] .exo-chrono.attente,
 html.verre[data-style][data-app="muscu"] .finish-btn.archive,
 html.verre[data-style][data-app="muscu"] .login-btn,
 html.verre[data-style][data-app="portail"] .btn-accent,
