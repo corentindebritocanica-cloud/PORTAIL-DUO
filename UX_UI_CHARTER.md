@@ -475,6 +475,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
+| 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. |
 | 30/09/26 | **Styles au choix** (§13) : Verre (défaut) · Relief (neumorphisme) · Argile (claymorphisme), choisi dans le Portail, appliqué aux 4 apps ; bleu Corentin / rose Lisa conservés dans chaque style. |
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
 | 17/09/26 | Bordures neutralisées (retrait de la teinte bleu-gris froide) |
@@ -651,7 +652,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 | App | Statut Conformité | Action Requise |
 |-----|-------------------|-----------------|
-| **Muscu** | ✅ **Design Verre (§12, 28/09/26)** | Une plaque par écran (zone des cartes sur l'écran des exercices) ; `--r-lg` 24 px (`R_CARD` des flammes aligné) ; réserve du bas reportée dans les plaques ; n'est plus la référence visuelle (c'est `verre.css`) |
+| **Muscu** | ✅ **Design Verre (§12, 28/09/26)** | Une plaque par écran (zone des cartes sur l'écran des exercices) ; `--r-lg` 24 px (`R_CARD` des flammes aligné) ; réserve du bas reportée dans les plaques ; n'est plus la référence visuelle (c'est `verre.css`) ; écran de saisie en **séance par exercice** (rail + un exercice, 05/10/26) |
 | **Budget** | ✅ **Design Verre (§12, 28/09/26)** | Plaque de verre unique + panneaux sans flou ; en-tête non collant ; couleurs de catégories conservées (jauges lumineuses) ; thème recopié sur `<html>` |
 | **Course** | ✅ **Design Verre définitif (§12, 28/09/26)** | Page qui défile (structure de Budget), barre d'onglets fixe à ~22 pt du bord, `status-bar-style` `black-translucent` |
 | **Portail** | ✅ **Design Verre définitif (§12, 28/09/26)** | Pile de vitres (toucher / glisser) ; couleurs d'identité des apps (Corps, Argent, Frigo) ; accent qui suit le profil commun (`duo_profile`) |
@@ -663,4 +664,4 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 ---
 
 **Auteur** : Lead Developer Full-Stack  
-**Dernière mise à jour** : 30 Septembre 2026
+**Dernière mise à jour** : 5 Octobre 2026

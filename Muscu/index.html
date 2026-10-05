@@ -394,16 +394,22 @@
       <p class="app-title" id="exercises-profile-label"></p>
       <button class="undo-btn" onclick="undoLastAction()" aria-label="Annuler la dernière action">↩️</button>
     </div>
+    <!-- Rail des exercices (05/10/2026) : un bouton par exercice + cardio, construit par
+         construireRail() (app.js) ; l'exercice touché s'affiche seul dans main. -->
+    <div class="exo-rail" id="exo-rail" role="tablist" aria-label="Exercices de la séance"></div>
     <div class="session-progress-track"><div class="session-progress-fill" id="session-progress-fill"></div></div>
-    <p class="session-progress-label" id="session-progress-label"></p>
-    <p class="session-tonnage-label" id="session-tonnage-label"></p>
-    <p class="session-timer-label" id="session-timer-label"></p>
+    <div class="session-stats">
+      <p class="session-progress-label" id="session-progress-label"></p>
+      <p class="session-tonnage-label" id="session-tonnage-label"></p>
+      <p class="session-timer-label" id="session-timer-label"></p>
+    </div>
   </header>
 
   <main id="main-content"></main>
 
   <div class="bottom-bar" id="bottom-bar">
-    <button class="bottom-btn btn-reset" onclick="askReset()">🔄</button>
+    <button class="bottom-btn btn-reset" onclick="askReset()" aria-label="Réinitialiser la séance">🔄</button>
+    <button class="bottom-btn btn-reset btn-ordre" id="btn-ordre" onclick="ouvrirOrdre()" aria-label="Changer l'ordre des exercices">⇅</button>
     <button class="bottom-btn btn-export" onclick="openFinishModal()">Séance terminée ✅</button>
   </div>
 </div>

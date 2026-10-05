@@ -560,8 +560,8 @@ html.verre[data-app="muscu"] .login-title{
   font-family:var(--v-f-chiffres); text-transform:none; font-weight:300; font-size:30px; letter-spacing:-1px; line-height:1.1;
 }
 html.verre[data-app="muscu"] .session-title{
-  font-family:var(--v-f-chiffres); text-transform:none; font-weight:300; font-size:24px; letter-spacing:-.8px;
-}
+  font-family:var(--v-f-chiffres); text-transform:none; font-weight:300; font-size:17px; letter-spacing:-.3px; line-height:1.3;
+}   /* 24 → 17 px (05/10/2026) : la séance n'affiche plus qu'un exercice, le titre ne doit pas le repousser */
 html.verre[data-app="muscu"] .menu-hero-streak,
 html.verre[data-app="muscu"] .menu-hero-chip .val,
 html.verre[data-app="muscu"] .lifetime-value{
@@ -619,6 +619,10 @@ html.verre[data-app="muscu"] .session-progress-fill{ border-radius:999px; box-sh
 html.verre[data-app="muscu"] .bottom-bar{
   background:var(--v-glass-fort); border-top-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi), 0 -10px 40px var(--v-ombre);
 }
+/* Séance par exercice (05/10/2026) : rail des exercices dans l'en-tête (panneaux SANS flou, posés
+   sur le verre dense de l'en-tête) et boutons Précédent / Suivant sous l'exercice affiché. */
+html.verre[data-app="muscu"] .rail-exo{ border-radius:18px; box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="muscu"] .exo-nav-btn{ box-shadow:inset 0 1px 0 var(--v-hi); }
 
 /* Surfaces flottantes : doivent rester lisibles au-dessus du contenu (jamais le verre fin des panneaux) */
 html.verre[data-app="muscu"] .modal,
@@ -903,6 +907,8 @@ html.verre[data-style][data-app="muscu"] .big-choice-btn,
 html.verre[data-style][data-app="muscu"] .session-btn,
 html.verre[data-style][data-app="muscu"] .menu-hero,
 html.verre[data-style][data-app="muscu"] .exercise-card,
+html.verre[data-style][data-app="muscu"] .rail-exo,
+html.verre[data-style][data-app="muscu"] .exo-nav-btn,
 html.verre[data-style][data-app="muscu"] .lifetime-card,
 html.verre[data-style][data-app="muscu"] .big-choice-btn .choice-icon,
 html.verre[data-style][data-app="muscu"] .session-btn .session-icon{
@@ -940,8 +946,14 @@ html.verre[data-style][data-app="budget"] .month-pill.active,
 html.verre[data-style][data-app="course"] .profile-switch-btn.selected,
 html.verre[data-style][data-app="course"] .liste-chip.actif,
 html.verre[data-style][data-app="budget"] .profile-switch-btn.selected,
+html.verre[data-style][data-app="muscu"] .rail-exo.actif,
 html.verre[data-style] .style-choix button[aria-checked="true"]{
   background:var(--t-actif-fond); border-color:transparent; color:var(--t-actif-texte); box-shadow:var(--t-o-actif);
+}
+html.verre[data-style][data-app="muscu"] .rail-exo.actif .rail-num{ color:var(--t-actif-texte); }
+html.verre[data-style="argile"][data-app="muscu"] .rail-exo.actif .rail-segs i:not(.fait){ background:rgba(255,255,255,.28); }
+html.verre[data-style][data-app="muscu"] .exo-nav-btn.suivant.pret{
+  background:color-mix(in srgb, #12b981 45%, var(--t-panneau)); color:#fff;
 }
 html.verre[data-style][data-app="course"] nav.tabbar button.actif svg,
 html.verre[data-style][data-app="budget"] .btn-tab.active svg{ color:var(--t-actif-texte); }

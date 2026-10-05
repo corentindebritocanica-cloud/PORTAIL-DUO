@@ -19,6 +19,19 @@
 
 ---
 
+## 👆 Muscu — deux gestes horizontaux sur le même écran (05/10/2026)
+
+### 05/10/2026 — Muscu — glisser pour changer d'exercice sans casser le glissement retour
+**Symptôme** : (anticipé à la conception) la refonte « un exercice à la fois » demandait « glisser à droite = exercice précédent », alors que glisser à droite servait déjà de **retour** à l'écran précédent sur tout Muscu — le même geste aurait eu deux sens, et un retour accidentel déclenche le rappel d'archivage en pleine séance.
+**Fausses pistes explorées** : garder le blocage existant du geste sur les champs et les boutons (`swipeBlocked`) — sur l'écran de saisie, presque toute la surface est faite de champs et de cases ✓ : le nouveau geste n'aurait presque jamais démarré. Changer d'exercice automatiquement après la dernière série (écarté par Corentin).
+**Cause racine** : un seul gestionnaire `touchstart`/`touchend` global, une seule interprétation du geste pour toute l'app.
+**Solution** : interprétation selon le point de départ, comme iOS : départ dans les 28 px du **bord gauche** = retour (ancien comportement, mêmes seuils) ; départ ailleurs sur l'écran des exercices = changer d'exercice (≥ 60 px, |dx| ≥ 1,5 × |dy|). Le changement d'exercice accepte un départ sur un champ ou un bouton (le navigateur annule de lui-même le clic quand le doigt a glissé) mais pas sur le **champ en cours de saisie** (`document.activeElement`), une liste déroulante, ni le rail qui défile horizontalement. Vérifié par événements tactiles simulés (Chromium).
+**Leçons généralisables** :
+- Deux gestes de même direction sur un écran : les séparer par **zone de départ** (bord d'écran = navigation système), jamais par distance ou vitesse — impossible à deviner pour l'utilisateur.
+- Un geste de glissement peut partir d'un bouton ou d'un champ : un tap reste un tap tant qu'un seuil de distance est exigé. Bloquer seulement l'élément qui a le focus (curseur de texte) et ce qui défile dans le même axe.
+- Afficher une seule page parmi N sans reconstruire : construire tout le DOM une fois, masquer par classe (`.exo-page:not(.actif){display:none}`) — la logique existante (records, flammes avec `ResizeObserver`, saisies) reste intacte.
+**Fichiers touchés** : `Muscu/app.js`, `Muscu/index.html`, `Muscu/style.css`, `verre.css`, `Muscu/README.md`
+
 ## 🔐 Projet Firebase — Realtime Database oubliée, ouverte à toute session (05/10/2026)
 
 ### 05/10/2026 — Projet Firebase commun (4 apps) — alerte « Votre base de données présente des règles non sécurisées »

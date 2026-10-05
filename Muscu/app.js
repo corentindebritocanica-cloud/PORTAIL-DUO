@@ -1156,9 +1156,10 @@ function updateSessionProgress(){
   if(label) label.textContent = complete ? `Séance complète — ${total} / ${total} validés` : `${done} / ${total} validés`;
   if(tonnageLabel){
     const formatted = Math.round(tonnage).toLocaleString('fr-FR');
-    tonnageLabel.textContent = tonnage > 0 ? `💪 ${formatted} kg soulevés cette séance` : '';
+    tonnageLabel.textContent = tonnage > 0 ? `💪 ${formatted} kg soulevés` : '';
   }
   updateSessionTimer();
+  majRail(false);
 }
 
 function render(){
@@ -1174,11 +1175,6 @@ function render(){
   titleEl.className = 'session-title';
   titleEl.textContent = `${dayProgram.label} — ${dayProgram.title}`;
   main.appendChild(titleEl);
-
-  const subtitleEl = document.createElement('div');
-  subtitleEl.className = 'session-subtitle';
-  subtitleEl.textContent = currentProfile === 'corentin' ? 'Profil : Corentin' : 'Profil : Lisa';
-  main.appendChild(subtitleEl);
 
   data.variants = data.variants || {};
   data.notes = data.notes || {};
@@ -1205,7 +1201,8 @@ function render(){
     saveDayData(currentSessionId, currentProfile, d);
   };
   sessionNoteWrap.appendChild(sessionNoteInput);
-  main.appendChild(sessionNoteWrap);
+  /* Séance par exercice (05/10/2026) : la note de séance est ajoutée tout en bas de la page,
+     sous les boutons Précédent / Suivant (voir la fin de render()). */
 
   /* Bouton « GO » (30/09/2026) : lance le chrono de séance, juste avant le
      premier exercice. Disparaît une fois la séance lancée — le chrono reste
@@ -1223,25 +1220,23 @@ function render(){
     main.appendChild(goBtn);
   }
 
-  /* Ordre du jour (01/10/2026) : bouton en tête de séance, feuille #ordre-modal. */
-  if(dayProgram.exercises.length > 1){
-    const adaptRow = document.createElement('div');
-    adaptRow.className = 'adapt-row';
-    const ordreBtn = document.createElement('button');
-    ordreBtn.type = 'button';
-    const ordreChange = ordreEstModifie(data, dayProgram.exercises.length);
-    ordreBtn.className = 'adapt-btn' + (ordreChange ? ' actif' : '');
-    ordreBtn.textContent = ordreChange ? '⇅ Ordre modifié' : '⇅ Changer l\'ordre';
-    ordreBtn.onclick = ouvrirOrdre;
-    adaptRow.appendChild(ordreBtn);
-    main.appendChild(adaptRow);
+  /* Ordre du jour (01/10/2026) : bouton ⇅ de la barre du bas (#btn-ordre, 05/10/2026 —
+     avant : en tête de séance), feuille #ordre-modal. */
+  const ordreBtn = document.getElementById('btn-ordre');
+  if(ordreBtn){
+    ordreBtn.style.display = dayProgram.exercises.length > 1 ? '' : 'none';
+    ordreBtn.classList.toggle('actif', ordreEstModifie(data, dayProgram.exercises.length));
   }
 
-  /* Ordre suivi aujourd'hui ; exIdx reste l'EMPLACEMENT d'origine (clés de saisie). */
-  ordreDuJour(data, dayProgram.exercises.length).forEach(exIdx => {
+  /* Ordre suivi aujourd'hui ; exIdx reste l'EMPLACEMENT d'origine (clés de saisie).
+     Séance par exercice (05/10/2026) : toutes les cartes sont construites (records, flammes,
+     saisies inchangés), une seule est affichée — celle choisie dans le rail (afficherExo). */
+  const ordreAffiche = ordreDuJour(data, dayProgram.exercises.length);
+  ordreAffiche.forEach((exIdx, pos) => {
     const ex = dayProgram.exercises[exIdx];
     const card = document.createElement('div');
-    card.className = 'exercise-card';
+    card.className = 'exercise-card exo-page';
+    card.dataset.pos = String(exIdx);
 
     /* 109 : la carte se lit en deux temps — l'identité de l'exercice (ce que
        c'est, ce qu'on vise, ce qu'on avait fait), puis la zone de saisie. Les
@@ -1257,6 +1252,7 @@ function render(){
     const head = document.createElement('div');
     head.className = 'exercise-head';
     head.innerHTML = `
+      <div class="exercise-rang">Exercice ${pos + 1} / ${ordreAffiche.length}</div>
       <div class="exercise-name">${escapeHtml(ex.name)}</div>
       <div class="exercise-target">${escapeHtml((ex.target && ex.target[currentProfile]) || '')}</div>
     `;
@@ -1719,7 +1715,8 @@ function render(){
   {
     const cardioPlan = dayProgram.cardio;
     const cardioCard = document.createElement('div');
-    cardioCard.className = 'cardio-card' + (data.cardioDone ? '' : ' collapsed');
+    cardioCard.className = 'cardio-card exo-page' + (data.cardioDone ? '' : ' collapsed');
+    cardioCard.dataset.pos = 'cardio';
 
     const topRow = document.createElement('div');
     topRow.className = 'cardio-top-row';
@@ -1858,8 +1855,163 @@ function render(){
     main.appendChild(cardioCard);
   }
 
+  /* Précédent / Suivant (05/10/2026) : sous l'exercice affiché. Jamais de passage automatique
+     à l'exercice suivant (décision de Corentin) : « Suivant » passe au vert quand toutes les
+     séries de l'exercice sont validées, c'est tout. */
+  const nav = document.createElement('div');
+  nav.className = 'exo-nav';
+  nav.innerHTML = '<button type="button" class="exo-nav-btn precedent" id="exo-precedent"></button>'
+    + '<button type="button" class="exo-nav-btn suivant" id="exo-suivant"></button>';
+  nav.querySelector('.precedent').onclick = () => changerExo(-1);
+  nav.querySelector('.suivant').onclick = () => changerExo(1);
+  main.appendChild(nav);
+  main.appendChild(sessionNoteWrap);
+
+  construireRail(dayProgram, ordreAffiche, prevuProgram);
+  afficherExo(choisirExoActif(data, dayProgram, ordreAffiche), 0);
   updateSessionProgress();
   startSessionTimer();
+}
+
+/* ---------- SÉANCE PAR EXERCICE (05/10/2026) ----------
+   Demande de Corentin : au lieu de faire défiler toutes les cartes, un rail en haut (dans
+   l'en-tête collant) liste les exercices de la séance + le cardio ; on touche un exercice et
+   seul celui-ci s'affiche dessous. Glisser à gauche / à droite sur la page = exercice suivant /
+   précédent ; glisser depuis le bord gauche de l'écran = retour aux séances (voir « RETOUR PAR
+   GLISSEMENT »). Purement de l'affichage : saisies, clés, archives, records inchangés.
+   - Positions : emplacements dans l'ordre du jour (ordreDuJour) puis 'cardio'.
+   - Exercice affiché mémorisé par séance et par profil (`duo_exo_<séance>_<profil>`, hors des
+     données de séance pour ne pas fausser sessionHasData ni l'annulation) ; effacé à
+     l'archivage et à la remise à zéro. À défaut : premier exercice pas encore terminé. */
+function cleExoActif(){
+  return 'duo_exo_' + currentSessionId + '_' + currentProfile;
+}
+function positionsDuJour(){
+  const data = loadDayData(currentSessionId, currentProfile);
+  const n = programmeDuJour(currentSessionId, data).exercises.length;
+  return ordreDuJour(data, n).map(String).concat('cardio');
+}
+function exoTermine(data, dayProgram, pos){
+  if(pos === 'cardio') return !!data.cardioDone;
+  const ex = dayProgram.exercises[Number(pos)];
+  if(!ex || !ex.sets) return false;
+  for(let s = 1; s <= ex.sets; s++){
+    const cur = data.sets['ex' + pos + '_set' + s];
+    if(!cur || !cur.done) return false;
+  }
+  return true;
+}
+function choisirExoActif(data, dayProgram, ordre){
+  const positions = ordre.map(String).concat('cardio');
+  const memo = storage.get(cleExoActif());
+  if(memo && positions.includes(memo)) return memo;
+  return positions.find(p => !exoTermine(data, dayProgram, p)) || positions[0];
+}
+let exoActif = null;
+function afficherExo(pos, sens){
+  const main = document.getElementById('main-content');
+  if(!main) return;
+  exoActif = pos;
+  storage.set(cleExoActif(), pos);
+  main.querySelectorAll('.exo-page').forEach(page => {
+    const actif = page.dataset.pos === pos;
+    page.classList.toggle('actif', actif);
+    page.classList.remove('entree-suiv', 'entree-prec');
+    if(actif && sens){
+      void page.offsetWidth;
+      page.classList.add(sens > 0 ? 'entree-suiv' : 'entree-prec');
+    }
+  });
+  majRail(true);
+}
+function changerExo(sens){
+  const positions = positionsDuJour();
+  const i = positions.indexOf(exoActif);
+  const j = i + sens;
+  if(i < 0 || j < 0 || j >= positions.length) return;
+  afficherExo(positions[j], sens);
+  window.scrollTo(0, 0);
+}
+function choisirExoDuRail(pos){
+  if(pos === exoActif) return;
+  const positions = positionsDuJour();
+  const sens = positions.indexOf(pos) > positions.indexOf(exoActif) ? 1 : -1;
+  afficherExo(pos, sens);
+  window.scrollTo(0, 0);
+}
+function construireRail(dayProgram, ordre, prevuProgram){
+  const rail = document.getElementById('exo-rail');
+  if(!rail) return;
+  rail.innerHTML = '';
+  const positions = ordre.map(String).concat('cardio');
+  positions.forEach((pos, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rail-exo';
+    btn.dataset.pos = pos;
+    btn.setAttribute('role', 'tab');
+    const estCardio = pos === 'cardio';
+    const ex = estCardio ? null : dayProgram.exercises[Number(pos)];
+    const nom = estCardio ? (dayProgram.cardio ? dayProgram.cardio.name : 'Cardio') : ex.name;
+    const nbSeg = estCardio ? 1 : Math.max(1, ex.sets || 1);
+    const remplace = !estCardio && prevuProgram.exercises[Number(pos)] && ex !== prevuProgram.exercises[Number(pos)];
+    if(remplace) btn.classList.add('remplace');
+    btn.setAttribute('aria-label', (estCardio ? 'Cardio : ' : 'Exercice ' + (i + 1) + ' : ') + nom);
+    btn.innerHTML = '<span class="rail-haut"><span class="rail-num">' + (estCardio ? '🏃' : (i + 1)) + '</span>'
+      + (remplace ? '<span class="rail-remplace" aria-hidden="true">⇄</span>' : '')
+      + '<span class="rail-ok" aria-hidden="true">✓</span></span>'
+      + '<span class="rail-nom">' + escapeHtml(estCardio ? 'Cardio' : nom) + '</span>'
+      + '<span class="rail-segs">' + '<i></i>'.repeat(nbSeg) + '</span>';
+    btn.onclick = () => choisirExoDuRail(pos);
+    rail.appendChild(btn);
+  });
+}
+/* Met à jour le rail (actif, séries validées) et les boutons Précédent / Suivant.
+   Appelée après chaque coche (updateSessionProgress) et à chaque changement d'exercice. */
+function majRail(montrerActif){
+  const rail = document.getElementById('exo-rail');
+  const data = loadDayData(currentSessionId, currentProfile);
+  const dayProgram = programmeDuJour(currentSessionId, data);
+  if(rail){
+    rail.querySelectorAll('.rail-exo').forEach(btn => {
+      const pos = btn.dataset.pos;
+      const actif = pos === exoActif;
+      btn.classList.toggle('actif', actif);
+      btn.setAttribute('aria-selected', actif ? 'true' : 'false');
+      btn.classList.toggle('fini', exoTermine(data, dayProgram, pos));
+      btn.querySelectorAll('.rail-segs i').forEach((seg, k) => {
+        const fait = pos === 'cardio' ? !!data.cardioDone
+          : !!(data.sets['ex' + pos + '_set' + (k + 1)] && data.sets['ex' + pos + '_set' + (k + 1)].done);
+        seg.classList.toggle('fait', fait);
+      });
+      /* Rail : l'exercice affiché reste visible (sans faire défiler la page). */
+      if(actif && montrerActif){
+        const gauche = btn.offsetLeft - 14, droite = btn.offsetLeft + btn.offsetWidth + 14;
+        if(gauche < rail.scrollLeft) rail.scrollLeft = gauche;
+        else if(droite > rail.scrollLeft + rail.clientWidth) rail.scrollLeft = droite - rail.clientWidth;
+      }
+    });
+  }
+  const positions = positionsDuJour();
+  const i = positions.indexOf(exoActif);
+  const nomDe = (pos) => pos === 'cardio' ? 'Cardio'
+    : ((dayProgram.exercises[Number(pos)] || {}).name || '');
+  const prec = document.getElementById('exo-precedent');
+  const suiv = document.getElementById('exo-suivant');
+  if(prec){
+    prec.style.display = i > 0 ? '' : 'none';
+    prec.textContent = '‹ Préc.';
+    prec.setAttribute('aria-label', i > 0 ? 'Exercice précédent : ' + nomDe(positions[i - 1]) : '');
+  }
+  if(suiv){
+    const reste = i >= 0 && i < positions.length - 1;
+    suiv.style.display = reste ? '' : 'none';
+    if(reste){
+      const pret = exoTermine(data, dayProgram, exoActif);
+      suiv.classList.toggle('pret', pret);
+      suiv.textContent = (pret ? '✓ Suivant : ' : 'Suivant : ') + nomDe(positions[i + 1]) + ' ›';
+    }
+  }
 }
 
 /* ---------- FEUILLE « REMPLACER L'EXERCICE » (01/10/2026) ----------
@@ -2070,6 +2222,7 @@ function doReset(){
   pushUndoSnapshot();
   delete leaveReminderDismissed[dataKey(currentSessionId, currentProfile)];
   saveDayData(currentSessionId, currentProfile, blankDayData());
+  storage.set(cleExoActif(), '');   /* séance par exercice : on repart du premier */
   render();
   showToast('Séance réinitialisée');
 }
@@ -2326,6 +2479,7 @@ function finishArchive(){
 
   delete leaveReminderDismissed[dataKey(archivedSessionId, archivedProfile)];
   saveDayData(currentSessionId, currentProfile, blankDayData());
+  storage.set(cleExoActif(), '');   /* séance par exercice : la prochaine repart du premier */
   closeFinishModal();
   closeLeaveModal();
   showToast(navigator.onLine ? 'Séance archivée 📦' : 'Archivée hors ligne — synchro au retour du réseau 📦');
@@ -2849,6 +3003,11 @@ const SWIPE_MAX_Y = 55;   /* au-delà, c'est un défilement vertical */
 const SWIPE_MAX_MS = 600; /* au-delà, c'est un glissement lent, pas un geste */
 
 let swipeStartX = 0, swipeStartY = 0, swipeStartAt = 0, swipeValid = false;
+/* Écran des exercices (05/10/2026) : le glissement horizontal change d'exercice ; seul un
+   glissement parti du BORD GAUCHE de l'écran (comme le geste retour d'iOS) ramène aux séances. */
+const SWIPE_BORD = 28;      /* largeur (px) de la bande du bord gauche réservée au retour */
+const SWIPE_EXO_MIN_X = 60; /* distance horizontale minimale pour changer d'exercice */
+let swipeMode = null;       /* 'retour' | 'exo' */
 
 /* Le geste doit rester sans effet sur ce qui défile horizontalement ou se
    sélectionne : listes déroulantes, champs de saisie, barres segmentées. */
@@ -2860,11 +3019,32 @@ function swipeBlocked(target){
   if(document.querySelector('.login-overlay.open')) return true;
   return false;
 }
+/* Changer d'exercice : permis aussi en partant d'un champ ou d'un bouton (l'écran en est
+   couvert ; un tap reste un tap, il faut 60 px de glissement) — sauf le champ en cours de
+   saisie (on y déplace le curseur), les listes déroulantes et le rail (qui défile lui-même). */
+function swipeExoBlocked(target){
+  if(!target || !target.closest) return true;
+  if(target.closest('select, .exo-rail, .suggest-panel')) return true;
+  if(document.activeElement && document.activeElement !== document.body && target.closest('input, textarea') === document.activeElement) return true;
+  if(document.querySelector('.modal-overlay.open, .confirm-overlay.open')) return true;
+  if(document.querySelector('.login-overlay.open')) return true;
+  return false;
+}
 
 document.addEventListener('touchstart', (e) => {
-  if(e.touches.length !== 1 || swipeBlocked(e.target)){ swipeValid = false; return; }
+  swipeValid = false; swipeMode = null;
+  if(e.touches.length !== 1) return;
+  const x = e.touches[0].clientX;
+  const surExercices = !!document.querySelector('#view-exercises.active');
+  if(surExercices && x > SWIPE_BORD){
+    if(swipeExoBlocked(e.target)) return;
+    swipeMode = 'exo';
+  } else {
+    if(swipeBlocked(e.target)) return;
+    swipeMode = 'retour';
+  }
   swipeValid = true;
-  swipeStartX = e.touches[0].clientX;
+  swipeStartX = x;
   swipeStartY = e.touches[0].clientY;
   swipeStartAt = Date.now();
 }, { passive: true });
@@ -2876,8 +3056,14 @@ document.addEventListener('touchend', (e) => {
   if(!touch) return;
   const dx = touch.clientX - swipeStartX;
   const dy = Math.abs(touch.clientY - swipeStartY);
-  if(dx < SWIPE_MIN_X || dy > SWIPE_MAX_Y) return;
+  if(dy > SWIPE_MAX_Y) return;
   if(Date.now() - swipeStartAt > SWIPE_MAX_MS) return;
+  if(swipeMode === 'exo'){
+    if(Math.abs(dx) < SWIPE_EXO_MIN_X || Math.abs(dx) < dy * 1.5) return;
+    changerExo(dx < 0 ? 1 : -1);   /* vers la gauche = suivant, comme une page qu'on tourne */
+    return;
+  }
+  if(dx < SWIPE_MIN_X) return;
   goBackFromActiveView();
 }, { passive: true });
 
