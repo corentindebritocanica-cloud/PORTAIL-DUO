@@ -19,6 +19,19 @@
 
 ---
 
+## 🔐 Projet Firebase — Realtime Database oubliée, ouverte à toute session (05/10/2026)
+
+### 05/10/2026 — Projet Firebase commun (4 apps) — alerte « Votre base de données présente des règles non sécurisées »
+**Symptôme** : mail de Firebase « règles non sécurisées » pour `course-app-36e9d-default-rtdb` : *n'importe quel utilisateur connecté peut lire et écrire l'intégralité de la base*. Aucun symptôme dans les apps.
+**Fausses pistes explorées** : croire que l'alerte visait Firestore — non : `firestore.rules` était correct. L'alerte vise la **Realtime Database**, une **seconde base, distincte**, créée par défaut dans le même projet et dont les règles se gèrent à part. Tester l'URL `https://course-app-36e9d-default-rtdb.firebaseio.com` renvoie une erreur 404 « Database lives in a different region » : la vraie URL est `…-default-rtdb.europe-west1.firebasedatabase.app`.
+**Cause racine** : la Realtime Database (utilisée par Budget avant sa v3.0.0, puis abandonnée) a gardé sa règle d'origine `auth != null`. Toute session Firebase — y compris une session **anonyme** ouverte avec la config client publique du dépôt — pouvait donc lire, écrire et remplir cette base (quotas, stockage, facturation). Verrouiller `firestore.rules` ne protège **que** Firestore.
+**Solution** : règles de la Realtime Database passées à `{".read": false, ".write": false}` (console Firebase → Realtime Database → Règles), versionnées dans `/database.rules.json`. Vérifié : lecture et écriture sans session refusées (« Permission denied ») ; règles en ligne relues avec le compte de service ; base vide (`null`) ; aucune des 4 apps n'utilise `firebase-database` / `getDatabase` / `databaseURL`. Le SDK Admin (Apps Script des sauvegardes) n'est pas soumis aux règles. Suppression de la base possible (vide et inutilisée).
+**Leçons généralisables** :
+- **Un projet Firebase peut contenir plusieurs bases** (Firestore, Realtime Database, Storage) avec **chacune ses propres règles** : sécuriser l'une ne sécurise pas les autres. À chaque audit, passer en revue **tous** les produits activés dans la console.
+- Une base abandonnée doit être **fermée** (`false` partout) ou **supprimée**, jamais laissée sur `auth != null` : avec une config client publique, « connecté » ne veut rien dire.
+- Les règles de sécurité ne sont **pas des secrets** : les versionner dans le dépôt (comme `firestore.rules`) garde la trace de l'état voulu ; seuls les clés et jetons restent hors du dépôt.
+**Fichiers touchés** : `database.rules.json` (nouveau), README racine
+
 ## 🔐 4 apps — audit de sécurité : point d'entrée Apps Script public sans jeton (04/10/2026)
 
 ### 04/10/2026 — Budget + Muscu + relais — la sauvegarde par mail acceptait n'importe quel appelant
@@ -956,4 +969,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 24 septembre 2026
+**Dernière mise à jour de ce fichier** : 5 octobre 2026
