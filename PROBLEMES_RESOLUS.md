@@ -19,6 +19,18 @@
 
 ---
 
+## 🚚 GitHub Pages — commit en ligne, site jamais mis à jour (05/10/2026)
+
+### 05/10/2026 — 4 apps — « j'ai vidé le cache et rechargé, la nouvelle version n'arrive pas »
+**Symptôme** : commit poussé sur `main` et workflow auto-version vert, mais l'app sur iPhone restait sur l'ancienne version, même cache vidé. Le site servait toujours l'ancien `DERNIERE_MAJ`.
+**Fausses pistes explorées** : cache Safari / service worker (le problème n'était pas côté téléphone : le site lui-même n'avait pas changé) ; panne générale des serveurs GitHub (le dépôt et les workflows répondaient normalement).
+**Cause racine** : le déploiement GitHub Pages (`pages-build-deployment`) avait échoué : job `deploy` en échec après 15 min, *« The job was not acquired by Runner of type hosted even after multiple attempts »* (aucun serveur GitHub Actions disponible à ce moment-là). Les déploiements précédents, annulés par les commits suivants, n'avaient rien publié non plus.
+**Solution** : relancer le déploiement en échec (onglet Actions › « pages build and deployment » › Re-run, ou `gh run rerun <id>`) → succès, site à jour en quelques minutes.
+**Leçons généralisables** :
+- Commit en ligne ≠ site en ligne. Pour vérifier ce que sert le site : ouvrir `…/Muscu/index.html` et lire `DERNIERE_MAJ`, ou regarder le dernier « pages build and deployment » dans l'onglet Actions (il doit être vert et postérieur au commit).
+- Un déploiement Pages en échec n'est pas relancé tout seul : il faut le relancer, ou pousser un nouveau commit.
+**Fichiers touchés** : aucun (relance du déploiement)
+
 ## 👆 Muscu — deux gestes horizontaux sur le même écran (05/10/2026)
 
 ### 05/10/2026 — Muscu — glisser pour changer d'exercice sans casser le glissement retour
