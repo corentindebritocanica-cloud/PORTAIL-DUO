@@ -31,14 +31,14 @@
   'use strict';
   var racine = document.documentElement;
 
-  /* ---------- 0. STYLE AU CHOIX : VERRE · RELIEF · ARGILE (30/09/2026) ----------
+  /* ---------- 0. STYLE AU CHOIX : VERRE · RELIEF · ARGILE · SIMPLE (30/09/2026 ; Simple 05/10/2026) ----------
      Choisi dans le Portail, appliqué aux 4 apps : localStorage['duo-style'] (même origine,
-     comme duo_profile) → <html data-style="relief|argile"> ; attribut absent = Verre (défaut).
+     comme duo_profile) → <html data-style="relief|argile|simple"> ; attribut absent = Verre (défaut).
      Posé ICI, dans le <head> avant verre.css : aucun flash de l'ancien style à l'ouverture.
      Relu au retour depuis le cache précédent/suivant (le choix a pu changer dans le Portail)
      et à l'événement storage (autre onglet). Les habillages sont dans verre.css, bloc
      « STYLES AU CHOIX ». window.duoStyle.choisir(s) : utilisé par le sélecteur du Portail. */
-  var STYLES = ['verre', 'relief', 'argile'];
+  var STYLES = ['verre', 'relief', 'argile', 'simple'];
   function lireStyle(){
     try { var s = localStorage.getItem('duo-style'); return STYLES.indexOf(s) >= 0 ? s : 'verre'; }
     catch (e) { return 'verre'; }

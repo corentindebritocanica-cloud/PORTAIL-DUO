@@ -475,6 +475,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
+| 05/10/26 | **4ᵉ style « Simple »** (§13) : natif iOS façon Réglages — fond noir, gris pleins, police du système partout, aucune ombre ni flou ni halo, accent du profil seul. Choisi après 3 pistes plus marquées écartées (Signal, Encre, Brut). |
 | 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. 2e passe le même soir : exercice posé directement sur la plaque (pas de carte), chrono / GO dans l'en-tête, séries validées teintées vertes, segments en pilule. |
 | 30/09/26 | **Styles au choix** (§13) : Verre (défaut) · Relief (neumorphisme) · Argile (claymorphisme), choisi dans le Portail, appliqué aux 4 apps ; bleu Corentin / rose Lisa conservés dans chaque style. |
 | 08/09/26 | Identité couleurs Corentin/Lisa passée en tons "Ardoise & craie" plus francs |
@@ -627,18 +628,19 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 > Demande de Corentin : proposer, en plus du glassmorphisme, un style **neumorphisme** et un style **claymorphisme**, choisis dans le Portail et appliqués aux 4 apps.
 
-- **Choix** : Portail › « Style des apps » (sous la pile). Mémorisé par téléphone dans `localStorage duo-style` (`verre | relief | argile`), posé sur `<html data-style>` par `commun.js` **avant le 1er rendu**. Attribut absent = Verre.
+- **Choix** : Portail › « Style des apps » (sous la pile). Mémorisé par téléphone dans `localStorage duo-style` (`verre | relief | argile | simple`), posé sur `<html data-style>` par `commun.js` **avant le 1er rendu**. Attribut absent = Verre.
 - **Source unique** : bloc « STYLES AU CHOIX » à la fin de `verre.css`. Comme pour le Verre, aucune app ne redéfinit ces styles dans son `style.css`.
 - **Identité couple (§1) respectée** : toutes les teintes partent de `--accent` / `--accent-rgb` → bleu Corentin, rose Lisa dans les trois styles.
 
-| | Verre (défaut) | Relief (neumorphisme) | Argile (claymorphisme) |
-|---|---|---|---|
-| Fond | `#08080a` + 2 halos animés | `#1d2026` uni, sans halo | teinté au profil (`--accent` 12 %) + halos atténués (0,34) |
-| Plaques / panneaux | verre dépoli translucide, flou 30 px | même matière que le fond, en relief (ombre claire haut-gauche + sombre bas-droite) | pleins, teintés au profil, gonflés (reflet + ombre **intérieurs**) |
-| Champs, jauges, cases | voile blanc 6 % | creusés (`inset`) | creusés (`inset`) |
-| Onglet / segment actif | voile 16 % + icône accent | creusé, texte et icône accent | pastille accent gonflée, texte blanc |
-| Action principale | verre teinté accent | dégradé accent en relief + lueur | aplat accent gonflé |
-| Flou (`backdrop-filter`) | oui (2–3 surfaces max) | **aucun** | **aucun** |
+| | Verre (défaut) | Relief (neumorphisme) | Argile (claymorphisme) | Simple (natif iOS, 05/10/26) |
+|---|---|---|---|---|
+| Fond | `#08080a` + 2 halos animés | `#1d2026` uni, sans halo | teinté au profil (`--accent` 12 %) + halos atténués (0,34) | `#000` uni, sans halo |
+| Plaques / panneaux | verre dépoli translucide, flou 30 px | même matière que le fond, en relief (ombre claire haut-gauche + sombre bas-droite) | pleins, teintés au profil, gonflés (reflet + ombre **intérieurs**) | gris pleins d'iOS (`#1c1c1e` / `#2c2c2e`), sans ombre |
+| Champs, jauges, cases | voile blanc 6 % | creusés (`inset`) | creusés (`inset`) | voile blanc 9 %, plat |
+| Onglet / segment actif | voile 16 % + icône accent | creusé, texte et icône accent | pastille accent gonflée, texte blanc | aplat accent, texte blanc |
+| Action principale | verre teinté accent | dégradé accent en relief + lueur | aplat accent gonflé | aplat accent |
+| Grands chiffres / titres | Unbounded | Unbounded | Unbounded | **police du système** |
+| Flou (`backdrop-filter`) | oui (2–3 surfaces max) | **aucun** | **aucun** | **aucun** |
 
 - **Catégories de surfaces** (chaque nouvelle surface d'une app doit être rangée dans l'une d'elles) : plaques, barres/flottants/modales, panneaux, creux, états actifs, accent.
 - **Contraste** : le neumorphisme est réputé peu lisible (tout a la même couleur) → états actifs toujours marqués par la couleur d'accent, pas seulement par l'ombre ; textes inchangés (`--v-text`, `--v-dim`).

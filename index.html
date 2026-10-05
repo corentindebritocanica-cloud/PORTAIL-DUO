@@ -114,13 +114,14 @@
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
     <p class="verre-astuce verre-seul">Touche une vitre ou fais glisser la pile vers le haut ou le bas</p>
 
-    <!-- Style des 4 apps (30/09/2026) : Verre / Relief / Argile. Choix mémorisé dans localStorage duo-style
+    <!-- Style des 4 apps (30/09/2026) : Verre / Relief / Argile / Simple (05/10/2026). Choix mémorisé dans localStorage duo-style
          (commun.js), appliqué par verre.css — voir « STYLES AU CHOIX » dans le README. -->
     <p class="style-choix-titre" id="style-choix-titre">Style des apps</p>
     <div class="style-choix" id="style-choix" role="radiogroup" aria-labelledby="style-choix-titre">
       <button type="button" role="radio" data-style-choix="verre" aria-checked="true">Verre</button>
       <button type="button" role="radio" data-style-choix="relief" aria-checked="false">Relief</button>
       <button type="button" role="radio" data-style-choix="argile" aria-checked="false">Argile</button>
+      <button type="button" role="radio" data-style-choix="simple" aria-checked="false">Simple</button>
     </div>
 
     <!-- Notifications du duo (30/09/2026) : abonnement de CE téléphone (Firebase Cloud Messaging,

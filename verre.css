@@ -814,7 +814,7 @@ html.verre .connexion-duo button:disabled{ opacity:.6; }
 
 
 /* ==========================================================================
-   STYLES AU CHOIX : VERRE · RELIEF · ARGILE (30/09/2026, demande de Corentin)
+   STYLES AU CHOIX : VERRE · RELIEF · ARGILE · SIMPLE (30/09/2026 ; Simple : 05/10/2026)
    --------------------------------------------------------------------------
    Le design Verre reste le style par défaut (attribut absent). Deux autres
    habillages, choisis dans le Portail et appliqués aux 4 apps :
@@ -824,7 +824,10 @@ html.verre .connexion-duo button:disabled{ opacity:.6; }
      • ARGILE (claymorphisme) : surfaces pleines, gonflées, teintées à la
        couleur du profil, avec reflets et ombres INTÉRIEURS ; halos conservés
        (atténués), pas de flou.
-   ACTIVATION : <html data-style="relief|argile">, posé par commun.js AVANT le
+     • SIMPLE (05/10/2026) : le natif iOS, façon app Réglages — fond noir, blocs gris
+       pleins (#1c1c1e / #2c2c2e), police du système partout (y compris grands chiffres),
+       aucune ombre, aucun flou, aucun halo ; seule couleur : l'accent du profil.
+   ACTIVATION : <html data-style="relief|argile|simple">, posé par commun.js AVANT le
    1er rendu à partir de localStorage['duo-style'] (même origine : même
    principe que duo_profile). Choix dans le Portail (#style-choix).
    PROFIL : toutes les teintes partent de --accent / --accent-rgb, donc bleu
@@ -884,6 +887,30 @@ html.verre[data-style="argile"]{
   --t-halo-op:.34;
 }
 
+/* ---------- Jetons : SIMPLE (natif iOS sombre, 05/10/2026) ----------
+   Demande de Corentin : « quelque chose de beaucoup plus simple », validé sur maquette (piste D).
+   Couleurs des listes groupées d'iOS : fond #000, plaques #1c1c1e, panneaux #2c2c2e. */
+html.verre[data-style="simple"]{
+  --t-fond:#000000;
+  --t-plaque:#1c1c1e;
+  --t-panneau:#2c2c2e;
+  --t-barre:#1c1c1e;
+  --t-modale:#1c1c1e;
+  --t-arete:rgba(255,255,255,.07);
+  --t-creux:rgba(255,255,255,.09);          /* champs : lisibles sur une plaque comme sur un panneau */
+  --t-o-plaque:none;
+  --t-o-barre:none;
+  --t-o-panneau:none;
+  --t-o-creux:none;
+  --t-actif-fond:var(--accent);
+  --t-o-actif:none;
+  --t-actif-texte:#fff;
+  --t-accent-fond:var(--accent);
+  --t-o-accent:none;
+  --t-halo-op:0;
+  --v-f-chiffres:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;   /* pas d'Unbounded */
+}
+
 /* ---------- Redirection des jetons du verre (et donc des jetons des apps) ---------- */
 html.verre[data-style]{
   --v-bg:var(--t-fond);
@@ -910,6 +937,9 @@ html.verre[data-style][data-app="budget"] body{      /* Budget redéclare ses je
 }
 html.verre[data-style="relief"] body::before,
 html.verre[data-style="relief"] body::after,
+html.verre[data-style="simple"] body::before,
+html.verre[data-style="simple"] body::after,
+html.verre[data-style="simple"][data-app="muscu"] .menu-hero::after,
 html.verre[data-style="relief"][data-app="muscu"] .menu-hero::after{ display:none; }   /* matière unie : pas de halos ni de lueur */
 
 /* Bande iOS du bas (Course, Budget) : couleur du bas de la plaque, comme en Verre */
@@ -1040,7 +1070,7 @@ html.verre[data-style][data-app="muscu"] #view-exercises .set-row:not(.fait) sel
 html.verre[data-style][data-app="muscu"] #view-exercises .variant-row,
 html.verre[data-style] .connexion-duo input,
 html.verre[data-style] .style-choix{
-  background:color-mix(in srgb, var(--t-panneau) 80%, #000); border-color:transparent; box-shadow:var(--t-o-creux);
+  background:var(--t-creux, color-mix(in srgb, var(--t-panneau) 80%, #000)); border-color:transparent; box-shadow:var(--t-o-creux);
 }
 html.verre[data-style="relief"][data-app="budget"] .revenus-box input[readonly]{ border:1px dashed rgba(255,255,255,.10); }
 
