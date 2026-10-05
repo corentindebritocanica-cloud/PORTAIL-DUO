@@ -911,6 +911,22 @@ html.verre[data-style="simple"]{
   --v-f-chiffres:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;   /* pas d'Unbounded */
 }
 
+/* SIMPLE — typographie unique dans les 4 apps (05/10/2026, demande de Corentin : « la typographie
+   de l'app Muscu partout ») : police du système sur TOUT, boutons et champs compris (sinon le
+   navigateur leur donne sa police par défaut) ; titres et grands chiffres en semi-gras sans
+   espacement serré, comme Muscu (« Séance 1 », « Squat »), au lieu du très fin (300) hérité
+   d'Unbounded dans le Portail, Budget et l'écran de connexion. */
+html.verre[data-style="simple"] body,
+html.verre[data-style="simple"] :is(button, input, select, textarea){
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+html.verre[data-style="simple"] :is(.dash-value, .dash-int, .dash-unit,
+  [data-app="budget"] main h1, [data-app="budget"] .page-title, .total-amount, .login-box h1,
+  .login-title, .session-title, .menu-hero-streak, .menu-hero-chip .val, .lifetime-value,
+  .exo-chrono .session-timer-label, .connexion-duo h2){
+  font-weight:600; letter-spacing:-.2px;
+}
+
 /* ---------- Redirection des jetons du verre (et donc des jetons des apps) ---------- */
 html.verre[data-style]{
   --v-bg:var(--t-fond);

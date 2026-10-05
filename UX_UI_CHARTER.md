@@ -639,7 +639,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 | Champs, jauges, cases | voile blanc 6 % | creusés (`inset`) | creusés (`inset`) | voile blanc 9 %, plat |
 | Onglet / segment actif | voile 16 % + icône accent | creusé, texte et icône accent | pastille accent gonflée, texte blanc | aplat accent, texte blanc |
 | Action principale | verre teinté accent | dégradé accent en relief + lueur | aplat accent gonflé | aplat accent |
-| Grands chiffres / titres | Unbounded | Unbounded | Unbounded | **police du système** |
+| Grands chiffres / titres | Unbounded | Unbounded | Unbounded | **police du système partout** (boutons et champs compris), titres et chiffres en semi-gras 600 comme Muscu |
 | Flou (`backdrop-filter`) | oui (2–3 surfaces max) | **aucun** | **aucun** | **aucun** |
 
 - **Catégories de surfaces** (chaque nouvelle surface d'une app doit être rangée dans l'une d'elles) : plaques, barres/flottants/modales, panneaux, creux, états actifs, accent.
