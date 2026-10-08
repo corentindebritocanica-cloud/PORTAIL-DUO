@@ -213,7 +213,14 @@ const EQUIPMENT_METHODS = {
   poulie2: { id:'poulie2', label:'Poulie 2 mains',     factor:1,
     hint:'Poids : la charge totale affichée sur la poulie.' },
   poulie1: { id:'poulie1', label:'Poulie unilatérale', factor:2,
-    hint:'Poids : la charge affichée, faite par UN SEUL bras. Reps : le nombre de répétitions par bras. Exemple : 22,5 kg × 10 reps de chaque côté → 450 kg comptés.' }
+    hint:'Poids : la charge affichée, faite par UN SEUL bras. Reps : le nombre de répétitions par bras. Exemple : 22,5 kg × 10 reps de chaque côté → 450 kg comptés.' },
+  /* Presse à cuisses (08/10/2026) : deux machines aux charges sans commune mesure (la presse à
+     poids affiche bien plus). `distincte` : une séance faite avec la méthode qui n'est pas celle par
+     défaut a sa propre courbe de « Tonnage par séance » (voir cleTonnageArchive). */
+  presse_poulie: { id:'presse_poulie', label:'Presse à poulie', factor:1, distincte:true,
+    hint:'Poids : la charge affichée sur la presse à poulie.' },
+  presse_poids:  { id:'presse_poids',  label:'Presse à poids',  factor:1, distincte:true,
+    hint:'Poids : la charge totale de la presse à poids (disques chargés).' }
 };
 /* Petites icônes de mode de charge (17/09/26) : purement décoratives, en
    `currentColor` pour suivre la couleur du bouton (gris au repos, couleur du
@@ -224,10 +231,12 @@ const EQUIPMENT_ICONS = {
   haltere: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="7" cy="12" r="5" fill="currentColor"/><circle cx="17" cy="12" r="5" fill="currentColor"/></svg>',
   machine: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor" opacity="0.85"/></svg>',
   poulie2: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>',
-  poulie1: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6" fill="currentColor"/><circle cx="18" cy="12" r="3" fill="currentColor" opacity="0.4"/></svg>'
+  poulie1: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6" fill="currentColor"/><circle cx="18" cy="12" r="3" fill="currentColor" opacity="0.4"/></svg>',
+  presse_poulie: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="9" width="10" height="10" rx="2" fill="currentColor" opacity="0.85"/><circle cx="18" cy="7" r="3" fill="currentColor"/></svg>',
+  presse_poids:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="9" width="10" height="10" rx="2" fill="currentColor" opacity="0.85"/><rect x="16" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg>'
 };
 /* Ordre d'affichage stable (menu Build Training, etc.) */
-const EQUIPMENT_METHOD_IDS = ['barre', 'haltere', 'machine', 'poulie2', 'poulie1'];
+const EQUIPMENT_METHOD_IDS = ['barre', 'haltere', 'machine', 'poulie2', 'poulie1', 'presse_poulie', 'presse_poids'];
 function equipmentInfo(id){ return EQUIPMENT_METHODS[id] || null; }
 
 /* Identifiant de méthode actif pour CET exercice, dans CETTE séance en cours :
@@ -276,6 +285,8 @@ function currentExerciseMethodId(ex, exIdx, data){
    puis personnalisées) — si l'exercice n'y figure plus, on retombe sur ×1,
    comme le faisait déjà l'ancien modèle pour un cas inconnu. */
 function equipmentListForExerciseName(name){
+  const impose = equipementImpose(name);
+  if(impose) return impose;
   for(const s of SESSIONS){
     const found = (s.exercises || []).find(e => e.name === name);
     if(found && found.equipment && found.equipment.length) return found.equipment;
@@ -321,7 +332,7 @@ const SESSIONS = [
     exercises: [
       { name:"Hip Thrust", sets:4, target:{corentin:"8-10 reps (Lourd)", lisa:"10-12 reps (Pause 1-2s haut)"}, equipment:['barre','machine'] },
       { name:"Soulevé de terre / RDL", sets:4, target:{corentin:"8-10 reps", lisa:"10-12 reps"}, equipment:['barre'] },
-      { name:"Presse à cuisses (Pieds hauts & écartés)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"}, equipment:['machine'] },
+      { name:"Presse à cuisses (Pieds hauts & écartés)", sets:3, target:{corentin:"10-12 reps", lisa:"12-15 reps"}, equipment:['presse_poulie','presse_poids'] },
       { name:"Abducteurs", sets:3, target:{corentin:"15 reps", lisa:"15-20 reps (Pause 1s)"}, equipment:['machine'] }
     ]
   },
@@ -350,9 +361,22 @@ function isFixedSessionId(id){
 function getSessionOverride(id){
   return (window.customSessionsCache || []).find(s => s.id === id) || null;
 }
+/* PRESSE À CUISSES : POULIE OU POIDS (08/10/2026, demande de Corentin) — choix de la machine
+   imposé à tout exercice « Presse à cuisses… », y compris dans une Séance 3 modifiée dans Build
+   Training (surcharge en base qui aurait gardé « Machine ») : appliqué en place sur l'exercice
+   (mêmes objets, les comparaisons d'identité de la séance du jour restent justes). */
+const PRESSE_CUISSES_METHODES = ['presse_poulie', 'presse_poids'];
+function estPresseCuisses(nom){ return normalizeExerciseName(nom || '').indexOf('presse a cuisses') === 0; }
+function equipementImpose(nom){ return estPresseCuisses(nom) ? PRESSE_CUISSES_METHODES : null; }
+function imposerEquipement(session){
+  (session.exercises || []).forEach(ex => {
+    if(estPresseCuisses(ex.name) && !(ex.equipment || []).includes('presse_poulie')) ex.equipment = PRESSE_CUISSES_METHODES.slice();
+  });
+  return session;
+}
 function getSession(id){
   const override = getSessionOverride(id);
-  if(override) return decorateSession(override);
+  if(override) return decorateSession(imposerEquipement(override));
   const fixed = SESSIONS.find(s => s.id === id);
   if(fixed) return fixed;
   return SESSIONS[0];
@@ -3897,15 +3921,57 @@ function archiveExerciseMethodId(archive, exerciseName){
 /* Séances distinctes présentes dans les archives d'un profil, du plus récemment
    pratiqué au plus ancien. Le libellé retenu est celui de l'archive la plus
    récente : une séance personnalisée renommée garde son nom actuel. */
+/* Reprise de l'historique (08/10/2026) : jusqu'au 05/10/2026, Corentin et Lisa ont fait la presse à
+   cuisses à la POULIE (méthode par défaut : rien à écrire) ; le 06/10/2026, à la presse à POIDS.
+   Écrit une seule fois `variants` sur ces archives (fusion), depuis l'app connectée ; sans effet
+   ensuite (la méthode est alors enregistrée). */
+const REPRISE_PRESSE_POIDS = '06/10/2026';
+function repriseArchivesPresse(){
+  if(!window.__fb || !window.__authUser) return;
+  const { db, doc, setDoc } = window.__fb;
+  ['corentin', 'lisa'].forEach(pr => getArchivesList(pr).concat(getTrashList(pr)).forEach(arc => {
+    if(arc.dateLabel !== REPRISE_PRESSE_POIDS) return;
+    const nom = (arc.exerciseNames || []).find(estPresseCuisses);
+    if(!nom) return;
+    const cle = 'name:' + nom;
+    if(arc.variants && arc.variants[cle]) return;
+    arc.variants = Object.assign({}, arc.variants, { [cle]: 'presse_poids' });   /* cache local, tout de suite */
+    setDoc(doc(db, 'archives', arc.id), { variants: { [cle]: 'presse_poids' } }, { merge: true })
+      .catch(e => console.warn('Reprise presse à poids non écrite', arc.id, e && e.code));
+  }));
+}
+window.addEventListener('archives-updated', repriseArchivesPresse);
+window.addEventListener('auth-changed', repriseArchivesPresse);
+
+/* Méthodes « distinctes » (presse à poids…) utilisées dans une archive, hors méthode par défaut de
+   l'exercice (08/10/2026) : la même séance faite sur une autre machine n'est pas comparable en
+   tonnage. Clé de courbe = séance + ces méthodes ; libellé complété par leur nom. */
+function methodesDistinctesArchive(arc){
+  const out = [];
+  (arc.exerciseNames || []).forEach(nom => {
+    const list = equipmentListForExerciseName(nom);
+    const m = archiveExerciseMethodId(arc, nom);
+    const info = m ? equipmentInfo(m) : null;
+    if(info && info.distincte && list && m !== list[0] && !out.some(x => x.id === m)) out.push(info);
+  });
+  return out;
+}
+function cleTonnageArchive(arc){
+  const ids = methodesDistinctesArchive(arc).map(x => x.id);
+  return arc.sessionId + (ids.length ? '|' + ids.join(',') : '');
+}
 function getArchivedSessions(profile){
   const seen = new Map();
   getArchivesList(profile).forEach(arc => {
     /* une séance avec un exercice remplacé n'est pas comparable (01/10/2026) */
-    if(!arc.sessionId || seen.has(arc.sessionId) || archiveModifiee(arc)) return;
-    seen.set(arc.sessionId, {
-      id: arc.sessionId,
+    if(!arc.sessionId || archiveModifiee(arc)) return;
+    const cle = cleTonnageArchive(arc);
+    if(seen.has(cle)) return;
+    const machines = methodesDistinctesArchive(arc).map(x => x.label).join(', ');
+    seen.set(cle, {
+      id: cle,
       label: arc.sessionLabel || 'Séance',
-      title: arc.sessionTitle || ''
+      title: (arc.sessionTitle || '') + (machines ? ' · ' + machines : '')
     });
   });
   return Array.from(seen.values());
@@ -4148,7 +4214,8 @@ function getProgressPoints(profile, selection){
     if(wantedSession !== null){
       /* seules les occurrences de CETTE séance entrent dans la courbe — sans exercice
          remplacé (01/10/2026) : elle ne serait plus comparable aux autres */
-      if(arc.sessionId === wantedSession && arc.tonnage > 0 && !archiveModifiee(arc)) value = arc.tonnage;
+      /* 08/10/2026 : clé = séance + machine « distincte » (presse à poids…), voir cleTonnageArchive */
+      if(arc.sessionId && cleTonnageArchive(arc) === wantedSession && arc.tonnage > 0 && !archiveModifiee(arc)) value = arc.tonnage;
     } else if(isMethodSel){
       /* seules les séances où CETTE méthode a été utilisée pour cet exercice */
       if(archiveExerciseMethodId(arc, methodExerciseName) === methodId){
