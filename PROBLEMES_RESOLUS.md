@@ -30,7 +30,7 @@
 - Avant de créer une app : chercher `Muscu|Budget|Course` dans tout le dépôt (`sw.js`, workflow, `commun.js`, `verre.css`, `app.js` du Portail) — chaque liste en dur est un oubli potentiel.
 - Réutiliser l'habillage d'une app existante par `:is()` plutôt que dupliquer : une correction de Course profite à Todo.
 - Écrire une boucle sur « les apps » plutôt que des index fixes (`pile[2]`) : la 5e app ne demande alors qu'une entrée dans un tableau.
-- Constat au passage : le bouton « Recharger l'application (vider le cache) » des Réglages de **Course** n'a **aucun gestionnaire** dans `Course/app.js` (il ne fait rien). Todo a le sien (désinscrit son service worker, vide ses seuls caches `todo-*`).
+- Constat au passage : le bouton « Recharger l'application (vider le cache) » des Réglages de **Course** n'avait **aucun gestionnaire** dans `Course/app.js` (il ne faisait rien) — **corrigé le 11/10/2026** (même code que Todo, caches `courses-lc-*`). Todo a le sien (désinscrit son service worker, vide ses seuls caches `todo-*`).
 **Fichiers touchés** : `Todo/*` (nouveau), `index.html`, `app.js`, `style.css`, `sw.js`, `manifest.json`, `verre.css`, `firestore.rules`, `.github/workflows/auto-version.yml`, `README.md`
 
 ## 🚚 GitHub Pages — commit en ligne, site jamais mis à jour (05/10/2026)

@@ -965,3 +965,23 @@ try { localStorage.removeItem('duo-verre'); localStorage.removeItem('duo-verre-i
 
 /* Date de MAJ, service worker et vérification de version : dans ../commun.js (noyau commun aux 4 apps,
    28/09/2026), chargé par index.html. */
+
+/* RÉGLAGES › « Recharger l'application (vider le cache) » (11/10/2026) : le bouton existait sans aucun
+   gestionnaire (il ne faisait rien). Désinscrit le service worker de Course et vide SES seuls caches
+   (préfixe courses-lc-, jamais ceux des autres apps), puis recharge depuis le réseau. Les données
+   (produits, listes) ne sont pas touchées : elles restent dans Firestore. */
+document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
+  const oui = await dialogue({ titre:"Recharger l'application ?", texte:'Le code est retéléchargé. Tes listes restent dans la base.', ok:'Recharger', danger:false });
+  if(!oui) return;
+  try {
+    if('serviceWorker' in navigator){
+      const reg = await navigator.serviceWorker.getRegistration('./');
+      if(reg) await reg.unregister();
+    }
+    if(window.caches){
+      const cles = await caches.keys();
+      await Promise.all(cles.filter(k=> k.startsWith('courses-lc-')).map(k=> caches.delete(k)));
+    }
+  } catch (e) { console.warn('Nettoyage du cache :', e); }
+  window.location.reload();
+});

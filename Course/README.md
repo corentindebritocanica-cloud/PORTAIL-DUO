@@ -513,3 +513,8 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 - `renderCourse()` : les articles `achete` quittent leur rayon et vont dans une dernière section **« 🛒 Dans le caddie (N) »** (triés par nom, séparée par un filet pointillé, `.section-caddie`). Les rayons ne montrent plus que ce qu'il reste à acheter. Décocher un article le remet dans son rayon.
 - « Course terminée » inchangé (agit sur les articles du caddie affichés).
 
+
+## Bouton « Recharger l'application (vider le cache) » réparé (11/10/2026)
+- **Symptôme** : dans Réglages, le bouton ne faisait rien — repéré en créant Todo : `#btn-vider-cache` était dans `index.html` mais **aucun gestionnaire** dans `app.js`.
+- **Correctif** (`app.js`, fin du fichier) : confirmation (boîte maison `dialogue()`), puis désinscription du service worker de Course et suppression de **ses seuls caches** (préfixe `courses-lc-`, jamais ceux des autres apps), puis rechargement depuis le réseau. Les produits et listes restent dans Firestore.
+- Testé dans Chromium : boîte de confirmation, rechargement, aucune erreur ; le service worker se réinscrit et remet en cache la version neuve au rechargement (normal).
