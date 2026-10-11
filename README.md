@@ -52,7 +52,8 @@ PORTAIL-DUO/
 ├── .github/workflows/auto-version.yml  ← DERNIERE_MAJ, ?v=, CACHE_NAME automatiques
 ├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png
 ├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
-└── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
+├── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
+└── Todo/    ← Todo (11/10/2026) : index.html, style.css, app.js, sw.js, manifest.json, icônes, README.md
 ```
 
 Les 3 sous-dossiers répondent bien en HTTP 200 et contiennent les bonnes apps
@@ -734,6 +735,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 | Portail | `course-app-36e9d` | inchangé | `portail/{muscu,budget,courses}`, `notifAbonnes` (téléphones abonnés aux notifications, depuis le 30/09/2026) |
 | Budget | `lisa-et-corentin` | **`course-app-36e9d`** | `mois`, `config` |
 | Muscu | `duo-training-e835b` | **`course-app-36e9d`** | `archives`, `customSessions`, `coachChat`, `settings` |
+| Todo (11/10/2026) | — | `course-app-36e9d` | `todoListes`, `todoTaches` (+ `portail/todo`) |
 
 - **Projet cible = celui de Course** : il servait déjà de boîte aux lettres au tableau de bord, et Course/Portail n'ont donc rien eu à migrer. Son identifiant (`course-app-…`) ne peut pas être renommé : c'est normal qu'il porte ce nom.
 - **Aucun conflit de noms** entre collections, et **aucune donnée indexée par UID** : copie à l'identique, document par document, avec les mêmes identifiants (vérifié : 0 écart sur 178 documents).
@@ -938,3 +940,24 @@ Projet « Projet sans titre » :
 - Montants réels du budget dans des README publics ; adresse e-mail dans les métadonnées d'anciens commits.
 - Muscu : `muscleIcon` (`Muscu/app.js` l.1026) et `tonnage` (l.2798) non échappés ; Course : identifiants dans des `onclick` en ligne ; `firestore.rules` sans validation de forme et jokers `{document=**}` sur `mois`/`config`.
 - **Ne pas restreindre la clé web Firebase par domaine** : le relais appelle `accounts:lookup` depuis Apps Script, sans en-tête de domaine — il serait bloqué.
+
+## Nouvelle app Todo + 4e vitre du Portail (11/10/2026)
+
+**Demande de Corentin** : une app de listes de choses à faire partagées (esprit « Notes partagées » d'iPhone), hors ligne comme les autres. Détails : `Todo/README.md`.
+
+- **Portail** : 4e carte `#carte-todo` (classe `violet`, lien `./Todo/`) — « À faire : N tâches » + les 3 listes les plus chargées (pastilles à la couleur de chaque liste, palette contrôlée). Lit `portail/todo` comme les autres résumés (aucune lecture en plus : même écoute `portail`).
+- **Pile de vitres à 4** (`app.js` « PILE », `verre.css`) : décalage de 66 px par vitre (avant : 64-68 px pour 3), `padding-bottom` 198 px, `data-rang` 0 à 3 ; glisser généralisé (`[...pile.slice(1), pile[0]]`). Un ordre mémorisé à 3 vitres (`portail-verre-pile`) est conservé, Todo passe au fond.
+- **`sw.js` (racine)** : `/Todo/` ajouté à `isSubApp` — sans ça, le service worker du Portail aurait intercepté les fichiers de Todo.
+- **`verre.css`** : tous les sélecteurs `[data-app="course"]` deviennent `:is([data-app="course"],[data-app="todo"])` (même spécificité) ; jeton `--v-todo` (#a855f7).
+- **Règles** : `todoListes`, `todoTaches` en `compteDuo()`, testées (émulateur, 330 cas) puis **publiées par l'API le 11/10/2026** ; le fichier du dépôt = la version en ligne.
+- **Workflow auto-version** : `Todo/index.html|style.css|app.js` dans les chemins surveillés, `Todo` dans la boucle et dans le lancement manuel.
+- ⚠️ **Sauvegarde du dimanche** (Apps Script hors dépôt) : ne copie pas encore `todoListes` / `todoTaches`.
+
+### Check-list « nouvelle app » (tirée de Todo)
+1. Dossier `<App>/` : `index.html` (avec `DERNIERE_MAJ`, `?v=` sur `style.css`, `app.js`, `../commun.js`, `../verre.css`), `style.css`, `app.js`, `sw.js` (ligne `const CACHE_PREFIX = '…';` et `const CACHE_NAME = '…';` en début de ligne), `manifest.json`, `README.md`.
+2. `firestore.rules` : ses collections en `compteDuo()`, test à l'émulateur, publication.
+3. `.github/workflows/auto-version.yml` : chemins + boucle `for DIR` + liste du lancement manuel.
+4. `sw.js` racine : dossier dans `isSubApp`.
+5. Portail : carte, `afficher<App>()`, entrée dans `cartes` / `teintes` / `ordre` de la pile ; `verre.css` : `data-rang` si la pile grandit, jeton de couleur.
+6. `verre.css` : habillage (réutiliser les règles d'une app existante via `:is(...)` si mêmes classes).
+

@@ -9,7 +9,7 @@ name: Auto-version (DERNIERE_MAJ + cache du Service Worker)
 # Feuille commune verre.css (racine, 28/09/2026) : si elle change, CHAQUE app dont l'index.html
 # la référence (verre.css?v=…) est traitée comme modifiée, et son URL versionnée est mise à jour.
 # Même traitement pour le noyau commun commun.js (racine, 28/09/2026) : apps qui référencent commun.js?v=….
-# Lancement manuel (onglet Actions > Run workflow) : met à jour les 4 apps,
+# Lancement manuel (onglet Actions > Run workflow) : met à jour toutes les apps (Todo comprise, 11/10/2026),
 # ce qui force le rafraîchissement de toutes les installations.
 # Si une étape de contrôle échoue, l'exécution est marquée en rouge dans l'onglet Actions.
 
@@ -29,6 +29,9 @@ on:
       - 'Muscu/index.html'
       - 'Muscu/style.css'
       - 'Muscu/app.js'
+      - 'Todo/index.html'
+      - 'Todo/style.css'
+      - 'Todo/app.js'
       - 'verre.css'
       - 'commun.js'
   workflow_dispatch:
@@ -60,7 +63,7 @@ jobs:
           set -euo pipefail
           NOW=$(TZ=Europe/Paris date +%Y-%m-%dT%H:%M:%S%:z)
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html'
+            CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html'
           else
             if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               BEFORE="HEAD~1"
@@ -70,7 +73,7 @@ jobs:
           VERRE=0; COMMUN=0
           if printf '%s\n' "$CHANGED" | grep -qxF 'verre.css'; then VERRE=1; fi
           if printf '%s\n' "$CHANGED" | grep -qxF 'commun.js'; then COMMUN=1; fi
-          for DIR in "" Budget Course Muscu; do
+          for DIR in "" Budget Course Muscu Todo; do
             P="${DIR:+$DIR/}"
             if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then
               if [ "$VERRE" = "1" ] && grep -q 'verre\.css?v=' "${P}index.html"; then :

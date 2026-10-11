@@ -35,6 +35,7 @@ html.verre{
   --v-corps:#ff7a59;   /* Musculation */
   --v-argent:#ffb800;  /* Budget */
   --v-frigo:#12b981;   /* Courses */
+  --v-todo:#a855f7;    /* Todo (11/10/2026) */
   --v-maison:#ff8a2b;  /* Portail : lumière chaude « de la maison » */
   --v-app:var(--v-maison);
 
@@ -76,6 +77,9 @@ html.verre{
   background:var(--v-bg);
 }
 html.verre[data-app="course"]{ --v-app:var(--v-frigo); }
+/* TODO (11/10/2026) : habillé par les mêmes règles que Course (sélecteurs :is(course, todo) dans toute la
+   feuille, mêmes classes HTML) ; seule la lumière de l'app change. */
+html.verre[data-app="todo"]{ --v-app:var(--v-todo); }
 html.verre[data-app="budget"]{ --v-app:var(--v-argent); }
 html.verre[data-app="muscu"]{ --v-app:var(--v-corps); }
 
@@ -135,7 +139,7 @@ html.verre body::after{
    vert = synchronisé, or = synchronisation en cours, rouge = hors ligne. Budget garde
    sa propre pastille (.status-dot), stylée plus bas avec le même halo. */
 html.verre[data-app="portail"] .app-title-brand::after,
-html.verre[data-app="course"] #titre-onglet::after,
+html.verre:is([data-app="course"],[data-app="todo"]) #titre-onglet::after,
 html.verre[data-app="muscu"] .big-question::after,
 html.verre[data-app="muscu"] #exercises-profile-label::after{
   content:''; display:inline-block; width:9px; height:9px; border-radius:50%;
@@ -153,7 +157,7 @@ html.verre[data-sync="hors-ligne"][data-app] .big-question::after,
 html.verre[data-sync="hors-ligne"][data-app] #exercises-profile-label::after{ background:#ef4444; box-shadow:0 0 8px #ef4444; }
 html.verre[data-app="muscu"] #exercises-profile-label:empty::after{ display:none; }
 html.verre[data-app="muscu"] .sync-badge{ display:none; }     /* remplacé par la pastille à côté du titre */
-html.verre[data-app="course"] header.topbar{ justify-content:flex-start; }
+html.verre:is([data-app="course"],[data-app="todo"]) header.topbar{ justify-content:flex-start; }
 html.verre[data-app="portail"] .app-title-brand::after{ margin-right:6px; }
 
 /* Éléments propres au design Verre (masqués si html.verre est absent) */
@@ -187,7 +191,7 @@ html.verre[data-app="portail"] .dash-titre{ margin:0 2px 18px; }
 html.verre[data-app="portail"] .dash-date{ margin:0; font-size:13px; }
 
 html.verre[data-app="portail"] .dash{
-  display:grid; gap:0; padding-bottom:132px;
+  display:grid; gap:0; padding-bottom:198px;   /* 4 vitres depuis le 11/10/2026 (avant : 3, 132 px) */
 }
 /* CENTRAGE VERTICAL (29/09/2026, demande de Corentin) : la pile et ce qui la suit (astuce, bouton
    recharger, date de MAJ) sont centrés dans la hauteur restante sous l'en-tête — avant, collés en
@@ -199,7 +203,7 @@ html.verre[data-app="portail"] .dash{ margin-top:auto; }
 html.verre[data-app="portail"] .derniere-maj{ margin-bottom:auto; }
 html.verre[data-app="portail"] .dash-card{
   grid-area:1 / 1;
-  --dy:132px; --sc:1;
+  --dy:198px; --sc:1;
   transform-origin:50% 0;
   transform:translateY(calc(var(--dy) + var(--drag, 0px))) scale(var(--sc));
   -webkit-touch-callout:none; -webkit-user-drag:none; user-select:none;
@@ -210,9 +214,11 @@ html.verre[data-app="portail"] .dash-card{
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
   position:relative;
 }
-html.verre[data-app="portail"] .dash-card[data-rang="0"]{ z-index:3; }
-html.verre[data-app="portail"] .dash-card[data-rang="1"]{ --dy:64px; --sc:.93; opacity:.82; z-index:2; }
-html.verre[data-app="portail"] .dash-card[data-rang="2"]{ --dy:0px;  --sc:.86; opacity:.62; z-index:1; }
+/* 4 vitres (11/10/2026) : chaque vitre du fond dépasse de 66 px au-dessus de la suivante. */
+html.verre[data-app="portail"] .dash-card[data-rang="0"]{ z-index:4; }
+html.verre[data-app="portail"] .dash-card[data-rang="1"]{ --dy:132px; --sc:.95; opacity:.86; z-index:3; }
+html.verre[data-app="portail"] .dash-card[data-rang="2"]{ --dy:66px;  --sc:.90; opacity:.70; z-index:2; }
+html.verre[data-app="portail"] .dash-card[data-rang="3"]{ --dy:0px;   --sc:.85; opacity:.56; z-index:1; }
 /* Les vitres du fond sont coupées juste sous leur en-tête : sinon leurs arêtes restent
    visibles à travers la vitre de devant (translucide), ce qui brouille la lecture. */
 html.verre[data-app="portail"] .dash-card{ clip-path:inset(0 0 0 0 round 34px); }
@@ -231,6 +237,9 @@ html.verre[data-app="portail"] .dash-card::before{
 html.verre[data-app="portail"] .dash-card.blue{ --v-teinte:var(--v-corps); }
 html.verre[data-app="portail"] .dash-card.gold{ --v-teinte:var(--v-argent); }
 html.verre[data-app="portail"] .dash-card.green{ --v-teinte:var(--v-frigo); }
+html.verre[data-app="portail"] .dash-card.violet{ --v-teinte:var(--v-todo); }
+/* Pastilles des listes de Todo : couleur de chaque liste (--c-liste posée par app.js, palette contrôlée) */
+html.verre[data-app="portail"] #to-chips .chip-n{ background:var(--c-liste, var(--v-todo)); box-shadow:0 0 10px color-mix(in srgb, var(--c-liste, var(--v-todo)) 70%, transparent); color:#fff; }
 /* Le contenu des vitres du fond s'efface : seul leur en-tête dépasse */
 html.verre[data-app="portail"] .dash-body{ transition:opacity .25s ease-out; }
 html.verre[data-app="portail"] .dash-card:not([data-rang="0"]) .dash-body{ opacity:0; }
@@ -271,27 +280,27 @@ html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border
 /* ==========================================================================
    COURSE — une plaque de verre, des lignes (pas de cartes)
    ========================================================================== */
-html.verre[data-app="course"] #app{ background:transparent; }
+html.verre:is([data-app="course"],[data-app="todo"]) #app{ background:transparent; }
 /* Bande sous la barre d'onglets (bug iOS, mesuré le 28/09/2026 — voir README Course) : en app écran
    d'accueil, la page ne fait que 894 pt sur un écran de 956 (les 62 pt de l'encoche manquent) et iOS
    remplit les 62 pt du bas avec la COULEUR de fond de <html> (couleur unie seulement : ni dégradé, ni
    élément, même prolongé, n'y est dessiné). On ne peut donc que choisir cette couleur : celle du bas de
    la plaque de verre. Le dégradé plein garde la vraie couleur de fond à l'intérieur de la page. */
-html.verre[data-app="course"], html.verre[data-app="budget"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
-html.verre[data-app="course"] header.topbar{ background:transparent; border-bottom:none; padding:var(--v-haut) 20px 16px; }
-html.verre[data-app="course"] header.topbar h1{
+html.verre:is([data-app="course"],[data-app="todo"]), html.verre[data-app="budget"]{ background:#171719 linear-gradient(#08080a, #08080a) 0 0 / 100% 100% no-repeat; }
+html.verre:is([data-app="course"],[data-app="todo"]) header.topbar{ background:transparent; border-bottom:none; padding:var(--v-haut) 20px 16px; }
+html.verre:is([data-app="course"],[data-app="todo"]) header.topbar h1{
   font-family:var(--v-f-chiffres); font-weight:600; font-size:22px; letter-spacing:-.3px; line-height:1.2; color:var(--v-text);
 }
 
 /* La plaque : UNE seule surface floutée pour tout le contenu qui défile */
-html.verre[data-app="course"] main{
+html.verre:is([data-app="course"],[data-app="todo"]) main{
   background:var(--v-glass);
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
   border:1px solid var(--v-edge); border-bottom:none;
   border-radius:34px 34px 0 0;
   box-shadow:inset 0 1px 0 var(--v-hi), 0 -10px 40px var(--v-ombre);
 }
-html.verre[data-app="course"] .searchbar{
+html.verre:is([data-app="course"],[data-app="todo"]) .searchbar{
   margin:16px 18px 4px; border-radius:999px; background:var(--v-soft);
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
@@ -301,62 +310,62 @@ html.verre[data-app="course"] .searchbar{
    posée par app.js), elle prend un fond opaque couleur plaque — SANS flou (règle PERF : pas de 4e
    surface floutée) — et son ::before couvre la zone de l'encoche au-dessus : les lignes qui passent
    dessous ne se lisent ni à côté de la barre ni derrière l'heure. ::after = fondu sous la barre. */
-html.verre[data-app="course"] .barre-recherche{
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche{
   position:sticky; z-index:5;
   top:calc(env(safe-area-inset-top, 0px) - 6px);   /* la barre (16 px sous le haut de l'enveloppe) se cale 10 px sous l'encoche */
   padding:16px 18px 4px;
 }
-html.verre[data-app="course"] .barre-recherche .searchbar{ margin:0; }
-html.verre[data-app="course"] .barre-recherche.colle{ background:#171719; }
-html.verre[data-app="course"] .barre-recherche.colle::before,
-html.verre[data-app="course"] .barre-recherche.colle::after{ content:''; position:absolute; left:0; right:0; pointer-events:none; }
-html.verre[data-app="course"] .barre-recherche.colle::before{ bottom:100%; height:calc(env(safe-area-inset-top, 0px) + 1px); background:#171719; }
-html.verre[data-app="course"] .barre-recherche.colle::after{ top:100%; height:14px; background:linear-gradient(#171719, rgba(23,23,25,0)); }
-html.verre[data-app="course"] .titre-rayon{ margin:0 0 2px 2px; }
-html.verre[data-app="course"] .section-rayon{ margin-top:20px; }
-html.verre[data-app="course"] .carte-produit{
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche .searchbar{ margin:0; }
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle{ background:#171719; }
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::before,
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::after{ content:''; position:absolute; left:0; right:0; pointer-events:none; }
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::before{ bottom:100%; height:calc(env(safe-area-inset-top, 0px) + 1px); background:#171719; }
+html.verre:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::after{ top:100%; height:14px; background:linear-gradient(#171719, rgba(23,23,25,0)); }
+html.verre:is([data-app="course"],[data-app="todo"]) .titre-rayon{ margin:0 0 2px 2px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .section-rayon{ margin-top:20px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .carte-produit{
   background:transparent; border:none; border-bottom:1px solid var(--v-hair); border-radius:0;
   box-shadow:none; margin:0; padding:8px 2px; min-height:56px;
 }
-html.verre[data-app="course"] .case{
+html.verre:is([data-app="course"],[data-app="todo"]) .case{
   border-radius:50%; width:28px; height:28px; border:1.5px solid var(--v-edge);
   background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi);
 }
-html.verre[data-app="course"] .case.checked{   /* couleur de la liste (--c-liste, 30/09/2026), accent en repli */
+html.verre:is([data-app="course"],[data-app="todo"]) .case.checked{   /* couleur de la liste (--c-liste, 30/09/2026), accent en repli */
   background:var(--c-liste, var(--accent)); border-color:rgba(255,255,255,.35);
   box-shadow:0 0 14px color-mix(in srgb, var(--c-liste, var(--accent)) 75%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
 }
-html.verre[data-app="course"] .case.case-liste:not(.checked){ border-color:var(--c-liste, var(--v-edge)); border-width:2px; }
-html.verre[data-app="course"] .qte-produit{ border-radius:999px; background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi); }
-html.verre[data-app="course"] .btn-crayon{ background:var(--v-soft); border:1px solid var(--v-edge); }
-html.verre[data-app="course"] .carte-produit.achete-carte{ opacity:.5; }
+html.verre:is([data-app="course"],[data-app="todo"]) .case.case-liste:not(.checked){ border-color:var(--c-liste, var(--v-edge)); border-width:2px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .qte-produit{ border-radius:999px; background:var(--v-soft); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre:is([data-app="course"],[data-app="todo"]) .btn-crayon{ background:var(--v-soft); border:1px solid var(--v-edge); }
+html.verre:is([data-app="course"],[data-app="todo"]) .carte-produit.achete-carte{ opacity:.5; }
 
 /* Sélecteur de listes (30/09/2026) : pastilles posées sur le fond, sous le titre — sans flou
    (règle PERF : la plaque, la barre et le + restent les seules surfaces floutées). */
-html.verre[data-app="course"] .selecteur-listes{ padding:2px 20px 14px; margin-top:-4px; }
-html.verre[data-app="course"] .liste-chip{
+html.verre:is([data-app="course"],[data-app="todo"]) .selecteur-listes{ padding:2px 20px 14px; margin-top:-4px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .liste-chip{
   background:var(--v-soft); border-color:var(--v-edge); color:var(--v-dim);
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
-html.verre[data-app="course"] .liste-chip.actif{
+html.verre:is([data-app="course"],[data-app="todo"]) .liste-chip.actif{
   background:var(--v-soft-on); color:var(--v-text); border-color:var(--c-liste, rgba(var(--accent-rgb), .6));
 }
-html.verre[data-app="course"] .ligne-liste{ border-bottom-color:var(--v-hair); }
+html.verre:is([data-app="course"],[data-app="todo"]) .ligne-liste{ border-bottom-color:var(--v-hair); }
 
 /* Barre d'onglets et bouton + : verre plus dense (posé sur du contenu qui défile) */
-html.verre[data-app="course"] nav.tabbar,
-html.verre[data-app="course"] .nav-add{
+html.verre:is([data-app="course"],[data-app="todo"]) nav.tabbar,
+html.verre:is([data-app="course"],[data-app="todo"]) .nav-add{
   background:var(--v-glass-fort); border-color:var(--v-edge);
   box-shadow:inset 0 1px 0 var(--v-hi), 0 18px 40px var(--v-ombre);
 }
-html.verre[data-app="course"] nav.tabbar button.actif{
+html.verre:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif{
   background:var(--v-soft-on); color:var(--v-text);
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
-html.verre[data-app="course"] nav.tabbar button.actif svg{ color:var(--accent); }
-html.verre[data-app="course"] .nav-add{ color:var(--v-text); outline:1px solid var(--accent); outline-offset:3px; }
+html.verre:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif svg{ color:var(--accent); }
+html.verre:is([data-app="course"],[data-app="todo"]) .nav-add{ color:var(--v-text); outline:1px solid var(--accent); outline-offset:3px; }
 
-html.verre[data-app="course"] .btn-course-terminee{
+html.verre:is([data-app="course"],[data-app="todo"]) .btn-course-terminee{
   border-radius:999px; color:var(--v-text);
   background:color-mix(in srgb, var(--v-frigo) 30%, var(--v-glass-fort));
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
@@ -364,24 +373,28 @@ html.verre[data-app="course"] .btn-course-terminee{
   box-shadow:inset 0 1px 0 var(--v-hi), 0 18px 40px var(--v-ombre);
 }
 
-html.verre[data-app="course"] .bloc-param{
+html.verre:is([data-app="course"],[data-app="todo"]) .bloc-param{
   background:var(--v-soft); border:1px solid var(--v-edge); border-radius:26px;
   box-shadow:inset 0 1px 0 var(--v-hi);
 }
-html.verre[data-app="course"] .profile-switch{ border-radius:999px; }
-html.verre[data-app="course"] .param-desc{ margin:-4px 0 12px; font-size:13px; line-height:1.4; color:var(--v-dim); }
-html.verre[data-app="course"] .profile-switch-btn{ border-radius:999px; }
-html.verre[data-app="course"] .btn-large{ border-radius:999px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .profile-switch{ border-radius:999px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .param-desc{ margin:-4px 0 12px; font-size:13px; line-height:1.4; color:var(--v-dim); }
+html.verre:is([data-app="course"],[data-app="todo"]) .profile-switch-btn{ border-radius:999px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .btn-large{ border-radius:999px; }
 
-html.verre[data-app="course"] .modal-fond{ background:rgba(0,0,0,.45); }
-html.verre[data-app="course"] .modal-carte{
+html.verre:is([data-app="course"],[data-app="todo"]) .modal-fond{ background:rgba(0,0,0,.45); }
+html.verre:is([data-app="course"],[data-app="todo"]) .modal-carte{
   border-radius:34px 34px 0 0; border-color:var(--v-edge);
   -webkit-backdrop-filter:var(--v-flou); backdrop-filter:var(--v-flou);
   box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow-lg);
 }
-html.verre[data-app="course"] .champ input,
-html.verre[data-app="course"] .champ select{ border-radius:16px; }
-html.verre[data-app="course"] .modal-actions button{ border-radius:999px; }
+html.verre:is([data-app="course"],[data-app="todo"]) .champ input,
+html.verre:is([data-app="course"],[data-app="todo"]) .champ select,
+html.verre[data-app="todo"] .champ textarea{ border-radius:16px; }
+/* Todo (11/10/2026) : éléments propres à l'app, posés sur la plaque (pas de flou, règle PERF) */
+html.verre[data-app="todo"] .btn-effacer-terminees{ background:var(--v-soft); border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
+html.verre[data-app="todo"] .btn-ajouter{ box-shadow:0 0 12px color-mix(in srgb, var(--c-liste, var(--accent)) 60%, transparent); }
+html.verre:is([data-app="course"],[data-app="todo"]) .modal-actions button{ border-radius:999px; }
 
 
 /* ==========================================================================
@@ -755,7 +768,7 @@ html.verre[data-app="muscu"] .login-overlay{
    Navigateur sans support : navigation normale, rien ne casse.
    ========================================================================== */
 @view-transition{ navigation:auto; }
-html.verre[data-app="course"] main,
+html.verre:is([data-app="course"],[data-app="todo"]) main,
 html.verre[data-app="budget"] .main-content,
 html.verre[data-app="muscu"] #view-menu .plaque{ view-transition-name:vitre; }
 /* La boîte « vitre » se déforme de la taille de la vitre à celle de la plaque ; son contenu n'est
@@ -959,19 +972,19 @@ html.verre[data-style="simple"][data-app="muscu"] .menu-hero::after,
 html.verre[data-style="relief"][data-app="muscu"] .menu-hero::after{ display:none; }   /* matière unie : pas de halos ni de lueur */
 
 /* Bande iOS du bas (Course, Budget) : couleur du bas de la plaque, comme en Verre */
-html.verre[data-style][data-app="course"],
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]),
 html.verre[data-style][data-app="budget"]{
   background:var(--t-plaque) linear-gradient(var(--t-fond), var(--t-fond)) 0 0 / 100% 100% no-repeat;
 }
-html.verre[data-style][data-app="course"] .barre-recherche.colle,
-html.verre[data-style][data-app="course"] .barre-recherche.colle::before{ background:var(--t-plaque); }
-html.verre[data-style][data-app="course"] .barre-recherche.colle::after{
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::before{ background:var(--t-plaque); }
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .barre-recherche.colle::after{
   background:linear-gradient(var(--t-plaque), color-mix(in srgb, var(--t-plaque) 0%, transparent));
 }
 
 /* ---------- PLAQUES (grandes surfaces du contenu) ---------- */
 html.verre[data-style][data-app="portail"] .dash-card,
-html.verre[data-style][data-app="course"] main,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) main,
 html.verre[data-style][data-app="budget"] .main-content,
 html.verre[data-style][data-app="muscu"] .plaque,
 html.verre[data-style][data-app="muscu"] #view-exercises main{
@@ -989,8 +1002,9 @@ html.verre[data-style="argile"][data-app="portail"] .dash-card{
 }
 html.verre[data-style][data-app="portail"] .dash-card[data-rang="1"]{ opacity:1; filter:brightness(.86); }
 html.verre[data-style][data-app="portail"] .dash-card[data-rang="2"]{ opacity:1; filter:brightness(.72); }
+html.verre[data-style][data-app="portail"] .dash-card[data-rang="3"]{ opacity:1; filter:brightness(.6); }
 /* Plaques de Muscu/Course/Budget en relief : bord du haut éclairé, pas d'ombre sur le fond uni */
-html.verre[data-style="relief"][data-app="course"] main,
+html.verre[data-style="relief"]:is([data-app="course"],[data-app="todo"]) main,
 html.verre[data-style="relief"][data-app="budget"] .main-content,
 html.verre[data-style="relief"][data-app="muscu"] .plaque,
 html.verre[data-style="relief"][data-app="muscu"] #view-exercises main{
@@ -998,9 +1012,9 @@ html.verre[data-style="relief"][data-app="muscu"] #view-exercises main{
 }
 
 /* ---------- BARRES, FLOTTANTS, MODALES ---------- */
-html.verre[data-style][data-app="course"] nav.tabbar,
-html.verre[data-style][data-app="course"] .nav-add,
-html.verre[data-style][data-app="course"] .btn-course-terminee,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .nav-add,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .btn-course-terminee,
 html.verre[data-style][data-app="budget"] .tab-buttons,
 html.verre[data-style][data-app="budget"] #toast,
 html.verre[data-style][data-app="muscu"] #view-exercises header,
@@ -1010,11 +1024,11 @@ html.verre[data-style] .reload-btn,
 html.verre[data-style][data-app="budget"] .btn-icon{
   background:var(--t-barre); border-color:var(--t-arete); box-shadow:var(--t-o-barre);
 }
-html.verre[data-style][data-app="course"] .btn-course-terminee{
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .btn-course-terminee{
   background:color-mix(in srgb, var(--v-frigo) 30%, var(--t-barre));
 }
 html.verre[data-style][data-app="portail"] .modal-sheet,
-html.verre[data-style][data-app="course"] .modal-carte,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .modal-carte,
 html.verre[data-style][data-app="budget"] .popup-box,
 html.verre[data-style][data-app="muscu"] .modal,
 html.verre[data-style][data-app="muscu"] .confirm-box,
@@ -1033,9 +1047,10 @@ html.verre[data-style] .connexion-duo{ background:color-mix(in srgb, var(--t-fon
 html.verre[data-style][data-app="portail"] .choice-icon,
 html.verre[data-style][data-app="portail"] .dash-phrase,
 html.verre[data-style][data-app="portail"] .chip,
-html.verre[data-style][data-app="course"] .bloc-param,
-html.verre[data-style][data-app="course"] .btn-crayon,
-html.verre[data-style][data-app="course"] .liste-chip,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .bloc-param,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .btn-crayon,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .liste-chip,
+html.verre[data-style][data-app="todo"] .btn-effacer-terminees,
 html.verre[data-style][data-app="budget"] .year-group,
 html.verre[data-style][data-app="budget"] .card,
 html.verre[data-style][data-app="budget"] .revenus-box,
@@ -1065,12 +1080,13 @@ html.verre[data-style][data-app="muscu"] .session-btn .session-icon{
 
 /* ---------- CREUX (champs, pistes, cases) ---------- */
 html.verre[data-style][data-app="portail"] .gauge,
-html.verre[data-style][data-app="course"] .searchbar,
-html.verre[data-style][data-app="course"] .case,
-html.verre[data-style][data-app="course"] .qte-produit,
-html.verre[data-style][data-app="course"] .profile-switch,
-html.verre[data-style][data-app="course"] .champ input,
-html.verre[data-style][data-app="course"] .champ select,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .searchbar,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .case,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .qte-produit,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .profile-switch,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .champ input,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .champ select,
+html.verre[data-style][data-app="todo"] .champ textarea,
 html.verre[data-style][data-app="budget"] .search-container input,
 html.verre[data-style][data-app="budget"] .select-annee,
 html.verre[data-style][data-app="budget"] .progress-track,
@@ -1091,11 +1107,11 @@ html.verre[data-style] .style-choix{
 html.verre[data-style="relief"][data-app="budget"] .revenus-box input[readonly]{ border:1px dashed rgba(255,255,255,.10); }
 
 /* ---------- ÉTATS ACTIFS (onglet, mois, segment choisi) ---------- */
-html.verre[data-style][data-app="course"] nav.tabbar button.actif,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif,
 html.verre[data-style][data-app="budget"] .btn-tab.active,
 html.verre[data-style][data-app="budget"] .month-pill.active,
-html.verre[data-style][data-app="course"] .profile-switch-btn.selected,
-html.verre[data-style][data-app="course"] .liste-chip.actif,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .profile-switch-btn.selected,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .liste-chip.actif,
 html.verre[data-style][data-app="budget"] .profile-switch-btn.selected,
 html.verre[data-style][data-app="muscu"] .rail-exo.actif,
 html.verre[data-style][data-app="muscu"] #view-exercises .variant-btn.selected,
@@ -1107,9 +1123,9 @@ html.verre[data-style="argile"][data-app="muscu"] .rail-exo.actif .rail-segs i:n
 html.verre[data-style][data-app="muscu"] .exo-nav-btn.suivant.pret{
   background:color-mix(in srgb, #12b981 45%, var(--t-panneau)); color:#fff;
 }
-html.verre[data-style][data-app="course"] nav.tabbar button.actif svg,
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif svg,
 html.verre[data-style][data-app="budget"] .btn-tab.active svg{ color:var(--t-actif-texte); }
-html.verre[data-style="relief"][data-app="course"] nav.tabbar button.actif svg,
+html.verre[data-style="relief"]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif svg,
 html.verre[data-style="relief"][data-app="budget"] .btn-tab.active svg{ color:var(--accent); }
 
 /* ---------- ACCENT (actions principales, cases cochées) ---------- */
@@ -1125,12 +1141,12 @@ html.verre[data-style][data-app="portail"] .btn-accent,
 html.verre[data-style] .connexion-duo button{
   background:var(--t-accent-fond); border-color:transparent; color:#fff; box-shadow:var(--t-o-accent);
 }
-html.verre[data-style][data-app="course"] .case.checked{
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .case.checked{
   background:var(--c-liste, var(--accent)); border-color:transparent; box-shadow:var(--t-o-accent);
 }
-html.verre[data-style][data-app="course"] .nav-add{ outline-color:var(--accent); }
-html.verre[data-style][data-app="course"] .case.case-liste:not(.checked){ box-shadow:var(--t-o-creux), inset 0 0 0 2px var(--c-liste); }
-html.verre[data-style][data-app="course"] .liste-chip.actif{ box-shadow:var(--t-o-actif), inset 0 0 0 1.5px var(--c-liste, transparent); }
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .nav-add{ outline-color:var(--accent); }
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .case.case-liste:not(.checked){ box-shadow:var(--t-o-creux), inset 0 0 0 2px var(--c-liste); }
+html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .liste-chip.actif{ box-shadow:var(--t-o-actif), inset 0 0 0 1.5px var(--c-liste, transparent); }
 html.verre[data-style][data-app="budget"] .bg-danger,
 html.verre[data-style][data-app="muscu"] .btn-confirm{
   background:color-mix(in srgb, #ef4444 70%, var(--t-panneau)); border-color:transparent; color:#fff; box-shadow:var(--t-o-panneau);

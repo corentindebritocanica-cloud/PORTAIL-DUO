@@ -230,12 +230,45 @@
       pied('co-maj', d);
     }
 
+    /* Todo (11/10/2026) : portail/todo = { maj, aFaire, listes:[{ nom, n, couleur }] }. La couleur d'une
+       liste n'est reprise que si elle fait partie de la palette de Todo (jamais une valeur libre dans le style). */
+    const PALETTE_TODO = ['#a855f7','#1f8fff','#12b981','#ff8a2b','#ffb800','#22c3e6','#ef4444','#ff3d7e'];
+    function afficherTodo(d){
+      const n = entier(d && d.aFaire, 0, 99999);
+      const chips = el('to-chips');
+      chips.textContent = '';
+      el('to-chips-label').hidden = true;
+      if (n === null) {
+        el('to-int').textContent = '—';
+        el('to-label').textContent = '';
+        el('to-peek').textContent = '';
+      } else {
+        el('to-int').textContent = String(n);
+        el('to-peek').textContent = String(n);
+        el('to-label').textContent = n === 0 ? 'tout est fait' : (n > 1 ? 'tâches' : 'tâche');
+        (Array.isArray(d.listes) ? d.listes.slice(0, 3) : []).forEach((l) => {
+          const nom = texte(l && l.nom, 26), k = entier(l && l.n, 0, 99999);
+          if (!nom || k === null) return;
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          const t = document.createElement('span'); t.textContent = nom;
+          const c = document.createElement('span'); c.className = 'chip-n'; c.textContent = String(k);
+          if (PALETTE_TODO.includes(l.couleur)) c.style.setProperty('--c-liste', l.couleur);
+          chip.appendChild(t); chip.appendChild(c);
+          chips.appendChild(chip);
+        });
+        el('to-chips-label').hidden = chips.children.length === 0;
+      }
+      pied('to-maj', d);
+    }
+
     function afficher(){
       const j = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
       el('dash-date').textContent = j.charAt(0).toUpperCase() + j.slice(1);
       afficherMuscu(resume.muscu);
       afficherBudget(resume.budget);
       afficherCourses(resume.courses);
+      afficherTodo(resume.todo);
     }
 
     /* ---- Firebase : chargé APRÈS le premier affichage, jamais bloquant ---- */
@@ -540,7 +573,7 @@
   /* ============================================================
      DESIGN VERRE — DÉFINITIF (28/09/2026)
      Habillage commun (verre.css, à la racine), classe html.verre posée en dur dans index.html.
-     PILE : les 3 cartes sont 3 vitres empilées (data-rang : 0 = devant).
+     PILE : les 4 cartes sont 4 vitres empilées (data-rang : 0 = devant ; 4e vitre Todo le 11/10/2026).
      Toucher une vitre du fond la ramène devant (sans ouvrir l'app) ; toucher celle de
      devant ouvre l'app (lien normal) ; glisser la pile vers le haut/bas fait tourner les
      vitres. Ordre mémorisé (portail-verre-pile). La 2e lumière du fond prend la couleur
@@ -548,16 +581,18 @@
      ============================================================ */
   (function(){
     const root = document.documentElement;
-    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses' };
-    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)' };
-    const ordre = ['muscu', 'budget', 'courses'];
+    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses', todo: 'carte-todo' };
+    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)', todo: 'var(--v-todo)' };
+    const ordre = ['muscu', 'budget', 'courses', 'todo'];
     const carte = (k) => document.getElementById(cartes[k]);
-    /* Ordre de la pile, de devant (0) au fond (2). Mémorisé (portail-verre-pile) ; repli sur
-       l'ancienne clé portail-verre-devant (1re version du 28/09). */
+    /* Ordre de la pile, de devant (0) au fond. Mémorisé (portail-verre-pile) ; repli sur
+       l'ancienne clé portail-verre-devant (1re version du 28/09). 11/10/2026 : un ordre mémorisé
+       incomplet (3 vitres, avant Todo) est gardé, les vitres manquantes passent au fond. */
     let pile = ordre.slice();
     try {
       const p = JSON.parse(localStorage.getItem('portail-verre-pile'));
-      if (Array.isArray(p) && p.length === 3 && ordre.every((k) => p.includes(k))) pile = p;
+      const connus = Array.isArray(p) ? p.filter((k, i) => ordre.includes(k) && p.indexOf(k) === i) : [];
+      if (connus.length) pile = [...connus, ...ordre.filter((k) => !connus.includes(k))];
       else { const d = localStorage.getItem('portail-verre-devant'); if (ordre.includes(d)) pile = [d, ...ordre.filter((k) => k !== d)]; }
     } catch (e) {}
 
@@ -620,8 +655,8 @@
       if (aGlisse) {
         const versHaut = dy < -50 || (dy < -20 && v < -0.4);
         const versBas = dy > 50 || (dy > 20 && v > 0.4);
-        if (versHaut) pile = [pile[1], pile[2], pile[0]];
-        else if (versBas) pile = [pile[2], pile[0], pile[1]];
+        if (versHaut) pile = [...pile.slice(1), pile[0]];                   /* devant → fond */
+        else if (versBas) pile = [pile[pile.length - 1], ...pile.slice(0, -1)];   /* fond → devant */
         if (versHaut || versBas) empiler();
       }
       depart = null;

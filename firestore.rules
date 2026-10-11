@@ -30,6 +30,10 @@ service cloud.firestore {
     match /coachChat/{id}      { allow read, write: if compteDuo(); }
     match /settings/{id}       { allow read, write: if compteDuo(); }
 
+    // ---- TODO ---- (11/10/2026) listes de choses à faire partagées
+    match /todoListes/{id}     { allow read, write: if compteDuo(); }
+    match /todoTaches/{id}     { allow read, write: if compteDuo(); }
+
     // ---- BUDGET ----
     match /mois/{document=**}   { allow read, write: if compteDuo(); }
     match /config/{document=**} { allow read, write: if compteDuo(); }

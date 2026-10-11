@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr" data-app="todo" class="verre">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Todo">
+<meta name="theme-color" content="#0d1014">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
+<title>Todo</title>
+<link rel="stylesheet" href="style.css?v=202610111600000200">
+<!-- Habillage commun (../verre.css, racine du dépôt) : Todo reprend les règles de Course
+     (sélecteurs :is([data-app="course"],[data-app="todo"])) et sa propre lumière violette (--v-todo). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap">
+<!-- Noyau commun ../commun.js : style au choix, halos, transition, date de MAJ, service worker,
+     vérification de version, connexion du duo. Dans le <head>, sans defer. -->
+<script src="../commun.js?v=202610111600000200"></script>
+<link rel="stylesheet" href="../verre.css?v=202610111600000200">
+<!-- SDK Firebase « compat » en defer (même version que FIREBASE_FILES dans sw.js), puis app.js. -->
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:calc(var(--tabbar-height, 0px) + var(--add-gap, 12px) + var(--add-size, 56px) + 12px); transform:translateX(-50%); z-index:99999; background:var(--card, #1c1c1e); color:var(--text, #fff); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+  <span>🔄 Nouvelle version disponible</span>
+  <button id="maj-btn" type="button" style="background:var(--accent, #1f8fff); color:#fff; border:none; border-radius:999px; padding:7px 14px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer;">Actualiser</button>
+</div>
+
+<div id="app" data-onglet="taches">
+  <header class="topbar">
+    <h1 id="titre-onglet">Tâches</h1>
+  </header>
+
+  <!-- Listes (Maison, Travail…) : pastilles dessinées par renderSelecteurListes() (app.js), masquées dans Réglages. -->
+  <div class="selecteur-listes" id="selecteur-listes" aria-label="Listes"></div>
+
+  <main>
+    <section class="vue actif" id="vue-taches">
+      <!-- Ajout rapide, collé en haut pendant le défilement (même mécanique que la recherche de Course :
+           .barre-recherche dans ../verre.css). Entrée = ajoute et garde le clavier ouvert pour la suivante. -->
+      <div class="barre-recherche">
+        <form class="searchbar" id="form-ajout" autocomplete="off">
+          <span class="ajout-plus" aria-hidden="true">+</span>
+          <input type="text" id="champ-ajout" placeholder="Nouvelle tâche…" maxlength="200" enterkeyhint="send" aria-label="Nouvelle tâche">
+          <button type="submit" class="btn-ajouter" id="btn-ajouter" aria-label="Ajouter la tâche">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+        </form>
+      </div>
+      <div class="liste" id="liste-taches"></div>
+    </section>
+
+    <section class="vue" id="vue-parametres">
+      <div class="params">
+        <div class="bloc-param">
+          <h3>Profil</h3>
+          <p class="param-desc">Réglage commun aux apps du Portail : il change la couleur bleu/rose et signe les tâches que tu ajoutes.</p>
+          <div class="profile-switch">
+            <button type="button" class="profile-switch-btn corentin" id="btn-profil-corentin">Corentin</button>
+            <button type="button" class="profile-switch-btn lisa" id="btn-profil-lisa">Lisa</button>
+          </div>
+        </div>
+        <div class="bloc-param">
+          <h3>Listes</h3>
+          <p class="param-desc">Partagées entre vous deux. Touche une liste pour la renommer, changer sa couleur ou la supprimer.</p>
+          <div id="reglages-listes"></div>
+          <button type="button" class="btn-large btn-nouvelle-liste" id="btn-nouvelle-liste">+ Nouvelle liste</button>
+        </div>
+        <div class="bloc-param">
+          <h3>Application</h3>
+          <button type="button" class="btn-large" id="btn-vider-cache">Recharger l'application (vider le cache)</button>
+          <p class="derniere-maj" id="derniere-maj"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="tabbar-flottante">
+  <nav class="tabbar">
+    <button type="button" class="actif" data-tab="taches">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 8 9 4"/><polyline points="3 13 5 15 9 11"/><line x1="13" y1="6" x2="21" y2="6"/><line x1="13" y1="13" x2="21" y2="13"/><line x1="13" y1="20" x2="21" y2="20"/><circle cx="6" cy="20" r="2"/></svg>
+      Tâches
+    </button>
+    <button type="button" data-tab="parametres">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Réglages
+    </button>
+  </nav>
+  <!-- Bouton + : remonte en haut et ouvre le clavier sur le champ d'ajout (visible sur l'onglet Tâches). -->
+  <button type="button" class="nav-add" id="btn-ouvrir-ajout" aria-label="Ajouter une tâche">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  </div>
+</div>
+
+<!-- Connexion du duo : même compte et même session que les autres apps. Ouverte seulement si Firebase
+     répond « pas de session » — voir connexionDuo() dans commun.js. -->
+<div class="connexion-duo" id="connexion" role="dialog" aria-modal="true" aria-labelledby="connexion-titre">
+  <form id="connexion-form" novalidate>
+    <h2 id="connexion-titre">Connexion</h2>
+    <p>Le compte du duo, le même que dans les autres apps.</p>
+    <input type="email" id="connexion-email" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="none">
+    <input type="password" id="connexion-mdp" placeholder="Mot de passe" autocomplete="current-password">
+    <p class="connexion-erreur" id="connexion-erreur" aria-live="polite"></p>
+    <button type="submit" id="connexion-btn">Se connecter</button>
+  </form>
+</div>
+
+<!-- Modification d'une tâche (texte, liste) — voir « FENÊTRE TÂCHE » dans app.js -->
+<div class="modal-fond" id="modal-tache" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-tache-titre">
+  <div class="modal-carte">
+    <h2 id="modal-tache-titre">Modifier la tâche</h2>
+    <div class="champ">
+      <label for="modal-tache-texte">Tâche</label>
+      <textarea id="modal-tache-texte" rows="3" maxlength="200"></textarea>
+    </div>
+    <div class="champ">
+      <label for="modal-tache-liste">Liste</label>
+      <select id="modal-tache-liste"></select>
+    </div>
+    <p class="modal-info" id="modal-tache-info"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="btn-tache-annuler">Annuler</button>
+      <button type="button" class="btn-enregistrer" id="btn-tache-enregistrer">Enregistrer</button>
+    </div>
+    <button type="button" class="btn-supprimer" id="btn-tache-supprimer">Supprimer cette tâche</button>
+  </div>
+</div>
+
+<!-- Création / renommage / suppression d'une liste — voir « LISTES » dans app.js -->
+<div class="modal-fond" id="modal-liste" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-liste-titre">
+  <div class="modal-carte">
+    <h2 id="modal-liste-titre">Nouvelle liste</h2>
+    <div class="champ">
+      <label for="modal-liste-nom">Nom de la liste</label>
+      <input type="text" id="modal-liste-nom" placeholder="Ex : Travaux" maxlength="30" enterkeyhint="done">
+    </div>
+    <div class="champ">
+      <label id="modal-liste-couleurs-label">Couleur</label>
+      <div class="couleurs-liste" id="modal-liste-couleurs" role="radiogroup" aria-labelledby="modal-liste-couleurs-label"></div>
+    </div>
+    <p class="modal-erreur" id="modal-liste-erreur" aria-live="polite"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="btn-liste-annuler">Annuler</button>
+      <button type="button" class="btn-enregistrer" id="btn-liste-enregistrer">Enregistrer</button>
+    </div>
+    <button type="button" class="btn-supprimer" id="btn-liste-supprimer" style="display:none;">Supprimer cette liste</button>
+  </div>
+</div>
+
+<!-- Boîte de dialogue maison (bottom-sheet) : remplace window.confirm() — voir dialogue() dans app.js -->
+<div class="modal-fond" id="dialogue" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
+  <div class="modal-carte">
+    <h2 id="dialogue-titre"></h2>
+    <p class="dialogue-texte" id="dialogue-texte"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="dialogue-annuler">Annuler</button>
+      <button type="button" class="btn-danger" id="dialogue-ok">OK</button>
+    </div>
+  </div>
+</div>
+<script>
+/* Horodatage du dernier déploiement du code (pas des données), mis à jour
+   automatiquement par .github/workflows/auto-version.yml. Ne pas supprimer :
+   il sert aussi à détecter les nouvelles versions au retour dans l'app. */
+const DERNIERE_MAJ = '2026-10-11T16:00:00+02:00';
+</script>
+<script defer src="app.js?v=202610111600000200"></script>
+</body>
+</html>

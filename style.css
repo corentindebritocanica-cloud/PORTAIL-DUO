@@ -33,6 +33,8 @@
     --gold-dark:#c48e00;
     --green:#12b981;     /* Courses */
     --green-dark:#0d8f64;
+    --violet:#a855f7;    /* Todo (11/10/2026) */
+    --violet-dark:#7e3bc4;
     --danger:#ef4444;    /* reste à vivre négatif */
 
     --r-xs:4px;
@@ -177,6 +179,8 @@
   .dash-card.blue .choice-icon{ background:linear-gradient(150deg, var(--blue), var(--blue-dark)); }
   .dash-card.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
   .dash-card.green .choice-icon{ background:linear-gradient(150deg, var(--green), var(--green-dark)); }
+  .dash-card.violet .choice-icon{ background:linear-gradient(150deg, var(--violet), var(--violet-dark)); }
+  #to-chips .chip-n{ background:var(--c-liste, var(--violet)); color:#fff; }
 
   .choice-icon{
     width:46px; height:46px; flex:0 0 auto; border-radius:var(--r-md);

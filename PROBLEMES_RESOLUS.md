@@ -19,6 +19,20 @@
 
 ---
 
+## 🧩 Toutes apps — ajouter une 5e app sans casser les autres (11/10/2026)
+
+### 11/10/2026 — Portail + Todo — les endroits « cachés » à toucher pour une nouvelle app
+**Symptôme** : (anticipé à la création de Todo) une nouvelle app dans un sous-dossier n'est pas qu'un dossier de plus : plusieurs fichiers communs listent les apps **en dur**, et en oublier un ne donne aucune erreur visible.
+**Fausses pistes explorées** : recopier les règles de Course dans `verre.css` pour Todo (≈ 75 sélecteurs dupliqués, 4 styles à maintenir en double) ; tester les règles par l'API `projects:test` (toujours refusé au compte de service, cf. Course 30/09).
+**Cause racine** : listes d'apps codées en dur — (1) `sw.js` racine, regex `isSubApp` : un dossier absent est intercepté par le service worker du **Portail** (il servirait ses fichiers depuis le cache du Portail) ; (2) workflow `auto-version.yml` (chemins + boucle + lancement manuel) : sans lui, `DERNIERE_MAJ` et `CACHE_NAME` ne bougent jamais et l'app ne se met plus à jour ; (3) `firestore.rules` (tout ce qui n'est pas déclaré est refusé) ; (4) pile du Portail figée à 3 (`p.length === 3`, rotations `[pile[1], pile[2], pile[0]]`, `data-rang` 0-2 dans `verre.css`).
+**Solution** : les 4 endroits mis à jour ; pile généralisée à N vitres (rotations par `slice`, ordre mémorisé incomplet complété au lieu d'être jeté) ; habillage de Todo par `:is([data-app="course"],[data-app="todo"])` dans `verre.css` (même spécificité, une seule règle pour les deux apps, mêmes classes HTML que Course) ; règles testées à l'émulateur Firestore (330 cas) puis publiées par l'API (création de ruleset + mise à jour de la release `cloud.firestore`). Check-list complète dans le README racine (« Nouvelle app Todo »).
+**Leçons généralisables** :
+- Avant de créer une app : chercher `Muscu|Budget|Course` dans tout le dépôt (`sw.js`, workflow, `commun.js`, `verre.css`, `app.js` du Portail) — chaque liste en dur est un oubli potentiel.
+- Réutiliser l'habillage d'une app existante par `:is()` plutôt que dupliquer : une correction de Course profite à Todo.
+- Écrire une boucle sur « les apps » plutôt que des index fixes (`pile[2]`) : la 5e app ne demande alors qu'une entrée dans un tableau.
+- Constat au passage : le bouton « Recharger l'application (vider le cache) » des Réglages de **Course** n'a **aucun gestionnaire** dans `Course/app.js` (il ne fait rien). Todo a le sien (désinscrit son service worker, vide ses seuls caches `todo-*`).
+**Fichiers touchés** : `Todo/*` (nouveau), `index.html`, `app.js`, `style.css`, `sw.js`, `manifest.json`, `verre.css`, `firestore.rules`, `.github/workflows/auto-version.yml`, `README.md`
+
 ## 🚚 GitHub Pages — commit en ligne, site jamais mis à jour (05/10/2026)
 
 ### 05/10/2026 — 4 apps — « j'ai vidé le cache et rechargé, la nouvelle version n'arrive pas »

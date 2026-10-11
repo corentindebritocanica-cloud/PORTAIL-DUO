@@ -1,7 +1,7 @@
 {
   "name": "Portail Duo",
   "short_name": "Portail Duo",
-  "description": "Portail de lancement vers Musculation, Budget et Courses",
+  "description": "Portail de lancement vers Musculation, Budget, Courses et Todo",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
