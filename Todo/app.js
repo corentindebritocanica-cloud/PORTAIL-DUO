@@ -178,7 +178,7 @@ function ligneTache(id, t, couleur){
     + `<span class="nom-produit${t.fait ? ' achete' : ''}">${escapeHtml(t.texte)}${nouvelle ? '<span class="nouvelle-pastille">Nouveau</span>' : ''}</span>`
     + (urgenceDe(t) && !t.fait ? `<span class="urgence u${urgenceDe(t)}">${URGENCE_PASTILLE[urgenceDe(t)]}</span>` : '')
     + `<span class="rayon-produit"><span class="auteur ${t.fait ? (t.faitPar === 'lisa' ? 'lisa' : 'corentin') : auteur}" aria-hidden="true"></span>${escapeHtml(detail)}</span>`
-    + `${montantPuce(t)}</button>`
+    + `</button>`
     + `<button type="button" class="btn-crayon" data-modifier aria-label="Modifier « ${escapeHtml(t.texte)} »"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div>`;
 }
 /* URGENCE (12/10/2026) : champ `urgence` = 0 (absent) | 1 importante | 2 urgente. Toute autre valeur de la
@@ -186,12 +186,6 @@ function ligneTache(id, t, couleur){
 const URGENCE_PASTILLE = ['', 'Important', 'Urgent'];
 const URGENCE_NOM = ['aucune', 'importante', 'urgente'];
 function urgenceDe(t){ const u = Number(t && t.urgence); return u === 1 || u === 2 ? u : 0; }
-function montantNb(t){ const m = Number(t && t.montant); return isFinite(m) && m > 0 ? Math.round(m * 100) / 100 : 0; }
-function montantTexte(m){ return m.toLocaleString('fr-FR', { minimumFractionDigits: m % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; }
-function montantPuce(t){
-  const m = montantNb(t); if(!m) return '';
-  return `<span class="montant${t.paye ? ' paye' : ''}">${montantTexte(m)} · ${t.paye ? 'payé' : 'à payer'}</span>`;
-}
 function renderTaches(){
   const conteneur = document.getElementById('liste-taches');
   const id = idListeAffichee(), couleur = couleurListe(id);
@@ -378,8 +372,6 @@ function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', dang
 const modalTache = document.getElementById('modal-tache');
 const champTexte = document.getElementById('modal-tache-texte');
 const selectListe = document.getElementById('modal-tache-liste');
-const champMontant = document.getElementById('modal-tache-montant');
-const cochePaye = document.getElementById('modal-tache-paye');
 const choixUrgence = document.getElementById('modal-tache-urgence');
 let tacheEditionId = null, urgenceEdition = 0;
 function dessinerUrgenceEdition(){
@@ -399,9 +391,6 @@ function ouvrirModaleTache(id){
   champTexte.value = t.texte || '';
   selectListe.innerHTML = listesTriees().map(([lid,l])=>
     `<option value="${escapeHtml(lid)}" ${lid === listeDe(t) ? 'selected' : ''}>${escapeHtml(l.nom || '')}</option>`).join('');
-  const m = montantNb(t);
-  champMontant.value = m ? String(m).replace('.', ',') : '';
-  cochePaye.checked = !!t.paye;
   document.getElementById('modal-tache-info').textContent =
     `Ajoutée par ${PRENOM[t.creePar === 'lisa' ? 'lisa' : 'corentin']}${t.creeLe ? ' le ' + new Date(t.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'long' }) : ''}.`;
   modalTache.style.display = 'flex';
@@ -416,11 +405,6 @@ document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
   const maj = {};
   if(texte !== t.texte) maj.texte = texte;
   if(urgenceEdition !== urgenceDe(t)) maj.urgence = urgenceEdition;
-  const brut =champMontant.value.trim().replace(',', '.').replace(/\s/g, '');
-  const m = brut === '' ? 0 : Math.min(Math.round(parseFloat(brut) * 100) / 100, 1e7);
-  if(brut !== '' && !(m > 0)){ champMontant.focus(); return; }
-  if(m !== montantNb(t)) maj.montant = m;
-  if(!!cochePaye.checked !== !!t.paye) maj.paye = cochePaye.checked;
   if(selectListe.value !== listeDe(t) && infoListe(selectListe.value)){ maj.listeId = selectListe.value; maj.ordre = Date.now(); }
   fermerModaleTache();
   if(!Object.keys(maj).length) return;

@@ -22,10 +22,9 @@ URL : `…/PORTAIL-DUO/Todo/`
 - **Pastilles de listes** en haut (Général + les listes créées), avec le nombre de tâches à faire. `+` = nouvelle liste. Liste choisie mémorisée par téléphone (`localStorage todo_liste_active`).
 - **Ajout rapide** : champ collé en haut de l'écran. Entrée (ou la flèche) ajoute la tâche et garde le clavier ouvert pour la suivante. Nouvelle tâche en bas de « À faire ». Bouton rond `+` : remonte en haut et ouvre le clavier.
 - **Cocher** : la case. La tâche passe dans **Terminé** (repliable, état mémorisé `todo_termine_ouvert`), avec « Fait par … · date ». **Effacer** supprime les terminées de la liste (confirmation).
-- **Modifier** : crayon à droite de chaque ligne (ou toucher le texte) → fenêtre (texte, liste, **urgence**, **montant en €**, « Déjà payé », supprimer).
+- **Modifier** : crayon à droite de chaque ligne (ou toucher le texte) → fenêtre (texte, liste, **urgence**, supprimer).
 - **Urgence** (12/10/2026) : champ `urgence` 0 aucune / 1 importante / 2 urgente. Drapeau dans la barre d'ajout (1 toucher = importante, 2 = urgente, 3 = aucune ; remis à zéro après ajout) ou choix dans la fenêtre. Pastille orange « Important » / rouge « Urgent » sur la ligne ; les tâches à faire sont triées urgentes → importantes → ordre d'ajout.
-- **Montant** (12/10/2026) : facultatif ; affiché sous la tâche en orange « à payer » ou vert « payé ».
-- **Rappel du dimanche 22h** : `notifTodoHebdo` dans `outils/Notifications.gs` (Apps Script, hors dépôt) envoie « N tâches à faire (dont X urgentes) · Y € à payer » aux téléphones de Corentin ET Lisa. Installation : coller le fichier à jour, exécuter `notifTodoInstallerDeclencheur` une fois, le déclencheur est fixé sur Europe/Paris (envoi vers 22h, ± 15 min). Les deux téléphones doivent avoir « Notifications : Activées » dans le Portail.
+- **Rappel du dimanche 22h** : `notifTodoHebdo` dans `outils/Notifications.gs` (Apps Script, hors dépôt) envoie « N tâches à faire (dont X urgentes) » aux téléphones de Corentin ET Lisa. Installation : coller le fichier à jour, exécuter `notifTodoInstallerDeclencheur` une fois, le déclencheur est fixé sur Europe/Paris (envoi vers 22h, ± 15 min). Les deux téléphones doivent avoir « Notifications : Activées » dans le Portail.
 - **Qui** : point bleu (Corentin) ou rose (Lisa) = auteur. Pastille **NOUVEAU** sur les tâches ajoutées par l'autre depuis ta dernière visite (`todo_vu_le`, mémorisé quand l'app passe en arrière-plan).
 - **Réglages** : profil Corentin/Lisa (clé commune `duo_profile`), listes (renommer, couleur, supprimer — Général ne se supprime pas ; supprimer une liste supprime ses tâches, après confirmation), recharger l'application (désinscrit le service worker de Todo et vide ses seuls caches `todo-*`).
 
@@ -34,7 +33,7 @@ URL : `…/PORTAIL-DUO/Todo/`
 | Collection | Document |
 |---|---|
 | `todoListes/{id}` | `{ nom, couleur, ordre }` — `general` = liste par défaut, **virtuelle** tant qu'elle n'est pas renommée (jamais créée par l'app au démarrage : leçon des doublons de Course, 18/09/2026) |
-| `todoTaches/{id}` | `{ listeId, texte, fait, ordre, creePar, creeLe, faitPar, faitLe, montant?, paye?, urgence? }` — `creePar`/`faitPar` = `'corentin'` \| `'lisa'`, dates en ms |
+| `todoTaches/{id}` | `{ listeId, texte, fait, ordre, creePar, creeLe, faitPar, faitLe, urgence? }` — `creePar`/`faitPar` = `'corentin'` \| `'lisa'`, dates en ms |
 | `portail/todo` | Résumé pour le Portail : `{ maj, aFaire, urgentes, listes:[{ nom, n, couleur }] }` (3 listes max) |
 
 - **Une tâche = un document** : cocher à deux en même temps n'écrase jamais l'autre. **2 écoutes `onSnapshot`** seulement (listes, tâches).

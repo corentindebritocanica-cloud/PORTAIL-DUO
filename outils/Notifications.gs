@@ -88,9 +88,9 @@ function notifListerAbonnes() {
    Envoyé aux téléphones des DEUX profils (Corentin et Lisa). Installation (une seule fois) :
    exécuter notifTodoInstallerDeclencheur depuis l'éditeur (autoriser si demandé). Le déclencheur est
    réglé sur Europe/Paris (inTimezone), quel que soit le fuseau du projet. Test : notifTodoHebdo
-   (envoie tout de suite). Message : « N tâches à faire (dont X urgentes) · Y € à payer ». */
+   (envoie tout de suite). Message : « N tâches à faire (dont X urgentes)». */
 function notifTodoHebdo() {
-  var jeton = notifJetonAcces_(), restantes = 0, aPayer = 0, urgentes = 0, page = '';
+  var jeton = notifJetonAcces_(), restantes = 0, urgentes = 0, page = '';
   do {
     var rep = UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/' + NOTIF_CFG.projet +
       '/databases/(default)/documents/todoTaches?pageSize=300' + (page ? '&pageToken=' + encodeURIComponent(page) : ''), {
@@ -102,15 +102,12 @@ function notifTodoHebdo() {
       if (f.fait && f.fait.booleanValue) return;
       restantes++;
       if (f.urgence && Number(f.urgence.integerValue || f.urgence.doubleValue) === 2) urgentes++;   // 12/10/2026 : urgence 2 = urgente
-      var m = f.montant ? Number(f.montant.doubleValue || f.montant.integerValue || 0) : 0;
-      if (m > 0 && !(f.paye && f.paye.booleanValue)) aPayer += m;
     });
     page = r.nextPageToken || '';
   } while (page);
   var corps = restantes === 0 ? 'Rien à faire cette semaine 🎉'
     : restantes + ' tâche' + (restantes > 1 ? 's' : '') + ' à faire' +
-      (urgentes ? ' (dont ' + urgentes + ' urgente' + (urgentes > 1 ? 's' : '') + ')' : '') +
-      (aPayer ? ' · ' + (Math.round(aPayer * 100) / 100).toString().replace('.', ',') + ' € à payer' : '');
+      (urgentes ? ' (dont ' + urgentes + ' urgente' + (urgentes > 1 ? 's' : '') + ')' : '');
   var bilan = notifEnvoyerA_(notifLireAbonnes_(), { titre: 'Todo · point du dimanche', corps: corps, url: './Todo/', tag: 'todo-hebdo', profil: '' });
   console.log(corps + ' — envoyés : ' + bilan.envoyes + ', retirés : ' + bilan.retires);
 }
