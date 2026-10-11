@@ -84,6 +84,41 @@ function notifListerAbonnes() {
   });
 }
 
+/* ---------- Rappel hebdomadaire de Todo : tous les dimanches à 22h (12/10/2026) ----------
+   Envoyé aux téléphones des DEUX profils (Corentin et Lisa). Installation (une seule fois) :
+   exécuter notifTodoInstallerDeclencheur depuis l'éditeur (autoriser si demandé). Le fuseau horaire
+   du projet doit être Europe/Paris (Paramètres du projet › Fuseau horaire). Test : notifTodoHebdo. */
+function notifTodoHebdo() {
+  var jeton = notifJetonAcces_(), restantes = 0, aPayer = 0, page = '';
+  do {
+    var rep = UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/' + NOTIF_CFG.projet +
+      '/databases/(default)/documents/todoTaches?pageSize=300' + (page ? '&pageToken=' + encodeURIComponent(page) : ''), {
+      headers: { Authorization: 'Bearer ' + jeton }, muteHttpExceptions: true });
+    if (rep.getResponseCode() !== 200) throw new Error('lecture de todoTaches impossible (' + rep.getResponseCode() + ')');
+    var r = JSON.parse(rep.getContentText());
+    (r.documents || []).forEach(function (d) {
+      var f = d.fields || {};
+      if (f.fait && f.fait.booleanValue) return;
+      restantes++;
+      var m = f.montant ? Number(f.montant.doubleValue || f.montant.integerValue || 0) : 0;
+      if (m > 0 && !(f.paye && f.paye.booleanValue)) aPayer += m;
+    });
+    page = r.nextPageToken || '';
+  } while (page);
+  var corps = restantes === 0 ? 'Rien à faire cette semaine 🎉'
+    : restantes + ' tâche' + (restantes > 1 ? 's' : '') + ' à faire' +
+      (aPayer ? ' · ' + (Math.round(aPayer * 100) / 100).toString().replace('.', ',') + ' € à payer' : '');
+  var bilan = notifEnvoyerA_(notifLireAbonnes_(), { titre: 'Todo · point du dimanche', corps: corps, url: './Todo/', tag: 'todo-hebdo', profil: '' });
+  console.log(corps + ' — envoyés : ' + bilan.envoyes + ', retirés : ' + bilan.retires);
+}
+function notifTodoInstallerDeclencheur() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'notifTodoHebdo') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('notifTodoHebdo').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(22).create();
+  console.log('Déclencheur installé : dimanche vers 22h (fuseau du projet).');
+}
+
 /* ---------- Vérifications ---------- */
 /* Le jeton Firebase (ID token) de la session est vérifié par Firebase lui-même (accounts:lookup) :
    invalide, expiré ou d'un autre compte → refus. Apps Script ne sait pas vérifier une signature
