@@ -176,10 +176,16 @@ function ligneTache(id, t, couleur){
     + `<button type="button" class="case case-liste${t.fait ? ' checked' : ''}" data-cocher aria-pressed="${!!t.fait}" aria-label="${t.fait ? 'Décocher' : 'Cocher'} « ${escapeHtml(t.texte)} »">${SVG_COCHE}</button>`
     + `<button type="button" class="infos-produit" data-modifier>`
     + `<span class="nom-produit${t.fait ? ' achete' : ''}">${escapeHtml(t.texte)}${nouvelle ? '<span class="nouvelle-pastille">Nouveau</span>' : ''}</span>`
+    + (urgenceDe(t) && !t.fait ? `<span class="urgence u${urgenceDe(t)}">${URGENCE_PASTILLE[urgenceDe(t)]}</span>` : '')
     + `<span class="rayon-produit"><span class="auteur ${t.fait ? (t.faitPar === 'lisa' ? 'lisa' : 'corentin') : auteur}" aria-hidden="true"></span>${escapeHtml(detail)}</span>`
     + `${montantPuce(t)}</button>`
     + `<button type="button" class="btn-crayon" data-modifier aria-label="Modifier « ${escapeHtml(t.texte)} »"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div>`;
 }
+/* URGENCE (12/10/2026) : champ `urgence` = 0 (absent) | 1 importante | 2 urgente. Toute autre valeur de la
+   base compte pour 0. Les urgentes passent en tête de « À faire », puis les importantes. */
+const URGENCE_PASTILLE = ['', 'Important', 'Urgent'];
+const URGENCE_NOM = ['aucune', 'importante', 'urgente'];
+function urgenceDe(t){ const u = Number(t && t.urgence); return u === 1 || u === 2 ? u : 0; }
 function montantNb(t){ const m = Number(t && t.montant); return isFinite(m) && m > 0 ? Math.round(m * 100) / 100 : 0; }
 function montantTexte(m){ return m.toLocaleString('fr-FR', { minimumFractionDigits: m % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €'; }
 function montantPuce(t){
@@ -191,7 +197,7 @@ function renderTaches(){
   const id = idListeAffichee(), couleur = couleurListe(id);
   document.getElementById('form-ajout').style.setProperty('--c-liste', couleur);
   const taches = Object.entries(state.taches).filter(([,t])=> listeDe(t) === id);
-  const aFaire = taches.filter(([,t])=> !t.fait).sort((a,b)=> (a[1].ordre||0) - (b[1].ordre||0));
+  const aFaire = taches.filter(([,t])=> !t.fait).sort((a,b)=> urgenceDe(b[1]) - urgenceDe(a[1]) || (a[1].ordre||0) - (b[1].ordre||0));
   const faites = taches.filter(([,t])=> t.fait).sort((a,b)=> (b[1].faitLe||0) - (a[1].faitLe||0));
   let html = '';
   if(aFaire.length){
@@ -260,12 +266,22 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
 const formAjout = document.getElementById('form-ajout');
 const champAjout = document.getElementById('champ-ajout');
 champAjout.addEventListener('input', ()=> formAjout.classList.toggle('rempli', !!champAjout.value.trim()));
+/* Drapeau d'urgence de la prochaine tâche : aucune → importante → urgente → aucune. */
+const btnUrgenceAjout = document.getElementById('btn-urgence-ajout');
+let urgenceAjout = 0;
+function majBoutonUrgenceAjout(){
+  btnUrgenceAjout.dataset.urgence = String(urgenceAjout);
+  btnUrgenceAjout.setAttribute('aria-label', 'Urgence : ' + URGENCE_NOM[urgenceAjout] + ' (toucher pour changer)');
+}
+btnUrgenceAjout.addEventListener('click', ()=>{ urgenceAjout = (urgenceAjout + 1) % 3; majBoutonUrgenceAjout(); champAjout.focus(); });
 formAjout.addEventListener('submit', (e)=>{
   e.preventDefault();
   const texte = champAjout.value.trim().replace(/\s+/g, ' ').slice(0, 200);
   if(!texte) return;
   const id = nouvelId(), maintenant = Date.now();
   const tache = { listeId: idListeAffichee(), texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
+  if(urgenceAjout) tache.urgence = urgenceAjout;
+  urgenceAjout = 0; majBoutonUrgenceAjout();
   state.taches[id] = tache; render();
   champAjout.value = ''; formAjout.classList.remove('rempli');
   champAjout.focus();
@@ -364,10 +380,22 @@ const champTexte = document.getElementById('modal-tache-texte');
 const selectListe = document.getElementById('modal-tache-liste');
 const champMontant = document.getElementById('modal-tache-montant');
 const cochePaye = document.getElementById('modal-tache-paye');
-let tacheEditionId = null;
+const choixUrgence = document.getElementById('modal-tache-urgence');
+let tacheEditionId = null, urgenceEdition = 0;
+function dessinerUrgenceEdition(){
+  choixUrgence.querySelectorAll('button').forEach(b=>{
+    const actif = Number(b.dataset.urgence) === urgenceEdition;
+    b.classList.toggle('actif', actif); b.setAttribute('aria-checked', String(actif));
+  });
+}
+choixUrgence.addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-urgence]'); if(!b) return;
+  urgenceEdition = Number(b.dataset.urgence); dessinerUrgenceEdition();
+});
 function ouvrirModaleTache(id){
   const t = state.taches[id]; if(!t) return;
   tacheEditionId = id;
+  urgenceEdition = urgenceDe(t); dessinerUrgenceEdition();
   champTexte.value = t.texte || '';
   selectListe.innerHTML = listesTriees().map(([lid,l])=>
     `<option value="${escapeHtml(lid)}" ${lid === listeDe(t) ? 'selected' : ''}>${escapeHtml(l.nom || '')}</option>`).join('');
@@ -387,7 +415,8 @@ document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
   if(!texte){ champTexte.focus(); return; }
   const maj = {};
   if(texte !== t.texte) maj.texte = texte;
-  const brut = champMontant.value.trim().replace(',', '.').replace(/\s/g, '');
+  if(urgenceEdition !== urgenceDe(t)) maj.urgence = urgenceEdition;
+  const brut =champMontant.value.trim().replace(',', '.').replace(/\s/g, '');
   const m = brut === '' ? 0 : Math.min(Math.round(parseFloat(brut) * 100) / 100, 1e7);
   if(brut !== '' && !(m > 0)){ champMontant.focus(); return; }
   if(m !== montantNb(t)) maj.montant = m;
@@ -530,7 +559,8 @@ let portailMinuteur = null, portailOk = false, portailJeton = null;
 function calculerResumePortail(){
   const parListe = listesTriees().map(([id,l])=> ({ nom: (l.nom || '').slice(0, 30), n: restantes(id), couleur: couleurListe(id) }))
     .filter(x=> x.n > 0).sort((a,b)=> b.n - a.n || a.nom.localeCompare(b.nom));
-  return { aFaire: parListe.reduce((s,x)=> s + x.n, 0), listes: parListe.slice(0, 3) };
+  const urgentes = Object.values(state.taches).filter(t=> !t.fait && urgenceDe(t) === 2).length;
+  return { aFaire: parListe.reduce((s,x)=> s + x.n, 0), urgentes, listes: parListe.slice(0, 3) };
 }
 function rafraichirJetonPortail(){
   const u = auth && auth.currentUser;

@@ -392,6 +392,7 @@ html.verre:is([data-app="course"],[data-app="todo"]) .champ input,
 html.verre:is([data-app="course"],[data-app="todo"]) .champ select,
 html.verre[data-app="todo"] .champ textarea{ border-radius:16px; }
 /* Todo (11/10/2026) : éléments propres à l'app, posés sur la plaque (pas de flou, règle PERF) */
+html.verre[data-app="todo"] .choix-urgence, html.verre[data-app="todo"] .choix-urgence button{ border-radius:999px; }
 html.verre[data-app="todo"] .btn-effacer-terminees{ background:var(--v-soft); border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); }
 html.verre[data-app="todo"] .btn-ajouter{ box-shadow:0 0 12px color-mix(in srgb, var(--c-liste, var(--accent)) 60%, transparent); }
 html.verre:is([data-app="course"],[data-app="todo"]) .modal-actions button{ border-radius:999px; }
@@ -1084,6 +1085,7 @@ html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .searchbar,
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .case,
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .qte-produit,
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .profile-switch,
+html.verre[data-style][data-app="todo"] .choix-urgence,
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .champ input,
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) .champ select,
 html.verre[data-style][data-app="todo"] .champ textarea,

@@ -86,10 +86,11 @@ function notifListerAbonnes() {
 
 /* ---------- Rappel hebdomadaire de Todo : tous les dimanches à 22h (12/10/2026) ----------
    Envoyé aux téléphones des DEUX profils (Corentin et Lisa). Installation (une seule fois) :
-   exécuter notifTodoInstallerDeclencheur depuis l'éditeur (autoriser si demandé). Le fuseau horaire
-   du projet doit être Europe/Paris (Paramètres du projet › Fuseau horaire). Test : notifTodoHebdo. */
+   exécuter notifTodoInstallerDeclencheur depuis l'éditeur (autoriser si demandé). Le déclencheur est
+   réglé sur Europe/Paris (inTimezone), quel que soit le fuseau du projet. Test : notifTodoHebdo
+   (envoie tout de suite). Message : « N tâches à faire (dont X urgentes) · Y € à payer ». */
 function notifTodoHebdo() {
-  var jeton = notifJetonAcces_(), restantes = 0, aPayer = 0, page = '';
+  var jeton = notifJetonAcces_(), restantes = 0, aPayer = 0, urgentes = 0, page = '';
   do {
     var rep = UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/' + NOTIF_CFG.projet +
       '/databases/(default)/documents/todoTaches?pageSize=300' + (page ? '&pageToken=' + encodeURIComponent(page) : ''), {
@@ -100,6 +101,7 @@ function notifTodoHebdo() {
       var f = d.fields || {};
       if (f.fait && f.fait.booleanValue) return;
       restantes++;
+      if (f.urgence && Number(f.urgence.integerValue || f.urgence.doubleValue) === 2) urgentes++;   // 12/10/2026 : urgence 2 = urgente
       var m = f.montant ? Number(f.montant.doubleValue || f.montant.integerValue || 0) : 0;
       if (m > 0 && !(f.paye && f.paye.booleanValue)) aPayer += m;
     });
@@ -107,6 +109,7 @@ function notifTodoHebdo() {
   } while (page);
   var corps = restantes === 0 ? 'Rien à faire cette semaine 🎉'
     : restantes + ' tâche' + (restantes > 1 ? 's' : '') + ' à faire' +
+      (urgentes ? ' (dont ' + urgentes + ' urgente' + (urgentes > 1 ? 's' : '') + ')' : '') +
       (aPayer ? ' · ' + (Math.round(aPayer * 100) / 100).toString().replace('.', ',') + ' € à payer' : '');
   var bilan = notifEnvoyerA_(notifLireAbonnes_(), { titre: 'Todo · point du dimanche', corps: corps, url: './Todo/', tag: 'todo-hebdo', profil: '' });
   console.log(corps + ' — envoyés : ' + bilan.envoyes + ', retirés : ' + bilan.retires);
@@ -115,8 +118,9 @@ function notifTodoInstallerDeclencheur() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'notifTodoHebdo') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('notifTodoHebdo').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(22).create();
-  console.log('Déclencheur installé : dimanche vers 22h (fuseau du projet).');
+  // inTimezone : l'heure ne dépend pas du fuseau réglé dans le projet. Apps Script déclenche « vers » 22h (± 15 min).
+  ScriptApp.newTrigger('notifTodoHebdo').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(22).inTimezone('Europe/Paris').create();
+  console.log('Déclencheur installé : dimanche vers 22h (Europe/Paris).');
 }
 
 /* ---------- Vérifications ---------- */
@@ -167,7 +171,7 @@ function notifNettoyer_(q) {
   var texte = function (x, max) { return (typeof x === 'string' ? x : '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max); };
   var titre = texte(q.titre, 60);
   if (!titre) throw new Error('titre absent');
-  var url = /^\.\/((Budget|Course|Muscu)\/)?$/.test(q.url) ? q.url : './';
+  var url = /^\.\/((Budget|Course|Muscu|Todo)\/)?$/.test(q.url) ? q.url : './';
   var tag = /^[a-z0-9-]{1,40}$/.test(q.tag || '') ? q.tag : '';
   var profil = NOTIF_CFG.profils.indexOf(q.profil) >= 0 ? q.profil : '';
   return { titre: titre, corps: texte(q.corps, 180), url: url, tag: tag, profil: profil };

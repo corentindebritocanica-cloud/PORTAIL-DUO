@@ -945,7 +945,7 @@ Projet « Projet sans titre » :
 
 **Demande de Corentin** : une app de listes de choses à faire partagées (esprit « Notes partagées » d'iPhone), hors ligne comme les autres. Détails : `Todo/README.md`.
 
-- **Portail** : 4e carte `#carte-todo` (classe `violet`, lien `./Todo/`) — « À faire : N tâches » + les 3 listes les plus chargées (pastilles à la couleur de chaque liste, palette contrôlée). Lit `portail/todo` comme les autres résumés (aucune lecture en plus : même écoute `portail`).
+- **Portail** : 4e carte `#carte-todo` (classe `violet`, lien `./Todo/`) — « À faire : N tâches · X urgentes » (`urgentes` publié dans `portail/todo`) + les 3 listes les plus chargées (pastilles à la couleur de chaque liste, palette contrôlée). Lit `portail/todo` comme les autres résumés (aucune lecture en plus : même écoute `portail`).
 - **Pile de vitres à 4** (`app.js` « PILE », `verre.css`) : décalage de 66 px par vitre (avant : 64-68 px pour 3), `padding-bottom` 198 px, `data-rang` 0 à 3 ; glisser généralisé (`[...pile.slice(1), pile[0]]`). Un ordre mémorisé à 3 vitres (`portail-verre-pile`) est conservé, Todo passe au fond.
 - **`sw.js` (racine)** : `/Todo/` ajouté à `isSubApp` — sans ça, le service worker du Portail aurait intercepté les fichiers de Todo.
 - **`verre.css`** : tous les sélecteurs `[data-app="course"]` deviennent `:is([data-app="course"],[data-app="todo"])` (même spécificité) ; jeton `--v-todo` (#a855f7).

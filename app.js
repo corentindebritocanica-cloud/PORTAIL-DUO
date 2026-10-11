@@ -245,7 +245,8 @@
       } else {
         el('to-int').textContent = String(n);
         el('to-peek').textContent = String(n);
-        el('to-label').textContent = n === 0 ? 'tout est fait' : (n > 1 ? 'tâches' : 'tâche');
+        const urg = entier(d.urgentes, 0, 99999) || 0;   /* 12/10/2026 : tâches urgentes (urgence 2) */
+        el('to-label').textContent = n === 0 ? 'tout est fait' : (n > 1 ? 'tâches' : 'tâche') + (urg ? ' · ' + urg + (urg > 1 ? ' urgentes' : ' urgente') : '');
         (Array.isArray(d.listes) ? d.listes.slice(0, 3) : []).forEach((l) => {
           const nom = texte(l && l.nom, 26), k = entier(l && l.n, 0, 99999);
           if (!nom || k === null) return;

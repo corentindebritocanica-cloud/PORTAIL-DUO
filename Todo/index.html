@@ -48,6 +48,10 @@
         <form class="searchbar" id="form-ajout" autocomplete="off">
           <span class="ajout-plus" aria-hidden="true">+</span>
           <input type="text" id="champ-ajout" placeholder="Nouvelle tâche…" maxlength="200" enterkeyhint="send" aria-label="Nouvelle tâche">
+          <!-- Urgence de la PROCHAINE tâche ajoutée : un toucher = aucune → importante → urgente (remis à zéro après l'ajout) -->
+          <button type="button" class="btn-flag" id="btn-urgence-ajout" data-urgence="0" aria-label="Urgence : aucune">
+            <svg viewBox="0 0 24 24"><path d="M5 22V4"/><path d="M5 4h13l-3 4.5 3 4.5H5"/></svg>
+          </button>
           <button type="submit" class="btn-ajouter" id="btn-ajouter" aria-label="Ajouter la tâche">
             <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
           </button>
@@ -123,6 +127,14 @@
     <div class="champ">
       <label for="modal-tache-liste">Liste</label>
       <select id="modal-tache-liste"></select>
+    </div>
+    <div class="champ">
+      <label id="modal-tache-urgence-label">Urgence</label>
+      <div class="choix-urgence" id="modal-tache-urgence" role="radiogroup" aria-labelledby="modal-tache-urgence-label">
+        <button type="button" role="radio" data-urgence="0" aria-checked="true">Aucune</button>
+        <button type="button" role="radio" data-urgence="1" aria-checked="false">Importante</button>
+        <button type="button" role="radio" data-urgence="2" aria-checked="false">Urgente</button>
+      </div>
     </div>
     <div class="champ">
       <label for="modal-tache-montant">Montant (€) — facultatif</label>

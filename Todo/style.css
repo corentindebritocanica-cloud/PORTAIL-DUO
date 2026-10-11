@@ -278,3 +278,20 @@
 .tache .montant.paye{ color:#34c759; }
 .ligne-paye{ display:flex; align-items:center; gap:10px; min-height:44px; margin-top:6px; font-size:15px; }
 .ligne-paye input{ width:22px; height:22px; }
+
+/* Urgence (12/10/2026) : drapeau dans la barre d'ajout, pastille sur la ligne, choix dans la fenêtre de modification */
+.btn-flag{ position:relative; flex:none; width:34px; height:34px; padding:0; border:0; border-radius:50%; background:none; color:var(--text-dim); display:flex; align-items:center; justify-content:center; transition:color var(--t-fast) ease, transform var(--t-fast) ease; }
+.btn-flag::after{ content:''; position:absolute; inset:-5px; }
+.btn-flag:active{ transform:scale(.92); }
+.btn-flag svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.btn-flag[data-urgence="1"]{ color:#ff8a2b; }
+.btn-flag[data-urgence="2"]{ color:#ef4444; }
+.btn-flag:not([data-urgence="0"]) svg{ fill:currentColor; }
+.urgence{ display:inline-block; align-self:flex-start; margin-top:4px; padding:1px 9px; border-radius:var(--r-pill); font-size:11px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; }
+.urgence.u1{ color:#ff8a2b; background:rgba(255,138,43,.16); }
+.urgence.u2{ color:#fff; background:#ef4444; box-shadow:0 0 10px rgba(239,68,68,.45); }
+.choix-urgence{ display:flex; gap:6px; padding:4px; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md); }
+.choix-urgence button{ flex:1; min-width:0; min-height:44px; padding:0 4px; border:1px solid transparent; border-radius:var(--r-sm); background:transparent; color:var(--text-dim); font-size:14px; font-weight:700; }
+.choix-urgence button.actif{ background:var(--accent-soft); border-color:var(--accent); color:var(--text); }
+.choix-urgence button[data-urgence="1"].actif{ background:rgba(255,138,43,.16); border-color:#ff8a2b; color:#ff8a2b; }
+.choix-urgence button[data-urgence="2"].actif{ background:#ef4444; border-color:#ef4444; color:#fff; }
