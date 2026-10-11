@@ -50,6 +50,7 @@ PORTAIL-DUO/
 ├── commun.js               ← noyau JS commun aux 4 apps
 ├── UX_UI_CHARTER.md, GUIDE_PWA_IOS.md, PROBLEMES_RESOLUS.md, FUTURE_APPS_ROADMAP.md
 ├── .github/workflows/auto-version.yml  ← DERNIERE_MAJ, ?v=, CACHE_NAME automatiques
+├── .claude/skills/         ← skills IA design/animation (Emil Kowalski, MIT), communs aux 4 apps
 ├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png
 ├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
 ├── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
@@ -961,3 +962,15 @@ Projet « Projet sans titre » :
 5. Portail : carte, `afficher<App>()`, entrée dans `cartes` / `teintes` / `ordre` de la pile ; `verre.css` : `data-rang` si la pile grandit, jeton de couleur.
 6. `verre.css` : habillage (réutiliser les règles d'une app existante via `:is(...)` si mêmes classes).
 
+
+
+## Skills IA design engineering — Emil Kowalski (11/10/2026)
+
+Ajout de `.claude/skills/` (15 skills, source : github.com/emilkowalski/skill @2d22863, licence MIT → `LICENSE-emilkowalski`).
+Chargés automatiquement par Claude Code à la racine du dépôt ; s'appliquent aux 4 apps. Hors du périmètre de `auto-version.yml` : aucun impact sur le déploiement ni sur le cache.
+
+Utiles pour nos apps (vanilla HTML/CSS/JS sur iPhone) : `emil-design-eng`, `animate`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`, `animation-performance`, `apple-design`, `break-ui`, `prototype`.
+Peu pertinents (React Native / Swift / librairies React) : `animate-expo`, `mobile-native`, `write-swift`, `ask-sonner`, `pick-ui-library`.
+
+⚠️ En cas de conflit, la charte `UX_UI_CHARTER.md` (§11 animations) et `GUIDE_PWA_IOS.md` priment sur ces skills.
+Mise à jour : recopier `skills/` depuis le dépôt d'origine et noter le nouveau commit ici.

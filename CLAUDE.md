@@ -5,3 +5,4 @@
 - Ne lance pas de commandes qui produisent de gros logs sans les filtrer (head, grep).
 - En cas de doute sur la demande, pose une seule question avant de coder.
 - Signale en une phrase tout risque important (suppression, écrasement de fichier).
+- Skills design/animation dans `.claude/skills/` (Emil Kowalski) : la charte UX_UI_CHARTER.md et GUIDE_PWA_IOS.md priment en cas de conflit.
