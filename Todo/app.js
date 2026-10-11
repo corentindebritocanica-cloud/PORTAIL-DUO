@@ -189,7 +189,6 @@ function urgenceDe(t){ const u = Number(t && t.urgence); return u === 1 || u ===
 function renderTaches(){
   const conteneur = document.getElementById('liste-taches');
   const id = idListeAffichee(), couleur = couleurListe(id);
-  document.getElementById('form-ajout').style.setProperty('--c-liste', couleur);
   const taches = Object.entries(state.taches).filter(([,t])=> listeDe(t) === id);
   const aFaire = taches.filter(([,t])=> !t.fait).sort((a,b)=> urgenceDe(b[1]) - urgenceDe(a[1]) || (a[1].ordre||0) - (b[1].ordre||0));
   const faites = taches.filter(([,t])=> t.fait).sort((a,b)=> (b[1].faitLe||0) - (a[1].faitLe||0));
@@ -252,57 +251,7 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   });
 });
 
-/* ============================================================
-   AJOUT RAPIDE
-   Entrée (ou flèche) = ajoute et vide le champ, clavier toujours ouvert pour la tâche suivante.
-   Nouvelle tâche en BAS de « À faire » (ordre = horodatage), comme dans Rappels.
-   ============================================================ */
-const formAjout = document.getElementById('form-ajout');
-const champAjout = document.getElementById('champ-ajout');
-champAjout.addEventListener('input', ()=> formAjout.classList.toggle('rempli', !!champAjout.value.trim()));
-/* Drapeau d'urgence de la prochaine tâche : aucune → importante → urgente → aucune. */
-const btnUrgenceAjout = document.getElementById('btn-urgence-ajout');
-let urgenceAjout = 0;
-function majBoutonUrgenceAjout(){
-  btnUrgenceAjout.dataset.urgence = String(urgenceAjout);
-  btnUrgenceAjout.setAttribute('aria-label', 'Urgence : ' + URGENCE_NOM[urgenceAjout] + ' (toucher pour changer)');
-}
-btnUrgenceAjout.addEventListener('click', ()=>{ urgenceAjout = (urgenceAjout + 1) % 3; majBoutonUrgenceAjout(); champAjout.focus(); });
-formAjout.addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const texte = champAjout.value.trim().replace(/\s+/g, ' ').slice(0, 200);
-  if(!texte) return;
-  const id = nouvelId(), maintenant = Date.now();
-  const tache = { listeId: idListeAffichee(), texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
-  if(urgenceAjout) tache.urgence = urgenceAjout;
-  urgenceAjout = 0; majBoutonUrgenceAjout();
-  state.taches[id] = tache; render();
-  champAjout.value = ''; formAjout.classList.remove('rempli');
-  champAjout.focus();
-  ecrire(()=> docRef(COL_TACHES, id).set(tache));
-});
-/* Barre collée en haut (mécanique de Course, 29/09/2026) : classe .colle seulement quand elle colle. */
-(function(){
-  const barre = document.querySelector('.barre-recherche');
-  let prevu = false;
-  function majColle(){
-    prevu = false;
-    const haut = parseFloat(getComputedStyle(barre).top);
-    barre.classList.toggle('colle', window.scrollY > 0 && barre.getBoundingClientRect().top <= (isNaN(haut) ? 0 : haut) + 1);
-  }
-  window.addEventListener('scroll', ()=>{ if(!prevu){ prevu = true; requestAnimationFrame(majColle); } }, { passive:true });
-  window.addEventListener('resize', majColle);
-  majColle();
-})();
-/* Clavier iOS (leçon Course du 29/09/2026) : à l'entrée dans le champ, on remonte en haut, sinon iOS
-   fait défiler la page et pousse la barre collée hors de l'écran. Refait pendant l'ouverture du clavier. */
-let entreeAjout = 0;
-champAjout.addEventListener('focus', ()=>{ entreeAjout = Date.now(); window.scrollTo(0, 0); });
-if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', ()=>{
-    if(document.activeElement === champAjout && Date.now() - entreeAjout < 1500) window.scrollTo(0, 0);
-  });
-}
+/* Ajout : uniquement par le bouton + (la barre d'ajout rapide du haut a été retirée le 12/10/2026). */
 /* Bouton + : fenêtre « Nouvelle tâche » (texte, liste, urgence) ; focus synchrone dans le geste. 12/10/2026 : avant, il ne faisait que focaliser le champ du haut, caché derrière le clavier. */
 document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{ ouvrirModaleTache(null); });
 

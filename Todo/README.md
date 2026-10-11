@@ -20,11 +20,11 @@ URL : `…/PORTAIL-DUO/Todo/`
 ## Fonctionnement
 
 - **Pastilles de listes** en haut (Général + les listes créées), avec le nombre de tâches à faire. `+` = nouvelle liste. Liste choisie mémorisée par téléphone (`localStorage todo_liste_active`).
-- **Ajout rapide** : champ collé en haut de l'écran. Entrée (ou la flèche) ajoute la tâche et garde le clavier ouvert pour la suivante. Nouvelle tâche en bas de « À faire ». Bouton rond `+` : remonte en haut et ouvre le clavier.
+- **Ajout** : uniquement par le bouton rond `+` (la barre d'ajout rapide du haut a été retirée le 12/10/2026). Nouvelle tâche en bas de « À faire ».
 - **Cocher** : la case. La tâche passe dans **Terminé** (repliable, état mémorisé `todo_termine_ouvert`), avec « Fait par … · date ». **Effacer** supprime les terminées de la liste (confirmation).
 - **Modifier** : crayon à droite de chaque ligne (ou toucher le texte) → fenêtre (texte, liste, **urgence**, supprimer).
-- **Bouton +** (12/10/2026) : ouvre la fenêtre « Nouvelle tâche » (texte, liste, urgence ; clavier ouvert d'office). Avant, il ne faisait que focaliser la barre du haut, cachée derrière le clavier iOS. La barre d'ajout rapide reste utilisable.
-- **Urgence** (12/10/2026) : champ `urgence` 0 aucune / 1 importante / 2 urgente. Drapeau dans la barre d'ajout (1 toucher = importante, 2 = urgente, 3 = aucune ; remis à zéro après ajout) ou choix dans la fenêtre. Pastille orange « Important » / rouge « Urgent » sur la ligne ; les tâches à faire sont triées urgentes → importantes → ordre d'ajout.
+- **Bouton +** (12/10/2026) : ouvre la fenêtre « Nouvelle tâche » (texte, liste, urgence ; clavier ouvert d'office). Avant, il ne faisait que focaliser la barre du haut, cachée derrière le clavier iOS.
+- **Urgence** (12/10/2026) : champ `urgence` 0 aucune / 1 importante / 2 urgente. Choix « Aucune / Importante / Urgente » dans la fenêtre d'ajout et de modification. Pastille orange « Important » / rouge « Urgent » sur la ligne ; les tâches à faire sont triées urgentes → importantes → ordre d'ajout.
 - **Rappel du dimanche 22h** : `notifTodoHebdo` dans `outils/Notifications.gs` (Apps Script, hors dépôt) envoie « N tâches à faire (dont X urgentes) » aux téléphones de Corentin ET Lisa. Installation : coller le fichier à jour, exécuter `notifTodoInstallerDeclencheur` une fois, le déclencheur est fixé sur Europe/Paris (envoi vers 22h, ± 15 min). Les deux téléphones doivent avoir « Notifications : Activées » dans le Portail.
 - **Qui** : point bleu (Corentin) ou rose (Lisa) = auteur. Pastille **NOUVEAU** sur les tâches ajoutées par l'autre depuis ta dernière visite (`todo_vu_le`, mémorisé quand l'app passe en arrière-plan).
 - **Réglages** : profil Corentin/Lisa (clé commune `duo_profile`), listes (renommer, couleur, supprimer — Général ne se supprime pas ; supprimer une liste supprime ses tâches, après confirmation), recharger l'application (désinscrit le service worker de Todo et vide ses seuls caches `todo-*`).
