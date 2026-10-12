@@ -58,3 +58,6 @@ URL : `…/PORTAIL-DUO/Todo/`
 ### Création (11/10/2026)
 Demande de Corentin : une app type « Notes partagées » pour des listes de choses à faire, hors ligne comme les autres. Choix validés : plusieurs listes, nom « Todo », accès par le compte du duo (Course n'est plus en session anonyme depuis le 29/09/2026 — une session anonyme n'aurait accès à rien).
 Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en série, coche, Terminé, effacement, nouvelle liste, déplacement d'une tâche, suppression de liste, publication de `portail/todo`, rendu des 4 styles, 4e vitre du Portail. **Non testé sur iPhone ni avec la vraie base** (mot de passe du duo non disponible pour les tests).
+
+## Animations — audit skills Emil Kowalski (12/10/2026) — audit avec les skills d'Emil Kowalski (`.claude/skills/`), validé par Corentin ; règles communes dans la charte §6.5 / §11, détail dans le README racine.
+- Mêmes changements que Course : jetons de courbes, fermeture animée des modales tâche / liste / dialogue (`fermerAnime` + `annulerFermeture`), mouvement réduit qui garde les fondus.

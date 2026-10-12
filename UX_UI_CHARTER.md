@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 2.1 (design Verre §12 + styles au choix §13)  
+**Version** : 2.2 (design Verre §12 + styles au choix §13 + §11 alignée sur les skills d'Emil Kowalski, 12/10/2026)  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **Référence visuelle** : `verre.css` (design Verre, §12) depuis le 28/09/2026 — avant : Muscu (Duo Training), dont les sections 1 à 11 sont extraites
@@ -399,7 +399,13 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 --t-fast: .15s;   /* 150 ms — feedback tactile, petits changements d'état (plancher du §11.3) */
 --t-mid: .22s;    /* 220 ms — transitions d'interface standard */
 
+/* Courbes communes (verre.css, :root — 12/10/2026). Jamais de courbe recopiée dans une app. */
+--ease-out: cubic-bezier(.23,1,.32,1);      /* entrées, sorties, appuis */
+--ease-in-out: cubic-bezier(.77,0,.175,1);  /* élément qui se déplace / se déforme à l'écran */
+--ease-drawer: cubic-bezier(.32,.72,0,1);   /* feuilles, toasts, pile : tiroirs iOS */
+
 /* Micro-feedback au tap (pattern à reprendre partout) */
+.btn { transition: transform var(--t-fast) var(--ease-out); }
 .btn:active { transform: scale(0.97); }
 ```
 
@@ -445,15 +451,16 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 - [ ] Zones tactiles ≥ 44px pour les actions principales
 - [ ] Cards : `var(--card)` + `var(--border)` + `var(--r-lg)` + `var(--shadow-sm)`
 - [ ] Bottom bar en `backdrop-filter: blur(18px) saturate(160%)` + `var(--glass-bar)` (ou variante flottante « pilule » §5.5b, avec ses règles)
-- [ ] Transitions `.14s`/`.22s` ease, feedback tap `scale(0.97)`
+- [ ] Transitions `--t-fast`/`--t-mid` avec les courbes communes `--ease-out` / `--ease-drawer` (§6.5), feedback tap `scale(0.97)`
 - [ ] Toasts en `--r-pill`, `--card-2`, centrés bas d'écran
-- [ ] Modales en bottom-sheet (`align-items: flex-end`) avec overlay `rgba(0,0,0,0.6)`
+- [ ] Modales en bottom-sheet (`align-items: flex-end`) avec overlay `rgba(0,0,0,0.6)` ; **fermeture par `fermerAnime()`** (commun.js) — sortie par le même chemin que l'entrée, `annulerFermeture()` avant chaque ouverture
 - [ ] **Animations (§11)** : aucune `transition: all`, jamais de `transition` posée sur `*`
 - [ ] Seuls `transform` et `opacity` sont animés (pas `width`/`height`/`top`/`left`/`bottom`/`max-height`) — jauges en `scaleX`/`translateX`, toasts en `transform`
-- [ ] Entrées en `ease-out`, sorties en `ease-in`, durées 150–300 ms ; apparition depuis `scale(.9)` minimum, jamais `scale(0)`
-- [ ] Actions répétées (validation, coche) : feedback bref, sans rebond
+- [ ] Entrées ET sorties en `var(--ease-out)` (**jamais `ease-in`**), sortie plus courte que l'entrée ; durées 150–300 ms ; apparition depuis `scale(.9)` minimum, jamais `scale(0)`
+- [ ] Actions répétées (validation, coche) : **aucune animation** — appui `:active` + changement de couleur seulement
 - [ ] `transform-box: fill-box` sur tout élément SVG animé en `scale`/`rotate`
-- [ ] Bloc `@media (prefers-reduced-motion: reduce)` présent
+- [ ] Bloc `@media (prefers-reduced-motion: reduce)` présent, qui retire les déplacements mais **garde les fondus** (§11.9)
+- [ ] Glisser : suivi 1:1 du doigt, un seul doigt suivi, validation à la distance OU à la vitesse (> 0,11 px/ms)
 - [ ] **Noyau commun** : `<script src="../commun.js?v=…">` dans le `<head>` (sans `defer`) + `../commun.js` dans le précache du `sw.js` — ne pas recopier SW / vérification de version / date de MAJ dans l'app
 
 ---
@@ -475,6 +482,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
+| 12/10/26 | **Charte v2.2 — §11 alignée sur les skills d'Emil Kowalski** (`.claude/skills/`), validée par Corentin ; ces skills priment sur les règles antérieures : plus jamais d'`ease-in` (sorties en ease-out), 3 courbes communes (`--ease-out`, `--ease-in-out`, `--ease-drawer`), mouvement réduit ≠ zéro (fondus gardés), validation de série Muscu sans animation (fin de l'exception §11.2), durées > 300 ms ramenées (pile 0,3 s, recharger 0,3 s, graphiques 0,6 s), modales fermées par le même chemin (`fermerAnime`), glisser Portail à la pichenette (0,11 px/ms) + un seul doigt, glisser des exercices Muscu suivi au doigt, « Réduire la transparence » iOS pris en compte. |
 | 05/10/26 | **4ᵉ style « Simple »** (§13) : natif iOS façon Réglages — fond noir, gris pleins, police du système partout, aucune ombre ni flou ni halo, accent du profil seul. Choisi après 3 pistes plus marquées écartées (Signal, Encre, Brut). |
 | 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. 2e passe le même soir : exercice posé directement sur la plaque (pas de carte), chrono / GO dans l'en-tête, séries validées teintées vertes, segments en pilule. |
 | 30/09/26 | **Styles au choix** (§13) : Verre (défaut) · Relief (neumorphisme) · Argile (claymorphisme), choisi dans le Portail, appliqué aux 4 apps ; bleu Corentin / rose Lisa conservés dans chaque style. |
@@ -528,15 +536,16 @@ C'est le critère le plus important, absent de la charte actuelle. Il faut se de
 | **Rare / première fois** | Écran de bienvenue, badge de succès, célébration d'objectif atteint | On peut se permettre plus de "delight" (spring avec un peu de bounce, confettis, etc.) |
 
 **Actions fréquentes recensées (audit du 24/09/2026)** :
-- **Muscu — validation de série** : **exception assumée**, décidée par Corentin. Le feedback (léger agrandissement + onde verte) est gardé parce qu'il confirme la saisie en pleine séance, mais **adouci** : `scale(1.08)` sans rebond en 0,2 s, onde de 0,28 s. Ne pas y remettre de rebond ni l'allonger.
+- **Muscu — validation de série** : **aucune animation** depuis le 12/10/2026 (fin de l'exception du 24/09 : agrandissement 1,08 + onde verte supprimés, décision de Corentin suite à l'audit skills Emil). Restent l'appui `:active` (scale .97) et le passage au vert (couleur). Ne pas y remettre d'animation.
+- **Muscu — choix du mode de charge, toast répété** : rebond supprimé le 12/10/2026 (le toast répété garde un léger sursaut de 2 px, sans dépassement).
 - **Course — coche produit** : aucune animation (conforme).
 - **Budget — ajout/suppression de ligne** : aucune animation sur la ligne ; seul le toast « Annuler » (occasionnel) est animé.
 
 ### 11.3 Durées, easing, propriétés (règles GPU-safe)
 
 - **N'animer que `transform` et `opacity`.** Jamais `width`, `height`, `top`, `left`, `margin` (re-layout coûteux, source de jank sur Safari iOS). Jamais `transition: all` (imprécis, anime des propriétés non désirées) — toujours cibler les propriétés explicitement.
-- **Durées** : 150–300ms pour la majorité des transitions d'interface. Tokens : `--t-fast` = 150 ms, `--t-mid` = 220 ms (§6.5). Exception tolérée : indicateurs d'activité (rotation du bouton recharger du Portail, 0,5 s ; squelettes de chargement en boucle).
-- **Easing** : `ease-out` pour les entrées (l'élément démarre vite, ralentit en arrivant — perçu comme plus réactif). `ease-in` pour les sorties. Un `ease-in` sur une entrée est une erreur fréquente d'agent IA à surveiller : ça donne une impression de lenteur/latence même à durée égale.
+- **Durées** : 150–300ms pour les transitions d'interface (appui 100–160 ms, petits éléments 125–200 ms, feuilles et modales 200–500 ms). Tokens : `--t-fast` = 150 ms, `--t-mid` = 220 ms (§6.5). Exceptions tolérées : changement de page « vitre » (0,42 s, assimilé à un tiroir), animations d'ambiance (halos, bouton GO), squelettes de chargement en boucle, célébration rare (badge record, balayage de séance complète). Le bouton recharger du Portail est passé de 0,5 à 0,3 s le 12/10/2026.
+- **Easing (12/10/2026, skills Emil Kowalski — remplace l'ancienne règle « ease-in pour les sorties »)** : **jamais `ease-in`** sur une interface, ni en entrée ni en sortie (il démarre lentement, au moment précis où l'œil regarde). Entrée/sortie → `var(--ease-out)` ; déplacement ou déformation à l'écran → `var(--ease-in-out)` ; feuille, toast, pile → `var(--ease-drawer)` ; changement de couleur → `ease` ; mouvement constant → `linear`. Les mots-clés du navigateur (`ease-out` seul) sont trop mous : toujours les jetons de §6.5. La sortie est plus courte que l'entrée (système qui répond = rapide).
 
 ### 11.4 Règles d'apparition (scale, origine)
 
@@ -556,6 +565,7 @@ C'est le critère le plus important, absent de la charte actuelle. Il faut se de
 
 - S'applique à tout élément pressable : boutons, cards cliquables, items de liste.
 - **Point important issu du skill `apple-design` (doctrine Apple WWDC)** : le feedback visuel doit se déclencher **au moment où le doigt touche l'écran** (`touchstart`/`pointerdown`), pas seulement à la validation du tap (`touchend`/`click`). Actuellement nos apps utilisent probablement `:active` en CSS pur, ce qui respecte déjà globalement ce principe (le pseudo-état `:active` s'active au toucher) — à vérifier qu'aucun JS ne retarde artificiellement le retour visuel jusqu'au relâchement.
+- **Safari iOS** : `:active` ne s'affiche que si un écouteur `touchstart` existe sur l'élément ou un ancêtre — assuré pour les 5 apps par `commun.js` §8 (12/10/2026).
 
 ### 11.6 Animations à ressort (springs) — quand et comment
 
@@ -580,14 +590,19 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 ### 11.9 Accessibilité
 
-- Ajouter un bloc `@media (prefers-reduced-motion: reduce)` qui désactive ou réduit drastiquement toutes les animations non essentielles (garder uniquement les changements d'état instantanés). Présent dans les 4 apps depuis le 24/09/2026.
-- ⚠️ Le sélecteur du bloc reduced-motion doit être **au moins aussi spécifique** que celui qui déclare l'animation, sinon il est ignoré (voir `PROBLEMES_RESOLUS.md`, flammes de record Muscu). Variante radicale acceptable pour une app sobre (Course) : `*, *::before, *::after { transition-duration:0s !important; animation-duration:0s !important; }`.
+- Ajouter un bloc `@media (prefers-reduced-motion: reduce)`. **Mouvement réduit ≠ zéro** (12/10/2026, skills Emil) : retirer les déplacements, agrandissements, rebonds et la déformation de la vitre, mais **garder les fondus d'opacité et de couleur** (toasts, modales, changement de page), qui aident à comprendre ce qui se passe. Présent dans les 5 apps.
+- **Réduire la transparence** (`prefers-reduced-transparency`, 12/10/2026, skill apple-design) : le style Verre devient presque opaque et sans flou (verre.css, fin de fichier). Support Safari non confirmé à cette date, sans effet là où la requête n'est pas reconnue.
+- ⚠️ Le sélecteur du bloc reduced-motion doit être **au moins aussi spécifique** que celui qui déclare l'animation, sinon il est ignoré (voir `PROBLEMES_RESOLUS.md`, flammes de record Muscu). ~~Variante radicale « toutes les durées à 0 s »~~ — abandonnée le 12/10/2026 (Course, Todo) : remplacée par `*, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow !important; }` + feuilles en fondu.
 
 ### 11.10 Anti-patterns à traquer lors des audits futurs
 
 - ❌ `transition: all` (toujours cibler les propriétés)
 - ❌ Durées > 300ms pour une interaction standard (sensation de lenteur)
-- ❌ `ease-in` sur une animation d'entrée (devrait être `ease-out`)
+- ❌ `ease-in` où que ce soit (entrée comme sortie — `var(--ease-out)`)
+- ❌ Courbe `cubic-bezier(…)` recopiée dans une app au lieu des jetons `--ease-*`
+- ❌ Modale qui disparaît d'un coup (passer par `fermerAnime`)
+- ❌ Glisser qui ne suit pas le doigt pendant le geste, ou qui exige une distance là où une pichenette suffit
+- ❌ Bloc reduced-motion qui coupe aussi les fondus
 - ❌ `scale(0)` en point de départ d'une apparition
 - ❌ Bounce/spring sur une action répétée 100+ fois/jour
 - ❌ Popover qui s'agrandit depuis son propre centre au lieu du point de déclenchement
@@ -612,11 +627,11 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Navigation** : Portail = pile de vitres en profondeur (vitre du fond → devant ; vitre de devant → ouvre l'app ; glisser haut/bas → fait tourner la pile, la vitre suit le doigt 1:1).
 - **Haut de page** (modèle Budget) : titre à `--v-haut` = encoche + 18 px, **Unbounded 600 22 px**, identique dans les 4 apps ; les plaques de verre commencent sous l'en-tête, jamais sous la barre d'état.
 - **En-tête** : titre à gauche, **pastille de connexion juste à côté** (vert synchronisé / or en cours / rouge hors ligne), pilotée par `<html data-sync>` et dessinée en `::after` par `verre.css` (Budget : `.status-dot`, le modèle).
-- **Ouverture d'une app** : la vitre de devant du Portail se transforme en plaque de l'app (View Transitions inter-pages, nom `vitre`, 0,42 s) ; transition annulée pour les retours et rechargements.
+- **Ouverture d'une app** : la vitre de devant du Portail se transforme en plaque de l'app (View Transitions inter-pages, nom `vitre`, 0,42 s en `--ease-in-out`, fondus en `--ease-out` ; mouvement réduit : fondu seul) ; transition annulée pour les retours et rechargements.
 - **Profil** : un seul choix Corentin/Lisa pour les 4 apps (`localStorage duo_profile`).
 - **Retour au Portail** : geste retour d'iOS, sans lien dédié (essayé puis retiré le 28/09, décision de Corentin).
 - **Règle de performance** : 2 à 3 surfaces floutées visibles à la fois (plaque, barre, bouton flottant). Les listes sont des **lignes à filets sur une plaque**, jamais une carte en verre par ligne.
-- **Mouvement** : pile en 0,4 s `cubic-bezier(.2,.9,.25,1)` (navigation occasionnelle) ; actions répétées (coches) toujours sans animation (§11.2).
+- **Mouvement** : pile en 0,3 s `var(--ease-drawer)` (0,4 s `cubic-bezier(.2,.9,.25,1)` jusqu'au 12/10/2026) ; glisser : pichenette > 0,11 px/ms sur 12 px ou 50 px, un seul doigt suivi ; actions répétées (coches) toujours sans animation (§11.2).
 - **Halos animés** (28/09/2026) : les deux lumières dérivent en continu (2 calques fixes, `transform` seul, cycles de 23 s et 31 s en `alternate`). **Exception assumée à §11.3** : animation d'ambiance, pas d'interface ; coupée par `prefers-reduced-motion` ; la lumière de l'app reste au-dessus de ~75 % de la hauteur. **Continue d'une app à l'autre** : animation calée sur l'horloge par `commun.js` (`animation-delay` négatif = −(maintenant modulo 2 × durée)).
 - **Structure de page** : la page défile elle-même, barres en `position:fixed` ; jamais d'« écran fixe » avec défilement interne (bande de 62 pt en bas sur iPhone, voir `PROBLEMES_RESOLUS.md`). Fond de `<html>` à la couleur du bas du contenu.
 - **Code commun** (28/09/2026) : `commun.js` à la racine, chargé dans le `<head>` de chaque app (halos, transition, date de MAJ, service worker, vérification de version) — même principe que `verre.css` : jamais recopié dans une app.

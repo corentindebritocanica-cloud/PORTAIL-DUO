@@ -93,7 +93,6 @@
     -webkit-font-smoothing:antialiased;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: none;
-    transition: background .25s ease, color .25s ease;
   }
 
   .sync-badge{
@@ -131,12 +130,12 @@
   .view.active{ display:flex; }
   /* 126 : le glissement d'origine (.32s, 28px) traînait sur un écran de téléphone.
      Plus court et plus serré, il accompagne le geste au lieu de le retarder. */
-  .view.slide-fwd{ animation: slideInFwd var(--t-mid) cubic-bezier(.32,.72,.3,1); }
-  .view.slide-back{ animation: slideInBack var(--t-mid) cubic-bezier(.32,.72,.3,1); }
+  .view.slide-fwd{ animation: slideInFwd var(--t-mid) var(--ease-drawer); }
+  .view.slide-back{ animation: slideInBack var(--t-mid) var(--ease-drawer); }
   @keyframes slideInFwd{ from{ transform:translateX(16px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
   @keyframes slideInBack{ from{ transform:translateX(-16px); opacity:0; } to{ transform:translateX(0); opacity:1; } }
   @media (prefers-reduced-motion: reduce){
-    .view.slide-fwd, .view.slide-back{ animation:none; }
+    .view.slide-fwd, .view.slide-back{ animation-name:fondIn; }   /* « réduit ≠ zéro » (12/10/2026) : fondu sans glissement */
   }
 
   .view-inner{
@@ -165,7 +164,7 @@
     background:var(--card); color:var(--text); font-size:19px; font-weight:800;
     display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:14px;
     box-shadow: var(--shadow-sm); position:relative;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    transition: transform .15s var(--ease-out), box-shadow .15s ease, border-color .15s ease, background .15s ease;
   }
   .big-choice-btn:active{ transform: scale(0.98); }
   .big-choice-btn .choice-icon{
@@ -261,7 +260,7 @@
     background:var(--card); color:var(--text); text-align:left;
     display:flex; align-items:center; gap:14px; font-family:inherit;
     box-shadow: var(--shadow-sm);
-    transition: transform .15s ease, border-color .15s ease;
+    transition: transform .15s var(--ease-out), border-color .15s ease;
   }
   .session-btn:active{ transform: scale(0.98); }
   .session-btn .session-icon{
@@ -316,8 +315,11 @@
   .session-progress-fill{
     /* Dégradé couleur de profil (--accent) → or (18/09/26 : accent remplace
        le rouge de marque partout, y compris ici). */
-    height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--gold)); border-radius:var(--r-xs);
-    transition: width .3s cubic-bezier(.4,0,.2,1), background .3s ease;
+    /* 12/10/2026 : remplissage en transform (translateX, piloté par app.js) au lieu de width
+       (charte §11.3 — width relance la mise en page à chaque série validée). La piste est en
+       overflow:hidden : la barre garde son bout arrondi. */
+    height:100%; width:100%; transform:translateX(-100%); background:linear-gradient(90deg, var(--accent), var(--gold)); border-radius:var(--r-xs);
+    transition: transform .3s var(--ease-out), background .3s ease;
   }
   /* 129 : séance complète — la jauge passe au vert et un reflet la parcourt une fois. */
   .session-progress-track.complete .session-progress-fill{ background:var(--done); }
@@ -325,7 +327,7 @@
   .session-progress-track.celebrate::after{
     content:''; position:absolute; top:0; bottom:0; width:45%;
     background:linear-gradient(90deg, transparent, var(--sheen), transparent);
-    left:0; animation: trackSweep .85s ease-out 1;
+    left:0; animation: trackSweep .85s var(--ease-out) 1;
   }
   /* En transform (charte §11.3) : -100 % / 233 % de sa propre largeur (45 % de la
      jauge) = mêmes positions que l'ancien left:-45% → left:105%. */
@@ -363,7 +365,7 @@
     display:flex; flex-direction:column; gap:5px; text-align:left;
     border-radius:var(--r-md); border:1px solid var(--border); background:var(--card);
     color:var(--text); font-family:inherit;
-    transition:background var(--t-mid) ease-out, border-color var(--t-mid) ease-out, transform var(--t-fast) ease-out;
+    transition:background var(--t-mid) var(--ease-out), border-color var(--t-mid) var(--ease-out), transform var(--t-fast) var(--ease-out);
   }
   .rail-exo:active{ transform:scale(0.97); }
   .rail-exo.actif{ background:rgba(var(--accent-rgb),0.16); border-color:rgba(var(--accent-rgb),0.70); }
@@ -386,12 +388,14 @@
   /* Un seul exercice affiché ; entrée du côté d'où l'on vient (cohérence spatiale, §11.1),
      brève et sans rebond : changer d'exercice se fait des dizaines de fois par séance (§11.2). */
   .exo-page:not(.actif){ display:none !important; }
-  .exo-page.entree-suiv{ animation:exoEntreeSuiv .18s ease-out; }
-  .exo-page.entree-prec{ animation:exoEntreePrec .18s ease-out; }
+  /* Glisser entre exercices suivi au doigt (12/10/2026, app.js) : le navigateur ne gère que le défilement vertical. */
+  #view-exercises .exo-page{ touch-action:pan-y; }
+  .exo-page.entree-suiv{ animation:exoEntreeSuiv .18s var(--ease-out); }
+  .exo-page.entree-prec{ animation:exoEntreePrec .18s var(--ease-out); }
   @keyframes exoEntreeSuiv{ from{ transform:translateX(18px); opacity:.35; } }
   @keyframes exoEntreePrec{ from{ transform:translateX(-18px); opacity:.35; } }
   @media (prefers-reduced-motion: reduce){
-    .exo-page.entree-suiv, .exo-page.entree-prec{ animation:none; }
+    .exo-page.entree-suiv, .exo-page.entree-prec{ animation-name:fondIn; }
   }
   .exercise-rang{ font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--text-dim); }
   .exo-nav{ display:flex; gap:8px; }
@@ -399,7 +403,7 @@
     min-height:48px; padding:0 16px; border-radius:var(--r-pill);
     border:1px solid var(--border); background:var(--card); color:var(--text);
     font-family:inherit; font-size:14px; font-weight:700;
-    transition:background var(--t-mid) ease-out, border-color var(--t-mid) ease-out, transform var(--t-fast) ease-out;
+    transition:background var(--t-mid) var(--ease-out), border-color var(--t-mid) var(--ease-out), transform var(--t-fast) var(--ease-out);
   }
   .exo-nav-btn:active{ transform:scale(0.97); }
   .exo-nav-btn.precedent{ flex:0 0 auto; }
@@ -431,7 +435,7 @@
   .exo-chrono.attente{
     align-items:center; padding:4px 16px; border-radius:var(--r-pill);
     background:rgba(var(--accent-rgb),.28); border:1px solid rgba(var(--accent-rgb),.65);
-    transition:transform var(--t-fast) ease-out;
+    transition:transform var(--t-fast) var(--ease-out);
   }
   .exo-chrono.attente:active{ transform:scale(.97); }
   .exo-chrono.attente .session-timer-label{ font-weight:700; font-size:16px; letter-spacing:1px; }
@@ -594,7 +598,7 @@
     border:1px solid var(--border); background:transparent; color:var(--text-dim);
     text-align:center;
     transition: border-color var(--t-fast) ease, color var(--t-fast) ease,
-                background var(--t-fast) ease, transform var(--t-fast) ease;
+                background var(--t-fast) ease, transform var(--t-fast) var(--ease-out);
   }
   .variant-btn:active{ transform:scale(.96); }
   .variant-icon{ display:flex; align-items:center; justify-content:center; color:inherit; }
@@ -609,13 +613,7 @@
   .variant-hint.doubled{ color:var(--accent); font-weight:600; }
   .variant-btn.selected{
     border-color:var(--accent); color:var(--accent); background:var(--tint);
-    animation: variantPick .3s cubic-bezier(.34,1.4,.64,1);
-  }
-  @keyframes variantPick{
-    0%{ transform:scale(.97); }
-    55%{ transform:scale(1.03); }
-    100%{ transform:scale(1); }
-  }
+  }   /* rebond « variantPick » retiré le 12/10/2026 (pas de rebond sur un choix répété) : le changement de couleur suffit */
   @media (prefers-reduced-motion: reduce){
     .variant-btn.selected{ animation:none; }
   }
@@ -650,7 +648,7 @@
     border:none; border-radius:var(--r-xl); color:#fff; font-family:inherit;
     background:linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
     box-shadow:0 12px 30px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.22);
-    transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease;
+    transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast) ease;
     -webkit-tap-highlight-color:transparent;
   }
   .go-btn:active{ transform:scale(.97); box-shadow:0 6px 16px var(--accent-glow); }
@@ -730,10 +728,10 @@
     width:26px; height:26px; border-radius:var(--r-sm); border:1px solid var(--border);
     background:transparent; color:var(--text-dim); font-size:13px;
     display:flex; align-items:center; justify-content:center; padding:0;
-    transition: color var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
+    transition: color var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) var(--ease-out);
   }
   .dup-btn:active{ color:var(--accent); border-color:var(--accent); transform:scale(.9); }
-  .dup-btn.done{ animation: dupFlash .4s ease-out; }
+  .dup-btn.done{ animation: dupFlash .2s var(--ease-out); }   /* 0,4 → 0,2 s (12/10/2026) */
   @keyframes dupFlash{
     0%{ color:var(--accent); border-color:var(--accent); transform:translateY(-2px); }
     100%{ color:var(--text-dim); border-color:var(--border); transform:translateY(0); }
@@ -782,7 +780,7 @@
     display:flex; align-items:center; gap:6px; padding:6px 11px;
     border-radius:var(--r-pill); border:1.5px solid var(--border);
     background:var(--card-2); color:var(--text-dim); font-size:12px; font-weight:700;
-    font-family:inherit; opacity:.55; transition: opacity .15s ease, border-color .15s ease;
+    font-family:inherit; opacity:.55; transition: opacity .15s var(--ease-out), border-color .15s ease;
   }
   .body-legend-chip.active{ opacity:1; border-color:var(--legend-color, var(--accent)); color:var(--text); }
   .body-legend-dot{
@@ -965,39 +963,17 @@
     width:44px; height:44px; border-radius:var(--r-md); border:1px solid var(--border);
     background:var(--card-2); color:var(--text-dim); font-size:20px; font-weight:800;
     display:flex; align-items:center; justify-content:center;
-    transition: background .15s ease, border-color .15s ease, color .15s ease;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform var(--t-fast) var(--ease-out);
   }
   .check-btn.checked{
     background:var(--done); border-color:var(--done); color:#fff;
   }
-  /* 125 : la validation d'une série est le geste le plus répété de l'app.
-     Le simple agrandissement passait inaperçu bras tendus : on y ajoute une
-     onde qui se propage depuis le bouton. */
+  /* Validation de série — action la plus répétée de l'app (charte §11.2). 12/10/2026 (audit skills
+     Emil Kowalski, validé par Corentin) : agrandissement 1,08 et onde verte SUPPRIMÉS — une action
+     faite des dizaines de fois par séance ne s'anime pas. Reste : l'appui qui se tasse (instantané
+     au toucher) et le passage au vert (couleur, 0,15 s). Ne pas remettre d'animation ici. */
   .check-btn{ position:relative; }
-  /* Validation de série — action la plus répétée de l'app (charte §11.2).
-     Adoucie le 24/09/2026 : 1,08 sans rebond (avant : 1,22 avec dépassement
-     élastique sur 0,42 s) et onde plus courte et plus discrète (avant : 0,5 s,
-     jusqu'à 1,5×). Garder ce feedback bref : il se déclenche des dizaines de
-     fois par séance. */
-  .check-btn.pulse{ animation: checkPulse .2s ease-out; }
-  .check-btn.pulse::after{
-    content:''; position:absolute; inset:-4px; border-radius:var(--r-md);
-    border:2px solid var(--done); animation: checkRipple .28s ease-out forwards;
-    pointer-events:none;
-  }
-  @keyframes checkPulse{
-    0%{ transform:scale(1); }
-    40%{ transform:scale(1.08); }
-    100%{ transform:scale(1); }
-  }
-  @keyframes checkRipple{
-    0%{ transform:scale(.95); opacity:.6; }
-    100%{ transform:scale(1.18); opacity:0; }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .check-btn.pulse{ animation:none; }
-    .check-btn.pulse::after{ display:none; }
-  }
+  .check-btn:active{ transform:scale(.97); }
 
   .cardio-card{
     background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
@@ -1038,7 +1014,7 @@
   .bottom-btn{
     flex:1; padding:14px 10px; border-radius:var(--r-lg); border:1px solid transparent;
     font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;
-    transition: transform .15s ease;
+    transition: transform .15s var(--ease-out);
   }
   .bottom-btn:active{ transform:scale(0.97); }
   .btn-reset{
@@ -1062,7 +1038,7 @@
     position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50;
     display:none; align-items:flex-end; justify-content:center;
   }
-  .modal-overlay.open{display:flex;}
+  .modal-overlay.open{display:flex; animation:fondIn .22s var(--ease-out);}
   .modal{
     background:var(--glass-modal);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -1102,18 +1078,18 @@
     font-size:13.5px; font-weight:600; border:1px solid var(--border);
     box-shadow: var(--shadow-sm);
     opacity:0; transform:translateY(12px) scale(.96);
-    transition: opacity .25s ease, transform .25s cubic-bezier(.32,.72,.3,1);
+    transition: opacity .25s var(--ease-out), transform .25s var(--ease-drawer);
     text-align:center;
   }
   .toast.show{ opacity:1; transform:translateY(0) scale(1); }
-  .toast.bump{ animation: toastBump .3s cubic-bezier(.34,1.5,.64,1); }
+  .toast.bump{ animation: toastBump .2s var(--ease-out); }   /* 12/10/2026 : sans dépassement (avant .3s, courbe élastique) */
   @keyframes toastBump{
     0%{ transform:translateY(0) scale(1); }
-    45%{ transform:translateY(-3px) scale(1.04); }
+    40%{ transform:translateY(-2px) scale(1.02); }
     100%{ transform:translateY(0) scale(1); }
   }
   @media (prefers-reduced-motion: reduce){
-    .toast{ transition: opacity .2s ease; transform:none; }
+    .toast{ transition: opacity .2s var(--ease-out); transform:none; }
     .toast.show{ transform:none; }
     .toast.bump{ animation:none; }
   }
@@ -1122,7 +1098,17 @@
     position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:55;
     display:none; align-items:center; justify-content:center; padding:24px;
   }
-  .confirm-overlay.open{display:flex;}
+  .confirm-overlay.open{display:flex; animation:fondIn .22s var(--ease-out);}
+  /* Entrées des modales (12/10/2026, audit skills Emil) : feuille du bas qui monte, boîte centrée qui
+     se pose (depuis .96, jamais 0) ; sortie par le même chemin via fermerAnime (commun.js + verre.css). */
+  .modal-overlay.open .modal{ animation:feuilleIn .28s var(--ease-drawer); }
+  .confirm-overlay.open .confirm-box{ animation:boiteIn .22s var(--ease-out); }
+  @keyframes fondIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes feuilleIn{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  @keyframes boiteIn{ from{transform:scale(.96); opacity:0;} to{transform:scale(1); opacity:1;} }
+  @media (prefers-reduced-motion: reduce){
+    .modal-overlay.open .modal, .confirm-overlay.open .confirm-box{ animation-name:fondIn; }   /* « réduit ≠ zéro » : fondu seul */
+  }
   .confirm-box{
     background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
     padding:20px; width:100%; max-width:340px; text-align:center;
@@ -1352,18 +1338,18 @@
      traits fins et discrets pour donner une échelle visuelle au graphique,
      absents jusque-là. */
   .chart-grid-row{ stroke:var(--border); stroke-width:1; }
-  .chart-area{ opacity:0; animation: chartAreaIn .6s ease-out .15s forwards; }
+  .chart-area{ opacity:0; animation: chartAreaIn .4s var(--ease-out) .1s forwards;   /* durées du graphique réduites le 12/10/2026 */ }
   .chart-line{
     filter: drop-shadow(0 0 5px rgba(var(--accent-rgb), 0.45));
     stroke-dasharray: 2000; stroke-dashoffset: 2000;
-    animation: chartLineDraw 1s cubic-bezier(.4,0,.2,1) forwards;
+    animation: chartLineDraw .6s var(--ease-out) forwards;   /* 1 s → 0,6 s (12/10/2026) */
   }
   .chart-dot{
     opacity:0; transform-box: fill-box; transform-origin: center;
-    animation: chartDotIn .3s ease-out forwards;
+    animation: chartDotIn .3s var(--ease-out) forwards;
   }
   .chart-dot-glow{
-    opacity:0; animation: chartDotGlowIn .5s ease-out forwards;
+    opacity:0; animation: chartDotGlowIn .3s var(--ease-out) forwards;
   }
   @keyframes chartAreaIn{ to{ opacity:1; } }
   @keyframes chartLineDraw{ to{ stroke-dashoffset:0; } }
@@ -1380,8 +1366,8 @@
      une apparition en fondu par série (pas de dessin progressif ligne par
      ligne façon buildChartSvg — avec jusqu'à huit courbes en même temps, ce
      serait plus confus que lisible). */
-  .body-overview-line{ opacity:0; animation: bodyLineIn .5s ease-out forwards; }
-  .body-overview-dot{ opacity:0; animation: bodyLineIn .4s ease-out forwards; }
+  .body-overview-line{ opacity:0; animation: bodyLineIn .3s var(--ease-out) forwards; }
+  .body-overview-dot{ opacity:0; animation: bodyLineIn .3s var(--ease-out) forwards; }
   @keyframes bodyLineIn{ to{ opacity:1; } }
   @media (prefers-reduced-motion: reduce){
     .body-overview-line, .body-overview-dot{ animation:none; opacity:1; }

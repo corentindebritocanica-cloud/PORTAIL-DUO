@@ -393,9 +393,10 @@ function afficherNouveautes(ajouts){
     ul.appendChild(li);
   });
   const fond = fenetreNouveautes();
-  const fermer = ()=>{ fond.style.display = 'none'; marquerVu(); };
+  const fermer = ()=>{ fermerAnime(fond, ()=>{ fond.style.display = 'none'; }); marquerVu(); };   /* sortie animée (commun.js, 12/10/2026) */
   document.getElementById('nouveautes-ok').onclick = fermer;
   fond.onclick = (e)=>{ if(e.target === fond) fermer(); };
+  annulerFermeture(fond);
   fond.style.display = 'flex';
 }
 /* Appelé à chaque liste reçue du SERVEUR (pas du cache local). */
@@ -579,10 +580,11 @@ function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', dang
     t.textContent = texte; t.style.display = texte ? '' : 'none';
     bOk.textContent = ok; bOk.className = danger ? 'btn-danger' : 'btn-enregistrer';
     bAnnuler.textContent = annuler || ''; bAnnuler.style.display = annuler ? '' : 'none';
-    const fermer = (res)=>{ fond.style.display = 'none'; bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+    const fermer = (res)=>{ fermerAnime(fond, ()=>{ fond.style.display = 'none'; }); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
     bOk.onclick = ()=> fermer(true);
     bAnnuler.onclick = ()=> fermer(false);
     fond.onclick = (e)=>{ if(e.target===fond) fermer(false); };
+    annulerFermeture(fond);
     fond.style.display = 'flex';
   });
 }
@@ -609,10 +611,11 @@ function ouvrirModale(id){
   champNouveauRayon.style.display = 'none';
   document.getElementById('modal-nouveau-rayon').value = '';
   document.getElementById('btn-modal-supprimer').style.display = id ? 'block' : 'none';
+  annulerFermeture(modal);
   modal.style.display = 'flex';
   setTimeout(()=> document.getElementById('modal-nom').focus(), 50);
 }
-function fermerModale(){ modal.style.display = 'none'; state.editionId = null; }
+function fermerModale(){ fermerAnime(modal, ()=>{ modal.style.display = 'none'; }); state.editionId = null; }
 
 document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=> ouvrirModale(null));
 document.getElementById('btn-modal-annuler').addEventListener('click', fermerModale);
@@ -734,10 +737,11 @@ function ouvrirModaleListe(id){
   dessinerCouleurs();
   erreurListe.textContent = '';
   document.getElementById('btn-liste-supprimer').style.display = (id && id !== LISTE_DEFAUT) ? 'block' : 'none';
+  annulerFermeture(modalListe);
   modalListe.style.display = 'flex';
   if(!id) setTimeout(()=> champNomListe.focus(), 50);   /* en modification : pas de clavier d'office (souvent pour la couleur) */
 }
-function fermerModaleListe(){ modalListe.style.display = 'none'; listeEditionId = null; }
+function fermerModaleListe(){ fermerAnime(modalListe, ()=>{ modalListe.style.display = 'none'; }); listeEditionId = null; }
 document.getElementById('btn-liste-annuler').addEventListener('click', fermerModaleListe);
 modalListe.addEventListener('click', (e)=>{ if(e.target===modalListe) fermerModaleListe(); });
 champNomListe.addEventListener('input', ()=>{ erreurListe.textContent = ''; });

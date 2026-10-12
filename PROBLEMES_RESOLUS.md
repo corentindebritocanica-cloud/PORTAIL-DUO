@@ -19,6 +19,19 @@
 
 ---
 
+## 🎬 Toutes apps — fermeture animée des modales et appui `:active` sur iPhone (12/10/2026)
+
+### 12/10/2026 — Portail, Budget, Course, Todo, Muscu — animer la sortie d'une modale sans casser deux dialogues enchaînés
+**Symptôme** : (anticipé pendant l'audit skills Emil Kowalski) les modales disparaissaient d'un coup. Animer la sortie = retarder le `display:none` de 0,2 s ; or plusieurs apps enchaînent deux `dialogue()` sur le **même** élément (confirmer puis re-confirmer) : la 2e boîte, ouverte pendant la fermeture de la 1re, était aussitôt masquée par la fin de cette fermeture.
+**Fausses pistes explorées** : `MutationObserver` sur la modale pour détecter une réouverture (toute autre modification de classe ou de style pendant la fermeture l'aurait annulée à tort) ; attendre `animationend` (jamais déclenché quand l'animation est coupée, ex. mouvement réduit).
+**Cause racine** : une fermeture différée est une opération en cours ; il faut pouvoir l'annuler à la réouverture.
+**Solution** : `commun.js` §8 — `fermerAnime(fond, fin)` pose `.v-ferme` (animations dans `verre.css`), garde le minuteur sur l'élément (`fond._vFerme`) et appelle `fin()` après 0,2 s ; `annulerFermeture(fond)` est appelé juste avant **chaque** ouverture (efface le minuteur et la classe). Les effets de bord (résoudre la promesse, remettre l'état à zéro) restent synchrones chez l'appelant. Vérifié dans Chromium : fermeture puis réouverture à 80 ms → la boîte reste ouverte.
+**Leçons généralisables** :
+- Toute sortie animée = un état « en train de fermer » qui doit être annulable par l'ouverture suivante.
+- Sur Safari iOS, `:active` (l'appui qui se tasse) ne s'affiche que s'il existe un écouteur `touchstart` sur l'élément ou un ancêtre : un écouteur vide et passif sur `document` suffit (`commun.js` §8 ; Muscu en avait déjà un pour ses gestes, les autres apps non).
+- Mouvement réduit ≠ zéro : couper toutes les durées (`0s !important`) retire aussi les fondus qui aident à comprendre ; préférer limiter `transition-property` à opacité/couleur.
+**Fichiers touchés** : `commun.js`, `verre.css`, `app.js` (Portail), `Budget/app.js`, `Course/app.js`, `Todo/app.js`, `Muscu/app.js`, `Muscu/style.css`, README
+
 ## 🧩 Toutes apps — ajouter une 5e app sans casser les autres (11/10/2026)
 
 ### 11/10/2026 — Portail + Todo — les endroits « cachés » à toucher pour une nouvelle app

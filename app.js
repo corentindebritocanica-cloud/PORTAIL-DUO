@@ -56,10 +56,11 @@
       document.getElementById('dialogue-titre').textContent = titre;
       document.getElementById('dialogue-texte').textContent = texte;
       bOk.textContent = ok; bAnnuler.textContent = annuler;
-      const fermer = (res) => { fond.classList.remove('open'); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+      const fermer = (res) => { fermerAnime(fond, () => fond.classList.remove('open')); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
       bOk.onclick = () => fermer(true);
       bAnnuler.onclick = () => fermer(false);
       fond.onclick = (e) => { if (e.target === fond) fermer(false); };
+      annulerFermeture(fond);
       fond.classList.add('open');
     });
   }
@@ -626,17 +627,20 @@
     });
 
     /* GLISSER VERTICAL (28/09/2026) — vers le HAUT : la vitre de devant part au fond, la suivante
-       passe devant ; vers le BAS : la vitre du fond revient devant. Seuil : 50 px, ou un geste
-       rapide (> 0,4 px/ms) d'au moins 20 px. Pendant le geste, la vitre de devant suit le doigt
-       (--drag, amorti au-delà de 120 px). Un glisser n'ouvre jamais l'app (clic annulé). */
+       passe devant ; vers le BAS : la vitre du fond revient devant. Seuil : 50 px, ou une simple
+       pichenette (> 0,11 px/ms, 12 px minimum ; avant le 12/10/2026 : 0,4 px/ms et 20 px — skill
+       emil-design-eng, « momentum dismissal »). Pendant le geste, la vitre de devant suit le doigt
+       (--drag, amorti au-delà de 120 px). Un glisser n'ouvre jamais l'app (clic annulé).
+       Un seul doigt suivi (12/10/2026) : un 2e doigt posé pendant le geste est ignoré (avant, il
+       relançait le geste depuis sa position et la vitre sautait). */
     const dash = document.querySelector('.dash');
     let depart = null, dernier = null, aGlisse = false;
     dash.addEventListener('pointerdown', (e) => {
-      if (!root.classList.contains('verre') || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      depart = { y: e.clientY, t: performance.now() }; dernier = depart; aGlisse = false;
+      if (depart || !root.classList.contains('verre') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      depart = { id: e.pointerId, y: e.clientY, t: performance.now() }; dernier = depart; aGlisse = false;
     });
     dash.addEventListener('pointermove', (e) => {
-      if (!depart) return;
+      if (!depart || e.pointerId !== depart.id) return;
       const dy = e.clientY - depart.y;
       if (!aGlisse && Math.abs(dy) > 8) {
         aGlisse = true; dash.classList.add('glisse');
@@ -649,13 +653,13 @@
       }
     });
     function finir(e){
-      if (!depart) return;
+      if (!depart || e.pointerId !== depart.id) return;
       const dy = e.clientY - depart.y, v = (dernier && dernier.v) || 0;
       carte(pile[0]).style.removeProperty('--drag');
       dash.classList.remove('glisse');
       if (aGlisse) {
-        const versHaut = dy < -50 || (dy < -20 && v < -0.4);
-        const versBas = dy > 50 || (dy > 20 && v > 0.4);
+        const versHaut = dy < -50 || (dy < -12 && v < -0.11);
+        const versBas = dy > 50 || (dy > 12 && v > 0.11);
         if (versHaut) pile = [...pile.slice(1), pile[0]];                   /* devant → fond */
         else if (versBas) pile = [pile[pile.length - 1], ...pile.slice(0, -1)];   /* fond → devant */
         if (versHaut || versBas) empiler();

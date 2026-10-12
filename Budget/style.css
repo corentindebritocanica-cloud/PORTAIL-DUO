@@ -83,7 +83,7 @@ body.profil-lisa {
 
 /* 3. LAYOUT GLOBAL (charte §6.2) */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--f-body); -webkit-tap-highlight-color: transparent; }
-body { background-color: var(--bg); color: var(--text); color-scheme: dark; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; -webkit-overflow-scrolling: touch; overscroll-behavior: none; transition: background-color .25s ease, color .25s ease; }
+body { background-color: var(--bg); color: var(--text); color-scheme: dark; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; -webkit-overflow-scrolling: touch; overscroll-behavior: none; }   /* transition de fond retirée le 12/10/2026 : reste du thème clair */
 button { font-family: inherit; color: inherit; }
 .hidden { display: none !important; }
 .txt-dim { color: var(--text-dim); }
@@ -96,7 +96,7 @@ main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
 .view-intro { color: var(--text-dim); font-size: 13.5px; line-height: 1.4; margin: -8px 0 16px; }
 
 /* Bouton icône rond (ex. 🗑️ supprimer le mois) — zone tactile 44px */
-.btn-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-size: 17px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-icon { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; font-size: 17px; cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 .btn-icon:active { transform: scale(0.97); }
 .btn-icon.danger { border-color: rgba(239,68,68,0.35); }
 
@@ -106,7 +106,7 @@ main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
 .login-box h1 { margin-bottom: 6px; font-size: 24px; font-weight: 700; }
 .login-box p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
 .login-box input { width: 100%; min-height: 48px; padding: 12px 15px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card-2); margin-bottom: 12px; color: var(--text); }
-.login-btn { width: 100%; min-height: 48px; padding: 14px; border-radius: var(--r-md); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.login-btn { width: 100%; min-height: 48px; padding: 14px; border-radius: var(--r-md); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 .login-btn:active { transform: scale(0.97); }
 #login-error { color: var(--danger); font-size: 13.5px; margin-top: 15px; display: none; }
 
@@ -125,7 +125,7 @@ main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
 .btn-tab { flex: 1; min-width: 0; padding: 0; border: none; border-radius: var(--r-pill); background: transparent; color: var(--text-dim); cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     font-size: 11px; font-weight: 600; white-space: nowrap;
-    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) ease-out; }
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) var(--ease-out); }
 .btn-tab:active { transform: scale(0.97); }
 .btn-tab.active { background: var(--accent-soft); color: var(--accent); }
 .btn-tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
@@ -133,7 +133,7 @@ main h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
 /* 6. LISTE DES MOIS */
 .year-group { margin-bottom: 8px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
 .year-header { min-height: 44px; padding: 12px 15px; background: var(--card-2); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-.year-header::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform var(--t-mid) ease-out; }
+.year-header::after { content: '▼'; font-size: 10px; color: var(--text-dim); transition: transform var(--t-mid) var(--ease-out); }
 .year-header.collapsed::after { transform: rotate(-90deg); }
 .month-sublist { display: flex; flex-direction: column; gap: 4px; padding: 8px; }
 .month-sublist.hidden { display: none; }
@@ -154,7 +154,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .card { background-color: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow-sm); margin-bottom: 16px; }
 .card-header { min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .card-header h3 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.card-header::after { content: '▼'; font-size: 11px; color: var(--text-dim); transition: transform var(--t-mid) ease-out; }
+.card-header::after { content: '▼'; font-size: 11px; color: var(--text-dim); transition: transform var(--t-mid) var(--ease-out); }
 .card-header.collapsed::after { transform: rotate(-90deg); }
 .card-header.collapsed { margin-bottom: 0; padding-bottom: 0; border-bottom-color: transparent; } /* carte repliée : pas de filet ni de vide sous le titre */
 .section-content { overflow: hidden; } /* pas de transition : max-height passe de none à 0, non animable */
@@ -181,7 +181,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .item-mixte { display: flex; flex-direction: column; gap: 8px; background: var(--card-2); border-radius: var(--r-md); padding: 12px 10px; touch-action: none; }
 .mixte-label { text-align: center; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-dim); }
 .mixte-row { display: flex; align-items: center; justify-content: center; gap: 16px; }
-.mixte-btn { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1; transition: transform var(--t-fast) ease-out; }
+.mixte-btn { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1; transition: transform var(--t-fast) var(--ease-out); }
 .mixte-btn:active { transform: scale(0.97); }
 .mixte-scrub { min-width: 80px; text-align: center; touch-action: none; cursor: ns-resize; user-select: none; }
 .mixte-value { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; font-variant-numeric: tabular-nums; }
@@ -192,17 +192,17 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 /* Boutons de ligne — zones tactiles 44px (charte §6.4) */
 .btn-delete { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; color: var(--danger); background: none; border: none; font-size: 17px; margin-left: 4px; cursor: pointer; border-radius: var(--r-sm); }
 .btn-delete:active { background: rgba(239,68,68,0.12); }
-.btn-pay-method { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 17px; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-pay-method { width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--r-sm); font-size: 17px; cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 .btn-pay-method:active { transform: scale(0.97); }
 
 /* 11. BOUTONS D'ACTION (charte §5.3 / §5.4) */
-.btn-action { min-height: 48px; padding: 14px; color: #fff; border-radius: var(--r-md); font-weight: 700; font-size: 15px; cursor: pointer; border: none; width: 100%; margin-bottom: 10px; transition: transform var(--t-fast) ease-out; }
+.btn-action { min-height: 48px; padding: 14px; color: #fff; border-radius: var(--r-md); font-weight: 700; font-size: 15px; cursor: pointer; border: none; width: 100%; margin-bottom: 10px; transition: transform var(--t-fast) var(--ease-out); }
 .btn-action:active { transform: scale(0.97); }
 .card .btn-action { margin: 12px 0 0; }
 .bg-primary { background: var(--accent); color: #fff; }
 .bg-danger  { background: var(--danger); color: #fff; }
 .bg-neutral { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
-.btn-small { min-height: 44px; padding: 10px 16px; border-radius: var(--r-sm); border: none; background: var(--card-2); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; transition: transform var(--t-fast) ease-out; }
+.btn-small { min-height: 44px; padding: 10px 16px; border-radius: var(--r-sm); border: none; background: var(--card-2); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; transition: transform var(--t-fast) var(--ease-out); }
 .btn-small:active { transform: scale(0.97); }
 .btn-small.bg-primary { background: var(--accent); color: #fff; }
 
@@ -230,7 +230,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .progress-container { margin-bottom: 12px; }
 .progress-header { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .progress-track { background: var(--card-2); border-radius: var(--r-xs); height: 8px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent); transform-origin: left center; transition: transform .3s ease-out; }
+.progress-fill { height: 100%; background: var(--accent); transform-origin: left center; transition: transform .3s var(--ease-out); }
 /* Jauges du mois (#bar-*-m) : pilotées par transform:scaleX() depuis app.js (charte §11.3).
    Les jauges d'objectifs (sans id) restent en width inline, statiques. */
 .progress-fill[id^="bar-"] { width: 100%; transform: scaleX(0); }
@@ -241,10 +241,10 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .obj-bloc { margin-top: 18px; }
 
 /* 15. MODALES — bottom-sheet (charte §5.9) */
-.overlay-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: flex-end; justify-content: center; animation: fondIn .22s ease-out; }
+.overlay-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: flex-end; justify-content: center; animation: fondIn .22s var(--ease-out); }
 .popup-box { width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto; background: var(--glass-modal); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
     border: 1px solid var(--border); border-bottom: none; border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-lg);
-    padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); text-align: center; animation: feuilleIn .28s cubic-bezier(.32,.72,.3,1); }
+    padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); text-align: center; animation: feuilleIn .28s var(--ease-drawer); }
 .popup-box h3 { font-size: 19px; font-weight: 700; }
 .popup-box .btn-action { margin: 0; }
 .popup-icon { font-size: 40px; line-height: 1; margin-bottom: 10px; }
@@ -303,14 +303,18 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 #toast { position: fixed; bottom: calc(var(--tabbar-height) + 12px); left: 50%; transform: translate(-50%, 16px) scale(.96); opacity: 0; visibility: hidden; pointer-events: none;
     background: var(--card-2); color: var(--text); border: 1px solid var(--border); padding: 4px 4px 4px 18px; border-radius: var(--r-pill); font-size: 13.5px; font-weight: 600;
     display: flex; align-items: center; gap: 12px; white-space: nowrap; box-shadow: var(--shadow-sm); z-index: 1000;
-    transition: opacity .18s ease-in, transform .18s ease-in, visibility 0s linear .18s; }
-#toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .25s ease-out, transform .25s cubic-bezier(.32,.72,.3,1), visibility 0s; }
+    transition: opacity .18s var(--ease-out), transform .18s var(--ease-out), visibility 0s linear .18s; }
+#toast.show { transform: translate(-50%, 0) scale(1); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .25s var(--ease-out), transform .25s var(--ease-drawer), visibility 0s; }
 #btn-undo { min-height: 44px; background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: var(--r-pill); font-size: 13px; font-weight: 700; cursor: pointer; }
 
 /* ACCESSIBILITÉ — mouvement réduit (charte §11.9) */
 @media (prefers-reduced-motion: reduce) {
-    body, .btn-tab, .month-pill, .year-header::after, .card-header::after, .progress-fill, #toast,
+    .btn-tab, .month-pill, .year-header::after, .card-header::after, .progress-fill,
     .btn-action, .btn-small, .btn-icon, .btn-pay-method, .mixte-btn, .login-btn { transition: none !important; }
-    .overlay-popup, .popup-box { animation: none !important; }
+    /* « Réduit ≠ zéro » (12/10/2026, skills Emil) : toast et pop-ups gardent leur fondu, sans déplacement. */
+    #toast, #toast.show { transform: translate(-50%, 0) !important; }
+    #toast { transition: opacity .2s ease, visibility 0s linear .2s !important; }
+    #toast.show { transition: opacity .2s ease, visibility 0s !important; }
+    .popup-box { animation-name: fondIn !important; }
     .status-dot.saving { animation: none; opacity: .6; }
 }

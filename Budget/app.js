@@ -188,13 +188,14 @@
             bAnnuler.textContent = annuler || '';
             bAnnuler.classList.toggle('hidden', !annuler);
             const fermer = (res) => {
-                fond.classList.add('hidden');
+                fermerAnime(fond, () => fond.classList.add('hidden'));   /* sortie animée (commun.js, 12/10/2026) */
                 bOk.onclick = bAnnuler.onclick = fond.onclick = null;
                 resolve(res);
             };
             bOk.onclick = () => fermer(true);
             bAnnuler.onclick = () => fermer(false);
             fond.onclick = (e) => { if (e.target === fond) fermer(false); };
+            annulerFermeture(fond);
             fond.classList.remove('hidden');
         });
 
@@ -269,12 +270,14 @@
 
         const afficherNouveautes = (changes) => {
             document.getElementById('changelog-content').innerHTML = changes.map(d => `<div class="changelog-item">${d}</div>`).join('');
+            annulerFermeture(document.getElementById('changelog-popup'));
             document.getElementById('changelog-popup').classList.remove('hidden');
             state.popupOuvert = true;
         };
 
         document.getElementById('btn-close-changelog').onclick = () => {
-            document.getElementById('changelog-popup').classList.add('hidden');
+            const pop = document.getElementById('changelog-popup');
+            fermerAnime(pop, () => pop.classList.add('hidden'));
             state.popupOuvert = false;
             ecrireReference(state.donnees); // « vu » = à la fermeture du pop-up, pas à l'affichage
         };

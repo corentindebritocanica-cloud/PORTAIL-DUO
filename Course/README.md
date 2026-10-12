@@ -518,3 +518,8 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 - **Symptôme** : dans Réglages, le bouton ne faisait rien — repéré en créant Todo : `#btn-vider-cache` était dans `index.html` mais **aucun gestionnaire** dans `app.js`.
 - **Correctif** (`app.js`, fin du fichier) : confirmation (boîte maison `dialogue()`), puis désinscription du service worker de Course et suppression de **ses seuls caches** (préfixe `courses-lc-`, jamais ceux des autres apps), puis rechargement depuis le réseau. Les produits et listes restent dans Firestore.
 - Testé dans Chromium : boîte de confirmation, rechargement, aucune erreur ; le service worker se réinscrit et remet en cache la version neuve au rechargement (normal).
+
+## Animations — audit skills Emil Kowalski (12/10/2026) — audit avec les skills d'Emil Kowalski (`.claude/skills/`), validé par Corentin ; règles communes dans la charte §6.5 / §11, détail dans le README racine.
+- Courbes passées aux jetons communs (`--ease-out`, `--ease-drawer`).
+- Modales produit / liste / nouveautés / dialogue : fermeture animée (`fermerAnime`), `annulerFermeture` avant chaque ouverture (sinon deux dialogues enchaînés : le 2e était masqué par la fin de fermeture du 1er).
+- Mouvement réduit : fini « toutes les durées à 0 s » ; seules les transitions d'opacité et de couleur restent, les feuilles apparaissent en fondu.

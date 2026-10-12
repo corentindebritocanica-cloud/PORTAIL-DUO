@@ -30,6 +30,15 @@
    avec défilement interne) — voir PROBLEMES_RESOLUS, bande noire de Course.
    ========================================================================== */
 
+/* COURBES D'ANIMATION COMMUNES (12/10/2026, audit skills Emil Kowalski — charte §11.3) :
+   les mots-clés ease/ease-out du navigateur sont trop mous. Trois courbes partagées par les 5 apps,
+   jamais de courbe recopiée à la main dans une app. Pas d'ease-in : même les sorties sont en ease-out. */
+:root{
+  --ease-out:cubic-bezier(.23,1,.32,1);        /* entrées, sorties, appuis : démarre vite */
+  --ease-in-out:cubic-bezier(.77,0,.175,1);    /* élément qui se déplace / se déforme à l'écran */
+  --ease-drawer:cubic-bezier(.32,.72,0,1);     /* feuilles, toasts, pile : courbe des tiroirs iOS */
+}
+
 html.verre{
   /* Couleurs d'identité des vitres (reprises du mockup validé le 28/09/2026) */
   --v-corps:#ff7a59;   /* Musculation */
@@ -52,7 +61,7 @@ html.verre{
   --v-ombre:rgba(0,0,0,0.55);
   --v-halo-op:0.60;
   --v-flou:blur(30px) saturate(180%);
-  --v-ease:cubic-bezier(.2,.9,.25,1);
+  --v-ease:var(--ease-drawer);   /* 12/10/2026 : jeton commun (avant cubic-bezier(.2,.9,.25,1)) */
   --v-f-chiffres:'Unbounded', -apple-system, BlinkMacSystemFont, sans-serif;
   /* HAUT DE PAGE COMMUN (28/09/2026, modèle Budget) : le titre de chaque app démarre à 18 px
      sous la zone de l'encoche, en Unbounded 600 22 px, pastille de connexion à côté ; les
@@ -207,7 +216,7 @@ html.verre[data-app="portail"] .dash-card{
   transform-origin:50% 0;
   transform:translateY(calc(var(--dy) + var(--drag, 0px))) scale(var(--sc));
   -webkit-touch-callout:none; -webkit-user-drag:none; user-select:none;
-  transition:transform .4s var(--v-ease), opacity .3s ease-out, clip-path .4s var(--v-ease);
+  transition:transform .3s var(--v-ease), opacity .3s var(--ease-out), clip-path .3s var(--v-ease);   /* 0,4 → 0,3 s (12/10/2026, charte §11.3) */
   border-radius:34px; overflow:hidden;
   background:var(--v-glass); border:1px solid var(--v-edge);
   box-shadow:inset 0 1px 0 var(--v-hi), 0 30px 60px var(--v-ombre);
@@ -241,7 +250,7 @@ html.verre[data-app="portail"] .dash-card.violet{ --v-teinte:var(--v-todo); }
 /* Pastilles des listes de Todo : couleur de chaque liste (--c-liste posée par app.js, palette contrôlée) */
 html.verre[data-app="portail"] #to-chips .chip-n{ background:var(--c-liste, var(--v-todo)); box-shadow:0 0 10px color-mix(in srgb, var(--c-liste, var(--v-todo)) 70%, transparent); color:#fff; }
 /* Le contenu des vitres du fond s'efface : seul leur en-tête dépasse */
-html.verre[data-app="portail"] .dash-body{ transition:opacity .25s ease-out; }
+html.verre[data-app="portail"] .dash-body{ transition:opacity .25s var(--ease-out); }
 html.verre[data-app="portail"] .dash-card:not([data-rang="0"]) .dash-body{ opacity:0; }
 
 html.verre[data-app="portail"] .dash-top{ min-height:62px; padding:12px 20px 0; }
@@ -716,7 +725,6 @@ html.verre[data-app="muscu"] #view-exercises .check-btn{
   border-radius:14px; background:var(--v-soft); border:1px solid var(--v-edge); color:var(--v-dim); opacity:1;
 }
 html.verre[data-app="muscu"] #view-exercises .check-btn.checked{ background:rgba(18,185,129,.9); border-color:var(--done); color:#fff; }
-html.verre[data-app="muscu"] #view-exercises .check-btn.pulse::after{ border-radius:16px; }
 html.verre[data-app="muscu"] #view-exercises .add-warmup-btn{ border-color:rgba(255,255,255,.22); color:var(--v-text); opacity:.85; }
 html.verre[data-app="muscu"] #view-exercises .note-wrap{ border-top:none; padding-top:0; }
 /* Cardio, posé sur la plaque comme un exercice */
@@ -774,17 +782,19 @@ html.verre[data-app="budget"] .main-content,
 html.verre[data-app="muscu"] #view-menu .plaque{ view-transition-name:vitre; }
 /* La boîte « vitre » se déforme de la taille de la vitre à celle de la plaque ; son contenu n'est
    jamais étiré (object-fit:none, calé en haut) mais découpé par la boîte arrondie qui grandit. */
-::view-transition-group(vitre){ animation-duration:.42s; animation-timing-function:cubic-bezier(.2,.9,.25,1); overflow:hidden; border-radius:34px; }
+::view-transition-group(vitre){ animation-duration:.42s; animation-timing-function:var(--ease-in-out); overflow:hidden; border-radius:34px; }
 ::view-transition-old(vitre),
 ::view-transition-new(vitre){ height:100%; object-fit:none; object-position:top center; }
-::view-transition-old(vitre){ animation:.15s ease-in both v-vt-sortie; }
-::view-transition-new(vitre){ animation:.32s ease-out .1s both v-vt-entree; }
-::view-transition-old(root){ animation:.25s ease-in both v-vt-sortie; }
-::view-transition-new(root){ animation:.3s ease-out .12s both v-vt-entree; }
+::view-transition-old(vitre){ animation:.15s var(--ease-out) both v-vt-sortie; }   /* plus jamais d'ease-in (12/10/2026) */
+::view-transition-new(vitre){ animation:.32s var(--ease-out) .1s both v-vt-entree; }
+::view-transition-old(root){ animation:.2s var(--ease-out) both v-vt-sortie; }
+::view-transition-new(root){ animation:.3s var(--ease-out) .12s both v-vt-entree; }
 @keyframes v-vt-sortie{ to{ opacity:0; } }
 @keyframes v-vt-entree{ from{ opacity:0; } }
+/* Mouvement réduit (12/10/2026, « réduit ≠ zéro ») : plus de déformation de la vitre, mais le
+   fondu enchaîné entre les deux pages reste (il aide à comprendre qu'on a changé de page). */
 @media (prefers-reduced-motion: reduce){
-  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation:none !important; }
+  ::view-transition-group(*){ animation:none !important; }
 }
 
 
@@ -1166,7 +1176,7 @@ html.verre[data-style][data-app="muscu"] .btn-copy{
   min-height:44px; min-width:74px; padding:0 14px; border-radius:999px; border:1px solid transparent;   /* 44 px : zone tactile (charte §6.4) */
   background:transparent; color:var(--v-dim); font:600 13px -apple-system, BlinkMacSystemFont, sans-serif;
   cursor:pointer; -webkit-tap-highlight-color:transparent;
-  transition:background .2s ease-out, color .2s ease-out, box-shadow .2s ease-out, transform var(--t-fast, .15s) ease-out;
+  transition:background .2s ease, color .2s ease, box-shadow .2s ease, transform var(--t-fast, .15s) var(--ease-out);
 }
 .style-choix button[aria-checked="true"]{ background:var(--v-soft-on); color:var(--v-text); box-shadow:inset 0 1px 0 var(--v-hi); }
 .style-choix button:active{ transform:scale(.97); }
@@ -1174,3 +1184,28 @@ html.verre[data-style][data-app="muscu"] .btn-copy{
 .style-choix-titre + .style-choix{ margin-top:8px; }
 /* Changement de style : bascule franche, sans animer chaque ombre de la page */
 html.verre.style-bascule *, html.verre.style-bascule *::before, html.verre.style-bascule *::after{ transition:none !important; }
+
+/* ---------- RÉDUIRE LA TRANSPARENCE (12/10/2026, skill apple-design §14) ----------
+   Réglage iOS « Réduire la transparence » : le verre devient une matière presque opaque, sans flou,
+   pour la lisibilité. Style Verre seulement (Relief / Argile / Simple sont déjà opaques).
+   Support Safari non confirmé à cette date : sans effet là où la requête n'est pas reconnue. */
+@media (prefers-reduced-transparency: reduce){
+  html.verre:not([data-style]){
+    --v-glass:rgba(28,28,32,.97); --v-glass-fort:rgba(22,22,26,.98); --v-flou:none;
+    --glass-modal:rgba(24,24,28,.98); --glass-modal-v:rgba(24,24,28,.98);
+  }
+}
+
+/* ---------- FERMETURE ANIMÉE DES MODALES (12/10/2026, skill apple-design §7) ----------
+   Posée par fermerAnime() (commun.js) pendant 0,2 s avant que l'app masque la modale :
+   sortie par le même chemin que l'entrée (fond qui s'efface, feuille qui redescend de 24 px ;
+   boîte centrée : léger rétrécissement). ease-out, plus rapide que l'entrée. */
+.v-ferme{ animation:v-fond-out .2s var(--ease-out) forwards !important; pointer-events:none !important; }
+.v-ferme > *{ animation:v-feuille-out .2s var(--ease-out) forwards !important; }
+.v-ferme.confirm-overlay > *{ animation-name:v-boite-out !important; }
+@keyframes v-fond-out{ to{ opacity:0; } }
+@keyframes v-feuille-out{ to{ opacity:0; transform:translateY(24px); } }
+@keyframes v-boite-out{ to{ opacity:0; transform:scale(.96); } }
+@media (prefers-reduced-motion: reduce){
+  .v-ferme > *, .v-ferme.confirm-overlay > *{ animation-name:v-fond-out !important; }   /* fondu seul */
+}

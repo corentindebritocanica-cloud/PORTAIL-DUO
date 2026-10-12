@@ -967,10 +967,18 @@ Projet « Projet sans titre » :
 ## Skills IA design engineering — Emil Kowalski (11/10/2026)
 
 Ajout de `.claude/skills/` (15 skills, source : github.com/emilkowalski/skill @2d22863, licence MIT → `LICENSE-emilkowalski`).
-Chargés automatiquement par Claude Code à la racine du dépôt ; s'appliquent aux 4 apps. Hors du périmètre de `auto-version.yml` : aucun impact sur le déploiement ni sur le cache.
+Chargés automatiquement par Claude Code à la racine du dépôt ; s'appliquent aux 5 apps. Hors du périmètre de `auto-version.yml` : aucun impact sur le déploiement ni sur le cache.
 
 Utiles pour nos apps (vanilla HTML/CSS/JS sur iPhone) : `emil-design-eng`, `animate`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`, `animation-performance`, `apple-design`, `break-ui`, `prototype`.
 Peu pertinents (React Native / Swift / librairies React) : `animate-expo`, `mobile-native`, `write-swift`, `ask-sonner`, `pick-ui-library`.
 
-⚠️ En cas de conflit, la charte `UX_UI_CHARTER.md` (§11 animations) et `GUIDE_PWA_IOS.md` priment sur ces skills.
+⚠️ Depuis le 12/10/2026 (décision de Corentin), **ces skills priment** sur les règles antérieures de la charte ; chaque écart est soumis à Corentin avant d'être appliqué, puis reporté dans `UX_UI_CHARTER.md` (§11). `GUIDE_PWA_IOS.md` reste la référence pour les contraintes techniques iOS.
 Mise à jour : recopier `skills/` depuis le dépôt d'origine et noter le nouveau commit ici.
+
+## Animations alignées sur les skills d'Emil Kowalski — 5 apps (12/10/2026)
+
+Audit des 5 apps avec `review-animations` / `improve-animations` / `apple-design`, puis corrections validées une à une par Corentin (les skills priment sur les règles antérieures de la charte, mise à jour en v2.2).
+- **Commun (`verre.css`, `commun.js`)** : 3 courbes partagées sur `:root` (`--ease-out`, `--ease-in-out`, `--ease-drawer`) qui remplacent les `ease`/`ease-out` du navigateur et 5 courbes recopiées ; plus aucun `ease-in` (transition « vitre » : fondus en ease-out, déformation en ease-in-out ; mouvement réduit = fondu seul) ; `fermerAnime(fond, fin)` / `annulerFermeture(fond)` : les modales repartent par le chemin d'arrivée (0,2 s, classe `.v-ferme`) ; écouteur `touchstart` vide pour que `:active` s'affiche sur Safari iOS ; « Réduire la transparence » d'iOS → verre presque opaque, sans flou.
+- **Portail** : pile 0,4 → 0,3 s ; bouton recharger 0,5 → 0,3 s ; jauge Budget 0,35 → 0,3 s ; glisser de la pile validé par une pichenette (> 0,11 px/ms sur 12 px, avant 0,4 px/ms sur 20 px) ; un 2e doigt pendant le geste est ignoré (la vitre sautait) ; boîte de dialogue fermée en douceur ; mouvement réduit : feuille en fondu.
+- **Budget / Course / Todo / Muscu** : voir leur README (section du 12/10/2026).
+- **Vérifié** dans Chromium (iPhone 390×844, gestes tactiles simulés) : aucune erreur JS sur les 5 apps, jetons présents, fermeture animée puis masquage, réouverture immédiate de la même boîte conservée, glisser Muscu (suivi, retour en place, pichenette, amorti au premier exercice). **Non vérifié sur iPhone** : ressenti des nouvelles courbes, `:active` sur Safari, « Réduire la transparence ».

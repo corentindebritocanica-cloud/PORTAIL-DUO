@@ -95,11 +95,11 @@
     display:flex; align-items:center; justify-content:center;
     color:var(--text-dim);
     box-shadow: var(--shadow-sm);
-    transition: transform .5s cubic-bezier(.2,.7,.3,1), color .15s ease, background .15s ease;
+    transition: transform .3s var(--ease-out), color .15s ease, background .15s ease;   /* 0,5 → 0,3 s (12/10/2026) */
   }
   .reload-btn svg{ width:16px; height:16px; }
   .reload-btn:active{ background:var(--card-2); color:var(--text); transform:scale(0.97); }
-  .reload-btn.spin svg{ transform: rotate(360deg); transition: transform .5s cubic-bezier(.2,.7,.3,1); }
+  .reload-btn.spin svg{ transform: rotate(360deg); transition: transform .3s var(--ease-out); }
 
   .app-title{
     font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase;
@@ -130,7 +130,7 @@
     display:block; color:var(--text); text-decoration:none;
     background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
     box-shadow:var(--shadow-sm); overflow:hidden;
-    transition: transform var(--t-fast) ease-out;
+    transition: transform var(--t-fast) var(--ease-out);
   }
   .dash-card:active{ transform:scale(0.98); }
   .dash-card:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
@@ -163,7 +163,7 @@
 
   /* Budget : jauge = part du budget déjà dépensée */
   .gauge{ display:block; height:10px; border-radius:var(--r-pill); background:var(--card-2); overflow:hidden; margin-top:16px; }
-  .gauge-fill{ display:block; height:100%; width:100%; border-radius:var(--r-pill); background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transform:translateX(-100%); transition:transform .35s ease-out; }
+  .gauge-fill{ display:block; height:100%; width:100%; border-radius:var(--r-pill); background:linear-gradient(90deg, var(--gold), var(--gold-dark)); transform:translateX(-100%); transition:transform .3s var(--ease-out); }
   /* Remplissage piloté en translateX (charte §11.3 : transform/opacity seulement)
      depuis app.js, au lieu de width : la barre garde sa forme (bout arrondi),
      elle glisse simplement depuis la gauche. -100% = vide, 0 = pleine. */
@@ -196,7 +196,7 @@
   .choice-desc{
     display:block; font-size:12.5px; color:var(--text-dim); margin-top:2px; font-weight:500;
   }
-  .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform var(--t-fast) ease-out; }
+  .choice-chev{ color:var(--text-dim); font-size:18px; flex:0 0 auto; transition: transform var(--t-fast) var(--ease-out); }
   .dash-card:active .choice-chev{ transform: translateX(2px); }
 
   .derniere-maj{ text-align:center; font-size:12px; color:var(--text-dim); margin-top:10px; }
@@ -206,7 +206,7 @@
     position:fixed; inset:0; z-index:50; background:rgba(0,0,0,0.6);
     display:none; align-items:flex-end; justify-content:center;
   }
-  .modal-overlay.open{ display:flex; animation:fondIn .22s ease-out; }
+  .modal-overlay.open{ display:flex; animation:fondIn .22s var(--ease-out); }
   .modal-sheet{
     width:100%; max-width:520px; text-align:center;
     background:var(--glass-modal);
@@ -214,14 +214,14 @@
     border:1px solid var(--border); border-bottom:none; border-radius:var(--r-xl) var(--r-xl) 0 0;
     box-shadow:var(--shadow-lg);
     padding:22px 20px calc(20px + env(safe-area-inset-bottom));
-    animation:feuilleIn .28s cubic-bezier(.32,.72,.3,1);
+    animation:feuilleIn .28s var(--ease-drawer);
   }
   .modal-sheet h2{ margin:0 0 8px; font-size:19px; font-weight:700; }
   .modal-sheet p{ margin:0 0 20px; font-size:14px; line-height:1.45; color:var(--text-dim); }
   .modal-actions{ display:flex; gap:10px; }
   .modal-actions button{
     flex:1; min-height:48px; padding:14px; border-radius:var(--r-md); font-family:inherit;
-    font-size:15px; font-weight:700; transition:transform var(--t-fast) ease-out;
+    font-size:15px; font-weight:700; transition:transform var(--t-fast) var(--ease-out);
   }
   .modal-actions button:active{ transform:scale(0.97); }
   .btn-neutre{ background:var(--card-2); color:var(--text); border:1px solid var(--border); }
@@ -231,7 +231,8 @@
 
   @media (prefers-reduced-motion: reduce){
     .dash-card, .gauge-fill, .choice-chev, .reload-btn, .modal-actions button{ transition:none; }
-    .modal-overlay.open, .modal-sheet{ animation:none; }
+    /* « Réduit ≠ zéro » (12/10/2026) : la feuille apparaît en fondu, sans glisser. */
+    .modal-sheet{ animation-name:fondIn; }
   }
 
 

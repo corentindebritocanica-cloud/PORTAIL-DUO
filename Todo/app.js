@@ -307,10 +307,11 @@ function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', dang
     t.textContent = texte; t.style.display = texte ? '' : 'none';
     bOk.textContent = ok; bOk.className = danger ? 'btn-danger' : 'btn-enregistrer';
     bAnnuler.textContent = annuler || ''; bAnnuler.style.display = annuler ? '' : 'none';
-    const fermer = (res)=>{ fond.style.display = 'none'; bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+    const fermer = (res)=>{ fermerAnime(fond, ()=>{ fond.style.display = 'none'; }); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };   /* sortie animée (commun.js, 12/10/2026) */
     bOk.onclick = ()=> fermer(true);
     bAnnuler.onclick = ()=> fermer(false);
     fond.onclick = (ev)=>{ if(ev.target === fond) fermer(false); };
+    annulerFermeture(fond);
     fond.style.display = 'flex';
   });
 }
@@ -346,10 +347,11 @@ function ouvrirModaleTache(id){
     `<option value="${escapeHtml(lid)}" ${lid === listeDe(t) ? 'selected' : ''}>${escapeHtml(l.nom || '')}</option>`).join('');
   document.getElementById('modal-tache-info').textContent = creation ? '' :
     `Ajoutée par ${PRENOM[t.creePar === 'lisa' ? 'lisa' : 'corentin']}${t.creeLe ? ' le ' + new Date(t.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'long' }) : ''}.`;
+  annulerFermeture(modalTache);
   modalTache.style.display = 'flex';
   if(creation) champTexte.focus();   /* synchrone dans le geste : iOS ouvre le clavier */
 }
-function fermerModaleTache(){ modalTache.style.display = 'none'; tacheEditionId = null; }
+function fermerModaleTache(){ fermerAnime(modalTache, ()=>{ modalTache.style.display = 'none'; }); tacheEditionId = null; }
 document.getElementById('btn-tache-annuler').addEventListener('click', fermerModaleTache);
 modalTache.addEventListener('click', (e)=>{ if(e.target === modalTache) fermerModaleTache(); });
 document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
@@ -424,10 +426,11 @@ function ouvrirModaleListe(id){
   dessinerCouleurs();
   erreurListe.textContent = '';
   document.getElementById('btn-liste-supprimer').style.display = (id && id !== LISTE_DEFAUT) ? 'block' : 'none';
+  annulerFermeture(modalListe);
   modalListe.style.display = 'flex';
   if(!id) setTimeout(()=> champNomListe.focus(), 50);
 }
-function fermerModaleListe(){ modalListe.style.display = 'none'; listeEditionId = null; }
+function fermerModaleListe(){ fermerAnime(modalListe, ()=>{ modalListe.style.display = 'none'; }); listeEditionId = null; }
 document.getElementById('btn-liste-annuler').addEventListener('click', fermerModaleListe);
 modalListe.addEventListener('click', (e)=>{ if(e.target === modalListe) fermerModaleListe(); });
 champNomListe.addEventListener('input', ()=>{ erreurListe.textContent = ''; });

@@ -1186,7 +1186,7 @@ function updateSessionProgress(){
   const fill = document.getElementById('session-progress-fill');
   const label = document.getElementById('session-progress-label');
   const tonnageLabel = document.getElementById('session-tonnage-label');
-  if(fill) fill.style.width = pct + '%';
+  if(fill) fill.style.transform = 'translateX(' + (pct - 100) + '%)';   /* transform, pas width (12/10/2026) */
   if(label) label.textContent = complete ? `Séance complète — ${total} / ${total} validés` : `${done} / ${total} validés`;
   if(tonnageLabel){
     const formatted = Math.round(tonnage).toLocaleString('fr-FR');
@@ -1703,8 +1703,7 @@ function render(){
         checkBtn.classList.toggle('checked', d.sets[setKey].done);
         row.classList.toggle('fait', d.sets[setKey].done);
         if(d.sets[setKey].done){
-          checkBtn.classList.remove('pulse'); void checkBtn.offsetWidth; checkBtn.classList.add('pulse');
-          vibrate();
+          vibrate();   /* animation « pulse » + onde retirées le 12/10/2026 (action la plus répétée, charte §11.2) */
         }
         refreshCardState();
         updateSessionProgress();
@@ -2084,10 +2083,11 @@ function ouvrirRemplacement(slot){
   remplacementEmplacement = slot;
   document.getElementById('remplacement-recherche').value = '';
   afficherChoixRemplacement();
+  annulerFermeture(document.getElementById('remplacement-modal'));
   document.getElementById('remplacement-modal').classList.add('open');
 }
 function fermerRemplacement(){
-  document.getElementById('remplacement-modal').classList.remove('open');
+  { const m = document.getElementById('remplacement-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
   remplacementEmplacement = null;
 }
 function afficherChoixRemplacement(){
@@ -2188,10 +2188,11 @@ function revenirExercicePrevu(){
 /* ---------- FEUILLE « ORDRE DE LA SÉANCE » (01/10/2026) ---------- */
 function ouvrirOrdre(){
   afficherOrdre();
+  annulerFermeture(document.getElementById('ordre-modal'));
   document.getElementById('ordre-modal').classList.add('open');
 }
 function fermerOrdre(){
-  document.getElementById('ordre-modal').classList.remove('open');
+  { const m = document.getElementById('ordre-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
 }
 function afficherOrdre(){
   const data = loadDayData(currentSessionId, currentProfile);
@@ -2260,10 +2261,11 @@ let pendingConfirmCallback = null;
 function showConfirm(message, onConfirm){
   document.getElementById('confirm-message').textContent = message;
   pendingConfirmCallback = onConfirm;
+  annulerFermeture(document.getElementById('confirm-modal'));
   document.getElementById('confirm-modal').classList.add('open');
 }
 function closeConfirm(){
-  document.getElementById('confirm-modal').classList.remove('open');
+  { const m = document.getElementById('confirm-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
   pendingConfirmCallback = null;
 }
 function confirmAction(){
@@ -2369,7 +2371,7 @@ function buildExportText(){
 }
 
 function closeExportModal(){
-  document.getElementById('export-modal').classList.remove('open');
+  { const m = document.getElementById('export-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
 }
 function copyExport(){
   const textarea = document.getElementById('export-text');
@@ -2454,10 +2456,11 @@ function leaveExercisesView(){
     goToSessionView();
     return;
   }
+  annulerFermeture(document.getElementById('leave-modal'));
   document.getElementById('leave-modal').classList.add('open');
 }
 function closeLeaveModal(){
-  document.getElementById('leave-modal').classList.remove('open');
+  { const m = document.getElementById('leave-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
 }
 function leaveAnyway(){
   leaveReminderDismissed[dataKey(currentSessionId, currentProfile)] =
@@ -2472,10 +2475,11 @@ function leaveAndArchive(){
 
 /* ---------- SÉANCE TERMINÉE (copier / archiver) ---------- */
 function openFinishModal(){
+  annulerFermeture(document.getElementById('finish-modal'));
   document.getElementById('finish-modal').classList.add('open');
 }
 function closeFinishModal(){
-  document.getElementById('finish-modal').classList.remove('open');
+  { const m = document.getElementById('finish-modal'); fermerAnime(m, () => m.classList.remove('open')); }   /* sortie animée (commun.js, 12/10/2026) */
 }
 function finishCopy(){
   const text = buildExportText();
@@ -3048,6 +3052,7 @@ function viewArchive(id){
   document.getElementById('motivation-line').textContent = `Archivée le ${arc.dateLabel} à ${arc.timeLabel}` + (montreStr ? ` · ${montreStr}` : '');
   coachViewedDate = arc.dateLabel;
   renderCoachBlock();
+  annulerFermeture(document.getElementById('export-modal'));
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -3089,8 +3094,35 @@ function swipeExoBlocked(target){
   return false;
 }
 
+/* SUIVI DU DOIGT (12/10/2026, skills apple-design §1-2 et emil-design-eng — validé par Corentin) :
+   sur l'écran des exercices, la fiche suit le doigt 1:1 dès que le geste est clairement horizontal
+   (10 px, 1,5× plus horizontal que vertical — sinon le défilement vertical garde la main) ; amortie
+   (×0,3) quand il n'y a pas d'exercice dans ce sens. Au relâcher : on change d'exercice si le doigt a
+   parcouru ≥ 60 px OU sur une pichenette (> 0,11 px/ms sur ≥ 12 px), sans limite de durée ; sinon
+   la fiche revient en place (0,2 s, --ease-out). Un 2e doigt annule le geste (fiche remise en place).
+   Avant : rien ne bougeait pendant le geste, tout se décidait au relâcher (< 0,6 s exigé). */
+let exoGlisse = null;   /* { page, x0, lastX, lastT, v } une fois le geste verrouillé à l'horizontale */
+function relacherPageExo(page, animer){
+  if(!page) return;
+  if(animer && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    page.style.transition = 'transform .2s var(--ease-out)';
+    page.style.transform = '';
+    setTimeout(() => { if(!page.style.transform) page.style.transition = ''; }, 220);
+  } else { page.style.transition = ''; page.style.transform = ''; }
+}
+function voisinExiste(sens){
+  const positions = positionsDuJour();
+  const i = positions.indexOf(exoActif);
+  return i >= 0 && i + sens >= 0 && i + sens < positions.length;
+}
+function annulerGlisseExo(){
+  if(exoGlisse && exoGlisse.page) relacherPageExo(exoGlisse.page, true);
+  exoGlisse = null;
+}
+
 document.addEventListener('touchstart', (e) => {
   swipeValid = false; swipeMode = null;
+  annulerGlisseExo();
   if(e.touches.length !== 1) return;
   const x = e.touches[0].clientX;
   const surExercices = !!document.querySelector('#view-exercises.active');
@@ -3107,20 +3139,51 @@ document.addEventListener('touchstart', (e) => {
   swipeStartAt = Date.now();
 }, { passive: true });
 
+document.addEventListener('touchmove', (e) => {
+  if(!swipeValid || swipeMode !== 'exo') return;
+  if(e.touches.length !== 1){ swipeValid = false; annulerGlisseExo(); return; }
+  const t = e.touches[0];
+  if(!exoGlisse){
+    const dx = t.clientX - swipeStartX, dy = t.clientY - swipeStartY;
+    if(Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      exoGlisse = { page: document.querySelector('#main-content .exo-page.actif'), x0: t.clientX, lastX: t.clientX, lastT: performance.now(), v: 0 };
+    } else if(Math.abs(dy) > 10){ swipeValid = false; }   /* défilement vertical : le geste n'est plus un changement d'exercice */
+    return;
+  }
+  const now = performance.now();
+  exoGlisse.v = (t.clientX - exoGlisse.lastX) / Math.max(1, now - exoGlisse.lastT);
+  exoGlisse.lastX = t.clientX; exoGlisse.lastT = now;
+  const d = t.clientX - exoGlisse.x0;
+  const suivi = voisinExiste(d < 0 ? 1 : -1) ? d : d * 0.3;
+  if(exoGlisse.page){
+    exoGlisse.page.style.transition = 'none';
+    exoGlisse.page.style.transform = 'translateX(' + suivi.toFixed(1) + 'px)';
+  }
+}, { passive: true });
+
+document.addEventListener('touchcancel', () => { swipeValid = false; annulerGlisseExo(); }, { passive: true });
+
 document.addEventListener('touchend', (e) => {
-  if(!swipeValid) return;
+  if(!swipeValid){ annulerGlisseExo(); return; }
   swipeValid = false;
   const touch = e.changedTouches && e.changedTouches[0];
-  if(!touch) return;
+  if(!touch){ annulerGlisseExo(); return; }
   const dx = touch.clientX - swipeStartX;
+  if(swipeMode === 'exo'){
+    const g = exoGlisse; exoGlisse = null;
+    if(!g) return;                                   /* jamais verrouillé à l'horizontale : un tap ou un défilement */
+    const d = touch.clientX - g.x0;
+    const sens = dx < 0 ? 1 : -1;                   /* vers la gauche = suivant, comme une page qu'on tourne */
+    const pichenette = Math.abs(d) >= 12 && Math.abs(g.v) > 0.11 && Math.sign(g.v) === Math.sign(d);
+    if((Math.abs(dx) >= SWIPE_EXO_MIN_X || pichenette) && voisinExiste(sens)){
+      relacherPageExo(g.page, false);
+      changerExo(sens);
+    } else relacherPageExo(g.page, true);
+    return;
+  }
   const dy = Math.abs(touch.clientY - swipeStartY);
   if(dy > SWIPE_MAX_Y) return;
   if(Date.now() - swipeStartAt > SWIPE_MAX_MS) return;
-  if(swipeMode === 'exo'){
-    if(Math.abs(dx) < SWIPE_EXO_MIN_X || Math.abs(dx) < dy * 1.5) return;
-    changerExo(dx < 0 ? 1 : -1);   /* vers la gauche = suivant, comme une page qu'on tourne */
-    return;
-  }
   if(dx < SWIPE_MIN_X) return;
   goBackFromActiveView();
 }, { passive: true });
@@ -3728,6 +3791,7 @@ function exportLatestSessions(){
   document.getElementById('motivation-line').textContent = warnings.length
     ? '⚠️ ' + warnings.join(' — ')
     : 'Dernières séances des deux profils, à jour';
+  annulerFermeture(document.getElementById('export-modal'));
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -3755,6 +3819,7 @@ function exportLatestBodyEntries(){
   document.getElementById('motivation-line').textContent = warnings.length
     ? '⚠️ ' + warnings.join(' — ')
     : 'Dernières mensurations des deux profils, à jour';
+  annulerFermeture(document.getElementById('export-modal'));
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -3773,6 +3838,7 @@ function exportAllArchives(){
   });
   document.getElementById('export-text').value = txt;
   document.getElementById('motivation-line').textContent = `Export complet — ${archives.length} séance(s)`;
+  annulerFermeture(document.getElementById('export-modal'));
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -3875,6 +3941,7 @@ function exportFullDataJSON(){
   const totalArchives = payload.archives.corentin.length + payload.archives.lisa.length;
   document.getElementById('motivation-line').textContent =
     `Export brut complet — ${totalArchives} séance(s) archivée(s), ${payload.customSessions.length} séance(s) personnalisée(s)`;
+  annulerFermeture(document.getElementById('export-modal'));
   document.getElementById('export-modal').classList.add('open');
 }
 

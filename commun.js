@@ -20,6 +20,7 @@
    5. Vérification de version au retour dans l'app (rechargement auto ou bandeau)
    6. Connexion du duo pour Course et le Portail (connexionDuo, #connexion)
    7. Notifications du duo : envoi au relais Apps Script (notifierDuo, 30/09/2026)
+   8. Gestes : retour d'appui :active sur iOS + fermeture animée des modales (fermerAnime, 12/10/2026)
 
    CE QUI RESTE DANS CHAQUE APP : la constante DERNIERE_MAJ (index.html, mise à
    jour par le workflow), le bandeau #maj-toast (index.html : sa position dépend
@@ -298,4 +299,29 @@
   window.addEventListener('online', function(){ viderFileNotif(false); });
   document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') setTimeout(function(){ viderFileNotif(false); }, 3000); });
   window.addEventListener('load', function(){ setTimeout(function(){ viderFileNotif(false); }, 5000); });
+
+  /* ---------- 8. GESTES (12/10/2026, audit skills Emil Kowalski / apple-design) ----------
+     a) Safari iOS n'applique :active (l'appui qui « se tasse », scale .97) que si un écouteur
+        touchstart existe sur l'élément ou un ancêtre. Écouteur vide et passif : ne gêne ni le
+        défilement ni les gestes propres aux apps. Muscu en avait déjà un ; les autres non.
+     b) fermerAnime(fond, fin) : la modale repart par le chemin d'arrivée (fond qui s'efface,
+        feuille qui redescend, 0,2 s, styles .v-ferme dans verre.css), PUIS fin() la masque
+        vraiment (display:none / retrait de .open / .hidden, selon l'app). Les effets de bord
+        (résoudre une promesse, remettre l'état à zéro) restent synchrones chez l'appelant.
+        Un 2e appel pendant la fermeture est ignoré. annulerFermeture(fond) : à appeler juste
+        avant de (ré)ouvrir une modale — sinon une boîte rouverte dans les 0,2 s (deux dialogues
+        enchaînés sur le même élément) serait masquée par la fin de la fermeture précédente. */
+  document.addEventListener('touchstart', function(){}, { passive: true });
+  window.fermerAnime = function(fond, fin){
+    if (!fond) { if (fin) fin(); return; }
+    if (fond._vFerme) return;
+    fond.classList.add('v-ferme');
+    fond._vFerme = setTimeout(function(){
+      fond._vFerme = null;
+      try { if (fin) fin(); } finally { fond.classList.remove('v-ferme'); }
+    }, 200);
+  };
+  window.annulerFermeture = function(fond){
+    if (fond && fond._vFerme) { clearTimeout(fond._vFerme); fond._vFerme = null; fond.classList.remove('v-ferme'); }
+  };
 })();
