@@ -433,11 +433,11 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .v2-sheet-fond { position: absolute; inset: 0; background: rgba(0,0,0,.55); opacity: 0; transition: opacity .32s var(--ease-drawer); }
 .v2-sheet-wrap.open .v2-sheet-fond { opacity: 1; }
 .v2-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: calc(100% - 60px - env(safe-area-inset-top)); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    background: #161b22; border-top: 1px solid var(--border-strong); border-radius: 26px 26px 0 0; /* opaque : --card est translucide en Verre */ box-shadow: 0 -12px 40px rgba(0,0,0,.6);
+    background: var(--t-modale, #161b22); border-top: 1px solid var(--border-strong); border-radius: 26px 26px 0 0; /* opaque : --card est translucide en Verre */ box-shadow: 0 -12px 40px rgba(0,0,0,.6);
     padding: 0 16px calc(24px + env(safe-area-inset-bottom)); max-width: 720px; margin: 0 auto;
     transform: translateY(100%); transition: transform .32s var(--ease-drawer); }
 .v2-sheet-wrap.open .v2-sheet { transform: none; }
-.v2-grab { position: sticky; top: 0; height: 22px; margin: 0 -16px; background: #161b22; z-index: 2; cursor: pointer; }
+.v2-grab { position: sticky; top: 0; height: 22px; margin: 0 -16px; background: var(--t-modale, #161b22); z-index: 2; cursor: pointer; }
 .v2-grab::after { content: ''; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: var(--r-pill); background: var(--border-strong); }
 .v2-sheet-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .v2-sheet-head h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 800; }
@@ -472,3 +472,8 @@ body.v2-feuille .tabbar-flottante { opacity: 0; pointer-events: none; }
 .v2-mois-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
 .v2-mois-item { min-height: 44px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--card-2, #1e2530); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .v2-mois-item.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+/* Style « Simple » imposé à V2 (18/10/2026) : la pastille active de la bascule doit ressortir
+   (en Simple, --card et --card-2 valent tous deux #2c2c2e) */
+html[data-style="simple"] .v2-seg button.on { background: rgba(255,255,255,.16); }
+html[data-style="simple"] .v2-mois-item { background: var(--card); }

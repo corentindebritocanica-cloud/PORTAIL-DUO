@@ -4,6 +4,7 @@
 > - **Copie de Budget** (`/Budget/`, v4.0.0) avec une **nouvelle interface de l'onglet Mois**, inspirée de la maquette « Budget — refonte onglet Mois » (design en sombre validé par Corentin le 18/10/2026).
 > - **Mêmes données que Budget** : même projet Firebase (`course-app-36e9d`), mêmes collections `mois` et `config`, même compte. Une saisie dans V2 apparaît dans Budget et inversement. Aucune règle Firestore à changer.
 > - **But** : utiliser les deux en parallèle, puis garder une seule version. Pour adopter V2 : recopier `BudgetV2/*` dans `Budget/` (et garder `CACHE_PREFIX` de Budget dans `sw.js`), puis supprimer `BudgetV2/` et ses entrées (workflow, `sw.js` racine). Pour l'abandonner : supprimer `BudgetV2/` et ces mêmes entrées.
+> - **Style « Simple » imposé** (18/10/2026, demande de Corentin) : petit script dans `index.html` juste après `commun.js`, qui pose `data-style="simple"` quel que soit le choix du Portail (réappliqué sur `pageshow` et `storage`). Pour revenir au choix du Portail : supprimer ce script. Feuilles en `var(--t-modale)` (#1c1c1e en Simple).
 > - Adresse : `…/PORTAIL-DUO/BudgetV2/` (à ajouter sur l'écran d'accueil depuis Safari).
 > - Historique complet de Budget (avant la copie) : `../Budget/README.md`.
 

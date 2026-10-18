@@ -27,6 +27,12 @@
 <!-- Noyau commun (28/09/2026) : ../commun.js à la racine du dépôt — halos calés sur l'horloge, transition
      « vitre → app », date de MAJ, service worker, vérification de version. Dans le <head>, sans defer. -->
 <script src="../commun.js?v=202610182036480200"></script>
+<!-- V2 (18/10/2026) : style « Simple » imposé à cette app, quel que soit le choix du Portail (duo-style).
+     Réappliqué après commun.js au retour (pageshow) et au changement de choix (storage). -->
+<script>
+(function(){ var r=document.documentElement, f=function(){ r.setAttribute('data-style','simple'); };
+  f(); window.addEventListener('pageshow', f); window.addEventListener('storage', function(e){ if(e.key==='duo-style') f(); }); })();
+</script>
     <link rel="stylesheet" href="../verre.css?v=202610182036480200">
 </head>
 <body>
