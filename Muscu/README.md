@@ -1031,7 +1031,7 @@ Coach IA abandonné le 23/09/2026 : ses clés (`apiKey` Gemini, `groqApiKey` Gro
 - Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
 - Vérifié (vrai SDK 12 + émulateurs, code extrait de `index.html`) : session anonyme → publication refusée ; compte du duo → `portail/muscu` publié, jeton gardé.
 
-## Styles au choix Verre · Relief · Argile (30/09/2026)
+## ~~Styles au choix Verre · Relief · Argile (30/09/2026)~~ → remplacés le 18/10/2026 par le thème Sombre · Clair (fin de fichier)
 
 - Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
 - **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.
@@ -1163,3 +1163,10 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **Glisser entre exercices suivi au doigt** : la fiche suit le doigt 1:1 dès que le geste est horizontal (10 px, 1,5×), amortie ×0,3 au premier/dernier exercice ; change à ≥ 60 px OU sur pichenette (> 0,11 px/ms sur 12 px), sans limite de durée (avant : < 0,6 s exigé, rien ne bougeait pendant le geste) ; sinon retour en place en 0,2 s ; 2e doigt = annulation. `.exo-page` en `touch-action:pan-y`. Le glissement retour depuis le bord gauche est inchangé.
 - Transition de fond sur `body` retirée (thème clair) ; mouvement réduit : écrans et exercices en fondu au lieu de rien.
 - Testé dans Chromium (gestes tactiles simulés) ; **à essayer sur iPhone en séance**.
+
+## Thème Sombre · Clair (18/10/2026)
+
+- Le thème se choisit sous la pile du **Portail** (« Thème des apps ») : **Sombre** (ex-style Simple, défaut) ou **Clair** (fond beige crème, blocs blancs, textes foncés). Bleu Corentin / rose Lisa inchangés. Verre, Relief et Argile sont supprimés.
+- Aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="simple|clair">`, `../verre.css` habille.
+- Seule adaptation propre à l'app : rond de l'icône du bouton « Entraînement » en voile sombre en clair (règle en fin de `../verre.css`), sinon icône blanche sur fond blanc.
+- Détail commun : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : menu, séance, Suivi, Suivi Progression en clair et en sombre. Non vérifié sur iPhone (barre d'état en clair).

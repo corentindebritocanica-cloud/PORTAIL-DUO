@@ -61,3 +61,10 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 
 ## Animations — audit skills Emil Kowalski (12/10/2026) — audit avec les skills d'Emil Kowalski (`.claude/skills/`), validé par Corentin ; règles communes dans la charte §6.5 / §11, détail dans le README racine.
 - Mêmes changements que Course : jetons de courbes, fermeture animée des modales tâche / liste / dialogue (`fermerAnime` + `annulerFermeture`), mouvement réduit qui garde les fondus.
+
+## Thème Sombre · Clair (18/10/2026)
+
+- Le thème se choisit sous la pile du **Portail** (« Thème des apps ») : **Sombre** (ex-style Simple, défaut) ou **Clair** (fond beige crème, blocs blancs, textes foncés). Bleu Corentin / rose Lisa inchangés. Verre, Relief et Argile sont supprimés.
+- Aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="simple|clair">`, `../verre.css` habille.
+- Aucune règle propre à l'app : tout passe par les jetons.
+- Détail commun : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : liste, nouvelle tâche en clair et en sombre. Non vérifié sur iPhone (barre d'état en clair).

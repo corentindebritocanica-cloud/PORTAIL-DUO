@@ -1,6 +1,6 @@
 # 🎨 PORTAIL-DUO — Charte UX/UI
 
-**Version** : 2.2 (design Verre §12 + styles au choix §13 + §11 alignée sur les skills d'Emil Kowalski, 12/10/2026)  
+**Version** : 2.3 (thème Sombre · Clair §14, 18/10/2026 ; design Verre §12 = structure ; §11 alignée sur les skills d'Emil Kowalski)  
 **Date de création** : 18 Septembre 2026  
 **Statut** : Référence officielle pour toutes les apps de l'écosystème  
 **Référence visuelle** : `verre.css` (design Verre, §12) depuis le 28/09/2026 — avant : Muscu (Duo Training), dont les sections 1 à 11 sont extraites
@@ -67,7 +67,7 @@ Cette charte standardise **typographie, couleurs, composants (cards, boutons, mo
 }
 ```
 
-### ~~Thème clair (`.light-mode`)~~ — RETIRÉ le 28/09/2026 (sombre uniquement, 4 apps), conservé pour mémoire
+### ~~Thème clair (`.light-mode`)~~ — RETIRÉ le 28/09/2026, conservé pour mémoire. Nouveau thème clair « beige » le 18/10/2026 : voir §14
 
 ```css
 .light-mode {
@@ -482,6 +482,7 @@ padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;
 
 | Date | Décision |
 |------|----------|
+| 18/10/26 | **Thème Sombre · Clair** (§14) : seuls restent **Sombre** (ex-style Simple) et **Clair** (fond beige crème `#f3ede2`, plaques `#faf7f1`, blocs blancs, texte `#231d15`), choisis dans le Portail, appliqués aux 5 apps ; bleu Corentin / rose Lisa conservés. Verre, Relief, Argile supprimés. |
 | 12/10/26 | **Charte v2.2 — §11 alignée sur les skills d'Emil Kowalski** (`.claude/skills/`), validée par Corentin ; ces skills priment sur les règles antérieures : plus jamais d'`ease-in` (sorties en ease-out), 3 courbes communes (`--ease-out`, `--ease-in-out`, `--ease-drawer`), mouvement réduit ≠ zéro (fondus gardés), validation de série Muscu sans animation (fin de l'exception §11.2), durées > 300 ms ramenées (pile 0,3 s, recharger 0,3 s, graphiques 0,6 s), modales fermées par le même chemin (`fermerAnime`), glisser Portail à la pichenette (0,11 px/ms) + un seul doigt, glisser des exercices Muscu suivi au doigt, « Réduire la transparence » iOS pris en compte. |
 | 05/10/26 | **4ᵉ style « Simple »** (§13) : natif iOS façon Réglages — fond noir, gris pleins, police du système partout, aucune ombre ni flou ni halo, accent du profil seul. Choisi après 3 pistes plus marquées écartées (Signal, Encre, Brut). |
 | 05/10/26 | **Muscu — séance par exercice** : rail horizontal des exercices dans l'en-tête collant (panneaux sans flou), un seul exercice affiché, glisser gauche / droite = exercice suivant / précédent, retour par glissement réservé au bord gauche (28 px). Patron réutilisable pour toute longue suite d'étapes. 2e passe le même soir : exercice posé directement sur la plaque (pas de carte), chrono / GO dans l'en-tête, séries validées teintées vertes, segments en pilule. |
@@ -639,7 +640,7 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 ---
 
-## 13. 🧱 Styles au choix : Verre · Relief · Argile (30/09/2026)
+## 13. ~~🧱 Styles au choix : Verre · Relief · Argile (30/09/2026)~~ → remplacé par §14 le 18/10/2026
 
 > Demande de Corentin : proposer, en plus du glassmorphisme, un style **neumorphisme** et un style **claymorphisme**, choisis dans le Portail et appliqués aux 4 apps.
 
@@ -664,6 +665,26 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 - **Changement de style** : bascule franche (transitions coupées le temps de deux images, classe `style-bascule`).
 
 ---
+
+## 14. 🌓 Thème Sombre · Clair (18/10/2026)
+
+Remplace les styles au choix (§13). Deux thèmes, choisis sous la pile du Portail (« Thème des apps »), appliqués aux 5 apps par `<html data-style="simple|clair">` (posé par `commun.js` avant le 1er rendu, clé `localStorage duo-style`).
+
+| Jeton `--t-*` | Sombre (`simple`) | Clair (`clair`) |
+|---|---|---|
+| fond | `#000000` | `#f3ede2` (beige crème) |
+| plaque | `#1c1c1e` | `#faf7f1` |
+| panneau / barre | `#2c2c2e` / `#1c1c1e` | `#ffffff` |
+| modale | `#1c1c1e` | `#faf7f1` |
+| arête | `rgba(255,255,255,.07)` | `rgba(70,50,20,.10)` |
+| texte / secondaire | `#f5f2ec` / 64 % | `#231d15` / 60 % |
+| ombres | aucune | très légères (`rgba(70,50,20,.06–.18)`) |
+
+- **Accent** : `--accent` = bleu Corentin `#1f8fff` / rose Lisa `#ff3d7e` dans les deux thèmes (règle d'identité §1).
+- **Typographie** : police du système partout dans les deux thèmes ; pas de halos, pas de flou.
+- **Barre d'état iOS** : `black-translucent` en sombre, `default` en clair (texte noir), posé par `commun.js` ; pris en compte au lancement suivant de l'app.
+- **Couleurs propres à une app** (catégories de Budget, etc.) : variante pastel sous `html[data-style="clair"]`, textes de légende foncés (contraste ≥ 4,5:1 sur blanc).
+- **Nouvelle surface** : la classer dans une catégorie (plaque, barre, panneau, creux, actif, accent) de `verre.css` ; toute couleur écrite en dur doit avoir sa variante claire.
 
 ## 🔗 Application aux Apps Existantes
 

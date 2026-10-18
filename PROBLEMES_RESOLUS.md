@@ -19,6 +19,20 @@
 
 ---
 
+## 🌓 5 apps — passage au thème Clair : texte blanc sur fond blanc (18/10/2026)
+
+### 18/10/2026 — Muscu + toutes apps — icône invisible et barre d'état illisible en clair
+**Symptôme** : en créant le thème Clair (fond beige, blocs blancs), le rond de l'icône du gros bouton « Entraînement » de Muscu devenait blanc avec une icône blanche dedans (invisible) ; et la barre d'état iOS (heure, batterie) reste en texte blanc sur le beige.
+**Cause racine** : (1) la règle commune « panneau » donne `var(--t-panneau)` au rond `.choice-icon` — gris foncé en sombre, **blanc** en clair — alors que l'icône est blanche en dur ; (2) `black-translucent` impose un texte blanc dans la barre d'état, quel que soit le fond.
+**Solution** : (1) en clair, voile sombre translucide sur ce rond (`verre.css`, fin) ; (2) `commun.js` passe `apple-mobile-web-app-status-bar-style` à `default` en clair (effet au lancement suivant, à confirmer sur iPhone).
+**Leçons généralisables** :
+- Avant d'ajouter un thème : chercher les couleurs **écrites en dur** (texte blanc, fonds sombres) et vérifier chaque écran — une règle par catégorie (panneau, barre…) ne voit pas le contenu posé dessus.
+- Surcharges d'un thème en **fin de feuille** : la redirection des jetons `html.verre[data-style]{…}` a la même spécificité et passerait sinon après.
+- La barre d'état iOS d'une PWA se règle par balise lue au lancement, pas en CSS.
+**Fichiers touchés** : `commun.js`, `verre.css`, `index.html` et `app.js` (Portail), `Budget/index.html`, `Budget/style.css`
+
+---
+
 ## 🪟 Budget — feuille (bottom sheet) transparente sur le design Verre (18/10/2026)
 
 ### 18/10/2026 — Budget (refonte 5.0.0, testée d'abord dans `BudgetV2/`) — feuille illisible, le tableau de bord se voyait à travers
@@ -1035,4 +1049,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 18 octobre 2026
+**Dernière mise à jour de ce fichier** : 18 octobre 2026 (soir)

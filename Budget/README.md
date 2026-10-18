@@ -2,12 +2,18 @@
 
 > **📌 État actuel (18/10/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé.
 > - **Version 5.0.0 — tableau de bord** : onglet Mois refait (chiffre héros, barre empilée avec %, vignettes 2×2, actions rapides, dernières opérations, bascule Calendrier), listes éditables dans des **feuilles** (bottom sheets). Détail : section « v5.0.0 » juste en dessous.
-> - **Style « Simple » imposé** à Budget (script dans `index.html` juste après `commun.js`), quel que soit le choix du Portail. Base Verre conservée (`../verre.css`, `html.verre`, `data-app="budget"`), sombre uniquement, titre « Budget » + pastille `.status-dot`.
+> - **Thème Sombre ou Clair** (18/10/2026) au choix dans le Portail, comme les autres apps (le thème Sombre imposé le même jour a été retiré). Variantes claires des vignettes, pastilles et du calendrier en fin de `style.css`. Base `../verre.css` (`html.verre`, `data-app="budget"`), titre « Budget » + pastille `.status-dot`.
 > - Fichiers : `index.html` (structure + `DERNIERE_MAJ`, charge `../commun.js` et `../verre.css`), `style.css` (base + bloc « BUDGET V2 » en fin de fichier), `app.js` (code historique + bloc « V2 (18/10/2026) »), `sw.js` (préfixe `budget-lc-shell-` inchangé), `manifest.json`, `icone.PNG`.
 > - **Noyau commun `../commun.js`** : halos, transition, date de MAJ, service worker, vérification de version.
 > - **Profil** : `duo_profile`, commun aux 4 apps (ex-`budgetLC_profil`, migrée).
 
 ## Changelog
+
+## Thème Sombre · Clair (18/10/2026, soir)
+
+- Budget suit le thème choisi dans le Portail (`data-style="simple|clair"`, posé par `../commun.js`) : le script qui imposait le Sombre est retiré de `index.html`.
+- `style.css` (fin) : en **clair**, couleurs de légende plus foncées (`--k-*-txt`), vignettes pastel (indigo, rouge, ambre, vert clairs), pastilles et jours du calendrier en teintes claires, voile des feuilles brun léger ; en **sombre**, pastille active de la bascule éclaircie (inchangé).
+- Détail commun aux 5 apps : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : Mois, feuille Dépenses, Calendrier en clair et en sombre.
 
 ## v5.0.0 — Nouveau tableau de bord + style Simple (18/10/2026)
 
@@ -31,7 +37,7 @@ Refonte de l'onglet Mois d'après la maquette « Budget — refonte onglet Mois 
 - `index.html` : en-tête (navigateur de mois), vue Mois, feuilles `#v2-sheets` **hors de `<main>`** (`changerVue` masque tous les `main > div`).
 - `app.js` : bloc « V2 (18/10/2026) » (`rendreV2`, `rendreCalendrier`, `ouvrirFeuille` / `fermerFeuille`). `setupTableListeners('v2-sheets')` remplace `'mois-content-wrapper'` ; garde ajoutée dans l'écouteur `input` (les champs de revenus sont dans la même feuille).
 - `style.css` : bloc « BUDGET V2 » en fin de fichier. Feuilles en fond **opaque** `var(--t-modale)` (`--card` est translucide en Verre — voir `PROBLEMES_RESOLUS.md`).
-- **Style « Simple » imposé** : script après `commun.js` qui pose `data-style="simple"` (réappliqué sur `pageshow` et `storage`). Pour revenir au choix du Portail : supprimer ce script.
+- ~~**Style « Simple » imposé**~~ : script retiré le soir même — Budget suit le **thème Sombre / Clair** choisi dans le Portail (voir section suivante).
 
 **Limite connue** : les charges sont recopiées d'un mois à l'autre avec leur ancienne date (`btn-next-month`), donc « À venir » reste à 0 tant que leurs dates ne sont pas mises à jour dans le mois.
 
@@ -480,7 +486,7 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Raison : `portail/*` est désormais réservé au compte du duo (`/firestore.rules`). Détails et ordre de mise en service : README racine, « Course et Portail réservés au compte du duo ».
 - Vérifié (Chromium + émulateurs) : session reprise depuis le Portail, `portail/budget` publié.
 
-## Styles au choix Verre · Relief · Argile (30/09/2026)
+## ~~Styles au choix Verre · Relief · Argile (30/09/2026)~~ → remplacés le 18/10/2026 par le thème Sombre · Clair
 
 - Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
 - **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.

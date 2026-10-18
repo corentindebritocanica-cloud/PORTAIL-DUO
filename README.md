@@ -13,7 +13,7 @@ Portail de lancement (launcher) HTML unique pour les 3 apps de Corentin & Lisa :
 > - **4 apps, un seul design** : feuille commune `verre.css` (racine) + classe `html.verre` en dur ; **sombre uniquement** (plus de bouton lune) ; titre à gauche en Unbounded 22 px avec la **pastille de connexion** à côté ; haut de page commun (`--v-haut`).
 > - **Noyau commun `commun.js`** (racine) : halos calés sur l'horloge, transition « vitre → app », date de MAJ, service worker, vérification de version — plus aucune copie dans les `app.js`.
 > - **Profil Corentin/Lisa unique** : `localStorage duo_profile`, réglable dans les Réglages de Muscu, Course ou Budget.
-> - **Style au choix (30/09/2026)** : **Verre** (défaut) · **Relief** (neumorphisme) · **Argile** (claymorphisme) · **Simple** (natif iOS, 05/10/2026), choisi sous la pile du Portail, appliqué aux 4 apps (`localStorage duo-style` → `<html data-style>`, posé par `commun.js`). Bleu Corentin / rose Lisa dans les 3 styles. Voir « Styles au choix » en fin de fichier.
+> - **Thème Sombre · Clair (18/10/2026)** : sous la pile du Portail, « Thème des apps » : **Sombre** (= ex-style Simple, défaut) ou **Clair** (fond beige crème, blocs blancs) ; appliqué aux 5 apps, bleu Corentin / rose Lisa conservés. **Verre, Relief et Argile sont supprimés.** Voir « Thème Sombre · Clair » en fin de fichier.
 > - **Portail** : pile de 3 vitres (toucher une vitre du fond → devant ; toucher celle de devant → ouvre l'app avec la transition ; glisser haut/bas → fait tourner la pile), aperçu du jour de chaque app (résumés `portail/*` dans Firebase), bouton ↻ de rechargement forcé. Retour depuis une app : geste retour d'iOS.
 > - **Notifications (30/09/2026)** : interrupteur sous « Style des apps » ; dépense ajoutée dans Budget, liste de courses modifiée, « Course terminée » → notification à **l'autre** profil. **Fonctionne sur iPhone** (confirmé par Corentin le 30/09/2026). Relais Google Apps Script (hors dépôt, copie dans `outils/Notifications.gs`). Voir « Notifications du duo » en fin de fichier.
 > - **Montre de Lisa → Muscu (30/09/2026)** : bouton ❤️ sur ses archives, FC et calories lues sur Strava par le relais Apps Script (`outils/Strava.gs`). Code en ligne ; **⏳ mise en service en attente** (clé API Strava de Lisa, prévue le 01/10/2026) — étapes dans `Muscu/README.md`, « Montre connectée — via Strava › Mise en service ».
@@ -816,7 +816,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 - Mesuré (Chromium, zones de l'encoche et de la barre d'accueil simulées) : iPhone 16 Pro Max — pile 237→694, centre à 466 px pour un milieu d'écran à 478 px ; iPhone 16 — pile descendue de 42 px, centre à 412 px pour 426 px ; iPhone 13 mini : même écart ; iPhone SE : inchangé. **Non vérifié sur iPhone.**
 
 
-## Styles au choix : Verre · Relief · Argile (30/09/2026)
+## ~~Styles au choix : Verre · Relief · Argile (30/09/2026)~~ → remplacé le 18/10/2026 par « Thème Sombre · Clair » (fin de fichier)
 
 **Demande de Corentin** : en plus du glassmorphisme (design Verre), un style **neumorphisme** et un style **claymorphisme**, choisis dans le Portail et appliqués à toutes les apps, en respectant les couleurs de Corentin (bleu) et de Lisa (rose).
 
@@ -834,7 +834,7 @@ Proposé par Claude, validé par Corentin : comme `verre.css` pour le design, **
 - **Pile du Portail** : les vitres sont découpées par `clip-path` → leurs ombres portées extérieures sont coupées. En Relief/Argile, le relief est donc porté par l'intérieur (dégradé ou ombres `inset`) et les vitres du fond sont assombries (`filter:brightness`) plutôt que rendues transparentes (matière opaque).
 - **Budget pose le profil sur `<body>`** (`body.profil-lisa`) : les jetons calculés sur `<html>` (teinte Argile, accent Relief) restaient bleus pour Lisa. Profil recopié sur `<html>` par `html.verre[data-app="budget"]:has(> body.profil-lisa)`.
 
-### 4ᵉ style « Simple » (05/10/2026)
+### 4ᵉ style « Simple » (05/10/2026) → devenu le thème **Sombre** le 18/10/2026
 
 Demande de Corentin : un 4ᵉ style « plus 2026, qui ne fasse pas IA ». Trois pistes plus marquées (Signal, Encre, Brut) écartées sur maquette au profit de « beaucoup plus simple » : **le natif iOS**, façon app Réglages.
 - **Rendu** : fond noir `#000`, plaques `#1c1c1e`, panneaux `#2c2c2e`, champs voile blanc 9 % (`--t-creux`, nouveau jeton facultatif, lisible sur plaque comme sur panneau), filets très discrets ; **police du système partout**, y compris titres et grands chiffres (`--v-f-chiffres` redéfini : plus d'Unbounded) ; **aucune ombre, aucun flou, aucun halo** ; seule couleur : l'accent du profil (onglet / segment actif en aplat d'accent, texte blanc ; actions principales en aplat d'accent).
@@ -987,3 +987,15 @@ Audit des 5 apps avec `review-animations` / `improve-animations` / `apple-design
 ## Budget 5.0.0 — nouveau tableau de bord (18/10/2026)
 
 Budget a été refait (onglet Mois en tableau de bord, feuilles, calendrier, style « Simple » imposé), d'abord testé en parallèle dans un dossier `BudgetV2/` (mêmes données), puis **validé par Corentin et recopié dans `Budget/`** le même jour. `BudgetV2/` est supprimé, ainsi que ses entrées dans le workflow `auto-version.yml` et dans `isSubApp` (`sw.js`). La carte Budget du Portail ouvre de nouveau `./Budget/`. Détail : `Budget/README.md`.
+
+## Thème Sombre · Clair (18/10/2026)
+
+Demande de Corentin : ne garder que le style **Simple** (renommé **Sombre**) et ajouter une **version claire** au fond beige (inspirée de l'app Kakeibo). Bleu Corentin / rose Lisa inchangés dans les deux.
+- **Sélecteur** : sous la pile du Portail, « Thème des apps » : `Sombre` · `Clair` (`#style-choix`, mêmes boutons radio qu'avant). Notifications : sélecteur juste en dessous, inchangé.
+- **Mémorisation** : `localStorage['duo-style']` = `simple | clair` (même clé qu'avant). Ancienne valeur `verre`, `relief`, `argile` ou clé absente → **Sombre**.
+- **Application** : `commun.js` section 0 pose **toujours** `<html data-style="simple|clair">` avant le 1er rendu (avant : attribut absent = Verre). En clair, il passe aussi la balise `apple-mobile-web-app-status-bar-style` à `default` (texte noir de la barre d'état ; `black-translucent` = texte blanc, illisible sur le beige) et `theme-color` à `#f3ede2`. ⚠️ iOS ne relit cette balise qu'au **lancement** de l'app installée : effet au prochain lancement, **à vérifier sur iPhone**.
+- **CSS** (`verre.css`) : section « THÈME SOMBRE · CLAIR ». Jetons `--t-*` du clair : fond `#f3ede2`, plaques `#faf7f1`, panneaux et barres `#ffffff`, arêtes `rgba(70,50,20,.10)`, ombres très légères ; textes `--v-text #231d15` / `--v-dim` à 60 %. Surcharges du clair **en fin de feuille** (elles doivent passer après la redirection des jetons). Typographie système et halos masqués : communs aux deux thèmes (`html.verre[data-style]`).
+- **Supprimé** : jetons et règles Relief / Argile, bloc « Réduire la transparence » (ne visait que le Verre). Les règles de base `html.verre` restent : c'est la **structure** commune des apps (plaques, barres, en-têtes), le thème n'en change que les matières.
+- **Par app** : Budget n'impose plus le thème Sombre (script retiré) ; ses vignettes, pastilles et jours du calendrier ont une variante pastel en clair (`Budget/style.css`, fin). Muscu : rond de l'icône « Entraînement » en voile sombre en clair (`verre.css`, fin). Course, Todo, Portail : rien de spécifique (tout passe par les jetons).
+- **Règle pour la suite** : couleur écrite en dur dans une app (texte blanc, fond sombre) → prévoir sa variante sous `html[data-style="clair"]`.
+- **Vérifié** (Chromium 390 × 844, Firebase simulé avec les vraies données lues en lecture seule) : Portail, Budget (Mois, feuille Dépenses, Calendrier), Course (Liste, Course), Todo (liste, nouvelle tâche), Muscu (menu, séance, Suivi, Suivi Progression) en clair ; Portail, Budget, Course, Todo, Muscu en sombre ; aucune erreur JS. **Non vérifié sur iPhone** (barre d'état en clair).

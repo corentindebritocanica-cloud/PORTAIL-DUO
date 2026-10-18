@@ -230,3 +230,9 @@ Avant de dire à Corentin qu'un correctif visuel/layout est en ligne et prêt à
 - MacRumors Forums, Glide Community, idownloadblog — changements iOS 26 sur "Ajouter à l'écran d'accueil"
 
 **Ce document doit être mis à jour si une nouvelle version d'iOS change un comportement documenté ici.**
+
+## Barre d'état et thème clair (18/10/2026)
+
+- `apple-mobile-web-app-status-bar-style="black-translucent"` : le contenu passe **sous** la barre d'état (d'où `env(safe-area-inset-top)`), mais son texte est **toujours blanc** → illisible sur un fond clair.
+- Thème Clair du duo : `commun.js` passe la balise à `default` (texte noir) et `theme-color` à `#f3ede2` quand `data-style="clair"`. iOS ne lit cette balise qu'au **lancement** de l'app installée : le changement de thème prend effet sur la barre d'état au lancement suivant. Avec `default`, le contenu ne passe plus sous la barre d'état (`safe-area-inset-top` = 0) : les mises en page qui utilisent `env()` s'adaptent seules.
+- **Statut** : non vérifié sur iPhone à cette date — à confirmer (texte de la barre d'état noir en clair, blanc en sombre).

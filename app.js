@@ -20,9 +20,9 @@
   })();
 
   /* ============================================================
-     STYLE DES APPS : VERRE · RELIEF · ARGILE (30/09/2026)
+     THÈME DES APPS : SOMBRE · CLAIR (18/10/2026 ; avant Verre · Relief · Argile · Simple)
      Sélecteur #style-choix (index.html). Le choix est appliqué et mémorisé par commun.js
-     (window.duoStyle, clé localStorage duo-style, même origine → les 4 apps suivent).
+     (window.duoStyle, clé localStorage duo-style, même origine → les 5 apps suivent).
      Resynchronisé au retour sur le Portail (pageshow depuis le cache précédent/suivant).
      ============================================================ */
   (function(){

@@ -838,77 +838,31 @@ html.verre .connexion-duo button:disabled{ opacity:.6; }
 
 
 /* ==========================================================================
-   STYLES AU CHOIX : VERRE · RELIEF · ARGILE · SIMPLE (30/09/2026 ; Simple : 05/10/2026)
+   THÈME SOMBRE · CLAIR (18/10/2026 ; avant : styles au choix Verre · Relief · Argile · Simple)
    --------------------------------------------------------------------------
-   Le design Verre reste le style par défaut (attribut absent). Deux autres
-   habillages, choisis dans le Portail et appliqués aux 4 apps :
-     • RELIEF (neumorphisme) : une seule matière mate, les surfaces sortent du
-       fond (ombre claire en haut à gauche + ombre sombre en bas à droite) ou
-       s'y creusent (champs, pistes, onglet actif). Pas de halos, pas de flou.
-     • ARGILE (claymorphisme) : surfaces pleines, gonflées, teintées à la
-       couleur du profil, avec reflets et ombres INTÉRIEURS ; halos conservés
-       (atténués), pas de flou.
-     • SIMPLE (05/10/2026) : le natif iOS, façon app Réglages — fond noir, blocs gris
-       pleins (#1c1c1e / #2c2c2e), police du système partout (y compris grands chiffres),
-       aucune ombre, aucun flou, aucun halo ; seule couleur : l'accent du profil.
-   ACTIVATION : <html data-style="relief|argile|simple">, posé par commun.js AVANT le
-   1er rendu à partir de localStorage['duo-style'] (même origine : même
-   principe que duo_profile). Choix dans le Portail (#style-choix).
-   PROFIL : toutes les teintes partent de --accent / --accent-rgb, donc bleu
-   Corentin / rose Lisa dans chaque style (charte §1, règle d'identité couple).
+   Deux thèmes seulement, choisis dans le Portail et appliqués aux 5 apps :
+     • SOMBRE = data-style="simple" (ex-style Simple du 05/10/2026) : le natif iOS, façon app
+       Réglages — fond noir, blocs gris pleins (#1c1c1e / #2c2c2e), police du système partout,
+       aucune ombre, aucun flou, aucun halo ; seule couleur : l'accent du profil. DÉFAUT.
+     • CLAIR = data-style="clair" (18/10/2026) : même structure, fond beige crème (#f3ede2),
+       plaques crème claires, blocs blancs, textes brun très foncé ; ombres très légères.
+   Verre, Relief et Argile sont SUPPRIMÉS (demande de Corentin, 18/10/2026). Les règles de base
+   « html.verre » plus haut restent la STRUCTURE commune des apps (plaques, barres, en-têtes) :
+   le thème n'en change que les matières, via les jetons --t-* ci-dessous.
+   ACTIVATION : <html data-style="simple|clair">, TOUJOURS posé par commun.js AVANT le 1er rendu
+   à partir de localStorage['duo-style'] (anciennes valeurs → simple). Choix : Portail (#style-choix).
+   PROFIL : toutes les teintes partent de --accent / --accent-rgb, donc bleu Corentin / rose Lisa
+   dans les deux thèmes (charte §1, règle d'identité couple).
    Budget pose le profil sur <body> (body.profil-lisa) : recopié sur <html>
    par :has() ci-dessous, sinon les jetons calculés sur <html> resteraient bleus.
-   ARCHITECTURE : jetons --t-* définis par style, puis des règles PAR
-   CATÉGORIE (plaque, barre, panneau, creux, actif, accent) écrites UNE fois
-   sous html.verre[data-style] (spécificité supérieure d'un attribut aux
-   règles du verre, qu'elles ne modifient pas : le Verre reste intact).
-   Nouvelle surface dans une app → l'ajouter à la bonne catégorie ici.
-   PERF : aucun backdrop-filter dans ces deux styles (plus léger que le verre).
+   ARCHITECTURE : jetons --t-* définis par thème, puis des règles PAR CATÉGORIE (plaque, barre,
+   panneau, creux, actif, accent) écrites UNE fois sous html.verre[data-style].
+   Nouvelle surface dans une app → l'ajouter à la bonne catégorie ici. Couleur écrite en dur
+   dans une app (texte blanc, fond sombre) → prévoir sa variante sous html[data-style="clair"].
+   PERF : aucun backdrop-filter.
    ========================================================================== */
 html.verre[data-app="budget"]:has(> body.profil-lisa){
   --accent:var(--lisa); --accent-rgb:var(--lisa-rgb); --accent-dark:var(--lisa-dark);
-}
-
-/* ---------- Jetons : RELIEF (neumorphisme sombre) ---------- */
-html.verre[data-style="relief"]{
-  --t-fond:#1d2026;
-  --t-plaque:#1f2228;        /* à peine plus clair que le fond : la plaque se lit sans contour */
-  --t-panneau:#1f2228;       /* même matière que la plaque qui les porte */
-  --t-barre:#1f2228;
-  --t-modale:#20232a;
-  --t-clair:rgba(255,255,255,.055);
-  --t-sombre:rgba(0,0,0,.58);
-  --t-arete:rgba(255,255,255,.035);
-  --t-o-plaque:-10px -10px 24px var(--t-clair), 10px 12px 26px var(--t-sombre);
-  --t-o-barre:-6px -6px 16px var(--t-clair), 8px 10px 22px var(--t-sombre);
-  --t-o-panneau:-5px -5px 12px var(--t-clair), 6px 6px 14px var(--t-sombre);
-  --t-o-creux:inset 4px 4px 9px var(--t-sombre), inset -3px -3px 8px var(--t-clair);
-  --t-actif-fond:#1f2228;
-  --t-o-actif:inset 3px 3px 7px var(--t-sombre), inset -3px -3px 7px var(--t-clair);
-  --t-actif-texte:var(--accent);
-  --t-accent-fond:linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent-dark, var(--accent)));
-  --t-o-accent:-5px -5px 12px var(--t-clair), 6px 7px 16px var(--t-sombre), 0 0 18px rgba(var(--accent-rgb), .22);
-  --t-halo-op:0;
-}
-
-/* ---------- Jetons : ARGILE (claymorphisme sombre, teinté au profil) ---------- */
-html.verre[data-style="argile"]{
-  --t-fond:color-mix(in srgb, var(--accent) 12%, #121016);
-  --t-plaque:color-mix(in srgb, var(--accent) 15%, #1e1b24);
-  --t-panneau:color-mix(in srgb, var(--accent) 22%, #2a2631);
-  --t-barre:color-mix(in srgb, var(--accent) 24%, #2b2732);
-  --t-modale:color-mix(in srgb, var(--accent) 18%, #25222c);
-  --t-arete:rgba(255,255,255,.06);
-  --t-o-plaque:inset 6px 8px 18px rgba(255,255,255,.07), inset -6px -8px 20px rgba(0,0,0,.30), 0 -6px 30px rgba(0,0,0,.35);
-  --t-o-barre:10px 14px 30px rgba(0,0,0,.45), inset 4px 5px 10px rgba(255,255,255,.12), inset -5px -6px 12px rgba(0,0,0,.30);
-  --t-o-panneau:6px 9px 18px rgba(0,0,0,.38), inset 4px 5px 9px rgba(255,255,255,.10), inset -5px -6px 12px rgba(0,0,0,.28);
-  --t-o-creux:inset 3px 4px 8px rgba(0,0,0,.42), inset -2px -3px 6px rgba(255,255,255,.07);
-  --t-actif-fond:color-mix(in srgb, var(--accent) 45%, #2a2631);
-  --t-o-actif:4px 6px 14px rgba(var(--accent-rgb), .30), inset 3px 4px 8px rgba(255,255,255,.22), inset -4px -5px 10px rgba(0,0,0,.25);
-  --t-actif-texte:#fff;
-  --t-accent-fond:color-mix(in srgb, var(--accent) 82%, #1a1a1a);
-  --t-o-accent:6px 9px 20px rgba(var(--accent-rgb), .35), inset 4px 5px 10px rgba(255,255,255,.30), inset -5px -6px 12px rgba(0,0,0,.28);
-  --t-halo-op:.34;
 }
 
 /* ---------- Jetons : SIMPLE (natif iOS sombre, 05/10/2026) ----------
@@ -935,16 +889,46 @@ html.verre[data-style="simple"]{
   --v-f-chiffres:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;   /* pas d'Unbounded */
 }
 
-/* SIMPLE — typographie unique dans les 4 apps (05/10/2026, demande de Corentin : « la typographie
+/* ---------- Jetons : CLAIR (18/10/2026) ----------
+   Demande de Corentin : « une version claire, avec du beige en arrière-plan » (inspiration : app
+   Kakeibo). Fond beige crème, plaques crème claires, blocs blancs, texte brun très foncé.
+   Les jetons de texte du verre (--v-text, --v-dim…) sont inversés ici : tout ce qui utilise
+   --text / --text-dim dans les apps suit sans règle. */
+html.verre[data-style="clair"]{
+  color-scheme:light;
+  --t-fond:#f3ede2;
+  --t-plaque:#faf7f1;
+  --t-panneau:#ffffff;
+  --t-barre:#ffffff;
+  --t-modale:#faf7f1;
+  --t-arete:rgba(70,50,20,.10);
+  --t-creux:rgba(70,50,20,.06);
+  --t-o-plaque:none;
+  --t-o-barre:0 6px 22px rgba(70,50,20,.12);
+  --t-o-panneau:0 1px 2px rgba(70,50,20,.06);
+  --t-o-creux:none;
+  --t-actif-fond:var(--accent);
+  --t-o-actif:none;
+  --t-actif-texte:#fff;
+  --t-accent-fond:var(--accent);
+  --t-o-accent:none;
+  --t-halo-op:0;
+  --v-text:#231d15;
+  --v-dim:rgba(35,29,21,.60);
+  --v-hair:rgba(70,50,20,.10);
+  --v-ombre:rgba(70,50,20,.18);
+  --v-f-chiffres:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+}
+/* SOMBRE ET CLAIR — typographie unique dans les 5 apps (05/10/2026, demande de Corentin : « la typographie
    de l'app Muscu partout ») : police du système sur TOUT, boutons et champs compris (sinon le
    navigateur leur donne sa police par défaut) ; titres et grands chiffres en semi-gras sans
    espacement serré, comme Muscu (« Séance 1 », « Squat »), au lieu du très fin (300) hérité
    d'Unbounded dans le Portail, Budget et l'écran de connexion. */
-html.verre[data-style="simple"] body,
-html.verre[data-style="simple"] :is(button, input, select, textarea){
+html.verre[data-style] body,
+html.verre[data-style] :is(button, input, select, textarea){
   font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
-html.verre[data-style="simple"] :is(.dash-value, .dash-int, .dash-unit,
+html.verre[data-style] :is(.dash-value, .dash-int, .dash-unit,
   [data-app="budget"] main h1, [data-app="budget"] .page-title, .total-amount, .login-box h1,
   .login-title, .session-title, .menu-hero-streak, .menu-hero-chip .val, .lifetime-value,
   .exo-chrono .session-timer-label, .connexion-duo h2){
@@ -975,12 +959,9 @@ html.verre[data-style][data-app="budget"] body{      /* Budget redéclare ses je
   --border-strong:rgba(255,255,255,.10);
   --shadow-sm:var(--t-o-panneau); --shadow:var(--t-o-barre); --shadow-lg:0 -10px 40px rgba(0,0,0,.55);
 }
-html.verre[data-style="relief"] body::before,
-html.verre[data-style="relief"] body::after,
-html.verre[data-style="simple"] body::before,
-html.verre[data-style="simple"] body::after,
-html.verre[data-style="simple"][data-app="muscu"] .menu-hero::after,
-html.verre[data-style="relief"][data-app="muscu"] .menu-hero::after{ display:none; }   /* matière unie : pas de halos ni de lueur */
+html.verre[data-style] body::before,
+html.verre[data-style] body::after,
+html.verre[data-style][data-app="muscu"] .menu-hero::after{ display:none; }   /* matière unie : pas de halos ni de lueur */
 
 /* Bande iOS du bas (Course, Budget) : couleur du bas de la plaque, comme en Verre */
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]),
@@ -1001,26 +982,9 @@ html.verre[data-style][data-app="muscu"] .plaque,
 html.verre[data-style][data-app="muscu"] #view-exercises main{
   background:var(--t-plaque); border-color:var(--t-arete); box-shadow:var(--t-o-plaque);
 }
-/* Pile du Portail : les ombres extérieures sont coupées par le clip-path → relief porté par
-   les vitres elles-mêmes (dégradé discret) ; vitres du fond pleines (matière opaque). */
-html.verre[data-style="relief"][data-app="portail"] .dash-card{
-  background:linear-gradient(145deg, #23262d, #1a1d22);
-  box-shadow:inset 1px 1px 0 rgba(255,255,255,.05), inset -1px -1px 0 rgba(0,0,0,.4);
-}
-html.verre[data-style="argile"][data-app="portail"] .dash-card{
-  background:color-mix(in srgb, var(--v-teinte) 16%, var(--t-panneau));
-  box-shadow:inset 6px 8px 16px rgba(255,255,255,.10), inset -7px -9px 18px rgba(0,0,0,.32);
-}
 html.verre[data-style][data-app="portail"] .dash-card[data-rang="1"]{ opacity:1; filter:brightness(.86); }
 html.verre[data-style][data-app="portail"] .dash-card[data-rang="2"]{ opacity:1; filter:brightness(.72); }
 html.verre[data-style][data-app="portail"] .dash-card[data-rang="3"]{ opacity:1; filter:brightness(.6); }
-/* Plaques de Muscu/Course/Budget en relief : bord du haut éclairé, pas d'ombre sur le fond uni */
-html.verre[data-style="relief"]:is([data-app="course"],[data-app="todo"]) main,
-html.verre[data-style="relief"][data-app="budget"] .main-content,
-html.verre[data-style="relief"][data-app="muscu"] .plaque,
-html.verre[data-style="relief"][data-app="muscu"] #view-exercises main{
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 -8px 22px rgba(0,0,0,.45);
-}
 
 /* ---------- BARRES, FLOTTANTS, MODALES ---------- */
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar,
@@ -1116,7 +1080,6 @@ html.verre[data-style] .connexion-duo input,
 html.verre[data-style] .style-choix{
   background:var(--t-creux, color-mix(in srgb, var(--t-panneau) 80%, #000)); border-color:transparent; box-shadow:var(--t-o-creux);
 }
-html.verre[data-style="relief"][data-app="budget"] .revenus-box input[readonly]{ border:1px dashed rgba(255,255,255,.10); }
 
 /* ---------- ÉTATS ACTIFS (onglet, mois, segment choisi) ---------- */
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif,
@@ -1131,14 +1094,11 @@ html.verre[data-style] .style-choix button[aria-checked="true"]{
   background:var(--t-actif-fond); border-color:transparent; color:var(--t-actif-texte); box-shadow:var(--t-o-actif);
 }
 html.verre[data-style][data-app="muscu"] .rail-exo.actif .rail-num{ color:var(--t-actif-texte); }
-html.verre[data-style="argile"][data-app="muscu"] .rail-exo.actif .rail-segs i:not(.fait){ background:rgba(255,255,255,.28); }
 html.verre[data-style][data-app="muscu"] .exo-nav-btn.suivant.pret{
   background:color-mix(in srgb, #12b981 45%, var(--t-panneau)); color:#fff;
 }
 html.verre[data-style]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif svg,
 html.verre[data-style][data-app="budget"] .btn-tab.active svg{ color:var(--t-actif-texte); }
-html.verre[data-style="relief"]:is([data-app="course"],[data-app="todo"]) nav.tabbar button.actif svg,
-html.verre[data-style="relief"][data-app="budget"] .btn-tab.active svg{ color:var(--accent); }
 
 /* ---------- ACCENT (actions principales, cases cochées) ---------- */
 html.verre[data-style][data-app="budget"] .bg-primary,
@@ -1185,17 +1145,6 @@ html.verre[data-style][data-app="muscu"] .btn-copy{
 /* Changement de style : bascule franche, sans animer chaque ombre de la page */
 html.verre.style-bascule *, html.verre.style-bascule *::before, html.verre.style-bascule *::after{ transition:none !important; }
 
-/* ---------- RÉDUIRE LA TRANSPARENCE (12/10/2026, skill apple-design §14) ----------
-   Réglage iOS « Réduire la transparence » : le verre devient une matière presque opaque, sans flou,
-   pour la lisibilité. Style Verre seulement (Relief / Argile / Simple sont déjà opaques).
-   Support Safari non confirmé à cette date : sans effet là où la requête n'est pas reconnue. */
-@media (prefers-reduced-transparency: reduce){
-  html.verre:not([data-style]){
-    --v-glass:rgba(28,28,32,.97); --v-glass-fort:rgba(22,22,26,.98); --v-flou:none;
-    --glass-modal:rgba(24,24,28,.98); --glass-modal-v:rgba(24,24,28,.98);
-  }
-}
-
 /* ---------- FERMETURE ANIMÉE DES MODALES (12/10/2026, skill apple-design §7) ----------
    Posée par fermerAnime() (commun.js) pendant 0,2 s avant que l'app masque la modale :
    sortie par le même chemin que l'entrée (fond qui s'efface, feuille qui redescend de 24 px ;
@@ -1209,3 +1158,26 @@ html.verre.style-bascule *, html.verre.style-bascule *::before, html.verre.style
 @media (prefers-reduced-motion: reduce){
   .v-ferme > *, .v-ferme.confirm-overlay > *{ animation-name:v-fond-out !important; }   /* fondu seul */
 }
+
+/* ==========================================================================
+   THÈME CLAIR — surcharges (18/10/2026). En FIN de feuille : elles doivent passer après
+   la redirection des jetons (html.verre[data-style]{…}) et les règles par catégorie, de même
+   spécificité. Couleurs propres à une app (écrites en dur dans son style.css) : dans la feuille
+   de l'app, sous html[data-style="clair"].
+   ========================================================================== */
+html.verre[data-style="clair"],
+html.verre[data-style="clair"][data-app="budget"] body{
+  --v-hair:rgba(70,50,20,.10);
+  --border-strong:rgba(70,50,20,.16);
+  --text:#231d15; --text-dim:rgba(35,29,21,.60);
+  --shadow-lg:0 -10px 40px rgba(70,50,20,.18);
+}
+/* Pile du Portail : les vitres du fond s'éclaircissent au lieu de s'assombrir */
+html.verre[data-style="clair"][data-app="portail"] .dash-card[data-rang="1"]{ filter:brightness(.97); }
+html.verre[data-style="clair"][data-app="portail"] .dash-card[data-rang="2"]{ filter:brightness(.94); }
+html.verre[data-style="clair"][data-app="portail"] .dash-card[data-rang="3"]{ filter:brightness(.91); }
+/* Voile derrière l'écran de connexion et les modales : sombre léger, pas noir */
+html.verre[data-style="clair"] .overlay-popup{ background:rgba(60,45,25,.35); }
+/* Muscu : rond de l'icône du gros bouton « Entraînement » (fond accent) — en clair, le panneau
+   blanc effaçait l'icône blanche : voile sombre translucide à la place */
+html.verre[data-style="clair"][data-app="muscu"] .big-choice-btn.primary .choice-icon{ background:rgba(0,0,0,.22); }

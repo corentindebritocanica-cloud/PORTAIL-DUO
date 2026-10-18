@@ -12,7 +12,7 @@
    Mis en cache hors-ligne par le service worker de chaque app.
 
    CONTENU
-   0. Style au choix (Verre / Relief / Argile) posé avant le 1er rendu
+   0. Thème Sombre / Clair (data-style="simple|clair") posé avant le 1er rendu (18/10/2026)
    1. Halos du fond calés sur l'horloge (continuité d'une app à l'autre)
    2. Transition « la vitre s'ouvre en app » : annulée pour retours/rechargements
    3. Date de dernière mise à jour du code (formaterDerniereMaj, #derniere-maj)
@@ -32,20 +32,29 @@
   'use strict';
   var racine = document.documentElement;
 
-  /* ---------- 0. STYLE AU CHOIX : VERRE · RELIEF · ARGILE · SIMPLE (30/09/2026 ; Simple 05/10/2026) ----------
-     Choisi dans le Portail, appliqué aux 4 apps : localStorage['duo-style'] (même origine,
-     comme duo_profile) → <html data-style="relief|argile|simple"> ; attribut absent = Verre (défaut).
-     Posé ICI, dans le <head> avant verre.css : aucun flash de l'ancien style à l'ouverture.
-     Relu au retour depuis le cache précédent/suivant (le choix a pu changer dans le Portail)
-     et à l'événement storage (autre onglet). Les habillages sont dans verre.css, bloc
-     « STYLES AU CHOIX ». window.duoStyle.choisir(s) : utilisé par le sélecteur du Portail. */
-  var STYLES = ['verre', 'relief', 'argile', 'simple'];
+  /* ---------- 0. THÈME : SOMBRE · CLAIR (18/10/2026 ; avant : Verre · Relief · Argile · Simple) ----------
+     Choisi dans le Portail, appliqué aux 5 apps : localStorage['duo-style'] (même origine,
+     comme duo_profile) → <html data-style="simple|clair">, TOUJOURS posé.
+       • simple = thème SOMBRE (natif iOS, ex-style « Simple » du 05/10/2026) — défaut ;
+       • clair  = thème CLAIR (fond beige crème, blocs blancs, textes foncés).
+     Anciennes valeurs (verre, relief, argile) ou clé absente → sombre. Bleu Corentin / rose Lisa
+     inchangés dans les deux thèmes (--accent). Posé ICI, dans le <head> avant verre.css : aucun
+     flash à l'ouverture. Relu au retour depuis le cache précédent/suivant et à l'événement storage.
+     Barre d'état iOS : en clair, meta apple-mobile-web-app-status-bar-style = « default » (texte
+     noir) au lieu de « black-translucent » (texte blanc, illisible sur le beige) — iOS ne relit
+     cette balise qu'au lancement de l'app : effet au prochain lancement.
+     window.duoStyle.choisir(s) : utilisé par le sélecteur du Portail. */
+  var STYLES = ['simple', 'clair'];
   function lireStyle(){
-    try { var s = localStorage.getItem('duo-style'); return STYLES.indexOf(s) >= 0 ? s : 'verre'; }
-    catch (e) { return 'verre'; }
+    try { var s = localStorage.getItem('duo-style'); return STYLES.indexOf(s) >= 0 ? s : 'simple'; }
+    catch (e) { return 'simple'; }
   }
   function appliquerStyle(s){
-    if (s === 'verre') racine.removeAttribute('data-style'); else racine.setAttribute('data-style', s);
+    racine.setAttribute('data-style', s);
+    var barre = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (barre) barre.setAttribute('content', s === 'clair' ? 'default' : 'black-translucent');
+    var teinte = document.querySelector('meta[name="theme-color"]');
+    if (teinte) teinte.setAttribute('content', s === 'clair' ? '#f3ede2' : '#000000');
   }
   appliquerStyle(lireStyle());
   window.addEventListener('pageshow', function(e){ if (e.persisted) appliquerStyle(lireStyle()); });

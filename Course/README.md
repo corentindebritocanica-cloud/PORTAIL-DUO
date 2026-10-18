@@ -418,7 +418,7 @@ Le code identique aux 4 apps (halos calés sur l'horloge, annulation de la trans
 - Vérifié (Chromium, iPhone 16 Pro Max simulé) : liste défilée → toucher la barre collée → haut de page, barre à 139 px, champ actif ; redéfilement simulé pendant l'ouverture → ramené en haut ; saisie OK ; défilement après 1,5 s → laissé tel quel, barre recollée. Le clavier d'iOS ne se simule pas dans Chromium : **confirmé sur iPhone par Corentin le 29/09/2026** (barre collée, puis toucher la barre → elle reste visible au-dessus du clavier).
 
 
-## Styles au choix Verre · Relief · Argile (30/09/2026)
+## ~~Styles au choix Verre · Relief · Argile (30/09/2026)~~ → remplacés le 18/10/2026 par le thème Sombre · Clair (fin de fichier)
 
 - Choisis sous la pile du **Portail** (« Style des apps ») et appliqués ici sans aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="relief|argile">` avant le 1er rendu (`localStorage duo-style`), `../verre.css` (bloc « STYLES AU CHOIX ») habille les surfaces. Attribut absent = Verre (défaut).
 - **Relief** = neumorphisme (matière mate unique, surfaces en relief ou en creux, pas de halos). **Argile** = claymorphisme (surfaces pleines gonflées, teintées à la couleur du profil). Bleu Corentin / rose Lisa conservés dans les deux.
@@ -523,3 +523,10 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 - Courbes passées aux jetons communs (`--ease-out`, `--ease-drawer`).
 - Modales produit / liste / nouveautés / dialogue : fermeture animée (`fermerAnime`), `annulerFermeture` avant chaque ouverture (sinon deux dialogues enchaînés : le 2e était masqué par la fin de fermeture du 1er).
 - Mouvement réduit : fini « toutes les durées à 0 s » ; seules les transitions d'opacité et de couleur restent, les feuilles apparaissent en fondu.
+
+## Thème Sombre · Clair (18/10/2026)
+
+- Le thème se choisit sous la pile du **Portail** (« Thème des apps ») : **Sombre** (ex-style Simple, défaut) ou **Clair** (fond beige crème, blocs blancs, textes foncés). Bleu Corentin / rose Lisa inchangés. Verre, Relief et Argile sont supprimés.
+- Aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="simple|clair">`, `../verre.css` habille.
+- Aucune règle propre à l'app : tout passe par les jetons.
+- Détail commun : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : Liste, Course en clair et en sombre. Non vérifié sur iPhone (barre d'état en clair).

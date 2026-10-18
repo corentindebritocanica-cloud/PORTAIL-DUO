@@ -473,7 +473,26 @@ body.v2-feuille .tabbar-flottante { opacity: 0; pointer-events: none; }
 .v2-mois-item { min-height: 44px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--card-2, #1e2530); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .v2-mois-item.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 
-/* Style « Simple » imposé à V2 (18/10/2026) : la pastille active de la bascule doit ressortir
-   (en Simple, --card et --card-2 valent tous deux #2c2c2e) */
+/* Thème SOMBRE (data-style="simple") : la pastille active de la bascule doit ressortir
+   (--card et --card-2 valent tous deux #2c2c2e) */
 html[data-style="simple"] .v2-seg button.on { background: rgba(255,255,255,.16); }
 html[data-style="simple"] .v2-mois-item { background: var(--card); }
+
+/* Thème CLAIR (18/10/2026) : vignettes, pastilles et calendrier en teintes pastel, textes foncés */
+html[data-style="clair"] {
+    --k-charges-txt: #4b52d6; --k-dep-txt: #c0352f; --k-prov-txt: #a8710f; --k-reste-txt: #0b8a5c;
+}
+html[data-style="clair"] .v2-seg button.on { background: rgba(70,50,20,.10); }
+html[data-style="clair"] .v2-prog { background: rgba(70,50,20,.10); }
+html[data-style="clair"] .t-charges    { background: #e9eafc; border-color: #d4d7f7; }
+html[data-style="clair"] .t-depenses   { background: #fbe7e6; border-color: #f3cfcd; }
+html[data-style="clair"] .t-provisions { background: #fbf0dc; border-color: #f0dcb5; }
+html[data-style="clair"] .t-revenus    { background: #e2f4ec; border-color: #c4e6d6; }
+html[data-style="clair"] .v2-op-ico.k-dep, html[data-style="clair"] .v2-jour.c-dep, html[data-style="clair"] .v2-op-mnt { background: #fbe7e6; }
+html[data-style="clair"] .v2-op-ico.k-rev, html[data-style="clair"] .v2-jour.c-rem, html[data-style="clair"] .v2-op-mnt.pos { background: #e2f4ec; }
+html[data-style="clair"] .v2-op-ico.k-charges { background: #e9eafc; }
+html[data-style="clair"] .v2-op-ico { background: rgba(70,50,20,.06); }
+html[data-style="clair"] .v2-jour.c-avenir { background: rgba(245,181,74,.14); }
+html[data-style="clair"] .a-esp { background: var(--card); }
+html[data-style="clair"] .v2-sheet-fond { background: rgba(60,45,25,.35); }
+html[data-style="clair"] .v2-sheet { box-shadow: 0 -12px 40px rgba(70,50,20,.18); }
