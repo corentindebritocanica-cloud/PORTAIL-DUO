@@ -494,8 +494,15 @@
             const court = (m) => m ? m.nom.split(' ')[0].slice(0, 4).replace(/\.$/, '') + '.' : '';
             list.innerHTML = `
                 <button type="button" class="v2-mois-btn" ${prev ? `data-mois-id="${esc(prev.id)}"` : 'disabled'} aria-label="Mois précédent">${prev ? '‹ ' + esc(court(prev)) : ''}</button>
-                <div class="v2-mois-cur">${cur ? esc(cur.nom) : '—'}</div>
+                <button type="button" class="v2-mois-cur" data-ouvrir-mois aria-label="Choisir un mois">${cur ? esc(cur.nom) : '—'} <span class="v2-chev">▾</span></button>
                 <button type="button" class="v2-mois-btn" ${next ? `data-mois-id="${esc(next.id)}"` : 'disabled'} aria-label="Mois suivant">${next ? esc(court(next)) + ' ›' : ''}</button>`;
+            // Feuille « Tous les mois » : regroupés par année, la plus récente en haut
+            const parAn = {};
+            state.donnees.forEach(m => { (parAn[m.annee] = parAn[m.annee] || []).push(m); });
+            document.getElementById('v2-liste-mois').innerHTML = Object.keys(parAn).sort((a, b) => b - a).map(an =>
+                `<div class="v2-an">${esc(an)}</div><div class="v2-mois-grille">` +
+                parAn[an].slice().reverse().map(m => `<button type="button" class="v2-mois-item ${m.id === state.moisActifId ? 'on' : ''}" data-mois-id="${esc(m.id)}">${esc(m.nom.split(' ')[0])}</button>`).join('') +
+                '</div>').join('');
             const btnNext = document.getElementById('btn-next-month');
             const dernier = state.donnees[state.donnees.length - 1];
             btnNext.classList.toggle('hidden', !!(dernier && cur && cur.id !== dernier.id));
@@ -729,7 +736,10 @@
             const tot = parts.reduce((s, p) => s + Math.max(p.v, 0), 0);
             return parts.filter(p => p.v > 0 && tot > 0).map(p => `<i class="${p.cls}" style="flex-grow:${(p.v / tot * 100).toFixed(2)}"></i>`).join('');
         };
-        const legendeHTML = (parts) => parts.map(p => `<div class="v2-leg-i ${p.cls}"><span>${esc(p.nom)}</span><strong>${esc(fmtEur0(p.v))}</strong></div>`).join('');
+        const legendeHTML = (parts) => {
+            const tot = parts.reduce((s, p) => s + Math.max(p.v, 0), 0);
+            return parts.map(p => `<div class="v2-leg-i ${p.cls}"><span>${esc(p.nom)}</span><strong>${esc(fmtEur0(p.v))}</strong><em>${tot > 0 ? Math.round(Math.max(p.v, 0) / tot * 100) : 0} %</em></div>`).join('');
+        };
 
         const rendreV2 = (m, report, reportEspeces) => {
             const info = infosMois(m);
@@ -860,6 +870,8 @@
         };
         document.getElementById('v2-sheets').addEventListener('click', (e) => {
             if (e.target.closest('[data-close]')) { fermerFeuille(e.target.closest('.v2-sheet-wrap')); return; }
+            const choixMois = e.target.closest('[data-mois-id]');
+            if (choixMois) { state.moisActifId = choixMois.dataset.moisId; state.jourSel = null; fermerFeuille(document.getElementById('sheet-mois')); rafraichirTouteLInterface(); return; }
             const qui = e.target.closest('[data-qui]');
             if (qui) { state.filtreQui = qui.dataset.qui; rafraichirTouteLInterface(); }
         });
@@ -1024,6 +1036,7 @@
 
         // 3. Barre Latérale (Mois/Années)
         document.getElementById('month-list').addEventListener('click', (e) => {
+            if (e.target.closest('[data-ouvrir-mois]')) { ouvrirFeuille('mois'); return; }
             const btn = e.target.closest('[data-mois-id]');
             if (btn) { state.moisActifId = btn.dataset.moisId; state.jourSel = null; rafraichirTouteLInterface(); }
         });

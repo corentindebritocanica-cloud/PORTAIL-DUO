@@ -11,9 +11,10 @@
 
 **Onglet Mois** (les onglets Année, Fixes et Réglages sont identiques à Budget) :
 - **Navigateur de mois** « ‹ Sept. · Octobre 2026 · Nov. › » au lieu de la liste par année (`rendreMenu`). « + Démarrer … » n'apparaît que sur le dernier mois.
+- **Tous les mois** (18/10/2026, soir) : un appui sur le nom du mois ouvre la feuille `#sheet-mois` (mois groupés par année, 3 colonnes) pour sauter directement à n'importe quel mois — remplace l'accès direct de l'ancienne liste.
 - **Bascule Résumé / Calendrier** (`state.vueMois`).
 - **Chiffre héros** : reste à vivre (centimes en petit), jours restants, ≈ € par jour, barre de progression du mois.
-- **Barre empilée** Charges / Dépenses / Provisions (rayé) / Reste, à la place des 4 jauges « Répartition ».
+- **Barre empilée** Charges / Dépenses / Provisions (rayé) / Reste, à la place des 4 jauges « Répartition » ; montant **et pourcentage** sous chaque poste (les % arrondis peuvent totaliser 99 ou 101 %).
 - **Vignettes 2×2** Charges · Dépenses · Provisions · Espèces : un appui ouvre une **feuille** (bottom sheet) avec la liste éditable d'origine (mêmes champs, glisser-déposer, mode Mixte, suppression + Annuler, notifications).
 - **Actions rapides** : − Dépense (ouvre la feuille et crée la ligne, curseur dans le libellé), + Revenu (« Ajouts en cours »), Espèces (« Espèces ajoutées »).
 - **Dernières opérations** : les 6 dépenses les plus récentes (emoji de la catégorie, mode de paiement, montant en pastille).

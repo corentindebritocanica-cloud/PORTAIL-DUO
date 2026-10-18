@@ -343,7 +343,8 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .v2-mois-btn { min-height: 44px; background: none; border: 0; color: var(--text-dim); font: inherit; font-size: 15px; padding: 0 6px; cursor: pointer; }
 .v2-mois-btn:first-child { text-align: left; } .v2-mois-btn:last-child { text-align: right; }
 .v2-mois-btn:disabled { visibility: hidden; }
-.v2-mois-cur { font-size: 21px; font-weight: 800; color: var(--accent); letter-spacing: -.3px; text-align: center; }
+.v2-mois-cur { min-height: 44px; background: none; border: 0; font: inherit; font-size: 21px; font-weight: 800; color: var(--accent); letter-spacing: -.3px; text-align: center; cursor: pointer; padding: 0 4px; }
+.v2-chev { font-size: 12px; opacity: .7; vertical-align: middle; }
 
 /* Bascule (segmented) */
 .v2-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--border); margin-bottom: 14px; }
@@ -463,3 +464,11 @@ body.v2-feuille .tabbar-flottante { opacity: 0; pointer-events: none; }
 
 /* « + Démarrer … » discret (visible seulement sur le dernier mois) */
 #btn-next-month { min-height: 36px; padding: 6px 14px; font-size: 13px; align-self: center; width: auto; border-radius: var(--r-pill); }
+
+/* Pourcentages sous les montants de la barre empilée */
+.v2-leg-i em { font-style: normal; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+/* Feuille « Tous les mois » */
+.v2-an { font-size: 13px; font-weight: 700; color: var(--text-dim); letter-spacing: .5px; margin: 6px 0 8px; }
+.v2-mois-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.v2-mois-item { min-height: 44px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--card-2, #1e2530); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.v2-mois-item.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }

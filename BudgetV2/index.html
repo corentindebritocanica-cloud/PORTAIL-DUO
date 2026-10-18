@@ -269,6 +269,18 @@
     <!-- V2 (18/10/2026) : feuilles qui montent du bas, ouvertes par les vignettes / actions de l'onglet Mois.
          Elles contiennent les listes éditables d'origine (mêmes id, même code d'édition que Budget). -->
     <div id="v2-sheets">
+        <div class="v2-sheet-wrap" id="sheet-mois" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <h3>Tous les mois</h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <div id="v2-liste-mois"></div>
+            </div>
+        </div>
+
         <div class="v2-sheet-wrap" id="sheet-depenses" aria-hidden="true">
             <div class="v2-sheet-fond" data-close></div>
             <div class="v2-sheet" role="dialog" aria-modal="true" aria-labelledby="titre-depenses">
