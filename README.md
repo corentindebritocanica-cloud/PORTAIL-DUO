@@ -53,6 +53,7 @@ PORTAIL-DUO/
 ├── .claude/skills/         ← skills IA design/animation (Emil Kowalski, MIT), communs aux 4 apps
 ├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png
 ├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
+├── BudgetV2/  ← Budget V2 (18/10/2026) : même données que Budget, nouveau tableau de bord ; c'est elle qu'ouvre la carte Budget du Portail
 ├── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
 └── Todo/    ← Todo (11/10/2026) : index.html, style.css, app.js, sw.js, manifest.json, icônes, README.md
 ```
@@ -982,3 +983,8 @@ Audit des 5 apps avec `review-animations` / `improve-animations` / `apple-design
 - **Portail** : pile 0,4 → 0,3 s ; bouton recharger 0,5 → 0,3 s ; jauge Budget 0,35 → 0,3 s ; glisser de la pile validé par une pichenette (> 0,11 px/ms sur 12 px, avant 0,4 px/ms sur 20 px) ; un 2e doigt pendant le geste est ignoré (la vitre sautait) ; boîte de dialogue fermée en douceur ; mouvement réduit : feuille en fondu.
 - **Budget / Course / Todo / Muscu** : voir leur README (section du 12/10/2026).
 - **Vérifié** dans Chromium (iPhone 390×844, gestes tactiles simulés) : aucune erreur JS sur les 5 apps, jetons présents, fermeture animée puis masquage, réouverture immédiate de la même boîte conservée, glisser Muscu (suivi, retour en place, pichenette, amorti au premier exercice). **Non vérifié sur iPhone** : ressenti des nouvelles courbes, `:active` sur Safari, « Réduire la transparence ».
+
+
+## Carte Budget → Budget V2 (18/10/2026)
+
+La carte « Budget » du Portail (`index.html`, `#carte-budget`) ouvre désormais **`./BudgetV2/`** (demande de Corentin, V2 validée). L'ancienne app reste en ligne à `./Budget/` (mêmes données Firestore) ; le résumé `portail/budget` est publié par les deux apps à l'identique. Retour en arrière : remettre `href="./Budget/"`.
