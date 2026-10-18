@@ -23,6 +23,9 @@ on:
       - 'Budget/index.html'
       - 'Budget/style.css'
       - 'Budget/app.js'
+      - 'BudgetV2/index.html'
+      - 'BudgetV2/style.css'
+      - 'BudgetV2/app.js'
       - 'Course/index.html'
       - 'Course/style.css'
       - 'Course/app.js'
@@ -63,7 +66,7 @@ jobs:
           set -euo pipefail
           NOW=$(TZ=Europe/Paris date +%Y-%m-%dT%H:%M:%S%:z)
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html'
+            CHANGED=$'index.html\nBudget/index.html\nBudgetV2/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html'
           else
             if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               BEFORE="HEAD~1"
@@ -73,7 +76,7 @@ jobs:
           VERRE=0; COMMUN=0
           if printf '%s\n' "$CHANGED" | grep -qxF 'verre.css'; then VERRE=1; fi
           if printf '%s\n' "$CHANGED" | grep -qxF 'commun.js'; then COMMUN=1; fi
-          for DIR in "" Budget Course Muscu Todo; do
+          for DIR in "" Budget BudgetV2 Course Muscu Todo; do
             P="${DIR:+$DIR/}"
             if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then
               if [ "$VERRE" = "1" ] && grep -q 'verre\.css?v=' "${P}index.html"; then :

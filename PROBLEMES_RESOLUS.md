@@ -19,6 +19,20 @@
 
 ---
 
+## 🪟 Budget V2 — feuille (bottom sheet) transparente sur le design Verre (18/10/2026)
+
+### 18/10/2026 — BudgetV2 — feuille illisible, le tableau de bord se voyait à travers
+**Symptôme** : à la création de Budget V2, les feuilles qui montent du bas (`.v2-sheet`) laissaient voir tout l'écran Mois derrière les lignes : textes superposés, illisible.
+**Cause racine** : en design Verre, `--card` est une couleur **translucide** (la plaque laisse passer les halos). Un fond `var(--card)` convient à une carte posée sur la plaque, pas à un calque qui passe **au-dessus** du contenu.
+**Solution** : fond opaque explicite (`#161b22`, la valeur de `--card` de la charte) sur la feuille et sur sa poignée collante.
+**Leçons généralisables** :
+- Tout calque superposé (feuille, menu, pop-up maison) : fond **opaque** explicite, jamais `var(--card)` ni `var(--bg)` hérités du Verre.
+- Ces calques vont **hors de `<main>`** dans Budget : `changerVue()` masque tous les `main > div` qui ne sont pas la vue active.
+- Nouvelle app ou copie d'app (même règle que Todo, 11/10/2026) : dossier ajouté à `isSubApp` du `sw.js` racine et au workflow `auto-version.yml` (chemins, boucle, lancement manuel).
+**Fichiers touchés** : `BudgetV2/*` (nouveau), `sw.js`, `.github/workflows/auto-version.yml`
+
+---
+
 ## 🎬 Toutes apps — fermeture animée des modales et appui `:active` sur iPhone (12/10/2026)
 
 ### 12/10/2026 — Portail, Budget, Course, Todo, Muscu — animer la sortie d'une modale sans casser deux dialogues enchaînés
@@ -1021,4 +1035,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 5 octobre 2026
+**Dernière mise à jour de ce fichier** : 18 octobre 2026
