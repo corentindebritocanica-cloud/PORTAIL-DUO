@@ -3468,6 +3468,19 @@ function renderBodyPanel(){
      c'est ce qui permet d'ajouter une mesure prise un autre jour. */
   if(dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
 
+  /* Dernière valeur connue du profil affichée en placeholder (grisée) : un
+     placeholder et non une vraie valeur, sinon enregistrer sans toucher un champ
+     recopierait l'ancienne mesure dans la nouvelle entrée (point en double sur
+     la courbe). Sans historique, on retombe sur l'exemple d'origine du HTML. */
+  const entries = bodyEntries(progressProfile);
+  BODY_FIELDS.forEach(f => {
+    const input = document.getElementById('body-' + f.id);
+    if(!input) return;
+    if(input.dataset.defaultPlaceholder === undefined) input.dataset.defaultPlaceholder = input.placeholder;
+    const last = entries.map(e => bodyEntryValue(e, f.id)).find(v => v);
+    input.placeholder = last ? String(last) : input.dataset.defaultPlaceholder;
+  });
+
   renderBodyList();
   renderBodyOverviewChart();
   renderBodySelect();
