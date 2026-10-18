@@ -483,31 +483,33 @@
             else if (state.vueActuelle === 'admin') rendreAdmin();
         };
 
+        // V2 (18/10/2026) : navigateur « ‹ Préc. · Mois Année · Suiv. › » au lieu de la liste par année.
+        // Le bouton « + Démarrer … » n'apparaît que sur le dernier mois existant.
         const rendreMenu = () => {
             const list = document.getElementById('month-list');
-            list.innerHTML = '';
-            const groupes = {};
-            state.donnees.forEach(m => {
-                if (!groupes[m.annee]) groupes[m.annee] = [];
-                groupes[m.annee].push(m);
-            });
-
-            Object.keys(groupes).sort((a,b) => b-a).forEach(annee => {
-                const open = state.anneesOuvertes.has(parseInt(annee));
-                const div = document.createElement('div');
-                div.className = 'year-group';
-                div.innerHTML = `<div class="year-header ${!open ? 'collapsed' : ''}" data-year="${esc(annee)}">${esc(annee)}</div>
-                                 <div class="month-sublist ${!open ? 'hidden' : ''}"></div>`;
-                const sub = div.querySelector('.month-sublist');
-                groupes[annee].reverse().forEach(m => {
-                    const pill = document.createElement('div');
-                    pill.className = `month-pill ${m.id === state.moisActifId ? 'active' : ''}`;
-                    pill.innerText = m.nom.split(' ')[0];
-                    pill.onclick = () => { state.moisActifId = m.id; rafraichirTouteLInterface(); };
-                    sub.appendChild(pill);
-                });
-                list.appendChild(div);
-            });
+            const idx = state.donnees.findIndex(m => m.id === state.moisActifId);
+            const cur = state.donnees[idx];
+            const prev = idx > 0 ? state.donnees[idx - 1] : null;
+            const next = idx >= 0 && idx < state.donnees.length - 1 ? state.donnees[idx + 1] : null;
+            const court = (m) => m ? m.nom.split(' ')[0].slice(0, 4).replace(/\.$/, '') + '.' : '';
+            list.innerHTML = `
+                <button type="button" class="v2-mois-btn" ${prev ? `data-mois-id="${esc(prev.id)}"` : 'disabled'} aria-label="Mois précédent">${prev ? '‹ ' + esc(court(prev)) : ''}</button>
+                <button type="button" class="v2-mois-cur" data-ouvrir-mois aria-label="Choisir un mois">${cur ? esc(cur.nom) : '—'} <span class="v2-chev">▾</span></button>
+                <button type="button" class="v2-mois-btn" ${next ? `data-mois-id="${esc(next.id)}"` : 'disabled'} aria-label="Mois suivant">${next ? esc(court(next)) + ' ›' : ''}</button>`;
+            // Feuille « Tous les mois » : regroupés par année, la plus récente en haut
+            const parAn = {};
+            state.donnees.forEach(m => { (parAn[m.annee] = parAn[m.annee] || []).push(m); });
+            document.getElementById('v2-liste-mois').innerHTML = Object.keys(parAn).sort((a, b) => b - a).map(an =>
+                `<div class="v2-an">${esc(an)}</div><div class="v2-mois-grille">` +
+                parAn[an].slice().reverse().map(m => `<button type="button" class="v2-mois-item ${m.id === state.moisActifId ? 'on' : ''}" data-mois-id="${esc(m.id)}">${esc(m.nom.split(' ')[0])}</button>`).join('') +
+                '</div>').join('');
+            const btnNext = document.getElementById('btn-next-month');
+            const dernier = state.donnees[state.donnees.length - 1];
+            btnNext.classList.toggle('hidden', !!(dernier && cur && cur.id !== dernier.id));
+            if (dernier) {
+                const i = NOMS_MOIS.indexOf(dernier.nom.split(' ')[0]);
+                btnNext.textContent = '+ Démarrer ' + NOMS_MOIS[(i + 1) % 12];
+            }
         };
 
         // --- Logique du Reste à Vivre (Calcul du report exclusif Revolut) ---
@@ -543,7 +545,8 @@
             if (!container) return;
             container.innerHTML = '';
 
-            const filtered = (tableau || []).filter(i => sansAccents(i.libelle || i.categorie || "").includes(state.termeRecherche));
+            const filtered = (tableau || []).filter(i => sansAccents(i.libelle || i.categorie || "").includes(state.termeRecherche))
+                .filter(i => type !== 'depenses' || !state.filtreQui || i.par === state.filtreQui); // V2 : filtre Tous / Corentin / Lisa
 
             filtered.forEach(item => {
                 const row = document.createElement('div');
@@ -668,6 +671,7 @@
             rendreLignes('conteneur-provisions', mois.provisions, 'provisions');
 
             calculerTotauxMensuels(mois, report, reportEspeces);
+            rendreV2(mois, report, reportEspeces);
         };
 
         const calculerTotauxMensuels = (m, report, reportEspeces) => {
@@ -685,33 +689,212 @@
 
             document.getElementById('total-charges').innerText = tc.toFixed(0);
             document.getElementById('total-provisions').innerText = tprov.toFixed(0);
-            document.getElementById('reste-a-vivre').innerText = eur(reste);
             document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)}`;
-
-            const tdDiff = tdTotal - tdCB;
-            document.getElementById('titre-depenses').innerHTML = `🛒 Dépenses (${tdTotal.toFixed(0)}€) ${tdDiff > 0 ? `<small class="txt-dim" style="font-weight:400;">(dont ${tdDiff.toFixed(0)}€ 💵)</small>` : ''}`;
-
-            // Jauges
-            const globalTotal = tc + tdTotal + tprov + (reste > 0 ? reste : 0);
-            const fmt = (n) => { const v = parseFloat(n) || 0; return parseFloat(v.toFixed(2)).toString().replace('.', ','); };
-            const setBar = (id, val) => {
-                const p = globalTotal > 0 ? Math.round((val / globalTotal) * 100) : 0;
-                document.getElementById(`bar-${id}-m`).style.transform = 'scaleX(' + (p / 100) + ')'; // scaleX (GPU) au lieu de width — charte §11.3
-                document.getElementById(`pct-${id}-m`).innerText = fmt(val) + ' € · ' + p + '%';
-            };
-            setBar('charges', tc); setBar('depenses', tdTotal); setBar('provisions', tprov); setBar('reste', reste > 0 ? reste : 0);
-
-            // Jours restants
-            const [n, a] = m.nom.split(' ');
-            const mIdx = NOMS_MOIS.indexOf(n);
-            const today = new Date();
-            if (today.getFullYear() === parseInt(a) && today.getMonth() === mIdx) {
-                const last = new Date(today.getFullYear(), mIdx + 1, 0).getDate();
-                document.getElementById('jours-restants').innerText = (last - today.getDate()) + " jours restants";
-            } else {
-                document.getElementById('jours-restants').innerText = "Mois clôturé";
-            }
+            // V2 : chiffre héros, barre empilée, vignettes et jours restants → rendreV2()
         };
+
+        // ===================== V2 (18/10/2026) : tableau de bord, feuilles, calendrier =====================
+        // Même données, même calculs que Budget (calculerSoldeReporte, sommeCB, sommeEspeces…) : seule la
+        // présentation change. Tout le HTML inséré passe par esc().
+        state.vueMois = 'resume';   // 'resume' | 'calendrier'
+        state.jourSel = null;       // jour choisi dans le calendrier
+        state.filtreQui = '';       // '' | 'corentin' | 'lisa' (feuille Dépenses)
+        const JOURS_SEM = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+        const fmtEur = (v) => (Number(v) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        const fmtEur0 = (v) => Math.round(Number(v) || 0).toLocaleString('fr-FR') + ' €';
+        const montantHTML = (v) => { const [i, d] = fmtEur(v).split(','); return `<span class="v2-int">${esc(i)}</span><span class="v2-dec">,${esc(d)}</span>`; };
+        const decoupeCat = (c) => {
+            const s = String(c || '').trim();
+            const m = s.match(/^(\S+)\s+(.+)$/);
+            return (m && !/[A-Za-zÀ-ÿ0-9]/.test(m[1])) ? { ico: m[1], nom: m[2] } : { ico: '•', nom: s || 'Autre' };
+        };
+        const infosMois = (m) => {
+            const [n, a] = m.nom.split(' ');
+            const mi = NOMS_MOIS.indexOf(n), an = parseInt(a);
+            const nbJ = new Date(an, mi + 1, 0).getDate();
+            const t = new Date();
+            const courant = t.getFullYear() === an && t.getMonth() === mi;
+            const passe = new Date(an, mi + 1, 1) <= t;
+            return { mi, an, nbJ, courant, passe, auj: courant ? t.getDate() : (passe ? nbJ + 1 : 0), prefixe: `${an}-${String(mi + 1).padStart(2, '0')}` };
+        };
+        const dateCourte = (d) => { if (!d) return ''; const [, mo, j] = d.split('-'); return parseInt(j) + ' ' + (NOMS_MOIS[parseInt(mo) - 1] || '').slice(0, 4).toLowerCase() + '.'; };
+        const ligneOpHTML = (it, type) => {
+            const cat = decoupeCat(it.categorie);
+            const mnt = Number(it.montant) || 0;
+            const credit = mnt < 0;
+            const meth = type === 'depenses' ? ({ ESPECES: ' · 💵', MIXTE: ' · 💳+💵', TR: ' · 🎟️' }[it.moyenPaiement] || '') : '';
+            const genre = type === 'charges' ? 'Charge' : type === 'provisions' ? 'Provision' : cat.nom;
+            const pt = it.par === 'lisa' ? 'l' : it.par === 'corentin' ? 'c' : '';
+            return `<button type="button" class="v2-op" data-sheet="${esc(type)}">
+                <span class="v2-op-ico ${type === 'depenses' ? (credit ? 'k-rev' : 'k-dep') : 'k-' + esc(type)}">${esc(cat.ico)}</span>
+                <span class="v2-op-txt"><span class="v2-op-nom">${esc(it.libelle || cat.nom)}</span><span class="v2-op-meta">${esc(genre + (it.date ? ' · ' + dateCourte(it.date) : '') + meth)}</span></span>
+                ${pt ? `<i class="v2-pt ${pt}"></i>` : ''}
+                <span class="v2-op-mnt ${credit ? 'pos' : ''}">${credit ? '+ ' : '− '}${esc(fmtEur(Math.abs(mnt)))}</span>
+            </button>`;
+        };
+        const barreHTML = (parts) => {
+            const tot = parts.reduce((s, p) => s + Math.max(p.v, 0), 0);
+            return parts.filter(p => p.v > 0 && tot > 0).map(p => `<i class="${p.cls}" style="flex-grow:${(p.v / tot * 100).toFixed(2)}"></i>`).join('');
+        };
+        const legendeHTML = (parts) => {
+            const tot = parts.reduce((s, p) => s + Math.max(p.v, 0), 0);
+            return parts.map(p => `<div class="v2-leg-i ${p.cls}"><span>${esc(p.nom)}</span><strong>${esc(fmtEur0(p.v))}</strong><em>${tot > 0 ? Math.round(Math.max(p.v, 0) / tot * 100) : 0} %</em></div>`).join('');
+        };
+
+        const rendreV2 = (m, report, reportEspeces) => {
+            const info = infosMois(m);
+            const tc = somme(m.charges), tdTotal = somme(m.depenses), tdEsp = sommeEspeces(m.depenses), tprov = somme(m.provisions);
+            const totalRev = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
+            const resteRevolut = totalRev - tc - sommeCB(m.depenses) - tprov;
+            const resteEspeces = reportEspeces + (parseFloat(m.especes_add) || 0) - tdEsp;
+            const reste = resteRevolut + resteEspeces;
+
+            // Héros
+            const big = document.getElementById('reste-a-vivre');
+            big.innerHTML = montantHTML(reste);
+            big.classList.toggle('neg', reste < 0);
+            const jr = info.nbJ - info.auj;
+            document.getElementById('jours-restants').textContent = info.courant
+                ? `${jr} jour${jr > 1 ? 's' : ''} restant${jr > 1 ? 's' : ''} · ≈ ${fmtEur(reste / Math.max(jr + 1, 1))} par jour`
+                : (info.passe ? 'Mois clôturé' : 'Mois à venir');
+            document.getElementById('detail-reste').textContent = `💳 ${fmtEur(resteRevolut)} · 💵 ${fmtEur(resteEspeces)}`;
+            document.getElementById('v2-prog').style.transform = `scaleX(${info.courant ? info.auj / info.nbJ : (info.passe ? 1 : 0)})`;
+
+            // Résumé : barre empilée + vignettes
+            const parts = [
+                { nom: 'Charges', v: tc, cls: 'k-charges' }, { nom: 'Dépenses', v: tdTotal, cls: 'k-dep' },
+                { nom: 'Provisions', v: tprov, cls: 'k-provisions' }, { nom: 'Reste', v: Math.max(reste, 0), cls: 'k-reste' }
+            ];
+            document.getElementById('v2-leg').innerHTML = legendeHTML(parts);
+            document.getElementById('v2-bar').innerHTML = barreHTML(parts);
+            document.getElementById('v2-revenus').textContent = fmtEur(totalRev);
+            const pl = (n, s) => `${n} ${s}${n > 1 ? 's' : ''}`;
+            document.getElementById('v2-t-charges').innerHTML = montantHTML(tc);
+            document.getElementById('v2-i-charges').textContent = pl(m.charges.length, 'ligne');
+            document.getElementById('v2-t-depenses').innerHTML = montantHTML(tdTotal);
+            document.getElementById('v2-i-depenses').textContent = pl(m.depenses.length, 'achat') + (tdEsp > 0 ? ` · ${fmtEur0(tdEsp)} en espèces` : '');
+            document.getElementById('v2-t-provisions').innerHTML = montantHTML(tprov);
+            document.getElementById('v2-i-provisions').textContent = pl(m.provisions.length, 'ligne');
+            document.getElementById('v2-t-especes').innerHTML = montantHTML(resteEspeces);
+            document.getElementById('v2-i-especes').textContent = `dont ${fmtEur0(reportEspeces)} reportés`;
+            document.getElementById('titre-depenses').innerHTML = `Dépenses <small>(${esc(fmtEur0(tdTotal))})</small>`;
+
+            // Dernières opérations (dépenses, les plus récentes d'abord)
+            const recentes = m.depenses.map((d, i) => ({ d, i }))
+                .sort((a, b) => String(b.d.date || '').localeCompare(String(a.d.date || '')) || a.i - b.i)
+                .slice(0, 6).map(x => ligneOpHTML(x.d, 'depenses')).join('');
+            document.getElementById('v2-ops').innerHTML = recentes || '<p class="v2-vide">Aucune dépense ce mois-ci</p>';
+
+            // Feuille Dépenses : total par catégorie (selon le filtre Qui)
+            const parCat = {};
+            m.depenses.filter(d => !state.filtreQui || d.par === state.filtreQui)
+                .forEach(d => { const v = Number(d.montant) || 0; if (v > 0) parCat[d.categorie || '❓ Autre'] = (parCat[d.categorie || '❓ Autre'] || 0) + v; });
+            const cats = Object.entries(parCat).sort((a, b) => b[1] - a[1]);
+            const max = cats.length ? cats[0][1] : 1;
+            document.getElementById('v2-cats').innerHTML = cats.map(([c, v]) => {
+                const k = decoupeCat(c);
+                return `<div class="v2-cat"><div class="v2-row"><span>${esc(k.ico + ' ' + k.nom)}</span><strong>${esc(fmtEur(v))}</strong></div><div class="v2-cat-bar"><i style="transform:scaleX(${(v / max).toFixed(3)})"></i></div></div>`;
+            }).join('') || '<p class="v2-vide">Pas encore de dépense</p>';
+            document.querySelectorAll('#v2-qui [data-qui]').forEach(b => b.classList.toggle('on', b.dataset.qui === state.filtreQui));
+
+            // Bascule Résumé / Calendrier
+            const cal = state.vueMois === 'calendrier';
+            document.querySelectorAll('#v2-seg [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === state.vueMois));
+            document.getElementById('mois-content-wrapper').classList.toggle('hidden', cal);
+            document.getElementById('v2-calendrier').classList.toggle('hidden', !cal);
+            if (cal) rendreCalendrier(m, info, { tc, tdTotal, tprov, reste });
+        };
+
+        // Calendrier : dépenses et charges DATÉES dans le mois. Charge datée après aujourd'hui = « à venir ».
+        const rendreCalendrier = (m, info, t) => {
+            const jours = {};
+            const j0 = (j) => (jours[j] = jours[j] || { dep: 0, rem: 0, chg: 0, avenir: 0, ops: [] });
+            const ajouter = (it, type) => {
+                if (!it.date || it.date.slice(0, 7) !== info.prefixe) return;
+                const j = parseInt(it.date.slice(8, 10)), v = Number(it.montant) || 0, d = j0(j);
+                d.ops.push({ it, type });
+                if (type === 'depenses') { if (v >= 0) d.dep += v; else d.rem -= v; }
+                else if (j > info.auj) d.avenir += v; else d.chg += v;
+            };
+            m.depenses.forEach(it => ajouter(it, 'depenses'));
+            m.charges.forEach(it => ajouter(it, 'charges'));
+            const avenir = Object.values(jours).reduce((s, d) => s + d.avenir, 0);
+            const parts = [
+                { nom: 'Dépensé', v: t.tdTotal + t.tc - avenir + t.tprov, cls: 'k-dep' },
+                { nom: 'À venir', v: avenir, cls: 'k-avenir' },
+                { nom: 'Reste', v: Math.max(t.reste, 0), cls: 'k-reste' }
+            ];
+            document.getElementById('v2-cal-leg').innerHTML = legendeHTML(parts);
+            document.getElementById('v2-cal-bar').innerHTML = barreHTML(parts);
+
+            const decal = (new Date(info.an, info.mi, 1).getDay() + 6) % 7;
+            const sel = state.jourSel || (info.courant ? info.auj : null);
+            let html = '<span></span>'.repeat(decal);
+            for (let j = 1; j <= info.nbJ; j++) {
+                const d = jours[j];
+                let cls = '', lib = '';
+                if (d) {
+                    const net = d.dep + d.chg + d.avenir - d.rem;
+                    cls = d.avenir > 0 ? 'c-avenir' : (net > 0 ? 'c-dep' : (d.rem > 0 ? 'c-rem' : ''));
+                    if (Math.round(net) !== 0) lib = (net > 0 ? '−' : '+') + Math.abs(Math.round(net));
+                }
+                if (info.courant && j === info.auj) cls += ' c-auj';
+                if (j > info.auj) cls += ' c-futur';
+                if (j === sel) cls += ' c-sel';
+                html += `<button type="button" class="v2-jour ${cls}" data-jour="${j}" aria-label="${j} ${esc(NOMS_MOIS[info.mi])}"><span>${j}</span><small>${esc(lib)}</small></button>`;
+            }
+            document.getElementById('v2-cal').innerHTML = html;
+
+            const det = document.getElementById('v2-cal-detail');
+            if (!sel) { det.innerHTML = '<p class="v2-vide">Touchez un jour pour voir ses opérations</p>'; return; }
+            const nomJour = JOURS_SEM[(new Date(info.an, info.mi, sel).getDay() + 6) % 7];
+            const ops = (jours[sel] ? jours[sel].ops : []).map(o => ligneOpHTML(o.it, o.type)).join('');
+            det.innerHTML = `<div class="v2-cal-titre">${esc(nomJour + ' ' + sel + ' ' + NOMS_MOIS[info.mi].toLowerCase())}${info.courant && sel === info.auj ? ' · aujourd’hui' : ''}</div>`
+                + (ops || '<p class="v2-vide">Aucune opération ce jour-là</p>');
+        };
+
+        // Feuilles (bottom sheets)
+        const ouvrirFeuille = (nom) => {
+            const w = document.getElementById('sheet-' + nom);
+            if (!w) return;
+            document.querySelectorAll('.v2-sheet-wrap.open').forEach(x => { if (x !== w) fermerFeuille(x); });
+            w.classList.add('open');
+            w.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('v2-feuille');
+        };
+        const fermerFeuille = (w) => {
+            if (!w) return;
+            w.classList.remove('open');
+            w.setAttribute('aria-hidden', 'true');
+            if (!document.querySelector('.v2-sheet-wrap.open')) document.body.classList.remove('v2-feuille');
+        };
+        document.getElementById('v2-sheets').addEventListener('click', (e) => {
+            if (e.target.closest('[data-close]')) { fermerFeuille(e.target.closest('.v2-sheet-wrap')); return; }
+            const choixMois = e.target.closest('[data-mois-id]');
+            if (choixMois) { state.moisActifId = choixMois.dataset.moisId; state.jourSel = null; fermerFeuille(document.getElementById('sheet-mois')); rafraichirTouteLInterface(); return; }
+            const qui = e.target.closest('[data-qui]');
+            if (qui) { state.filtreQui = qui.dataset.qui; rafraichirTouteLInterface(); }
+        });
+        document.getElementById('vue-mensuelle').addEventListener('click', (e) => {
+            const mode = e.target.closest('[data-mode]');
+            if (mode) { state.vueMois = mode.dataset.mode; rafraichirTouteLInterface(); return; }
+            const jour = e.target.closest('[data-jour]');
+            if (jour) { state.jourSel = parseInt(jour.dataset.jour); rafraichirTouteLInterface(); return; }
+            const feuille = e.target.closest('[data-sheet]');
+            if (feuille) { ouvrirFeuille(feuille.dataset.sheet); return; }
+            const act = e.target.closest('[data-action]');
+            if (!act) return;
+            // Focus pendant le geste (sinon iOS n'ouvre pas le clavier)
+            if (act.dataset.action === 'depense') {
+                ouvrirFeuille('depenses');
+                document.querySelector('#sheet-depenses [data-add="depenses"]').click();
+                const t = document.querySelector('#conteneur-depenses textarea');
+                if (t) t.focus();
+            } else if (act.dataset.action === 'revenu') { ouvrirFeuille('revenus'); document.getElementById('revenus_add').focus(); }
+            else if (act.dataset.action === 'especes') { ouvrirFeuille('revenus'); document.getElementById('especes_add').focus(); }
+            else if (act.dataset.action === 'chercher') { ouvrirFeuille('depenses'); document.getElementById('search-bar').focus(); }
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.v2-sheet-wrap.open').forEach(fermerFeuille); });
 
         // --- Vue Charges Fixes ---
         const rendreVueFixes = () => {
@@ -853,13 +1036,9 @@
 
         // 3. Barre Latérale (Mois/Années)
         document.getElementById('month-list').addEventListener('click', (e) => {
-            const header = e.target.closest('.year-header');
-            if (header) {
-                const an = parseInt(header.dataset.year);
-                if (state.anneesOuvertes.has(an)) state.anneesOuvertes.delete(an);
-                else state.anneesOuvertes.add(an);
-                rendreMenu();
-            }
+            if (e.target.closest('[data-ouvrir-mois]')) { ouvrirFeuille('mois'); return; }
+            const btn = e.target.closest('[data-mois-id]');
+            if (btn) { state.moisActifId = btn.dataset.moisId; state.jourSel = null; rafraichirTouteLInterface(); }
         });
 
         // 4. Actions Mois
@@ -903,6 +1082,7 @@
             document.getElementById(containerId).addEventListener('input', (e) => {
                 const mois = getMoisActif();
                 const { id, type, field } = e.target.dataset;
+                if (!mois || !type || !Array.isArray(mois[type])) return; // V2 : champs de revenus (gérés plus bas) dans la même feuille
                 const item = mois[type].find(x => x.id === id);
                 if (item) {
                     if (field === 'montant') {
@@ -1076,7 +1256,7 @@
         window.addEventListener('pagehide', envoyerNotifsEnAttente);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') envoyerNotifsEnAttente(); });
 
-        setupTableListeners('mois-content-wrapper');
+        setupTableListeners('v2-sheets'); // V2 : les listes éditables sont dans les feuilles
         setupTableListeners('vue-fixes');
 
         // 6. Ajout de lignes
@@ -1085,7 +1265,11 @@
             if (type) {
                 const mois = getMoisActif();
                 const nouv = { id: genId(), libelle: "", montant: 0, date: new Date().toISOString().split('T')[0], categorie: state.categories[0] };
-                if (type === 'depenses') nouv.moyenPaiement = 'CB';
+                if (type === 'depenses') {
+                    nouv.moyenPaiement = 'CB';
+                    // V2 : qui a saisi la dépense (point bleu/rose). Champ en plus, ignoré par Budget v1.
+                    nouv.par = localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin';
+                }
                 
                 mois[type].unshift(nouv);
                 sauvegarderDonnees();

@@ -19,9 +19,9 @@
 
 ---
 
-## 🪟 Budget V2 — feuille (bottom sheet) transparente sur le design Verre (18/10/2026)
+## 🪟 Budget — feuille (bottom sheet) transparente sur le design Verre (18/10/2026)
 
-### 18/10/2026 — BudgetV2 — feuille illisible, le tableau de bord se voyait à travers
+### 18/10/2026 — Budget (refonte 5.0.0, testée d'abord dans `BudgetV2/`) — feuille illisible, le tableau de bord se voyait à travers
 **Symptôme** : à la création de Budget V2, les feuilles qui montent du bas (`.v2-sheet`) laissaient voir tout l'écran Mois derrière les lignes : textes superposés, illisible.
 **Cause racine** : en design Verre, `--card` est une couleur **translucide** (la plaque laisse passer les halos). Un fond `var(--card)` convient à une carte posée sur la plaque, pas à un calque qui passe **au-dessus** du contenu.
 **Solution** : fond opaque explicite (`#161b22`, la valeur de `--card` de la charte) sur la feuille et sur sa poignée collante.
@@ -29,7 +29,7 @@
 - Tout calque superposé (feuille, menu, pop-up maison) : fond **opaque** explicite, jamais `var(--card)` ni `var(--bg)` hérités du Verre.
 - Ces calques vont **hors de `<main>`** dans Budget : `changerVue()` masque tous les `main > div` qui ne sont pas la vue active.
 - Nouvelle app ou copie d'app (même règle que Todo, 11/10/2026) : dossier ajouté à `isSubApp` du `sw.js` racine et au workflow `auto-version.yml` (chemins, boucle, lancement manuel).
-**Fichiers touchés** : `BudgetV2/*` (nouveau), `sw.js`, `.github/workflows/auto-version.yml`
+**Fichiers touchés** : `Budget/*` (via `BudgetV2/`, recopié puis supprimé le même jour), `sw.js`, `.github/workflows/auto-version.yml` (entrées BudgetV2 ajoutées puis retirées)
 
 ---
 

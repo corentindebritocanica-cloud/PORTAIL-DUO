@@ -1,12 +1,42 @@
 # Lisa-CorentinBudget
 
-> **📌 État actuel (vérifié le 28/09/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé (barré ou signalé « → »).
-> - **Version 4.0.0 — Design Verre** (feuille commune `../verre.css`), **sombre uniquement**, titre « Budget » + pastille `.status-dot` (modèle des 4 apps). L'écran de connexion reste caché tant que Firebase n'a pas répondu.
-> - Fichiers : `index.html` (structure + `DERNIERE_MAJ`, charge `../commun.js` et `../verre.css`), `style.css`, `app.js`, `sw.js` (shell + `FICHIERS_COMMUNS` + SDK), `manifest.json`, `icone.PNG`.
+> **📌 État actuel (18/10/2026)** — à lire en premier ; les sections plus bas sont chronologiques et peuvent décrire un état dépassé.
+> - **Version 5.0.0 — tableau de bord** : onglet Mois refait (chiffre héros, barre empilée avec %, vignettes 2×2, actions rapides, dernières opérations, bascule Calendrier), listes éditables dans des **feuilles** (bottom sheets). Détail : section « v5.0.0 » juste en dessous.
+> - **Style « Simple » imposé** à Budget (script dans `index.html` juste après `commun.js`), quel que soit le choix du Portail. Base Verre conservée (`../verre.css`, `html.verre`, `data-app="budget"`), sombre uniquement, titre « Budget » + pastille `.status-dot`.
+> - Fichiers : `index.html` (structure + `DERNIERE_MAJ`, charge `../commun.js` et `../verre.css`), `style.css` (base + bloc « BUDGET V2 » en fin de fichier), `app.js` (code historique + bloc « V2 (18/10/2026) »), `sw.js` (préfixe `budget-lc-shell-` inchangé), `manifest.json`, `icone.PNG`.
 > - **Noyau commun `../commun.js`** : halos, transition, date de MAJ, service worker, vérification de version.
-> - **Profil** : `duo_profile`, commun aux 4 apps (ex-`budgetLC_profil`, migrée). Le changelog ci-dessous est chronologique (les premières versions décrivent un état dépassé).
+> - **Profil** : `duo_profile`, commun aux 4 apps (ex-`budgetLC_profil`, migrée).
 
 ## Changelog
+
+## v5.0.0 — Nouveau tableau de bord + style Simple (18/10/2026)
+
+Refonte de l'onglet Mois d'après la maquette « Budget — refonte onglet Mois » (validée par Corentin, inspirée de l'app Kakeibo). Développée d'abord dans un dossier `BudgetV2/` (mêmes données Firestore) pour comparer les deux versions, puis **recopiée ici le même jour** ; `BudgetV2/` est supprimé. **Aucune donnée modifiée** : mêmes collections `mois` et `config`, mêmes calculs (`calculerSoldeReporte`, `sommeCB`, `sommeEspeces`…).
+
+**Onglet Mois** (Année, Fixes et Réglages inchangés) :
+- **Navigateur de mois** « ‹ Sept. · Octobre 2026 ▾ · Nov. › » (`rendreMenu`) au lieu de la liste par année. Un appui sur le nom ouvre la feuille **Tous les mois** (`#sheet-mois`, mois groupés par année) pour sauter à n'importe quel mois. « + Démarrer … » seulement sur le dernier mois.
+- **Bascule Résumé / Calendrier** (`state.vueMois`).
+- **Chiffre héros** : reste à vivre (centimes en petit), jours restants, ≈ € par jour, part carte / espèces, barre de progression du mois.
+- **Barre empilée** Charges / Dépenses / Provisions (rayé) / Reste, montant **et %** sous chaque poste — remplace les 4 jauges « Répartition » (ids `bar-*-m`, `pct-*-m`, `repartition-m` supprimés). Les % arrondis peuvent totaliser 99 ou 101 %.
+- **Vignettes 2×2** Charges · Dépenses · Provisions · Espèces : un appui ouvre une **feuille** avec la liste éditable d'origine (mêmes champs, glisser-déposer, mode Mixte, suppression + Annuler, notifications).
+- **Actions rapides** : − Dépense (ouvre la feuille et crée la ligne, curseur dans le libellé), + Revenu (« Ajouts en cours »), Espèces (« Espèces ajoutées »).
+- **Dernières opérations** : les 6 dépenses les plus récentes (emoji de la catégorie, mode de paiement, montant en pastille).
+- **Feuille Dépenses** : recherche (`#search-bar`, déplacée ici), filtre **Tous / Corentin / Lisa**, total par catégorie.
+- **Feuille Revenus & espèces** : soldes reportés, revenus, espèces ajoutées, ajouts, et « Supprimer ce mois » (déplacé ici).
+- **Calendrier** : dépenses et charges **datées** du mois ; rouge = dépense, vert = remboursement, pointillé ambre = charge datée après aujourd'hui (« à venir »). Un appui sur un jour liste ses opérations.
+
+**Données** : un seul champ ajouté, `par` (`'corentin' | 'lisa'`) sur les **nouvelles** dépenses (profil du téléphone) → point bleu/rose et filtre Qui. Les anciennes dépenses n'ont pas de point.
+
+**Code** :
+- `index.html` : en-tête (navigateur de mois), vue Mois, feuilles `#v2-sheets` **hors de `<main>`** (`changerVue` masque tous les `main > div`).
+- `app.js` : bloc « V2 (18/10/2026) » (`rendreV2`, `rendreCalendrier`, `ouvrirFeuille` / `fermerFeuille`). `setupTableListeners('v2-sheets')` remplace `'mois-content-wrapper'` ; garde ajoutée dans l'écouteur `input` (les champs de revenus sont dans la même feuille).
+- `style.css` : bloc « BUDGET V2 » en fin de fichier. Feuilles en fond **opaque** `var(--t-modale)` (`--card` est translucide en Verre — voir `PROBLEMES_RESOLUS.md`).
+- **Style « Simple » imposé** : script après `commun.js` qui pose `data-style="simple"` (réappliqué sur `pageshow` et `storage`). Pour revenir au choix du Portail : supprimer ce script.
+
+**Limite connue** : les charges sont recopiées d'un mois à l'autre avec leur ancienne date (`btn-next-month`), donc « À venir » reste à 0 tant que leurs dates ne sont pas mises à jour dans le mois.
+
+**Vérifié** (Chromium, Firebase simulé avec les vraies données lues en lecture seule) : Résumé, feuilles, Calendrier, Tous les mois, ajout d'une dépense (`par` enregistré), aucune erreur JS. **Non vérifié sur iPhone** (clavier dans les feuilles, safe-area). ⚠️ Une icône « Budget V2 » ajoutée à l'écran d'accueil ne fonctionne plus : la supprimer.
+
 
 ### v2.9.6 — Correctif Accordéons (2026-09-18)
 - Correctif : les flèches d'accordéon (▼) des cartes de la vue Mensuelle (Répartition, Charges, Dépenses, Épargne, Provisions) étaient inertes — le clic sur l'en-tête ne repliait/dépliait pas la carte.

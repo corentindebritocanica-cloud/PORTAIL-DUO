@@ -19,15 +19,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
 
-    <link rel="stylesheet" href="style.css?v=202610120853200200">
+    <link rel="stylesheet" href="style.css?v=202610182039070200">
     <!-- Design « Verre » (28/09/2026) : feuille commune à la RACINE du dépôt (../verre.css), appliquée par la classe
          html.verre posée en dur ci-dessus. style.css garde la base (jetons, structure, thème clair), verre.css l'habille. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap">
 <!-- Noyau commun (28/09/2026) : ../commun.js à la racine du dépôt — halos calés sur l'horloge, transition
      « vitre → app », date de MAJ, service worker, vérification de version. Dans le <head>, sans defer. -->
-<script src="../commun.js?v=202610120853200200"></script>
-    <link rel="stylesheet" href="../verre.css?v=202610120853200200">
+<script src="../commun.js?v=202610182039070200"></script>
+<!-- 18/10/2026 : style « Simple » imposé à Budget, quel que soit le choix du Portail (duo-style).
+     Réappliqué après commun.js au retour (pageshow) et au changement de choix (storage). -->
+<script>
+(function(){ var r=document.documentElement, f=function(){ r.setAttribute('data-style','simple'); };
+  f(); window.addEventListener('pageshow', f); window.addEventListener('storage', function(e){ if(e.key==='duo-style') f(); }); })();
+</script>
+    <link rel="stylesheet" href="../verre.css?v=202610182039070200">
 </head>
 <body>
 <div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:calc(var(--tabbar-height, 0px) + 12px); transform:translateX(-50%); z-index:99999; background:var(--card, var(--card-bg, #1c1c1e)); color:var(--text, var(--text-main, #fff)); padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid var(--border, rgba(255,255,255,.12)); font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
@@ -73,8 +79,9 @@
         <div class="nav-header">
             <h2>Budget <span id="sync-dot" class="status-dot"></span></h2>
         </div>
+        <!-- V2 (18/10/2026) : navigateur de mois « Préc. · Mois · Suiv. » (rendreMenu) au lieu de la liste par année -->
         <div id="month-nav-group">
-            <div id="month-list"></div>
+            <div id="month-list" class="v2-mois-nav"></div>
             <button class="btn-action bg-primary" id="btn-next-month">+ Démarrer un mois</button>
         </div>
     </nav>
@@ -103,57 +110,79 @@
 
     <main class="main-content">
         <div id="vue-mensuelle">
-            <div class="search-container"><input type="text" id="search-bar" placeholder="🔍 Rechercher dans ce mois..."></div>
-            <div class="header-title-group">
-                <h1 id="titre-mois">Chargement...</h1>
-                <div class="header-actions">
-                    <button class="btn-icon danger" id="btn-del-month" title="Supprimer le mois" aria-label="Supprimer le mois">🗑️</button>
-                </div>
+            <!-- V2 (18/10/2026) : tableau de bord (chiffre héros, barre empilée, vignettes, actions, dernières
+                 opérations) + bascule Calendrier. Les listes éditables vivent dans des feuilles (#v2-sheets). -->
+            <h1 id="titre-mois" class="v2-sr">Chargement...</h1>
+            <div class="v2-seg" id="v2-seg" role="tablist">
+                <button type="button" data-mode="resume" class="on">Résumé</button>
+                <button type="button" data-mode="calendrier">Calendrier</button>
             </div>
 
+            <section class="v2-hero">
+                <div class="v2-label">Reste à vivre</div>
+                <div class="v2-big" id="reste-a-vivre">0 €</div>
+                <div class="v2-sub" id="jours-restants">--</div>
+                <div class="v2-sub v2-dim" id="detail-reste">💳 0,00 € · 💵 0,00 €</div>
+                <div class="v2-prog"><div id="v2-prog"></div></div>
+            </section>
+
             <div id="mois-content-wrapper">
-                <div class="revenus-box">
-                    <div class="revenus-row"><strong>Solde reporté (Revolut)</strong><input type="number" id="solde_reporte" readonly></div>
-                    <div class="revenus-row"><strong>Espèces reportées</strong><input type="number" id="solde_reporte_especes" readonly></div>
-                    <div class="revenus-row revenus-group-start"><strong>Revenus initiaux</strong><input type="number" id="revenus" data-field="revenus"></div>
-                    <div class="revenus-row"><strong>Espèces ajoutées</strong><input type="number" id="especes_add" data-field="especes_add"></div>
-                    <div class="revenus-row revenus-group-start"><strong>Ajouts en cours</strong><input type="number" id="revenus_add" data-field="revenus_add"></div>
+                <div class="v2-card v2-repart">
+                    <div class="v2-leg" id="v2-leg"></div>
+                    <div class="v2-bar" id="v2-bar"></div>
+                    <div class="v2-row"><span>Revenus du mois</span><strong id="v2-revenus">0 €</strong></div>
                 </div>
 
-                <div class="card summary-card">
-                    <h3>Reste à vivre</h3>
-                    <div class="total-amount" id="reste-a-vivre">0 €</div>
-                    <div class="sub-text" id="detail-reste">💳 0,00 € · 💵 0,00 €</div>
-                    <div class="sub-text" id="jours-restants">-- jours restants</div>
+                <div class="v2-tiles">
+                    <button type="button" class="v2-tile t-charges" data-sheet="charges">
+                        <span class="v2-tile-ico">🏠</span>
+                        <span class="v2-tile-nom">Charges · Revolut</span>
+                        <span class="v2-tile-mnt" id="v2-t-charges">0 €</span>
+                        <span class="v2-tile-info" id="v2-i-charges"></span>
+                    </button>
+                    <button type="button" class="v2-tile t-depenses" data-sheet="depenses">
+                        <span class="v2-tile-ico">🛒</span>
+                        <span class="v2-tile-nom">Dépenses</span>
+                        <span class="v2-tile-mnt" id="v2-t-depenses">0 €</span>
+                        <span class="v2-tile-info" id="v2-i-depenses"></span>
+                    </button>
+                    <button type="button" class="v2-tile t-provisions" data-sheet="provisions">
+                        <span class="v2-tile-ico">🛡️</span>
+                        <span class="v2-tile-nom">Provisions</span>
+                        <span class="v2-tile-mnt" id="v2-t-provisions">0 €</span>
+                        <span class="v2-tile-info" id="v2-i-provisions"></span>
+                    </button>
+                    <button type="button" class="v2-tile t-revenus" data-sheet="revenus">
+                        <span class="v2-tile-ico">💵</span>
+                        <span class="v2-tile-nom">Espèces</span>
+                        <span class="v2-tile-mnt" id="v2-t-especes">0 €</span>
+                        <span class="v2-tile-info" id="v2-i-especes"></span>
+                    </button>
                 </div>
 
-                <div class="card">
-                    <div class="card-header collapsed" data-target="repartition-m"><h3>📊 Répartition</h3></div>
-                    <div id="repartition-m" class="section-content collapsed">
-                        <div class="progress-container"><div class="progress-header"><span>🏠 Charges Fixes</span><span id="pct-charges-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-charges" id="bar-charges-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>🛒 Dépenses</span><span id="pct-depenses-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-depenses" id="bar-depenses-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>🛡️ Provisions</span><span id="pct-provisions-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-provisions" id="bar-provisions-m"></div></div></div>
-                        <div class="progress-container"><div class="progress-header"><span>✅ Reste</span><span id="pct-reste-m">0%</span></div><div class="progress-track"><div class="progress-fill fill-reste" id="bar-reste-m"></div></div></div>
-                    </div>
+                <div class="v2-actions">
+                    <button type="button" class="v2-act a-dep" data-action="depense">− Dépense</button>
+                    <button type="button" class="v2-act a-rev" data-action="revenu">+ Revenu</button>
+                    <button type="button" class="v2-act a-esp" data-action="especes">💵 Espèces</button>
                 </div>
 
-                <div class="card">
-                    <div class="card-header collapsed" data-target="conteneur-charges"><h3>🏠 Charges (Revolut) (<span id="total-charges">0</span> €)</h3></div>
-                    <div id="conteneur-charges" class="section-content collapsed"></div>
-                    <button class="btn-action bg-primary" data-add="charges">+ Nouvelle charge</button>
+                <div class="v2-ops-head">
+                    <h3>Dernières opérations</h3>
+                    <button type="button" class="v2-rond" data-action="chercher" aria-label="Rechercher">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                    </button>
                 </div>
+                <div id="v2-ops"></div>
+            </div>
 
-                <div class="card">
-                    <div class="card-header collapsed" data-target="conteneur-depenses"><h3 id="titre-depenses">🛒 Dépenses (0 €)</h3></div>
-                    <div id="conteneur-depenses" class="section-content collapsed"></div>
-                    <button class="btn-action bg-primary" data-add="depenses">+ Nouvelle dépense</button>
+            <div id="v2-calendrier" class="hidden">
+                <div class="v2-card">
+                    <div class="v2-leg v2-leg3" id="v2-cal-leg"></div>
+                    <div class="v2-bar" id="v2-cal-bar"></div>
                 </div>
-
-                <div class="card">
-                    <div class="card-header collapsed" data-target="conteneur-provisions"><h3>🛡️ Provisions (<span id="total-provisions">0</span> €)</h3></div>
-                    <div id="conteneur-provisions" class="section-content collapsed"></div>
-                    <button class="btn-action bg-primary" data-add="provisions">+ Nouvelle provision</button>
-                </div>
+                <div class="v2-cal-jours"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+                <div class="v2-cal" id="v2-cal"></div>
+                <div id="v2-cal-detail"></div>
             </div>
         </div>
 
@@ -236,12 +265,97 @@
             </div>
 
             <div class="app-version">
-                Version 4.0.0 (Design Verre)
+                Version 5.0.0 (tableau de bord · style Simple)
                 <br><span id="derniere-maj"></span>
             </div>
         </div>
 
     </main>
+
+    <!-- V2 (18/10/2026) : feuilles qui montent du bas, ouvertes par les vignettes / actions de l'onglet Mois.
+         Elles contiennent les listes éditables d'origine (mêmes id, même code d'édition que Budget). -->
+    <div id="v2-sheets">
+        <div class="v2-sheet-wrap" id="sheet-mois" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <h3>Tous les mois</h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <div id="v2-liste-mois"></div>
+            </div>
+        </div>
+
+        <div class="v2-sheet-wrap" id="sheet-depenses" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true" aria-labelledby="titre-depenses">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <span class="v2-sheet-ico t-depenses">🛒</span>
+                    <h3 id="titre-depenses">Dépenses</h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <div class="search-container"><input type="text" id="search-bar" placeholder="🔍 Rechercher dans ce mois..."></div>
+                <div class="v2-seg v2-qui" id="v2-qui">
+                    <button type="button" data-qui="" class="on">Tous</button>
+                    <button type="button" data-qui="corentin"><i class="v2-pt c"></i>Corentin</button>
+                    <button type="button" data-qui="lisa"><i class="v2-pt l"></i>Lisa</button>
+                </div>
+                <div class="v2-card v2-cats" id="v2-cats"></div>
+                <button class="btn-action bg-primary" data-add="depenses">+ Nouvelle dépense</button>
+                <div id="conteneur-depenses" class="v2-liste"></div>
+            </div>
+        </div>
+
+        <div class="v2-sheet-wrap" id="sheet-charges" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <span class="v2-sheet-ico t-charges">🏠</span>
+                    <h3>Charges · Revolut <small>(<span id="total-charges">0</span> €)</small></h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <button class="btn-action bg-primary" data-add="charges">+ Nouvelle charge</button>
+                <div id="conteneur-charges" class="v2-liste"></div>
+            </div>
+        </div>
+
+        <div class="v2-sheet-wrap" id="sheet-provisions" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <span class="v2-sheet-ico t-provisions">🛡️</span>
+                    <h3>Provisions <small>(<span id="total-provisions">0</span> €)</small></h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <button class="btn-action bg-primary" data-add="provisions">+ Nouvelle provision</button>
+                <div id="conteneur-provisions" class="v2-liste"></div>
+            </div>
+        </div>
+
+        <div class="v2-sheet-wrap" id="sheet-revenus" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet" role="dialog" aria-modal="true">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head">
+                    <span class="v2-sheet-ico t-revenus">💵</span>
+                    <h3>Revenus &amp; espèces</h3>
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                </div>
+                <div class="revenus-box">
+                    <div class="revenus-row"><strong>Solde reporté (Revolut)</strong><input type="number" id="solde_reporte" readonly></div>
+                    <div class="revenus-row"><strong>Espèces reportées</strong><input type="number" id="solde_reporte_especes" readonly></div>
+                    <div class="revenus-row revenus-group-start"><strong>Revenus initiaux</strong><input type="number" id="revenus" data-field="revenus" inputmode="decimal"></div>
+                    <div class="revenus-row"><strong>Espèces ajoutées</strong><input type="number" id="especes_add" data-field="especes_add" inputmode="decimal"></div>
+                    <div class="revenus-row revenus-group-start"><strong>Ajouts en cours</strong><input type="number" id="revenus_add" data-field="revenus_add" inputmode="decimal"></div>
+                </div>
+                <button class="btn-action bg-danger v2-suppr-mois" id="btn-del-month">🗑️ Supprimer ce mois</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Boîte de dialogue maison (bottom-sheet) : remplace alert()/confirm() — voir dialogue() dans app.js -->
     <div id="dialogue" class="overlay-popup hidden" role="dialog" aria-modal="true" aria-labelledby="dialogue-titre">
@@ -261,8 +375,8 @@
 /* Horodatage du dernier déploiement du code (pas des données), mis à jour
    automatiquement par .github/workflows/auto-version.yml. Ne pas supprimer :
    il sert aussi à détecter les nouvelles versions au retour dans l'app. */
-const DERNIERE_MAJ = '2026-10-12T08:53:20+02:00';
+const DERNIERE_MAJ = '2026-10-18T20:39:07+02:00';
 </script>
-<script src="app.js?v=202610120853200200"></script>
+<script src="app.js?v=202610182039070200"></script>
 </body>
 </html>
