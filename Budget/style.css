@@ -288,11 +288,12 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 
 /* Sélecteur de profil Corentin/Lisa (charte §5.6) */
 .profile-switch { display: flex; gap: 8px; padding: 5px; margin-top: 2px; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--r-md); }
-.profile-switch-btn { flex: 1; padding: 11px 8px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; color: var(--text-dim); font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.profile-switch-btn { flex: 1; min-height: 44px; padding: 11px 8px; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; color: var(--text-dim); font-size: 14.5px; font-weight: 700; font-family: inherit; cursor: pointer; }
 .profile-switch-btn.corentin.selected { background: rgba(31,143,255,0.14); border-color: var(--corentin); color: var(--corentin); }
 .profile-switch-btn.lisa.selected { background: rgba(255,61,126,0.14); border-color: var(--lisa); color: var(--lisa); }
 
-@media (min-width: 768px) {
+/* Audit 10-03 : (hover: hover) — un iPhone en paysage (812-956 px) gardait la mise en page mobile */
+@media (min-width: 768px) and (hover: hover) {
     body { flex-direction: row; }
     .top-nav { width: 280px; height: 100vh; position: sticky; padding: 25px; border-bottom: none; border-right: 1px solid var(--border); }
     .main-content { padding: 40px 40px calc(var(--tabbar-height) + 40px); }
@@ -348,7 +349,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 
 /* Bascule (segmented) */
 .v2-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--border); margin-bottom: 14px; }
-.v2-seg button { min-height: 36px; border: 0; border-radius: var(--r-sm); background: none; color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
+.v2-seg button { min-height: 44px; border: 0; border-radius: var(--r-sm); background: none; color: var(--text-dim); font: inherit; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
 .v2-seg button.on { background: var(--card-2, #1e2530); color: var(--text); font-weight: 700; }
 .v2-pt { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .v2-pt.c { background: var(--corentin, #1f8fff); } .v2-pt.l { background: var(--lisa, #ff3d7e); }
@@ -463,7 +464,7 @@ body.v2-feuille .tabbar-flottante { opacity: 0; pointer-events: none; }
 }
 
 /* « + Démarrer … » discret (visible seulement sur le dernier mois) */
-#btn-next-month { min-height: 36px; padding: 6px 14px; font-size: 13px; align-self: center; width: auto; border-radius: var(--r-pill); }
+#btn-next-month { min-height: 44px; padding: 6px 14px; font-size: 13px; align-self: center; width: auto; border-radius: var(--r-pill); }
 
 /* Pourcentages sous les montants de la barre empilée */
 .v2-leg-i em { font-style: normal; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }

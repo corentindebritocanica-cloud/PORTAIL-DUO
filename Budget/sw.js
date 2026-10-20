@@ -86,7 +86,8 @@ function cleCache(requete){
 function reseauPuisCache(requete){
   return new Promise((resolve) => {
     let termine = false;
-    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    // Audit 10-04 : index.html seulement pour une navigation (pas à la place d'un JS/CSS)
+    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || (requete.mode === 'navigate' ? caches.match(new URL('index.html', self.registration.scope).href) : undefined));
     const minuteur = setTimeout(() => {
       repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
     }, DELAI_RESEAU_MS);
@@ -97,7 +98,11 @@ function reseauPuisCache(requete){
         const copie = reponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(cleCache(requete), copie));
       }
-      if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
+      if (termine) return;
+      termine = true; clearTimeout(minuteur);
+      // Audit 10-04 : une erreur serveur (404/5xx) ne remplace pas la copie en cache
+      if (!reponse || !reponse.ok) { repliCache().then((r) => resolve(r || reponse)); return; }
+      resolve(reponse);
     }).catch(() => {
       clearTimeout(minuteur);
       if (termine) return;

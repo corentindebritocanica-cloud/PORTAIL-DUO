@@ -80,7 +80,8 @@
         let mixteDragId = null, mixteDragStartY = 0, mixteDragStartVal = 0, mixteDragLive = null;
 
         // --- Utilitaires ---
-        const eur = (n) => (parseFloat(n) || 0).toFixed(2) + " €";
+        const arr2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100 + 0; // audit 08-02 : pas de « -0,00 € » par dérive flottante
+        const eur = (n) => arr2(n).toFixed(2) + " €";
         const genId = () => Math.random().toString(36).substr(2, 9);
         const sansAccents = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         
@@ -96,7 +97,7 @@
         const sommeEspeces = (arr) => (arr || []).reduce((s, i) => {
             const meth = i.moyenPaiement || 'CB';
             if (meth === 'ESPECES') return s + (parseFloat(i.montant) || 0);
-            if (meth === 'MIXTE') return s + (parseFloat(i.montantEspeces) || 0);
+            if (meth === 'MIXTE') return s + Math.min(Math.max(parseFloat(i.montantEspeces) || 0, 0), Math.max(parseFloat(i.montant) || 0, 0)); // audit 09-02 : bornée au montant
             return s; // CB, TR (legacy, laissée à part comme avant)
         }, 0);
 
@@ -567,7 +568,7 @@
                 // Les Tickets Restos/Especes sont exclus
                 solde += (rev - tc - tdCB - tprov);
             }
-            return solde;
+            return arr2(solde);
         };
 
         // --- Logique du Reste à Vivre (Calcul du report cumulatif Espèces) ---
@@ -579,7 +580,7 @@
                 const m = state.donnees[i];
                 solde += (parseFloat(m.especes_add) || 0) - sommeEspeces(m.depenses);
             }
-            return solde;
+            return arr2(solde);
         };
 
         // Lot 2 (20/10/2026) : 4 dernières catégories utilisées, en pastilles sous une dépense qu'on vient de créer
@@ -699,9 +700,14 @@
                 fallbackTolerance: 5,
                 touchStartThreshold: 5,
                 onEnd: () => {
-                    const ids = Array.from(container.children).map(r => r.dataset.id);
+                    // Audit 08-01 : avec une recherche ou un filtre actif, seules les lignes visibles sont dans le DOM.
+                    // On réordonne les visibles dans les places qu'elles occupaient, les masquées restent où elles sont.
+                    const ids = Array.from(container.children).map(r => r.dataset.id).filter(Boolean);
                     const mois = getMoisActif();
-                    mois[type] = ids.map(id => (mois[type] || []).find(x => x.id === id));
+                    const liste = mois[type] || [];
+                    const visibles = new Set(ids);
+                    let k = 0;
+                    mois[type] = liste.map(x => visibles.has(x.id) ? (liste.find(y => y.id === ids[k++]) || x) : x);
                     sauvegarderDonnees();
                 }
             });
@@ -742,7 +748,7 @@
 
             const resteRevolut = totalRev - tc - tdCB - tprov;
             const resteEspeces = totalEspeces - tdEspeces;
-            const reste = resteRevolut + resteEspeces;
+            const reste = arr2(resteRevolut + resteEspeces);
 
             document.getElementById('total-charges').innerText = tc.toFixed(0);
             document.getElementById('total-provisions').innerText = tprov.toFixed(0);
@@ -757,7 +763,7 @@
         state.jourSel = null;       // jour choisi dans le calendrier
         state.filtreQui = '';       // '' | 'corentin' | 'lisa' (feuille Dépenses)
         const JOURS_SEM = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-        const fmtEur = (v) => (Number(v) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        const fmtEur = (v) => arr2(v).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
         const fmtEur0 = (v) => Math.round(Number(v) || 0).toLocaleString('fr-FR') + ' €';
         const montantHTML = (v) => { const [i, d] = fmtEur(v).split(','); return `<span class="v2-int">${esc(i)}</span><span class="v2-dec">,${esc(d)}</span>`; };
         const decoupeCat = (c) => {
@@ -804,7 +810,7 @@
             const totalRev = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
             const resteRevolut = totalRev - tc - sommeCB(m.depenses) - tprov;
             const resteEspeces = reportEspeces + (parseFloat(m.especes_add) || 0) - tdEsp;
-            const reste = resteRevolut + resteEspeces;
+            const reste = arr2(resteRevolut + resteEspeces);
 
             // Héros
             const big = document.getElementById('reste-a-vivre');
@@ -966,11 +972,15 @@
         // --- Vue Annuelle ---
         const rendreVueAnnuelle = () => {
             const sel = document.getElementById('select-annee');
-            if (!sel.options.length) {
-                const ans = [...new Set(state.donnees.map(m => m.annee))].sort((a,b) => b-a);
+            // Audit 09-05 : options reconstruites à chaque rendu (une nouvelle année apparaît sans recharger)
+            const ans = [...new Set(state.donnees.map(m => m.annee))].sort((a,b) => b-a);
+            const choix = sel.value;
+            if (sel.options.length !== ans.length || ans.some((a, i) => String(a) !== sel.options[i].value)) {
+                sel.innerHTML = '';
                 ans.forEach(a => sel.add(new Option(a, a)));
-                sel.onchange = rendreVueAnnuelle;
+                if (ans.map(String).includes(choix)) sel.value = choix;
             }
+            sel.onchange = rendreVueAnnuelle;
             const an = parseInt(sel.value);
             const mois = state.donnees.filter(m => m.annee === an);
             
@@ -993,7 +1003,8 @@
             const parseMontant = (v) => parseFloat(String(v).replace(',', '.')) || 0;
             state.objectifsProvisions.forEach(obj => {
                 let totalObj = 0;
-                const search = sansAccents(obj.nom).trim();
+                const search = sansAccents(obj.nom || '').replace(/[^\w\s]/g, '').trim(); // audit 09-04 : même normalisation que la catégorie
+                if (!search) return; // un nom réduit à un emoji captait toutes les provisions
                 mois.forEach(m => {
                     (m.provisions||[]).forEach(line => {
                         const cat = sansAccents(line.categorie || '').replace(/[^\w\s]/g, '').trim();
@@ -1145,10 +1156,15 @@
 
         // 4. Actions Mois
         document.getElementById('btn-next-month').onclick = () => {
-            const last = state.donnees[state.donnees.length - 1];
+            // Audit 09-07 : plus aucun mois (dernier supprimé) → on crée le mois civil en cours, vide
+            const auj = new Date();
+            const last = state.donnees[state.donnees.length - 1] || { nom: NOMS_MOIS[(auj.getMonth() + 11) % 12], annee: auj.getMonth() ? auj.getFullYear() : auj.getFullYear() - 1, revenus: 0, charges: [], provisions: [], fixes: [] };
             let idx = NOMS_MOIS.indexOf(last.nom.split(' ')[0]) + 1;
             let an = last.annee;
             if (idx > 11) { idx = 0; an++; }
+            // Audit 09-03 : les lignes recopiées gardaient la date du mois précédent (absentes du Calendrier) → même jour, dans le nouveau mois
+            const nbJ = new Date(an, idx + 1, 0).getDate();
+            const recaler = (l) => l.date ? { ...l, date: `${an}-${String(idx + 1).padStart(2, '0')}-${String(Math.min(parseInt(String(l.date).slice(8, 10), 10) || 1, nbJ)).padStart(2, '0')}` } : l;
             
             const nouveau = normaliserMois({
                 id: genId(),
@@ -1157,10 +1173,10 @@
                 revenus: last.revenus,
                 revenus_add: 0,
                 especes_add: 0,
-                charges: last.charges.map(c => ({ ...c, id: genId(), montant: 0 })),
+                charges: (last.charges || []).map(c => recaler({ ...c, id: genId(), montant: 0 })),
                 depenses: [],
-                provisions: last.provisions.map(p => ({ ...p, id: genId(), montant: 0 })),
-                fixes: last.fixes ? last.fixes.map(f => ({ ...f, id: genId(), montant: 0 })) : []
+                provisions: (last.provisions || []).map(p => recaler({ ...p, id: genId(), montant: 0 })),
+                fixes: last.fixes ? last.fixes.map(f => recaler({ ...f, id: genId(), montant: 0 })) : []
             });
             state.donnees.push(nouveau);
             state.moisActifId = nouveau.id;
@@ -1179,6 +1195,16 @@
             });
         };
 
+        // Audit 09-01 : verse la suppression en attente dans la corbeille (avant une 2e suppression, ou app mise en arrière-plan)
+        const verserEnCorbeille = () => {
+            if (!state.suppressionEnAttente) return;
+            state.corbeille.unshift({ ...state.suppressionEnAttente.item, typeOriginal: state.suppressionEnAttente.type });
+            state.suppressionEnAttente = null;
+            sauvegarderConfig(true);
+        };
+        window.addEventListener('pagehide', verserEnCorbeille);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') verserEnCorbeille(); });
+
         // 5. Manipulation des lignes (Délégation d'événements)
         const setupTableListeners = (containerId) => {
             // Lot 2 : aussi rejouée au « change » — un instantané Firestore reçu pendant la saisie remplace
@@ -1192,6 +1218,8 @@
                     if (field === 'montant') {
                         let val = parseFloat(String(e.target.value).replace(',', '.').replace(/\s/g, '')) || 0; // clavier décimal FR : virgule
                         item.montant = val;
+                        // Audit 09-02 : en Mixte, la part espèces ne peut pas dépasser le nouveau montant
+                        if (item.moyenPaiement === 'MIXTE') item.montantEspeces = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(val, 0));
                     } else {
                         item[field] = e.target.value;
                     }
@@ -1222,20 +1250,18 @@
                     const { delType, delId } = delBtn.dataset;
                     const mois = getMoisActif();
                     const idx = mois[delType].findIndex(x => x.id === delId);
+                    if (idx < 0) return; // audit 09-08 : splice(-1) retirait la dernière ligne
                     const item = mois[delType].splice(idx, 1)[0];
                     
-                    // Toast Annuler
+                    // Toast Annuler — audit 09-01 : la suppression précédente part d'abord en corbeille (sinon perdue)
+                    verserEnCorbeille();
                     state.suppressionEnAttente = { type: delType, item, moisId: state.moisActifId, index: idx };
                     const toast = document.getElementById('toast');
                     toast.classList.add('show');
                     clearTimeout(state.toastTimeout);
                     state.toastTimeout = setTimeout(() => {
                         toast.classList.remove('show');
-                        if (state.suppressionEnAttente) {
-                            state.corbeille.unshift({ ...state.suppressionEnAttente.item, typeOriginal: state.suppressionEnAttente.type });
-                            sauvegarderConfig(true);
-                            state.suppressionEnAttente = null;
-                        }
+                        verserEnCorbeille();
                     }, 4000);
                     
                     sauvegarderDonnees();
@@ -1401,7 +1427,14 @@
             const type = e.target.dataset.add;
             if (type) {
                 const mois = getMoisActif();
-                const nouv = { id: genId(), libelle: "", montant: 0, date: dateLocale(), categorie: state.categories[0] };
+                if (!mois || !Array.isArray(mois[type])) return; // audit 09-07 : aucun mois
+                // Audit 09-06 : dans un autre mois que le mois civil, la ligne est datée du même jour dans ce mois (borné)
+                const maint = new Date();
+                let dateLigne = dateLocale(maint);
+                const iM = NOMS_MOIS.indexOf(String(mois.nom || '').split(' ')[0]);
+                if (iM >= 0 && mois.annee && (iM !== maint.getMonth() || mois.annee !== maint.getFullYear()))
+                    dateLigne = dateLocale(new Date(mois.annee, iM, Math.min(maint.getDate(), new Date(mois.annee, iM + 1, 0).getDate())));
+                const nouv = { id: genId(), libelle: "", montant: 0, date: dateLigne, categorie: state.categories[0] };
                 if (type === 'depenses') {
                     nouv.moyenPaiement = 'CB';
                     if (state.categories.includes('🛒 Courses')) nouv.categorie = '🛒 Courses';   // 20/10/2026 : Courses par défaut pour une dépense
@@ -1539,6 +1572,7 @@
             if (state.suppressionEnAttente) {
                 const { type, item, moisId, index } = state.suppressionEnAttente;
                 const mois = state.donnees.find(m => m.id === moisId);
+                if (!mois || !Array.isArray(mois[type])) { verserEnCorbeille(); return; } // mois supprimé entre-temps : la ligne va en corbeille
                 mois[type].splice(index, 0, item);
                 state.suppressionEnAttente = null;
                 document.getElementById('toast').classList.remove('show');

@@ -546,3 +546,21 @@ Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README
 ## Lot 3 — changer de mois en balayant (20/10/2026)
 - Onglet Mois : **balayer vers la gauche = mois suivant, vers la droite = mois précédent** (`balayerMois`, `app.js` avant « 4. Actions Mois »), mêmes cibles que ‹ › du navigateur. Seuil 70 px ou pichenette ; geste horizontal seulement (`touch-action: pan-y`) ; départ à moins de 24 px du bord gauche ignoré (retour iOS) ; le contenu suit le doigt à 30 % (10 % s'il n'y a pas de mois de ce côté) et arrive en glissant (`.arrive-droite` / `.arrive-gauche`, coupé en mouvement réduit). Le toucher qui suit un balayage ne fait rien (un jour du calendrier n'est pas sélectionné).
 - **Vérifié** (Chromium, Firebase simulé) : Octobre → Septembre → Octobre au balayage ; `?saisie=depense` → feuille Dépenses ouverte sur Octobre 2026 avec reflet. **Non vérifié sur iPhone.**
+
+## Audit de code — corrections (20/10/2026)
+Audit à 20 relecteurs + 5 vérificateurs (compte rendu hors dépôt). Corrigé :
+- **08-01 (critique)** : glisser-déposer avec une recherche ou le filtre Tous / Corentin / Lisa actif → les lignes masquées étaient **supprimées** du mois. `onEnd` (Sortable) réordonne maintenant les seules lignes visibles dans les places qu'elles occupaient ; les masquées ne bougent pas.
+- **09-01** : deux suppressions en moins de 4 s → la 1re n'allait jamais en corbeille. `verserEnCorbeille()` est appelé avant chaque nouvelle suppression, à la fin du toast, et au passage en arrière-plan (`pagehide` / `visibilitychange`). « Annuler » sur un mois supprimé entre-temps → la ligne part en corbeille au lieu de planter.
+- **09-02** : mode Mixte, part espèces bornée au montant (dans `sommeEspeces`, ce qui corrige aussi les données existantes, et dans `majChamp`).
+- **08-02** : arrondi au centime (`arr2`) des reports et du reste à vivre, et dans `eur` / `fmtEur` : plus de « -0,00 € » rouge.
+- **09-03** : « + Démarrer un mois » recale la date des charges / provisions / fixes recopiées sur le même jour du nouveau mois (borné), elles apparaissent dans le Calendrier.
+- **09-04** : objectif de provision : même normalisation que la catégorie (ponctuation retirée) ; un nom vide après normalisation (emoji seul) est ignoré.
+- **09-05** : sélecteur d'année du Bilan reconstruit quand la liste des années change (sélection conservée).
+- **09-06** : ligne ajoutée dans un autre mois que le mois civil → datée du même jour dans ce mois.
+- **09-07** : plus aucun mois → « + Démarrer » crée le mois civil en cours ; l'ajout de ligne ne plante plus.
+- **09-08** : garde `idx < 0` avant `splice`.
+- **10-02** : cibles à 44 px (`.v2-seg button`, `#btn-next-month`, `.profile-switch-btn`, `#maj-btn`).
+- **10-03** : mise en page « bureau » seulement avec `(hover: hover)` : un iPhone en paysage garde la mise en page mobile.
+- **10-04** (`sw.js`) : une réponse réseau non-OK (404/5xx) laisse la place à la copie en cache ; repli sur `index.html` seulement pour une navigation.
+- **Non corrigé, accepté** : 09-09 — `notifie:true` écrit pendant `pagehide` peut ne partir qu'à la réouverture (cache persistant Firestore) ; au pire une 2e notification si la ligne est remodifiée dans les 2 jours.
+- **Non vérifié sur iPhone.**
