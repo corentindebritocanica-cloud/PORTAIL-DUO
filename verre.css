@@ -1224,3 +1224,13 @@ html.verre[data-style][data-app="muscu"] .session-btn.prochaine .session-icon{
   .session-btn.prochaine::after, .big-choice-btn.primary::after{ display:none; }
 }
 
+
+/* ÉCLAT À L'APPUI (20/10/2026) — retour tactile visuel : iOS PWA ne peut pas vibrer, donc le bouton
+   s'éclaircit un instant à l'appui (en plus du scale existant). Instantané (pas de transition, charte §11.2). */
+html.verre :is(.go-btn, .bottom-btn, .exo-nav-btn, .check-btn, .btn-course-terminee, .btn-large, .btn-action,
+  .btn-small, .login-btn, .btn-tab, .mixte-btn, .big-choice-btn, .session-btn, .modal-actions button,
+  .nav-add, .btn-ajouter, .case, .v2-tile, .v2-act):active{ filter:brightness(1.18) saturate(1.08); }
+html.verre[data-style="clair"] :is(.go-btn, .bottom-btn, .exo-nav-btn, .check-btn, .btn-course-terminee, .btn-large,
+  .btn-action, .btn-small, .login-btn, .btn-tab, .mixte-btn, .big-choice-btn, .session-btn, .modal-actions button,
+  .nav-add, .btn-ajouter, .case, .v2-tile, .v2-act):active{ filter:brightness(.92); }
+@media (prefers-reduced-motion:reduce){ html.verre :is(.go-btn,.bottom-btn,.exo-nav-btn,.check-btn,.btn-course-terminee,.btn-large,.btn-action,.btn-small,.login-btn,.btn-tab,.mixte-btn,.big-choice-btn,.session-btn,.modal-actions button,.nav-add,.btn-ajouter,.case,.v2-tile,.v2-act):active{ filter:none; } }

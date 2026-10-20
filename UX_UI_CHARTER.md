@@ -711,3 +711,6 @@ Remplace les styles au choix (§13). Deux thèmes, choisis sous la pile du Porta
 
 **Auteur** : Lead Developer Full-Stack  
 **Dernière mise à jour** : 5 Octobre 2026
+
+### 11.5b Éclat à l'appui (20/10/2026)
+En complément du scale (§11.5), les boutons principaux passent à `brightness(1.18)` à l'appui (`.92` en thème clair), instantané, sans transition, désactivé en reduced-motion. Remplace la vibration, indisponible sur iOS PWA.

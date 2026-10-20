@@ -440,12 +440,12 @@ function renderCourse(){
     const arr = parRayon[rayonId];
     if(!arr || arr.length===0) return;
     arr.sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
-    html += `<div class="section-rayon"><p class="titre-rayon">${escapeHtml(rayon.nom)}</p>`;
+    html += debutRayon(rayonId, rayon.nom, arr.length);
     arr.forEach(([id,p])=> html += carteProduitCourse(id,p));
     html += `</div>`;
   });
   if(parRayon['']){
-    html += `<div class="section-rayon"><p class="titre-rayon">Sans rayon</p>`;
+    html += debutRayon('_sans', 'Sans rayon', parRayon[''].length);
     parRayon[''].forEach(([id,p])=> html += carteProduitCourse(id,p));
     html += `</div>`;
   }
@@ -456,6 +456,25 @@ function renderCourse(){
   }
   conteneur.innerHTML = html;
   document.getElementById('btn-course-terminee').classList.toggle('visible', items.some(([id,p])=> p.achete));
+}
+
+/* Rayons repliables (20/10/2026) : l'état replié est mémorisé sur l'appareil (localStorage), par rayon. */
+const CLE_RAYONS_REPLIES = 'course_rayons_replies';
+function rayonsReplies(){ try{ return JSON.parse(localStorage.getItem(CLE_RAYONS_REPLIES)) || []; }catch(e){ return []; } }
+function debutRayon(id, nom, n){
+  const replie = rayonsReplies().includes(id);
+  return `<div class="section-rayon ${replie?'replie':''}" data-rayon="${escapeHtml(id)}">`
+    + `<button type="button" class="titre-rayon titre-rayon-btn" aria-expanded="${!replie}" onclick="basculerRayon(this)">`
+    + `<svg class="chevron-rayon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`
+    + `<span class="nom-rayon">${escapeHtml(nom)}</span><span class="n-rayon">${n}</span></button>`;
+}
+function basculerRayon(btn){
+  const sec = btn.closest('.section-rayon'), id = sec.dataset.rayon;
+  const replie = sec.classList.toggle('replie');
+  btn.setAttribute('aria-expanded', String(!replie));
+  const liste = rayonsReplies().filter(x=> x !== id);
+  if(replie) liste.push(id);
+  try{ localStorage.setItem(CLE_RAYONS_REPLIES, JSON.stringify(liste)); }catch(e){}
 }
 
 /* Onglet Course : coche (et contour de la case) à la couleur de la liste du produit ; nom de la

@@ -324,3 +324,11 @@
   }
   /* Onglet Course : articles achetés regroupés en bas (02/10/2026) */
   .section-caddie{margin-top:28px; padding-top:14px; border-top:1px dashed var(--border-strong);}
+
+  /* Rayons repliables (20/10/2026) */
+  .titre-rayon-btn{display:flex; align-items:center; gap:6px; width:100%; min-height:44px; margin:0; padding:0 4px; background:none; border:0; font:inherit; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .chevron-rayon{width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; transition:transform .18s var(--ease-out, ease-out);}
+  .section-rayon.replie .chevron-rayon{transform:rotate(-90deg);}
+  .n-rayon{margin-left:auto; min-width:20px; padding:2px 7px; border-radius:99px; background:rgba(128,128,128,.18); font-size:11px; text-align:center;}
+  .section-rayon.replie .carte-produit{display:none;}
+  @media (prefers-reduced-motion:reduce){ .chevron-rayon{transition:none;} }

@@ -534,3 +534,8 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 ## Reflet sur « Course terminée » (20/10/2026)
 
 Le bouton **Course terminée** (visible seulement quand un article est coché) reçoit l'effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README racine) : une bande de lumière le traverse toutes les 2,5 s. Aucun changement de code dans l'app : le sélecteur `.btn-course-terminee` est dans la liste du bloc commun.
+
+## Rayons repliables (20/10/2026)
+- Onglet Course : le titre de chaque rayon est un bouton (chevron + nom + nombre d'articles restants). Appui = replie/déplie le rayon ; l'état replié est mémorisé par appareil (`localStorage['course_rayons_replies']`, liste d'ids de rayons, `_sans` pour « Sans rayon »). La section « Dans le caddie » reste toujours dépliée.
+- Zone tactile 44 px, chevron animé en `transform` seulement (désactivé en `prefers-reduced-motion`).
+- Test : non vérifié bout en bout (Firebase bloqué en test) ; à valider sur iPhone.
