@@ -1807,19 +1807,36 @@ function construireLigneSerie(c, s){
 }
 
 function construireNoteExercice(c, addWarm){
-  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  const { ex, exIdx, data, body } = c;
+  /* Note d'exercice toujours visible (20/10/2026, choix de Corentin) : « + Échauffement » seul sur
+     sa ligne, puis un champ « Ajouter une note sur cet exercice… » (avant : bouton « + Note »
+     discret qui dépliait le champ — Corentin ne l'avait jamais vu). Données inchangées :
+     `data.notes['name:<exercice>']`, reprise dans l'export. */
+  if(addWarm){
+    const ajouts = document.createElement('div');
+    ajouts.className = 'exo-ajouts';
+    ajouts.appendChild(addWarm);
+    body.appendChild(ajouts);
+  }
   const noteWrap = document.createElement('div');
-  noteWrap.className = 'note-wrap';
-  const noteLabel = document.createElement('span');
-  noteLabel.className = 'note-label';
-  noteLabel.textContent = '🗒️ Info';
-  noteWrap.appendChild(noteLabel);
+  noteWrap.className = 'note-wrap note-exo';
+  const icone = document.createElement('span');
+  icone.className = 'note-icone';
+  icone.setAttribute('aria-hidden', 'true');
+  icone.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+  noteWrap.appendChild(icone);
 
   const noteInput = document.createElement('textarea');
   noteInput.className = 'note-input';
   noteInput.rows = 1;
-  noteInput.placeholder = "Pourquoi pas fait / charge réduite... (optionnel)";
+  noteInput.placeholder = 'Ajouter une note sur cet exercice…';
+  noteInput.setAttribute('aria-label', 'Note sur cet exercice');
   noteInput.value = readByExercise(data.notes, ex, exIdx);
+  const ajuster = () => {
+    noteInput.style.height = 'auto';
+    noteInput.style.height = Math.min(noteInput.scrollHeight, 140) + 'px';
+    noteWrap.classList.toggle('rempli', noteInput.value.trim() !== '');
+  };
   noteInput.onfocus = armUndoSnapshot;
   noteInput.oninput = () => {
     snapshotBeforeEdit();
@@ -1828,28 +1845,13 @@ function construireNoteExercice(c, addWarm){
     if(exIdx in d.notes) delete d.notes[exIdx]; /* migration ancienne clé */
     d.notes[exerciseKey(ex, exIdx)] = noteInput.value;
     saveDayData(currentSessionId, currentProfile, d);
+    ajuster();
   };
   noteWrap.appendChild(noteInput);
-  /* « + Note » (05/10/2026) : la note d'exercice reste repliée tant qu'elle est vide. */
-  const ajouts = document.createElement('div');
-  ajouts.className = 'exo-ajouts';
-  if(addWarm) ajouts.appendChild(addWarm);
-  if(!noteInput.value){
-    noteWrap.style.display = 'none';
-    const noteBtn = document.createElement('button');
-    noteBtn.type = 'button';
-    noteBtn.className = 'add-warmup-btn add-note-btn';
-    noteBtn.textContent = '+ Note';
-    noteBtn.onclick = () => {
-      noteWrap.style.display = '';
-      noteBtn.remove();
-      if(!ajouts.children.length) ajouts.remove();
-      noteInput.focus();
-    };
-    ajouts.appendChild(noteBtn);
-  }
-  if(ajouts.children.length) body.appendChild(ajouts);
   body.appendChild(noteWrap);
+  noteWrap.classList.toggle('rempli', noteInput.value.trim() !== '');
+  /* Hauteur initiale d'une note déjà remplie : mesurable seulement une fois la carte dans le DOM. */
+  requestAnimationFrame(() => { if(noteInput.value) ajuster(); });
 }
 
   /* Le cardio est proposé à la fin de CHAQUE séance, même celles qui n'en

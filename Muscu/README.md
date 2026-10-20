@@ -1142,7 +1142,7 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **En-tête** : bouton retour rond (‹), **« Séance 1 »** en Unbounded 20 px avec la pastille de connexion, sous-titre « Bas du Corps (…) · Corentin · 1 520 kg » (`#exo-sous-titre`, tonnage du jour mis à jour à chaque saisie), **chrono à droite** (Unbounded fin, « CHRONO » dessous), bouton annuler rond. Tant que la séance n'est pas lancée, le chrono est une pilule **« GO / Lancer »** à l'accent (remplace le gros bouton GO de la plaque). Plus de ligne « x / y validés » ni de tonnage sous la jauge (`.session-stats` masquée) : le rail et le sous-titre les portent ; jauge fine (4 px) à l'accent.
 - **Exercice posé directement sur la plaque** (plus de carte dedans) : « EXERCICE 1 SUR 4 », nom en Unbounded 22 px, cible à l'accent, ⇄ rond de 44 px en haut à droite ; « Dernière fois · … » en puce et « Record · … » en puce dorée ; méthode de charge et poids de la barre en **segments pilule** (icône et « poids par main » masqués, l'indication sous la pilule reste) ; titre de séance retiré de la plaque.
 - **Séries** : en-tête « SÉR. / POIDS KG / REPS / RPE », champs de 44 px arrondis ; **série validée = ligne teintée verte, valeurs en gras sans cadre** (classe `.fait` posée au rendu et à la coche, champs toujours modifiables), numéro vert, ✓ plein vert arrondi.
-- **« + Échauffement » et « + Note »** côte à côte sous les séries ; la note d'exercice reste repliée tant qu'elle est vide (déjà remplie → affichée directement).
+- **« + Échauffement » et « + Note »** côte à côte sous les séries ; la note d'exercice reste repliée tant qu'elle est vide (déjà remplie → affichée directement). ~~Repliée~~ → **toujours visible depuis le 20/10/2026** (voir « Note d'exercice toujours visible »).
 - **Cardio** : « POUR FINIR » + nom en Unbounded, posé sur la plaque comme un exercice.
 - **Barre du bas** : 🔄 et ⇅ en ronds de 52 px (icônes au trait), pilule « Séance terminée » (sans ✅). Icônes de l'en-tête et de la barre en SVG au trait.
 - **Styles** : champs en creux, ronds et puces en panneaux, méthode choisie en état actif, pilule GO en accent (Relief / Argile, `verre.css`).
@@ -1196,3 +1196,13 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **Thème clair** : or `#a86f00` (contraste sur blanc) et reflet plus discret (`../verre.css`, fin). Mouvement réduit : pas de chute, pas de reflet.
 - **Fichiers** : `app.js`, `style.css` (bloc « Série record »), `../verre.css`.
 - **Vérifié** (Chromium, iPhone simulé, archives réelles de Lisa, sombre et clair) : rien au rendu sans record ; 80 kg × 12 → série 3 marquée, couronne qui tombe, reflet, or calculé `rgb(255,184,0)` / `rgb(168,111,0)` ; re-rendu → couronne sans chute ; poids effacé → plus rien ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+## Note d'exercice toujours visible (20/10/2026)
+
+**Constat de Corentin** : il n'avait jamais vu la note par exercice (bouton « + Note » discret, à côté de « + Échauffement »). Choix n° 2 sur 4 maquettes : **champ toujours visible**.
+- **`construireNoteExercice`** : plus de bouton « + Note » ; « + Échauffement » seul sur sa ligne (`.exo-ajouts`), puis un champ pleine largeur **« Ajouter une note sur cet exercice… »** (`.note-wrap.note-exo`) avec un crayon à gauche (`.note-icone`, SVG au trait, gris ; **à l'accent bleu / rose quand la note est remplie**, classe `.rempli`). Le champ grandit avec le texte (jusqu'à 140 px, `ajuster()`), 44 px minimum, police 16 px (pas de zoom iOS).
+- **Données inchangées** : `data.notes['name:<exercice>']`, mêmes undo (`armUndoSnapshot` / `snapshotBeforeEdit`), export et archive. Aucune migration.
+- **Thèmes** : le champ est classé « creux » dans `../verre.css` (comme les champs de série), lisible en sombre et en clair.
+- **Non fait (piste restée ouverte)** : rappel de la note de la séance précédente en haut de l'exercice (maquettes 3 et 4).
+- **Fichiers** : `app.js`, `style.css`, `../verre.css`.
+- **Vérifié** (Chromium, iPhone 390 × 844 simulé, sombre et clair) : champ vide visible (46 px, aucun « + Note »), saisie d'une note longue (108 px, crayon à l'accent, enregistrée sous la bonne clé), re-rendu → note et hauteur retrouvées ; aucune erreur JS. **Non vérifié sur iPhone.**
