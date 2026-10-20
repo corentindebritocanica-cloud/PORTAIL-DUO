@@ -669,7 +669,7 @@ Décision de Corentin, **valable pour les 4 apps** : plus de thème clair, on re
 
 ### Muscu passe au design Verre — les 4 apps sont unifiées (28/09/2026, 19h50)
 
-Détail dans `Muscu/README.md`. Particularités : chaque écran est une plaque (et la zone des cartes sur l'écran des exercices), rayons agrandis (`--r-lg` 24 px → `R_CARD` des flammes de record mis à jour dans `app.js`), réserve du bas reportée dans les plaques (le `padding-bottom` posé en JS sur `body` est neutralisé). **Le Portail, Course, Budget et Muscu partagent désormais un seul design, défini dans `verre.css`.**
+Détail dans `Muscu/README.md`. Particularités : chaque écran est une plaque (et la zone des cartes sur l'écran des exercices), rayons agrandis (`--r-lg` 24 px), réserve du bas reportée dans les plaques (le `padding-bottom` posé en JS sur `body` est neutralisé). **Le Portail, Course, Budget et Muscu partagent désormais un seul design, défini dans `verre.css`.**
 
 
 ## Pastille de connexion à côté du titre (28/09/2026)

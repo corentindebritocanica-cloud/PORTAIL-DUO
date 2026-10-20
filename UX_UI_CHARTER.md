@@ -545,7 +545,7 @@ C'est le critère le plus important, absent de la charte actuelle. Il faut se de
 ### 11.3 Durées, easing, propriétés (règles GPU-safe)
 
 - **N'animer que `transform` et `opacity`.** Jamais `width`, `height`, `top`, `left`, `margin` (re-layout coûteux, source de jank sur Safari iOS). Jamais `transition: all` (imprécis, anime des propriétés non désirées) — toujours cibler les propriétés explicitement.
-- **Durées** : 150–300ms pour les transitions d'interface (appui 100–160 ms, petits éléments 125–200 ms, feuilles et modales 200–500 ms). Tokens : `--t-fast` = 150 ms, `--t-mid` = 220 ms (§6.5). Exceptions tolérées : changement de page « vitre » (0,42 s, assimilé à un tiroir), animations d'ambiance (halos, bouton GO), squelettes de chargement en boucle, célébration rare (badge record, balayage de séance complète). Le bouton recharger du Portail est passé de 0,5 à 0,3 s le 12/10/2026.
+- **Durées** : 150–300ms pour les transitions d'interface (appui 100–160 ms, petits éléments 125–200 ms, feuilles et modales 200–500 ms). Tokens : `--t-fast` = 150 ms, `--t-mid` = 220 ms (§6.5). Exceptions tolérées : changement de page « vitre » (0,42 s, assimilé à un tiroir), animations d'ambiance (halos, bouton GO), squelettes de chargement en boucle, célébration rare (couronne + reflet de la série record, balayage de séance complète). Le bouton recharger du Portail est passé de 0,5 à 0,3 s le 12/10/2026.
 - **Easing (12/10/2026, skills Emil Kowalski — remplace l'ancienne règle « ease-in pour les sorties »)** : **jamais `ease-in`** sur une interface, ni en entrée ni en sortie (il démarre lentement, au moment précis où l'œil regarde). Entrée/sortie → `var(--ease-out)` ; déplacement ou déformation à l'écran → `var(--ease-in-out)` ; feuille, toast, pile → `var(--ease-drawer)` ; changement de couleur → `ease` ; mouvement constant → `linear`. Les mots-clés du navigateur (`ease-out` seul) sont trop mous : toujours les jetons de §6.5. La sortie est plus courte que l'entrée (système qui répond = rapide).
 
 ### 11.4 Règles d'apparition (scale, origine)
@@ -593,7 +593,11 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 - Ajouter un bloc `@media (prefers-reduced-motion: reduce)`. **Mouvement réduit ≠ zéro** (12/10/2026, skills Emil) : retirer les déplacements, agrandissements, rebonds et la déformation de la vitre, mais **garder les fondus d'opacité et de couleur** (toasts, modales, changement de page), qui aident à comprendre ce qui se passe. Présent dans les 5 apps.
 - **Réduire la transparence** (`prefers-reduced-transparency`, 12/10/2026, skill apple-design) : le style Verre devient presque opaque et sans flou (verre.css, fin de fichier). Support Safari non confirmé à cette date, sans effet là où la requête n'est pas reconnue.
-- ⚠️ Le sélecteur du bloc reduced-motion doit être **au moins aussi spécifique** que celui qui déclare l'animation, sinon il est ignoré (voir `PROBLEMES_RESOLUS.md`, flammes de record Muscu). ~~Variante radicale « toutes les durées à 0 s »~~ — abandonnée le 12/10/2026 (Course, Todo) : remplacée par `*, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow !important; }` + feuilles en fondu.
+- ⚠️ Le sélecteur du bloc reduced-motion doit être **au moins aussi spécifique** que celui qui déclare l'animation, sinon il est ignoré (voir `PROBLEMES_RESOLUS.md`, flammes de record Muscu — retirées le 20/10/2026, la leçon reste valable). ~~Variante radicale « toutes les durées à 0 s »~~ — abandonnée le 12/10/2026 (Course, Todo) : remplacée par `*, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow !important; }` + feuilles en fondu.
+
+### 11.9b Exception assumée : reflet de la série record (20/10/2026, choix de Corentin)
+
+La série qui bat le record reçoit une couronne (chute de 0,6 s, **une seule fois**, seulement quand le record est battu pendant la saisie) et un reflet doré qui balaie la ligne **toutes les 2,5 s en boucle** tant que le record tient. **Écart à §11.2** (animation répétée) confirmé par Corentin après comparaison de 10 maquettes ; limité par : moment rare (un record, pas une série ordinaire), `transform` seul (GPU), une seule ligne animée par exercice, coupé par `prefers-reduced-motion`, or plus foncé en thème clair. Remplace le badge texte et les flammes de carte (21/09/2026), retirés le même jour.
 
 ### 11.10 Anti-patterns à traquer lors des audits futurs
 
@@ -690,7 +694,7 @@ Remplace les styles au choix (§13). Deux thèmes, choisis sous la pile du Porta
 
 | App | Statut Conformité | Action Requise |
 |-----|-------------------|-----------------|
-| **Muscu** | ✅ **Design Verre (§12, 28/09/26)** | Une plaque par écran (zone des cartes sur l'écran des exercices) ; `--r-lg` 24 px (`R_CARD` des flammes aligné) ; réserve du bas reportée dans les plaques ; n'est plus la référence visuelle (c'est `verre.css`) ; écran de saisie en **séance par exercice** (rail + un exercice, 05/10/26) |
+| **Muscu** | ✅ **Design Verre (§12, 28/09/26)** | Une plaque par écran (zone des cartes sur l'écran des exercices) ; `--r-lg` 24 px ; réserve du bas reportée dans les plaques ; n'est plus la référence visuelle (c'est `verre.css`) ; écran de saisie en **séance par exercice** (rail + un exercice, 05/10/26) |
 | **Budget** | ✅ **Design Verre (§12, 28/09/26)** | Plaque de verre unique + panneaux sans flou ; en-tête non collant ; couleurs de catégories conservées (jauges lumineuses) ; thème recopié sur `<html>` |
 | **Course** | ✅ **Design Verre définitif (§12, 28/09/26)** | Page qui défile (structure de Budget), barre d'onglets fixe à ~22 pt du bord, `status-bar-style` `black-translucent` |
 | **Portail** | ✅ **Design Verre définitif (§12, 28/09/26)** | Pile de vitres (toucher / glisser) ; couleurs d'identité des apps (Corps, Argent, Frigo) ; accent qui suit le profil commun (`duo_profile`) |

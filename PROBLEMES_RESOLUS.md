@@ -736,7 +736,7 @@
 
 ---
 
-## 🔥 Muscu — flammes de record : tuiles SVG rejetées (« emoji »), passage au canvas de particules (21/09/2026)
+## 🔥 ~~Muscu — flammes de record~~ (retirées le 20/10/2026, leçons toujours valables) : tuiles SVG rejetées (« emoji »), passage au canvas de particules (21/09/2026)
 
 ### 21/09/2026 — Muscu — Un effet de feu « réaliste » ne se fait pas avec un motif répété
 **Symptôme** : 1re version (tuiles SVG de flammes répétées le long des bords, animées en `scaleY`) : rendu jugé « emoticonesque » — flammes identiques, alignées, clairement des icônes.

@@ -579,29 +579,6 @@
     .record-reflet{ display:none; }
   }
 
-  /* ---------- FLAMMES DE RECORD (21/09/26) ----------
-     Quand une saisie bat le record archivé (même condition que la série record), la
-     carte s'embrase : halo doré statique (box-shadow) + feu de particules dessiné
-     sur un <canvas> par recordFireSet() dans app.js (voir le README de Muscu).
-     Le canvas déborde de la carte (44 px au-dessus, 17 px sur les côtés — moins que
-     la marge latérale de 18 px de la vue, sinon défilement horizontal —, 14 px
-     dessous) : `overflow:hidden` (utile à l'arrondi de la carte) passe donc en
-     `visible` le temps du record, et l'en-tête reprend l'arrondi du haut.
-     ⚠️ Les valeurs de `inset` doivent rester égales à PAD dans app.js. */
-  .exercise-card.pr-fire{
-    position:relative; overflow:visible;
-    border-color:rgba(255,184,0,0.62);
-    box-shadow: var(--shadow-sm), 0 0 0 1px rgba(255,150,0,0.16), 0 0 20px 1px rgba(255,110,0,0.36);
-  }
-  .exercise-card.pr-fire .exercise-headwrap{
-    overflow:hidden;
-    border-radius:calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0;
-  }
-  .pr-fire-fx{
-    position:absolute; inset:-44px -17px -14px -17px; pointer-events:none; z-index:2;
-  }
-  .pr-fire-fx canvas{ display:block; width:100%; height:100%; }
-
   .variant-row{
     display:flex; gap:6px; flex-wrap:wrap;
   }

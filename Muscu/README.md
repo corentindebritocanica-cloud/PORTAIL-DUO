@@ -8,6 +8,7 @@ Application web (HTML/CSS/JS vanilla, aucun build, aucun npm) de suivi de muscul
 > - **Disques de barre (poids de barre au choix) + bouton GO / chrono de séance (30/09/2026)** : voir « Disques à charger sur la barre » et « Durée de séance » dans « Écran de saisie ».
 > - **Montre connectée (30/09/2026)** : bouton ❤️ sur les archives de Lisa → relais Apps Script (`outils/Strava.gs`) → séance Suunto retrouvée sur **Strava** → FC et calories écrites dans `archive.montre`. Voir « Montre connectée — via Strava » **⏳ Pas encore en service** : il reste la clé API Strava de Lisa et le déploiement du relais (voir « Mise en service » de cette section). D'ici là, un ❤️ affiche « Import impossible : Strava pas encore connecté ».
 - **Séance par exercice (05/10/2026)** : écran de saisie = rail des exercices dans l'en-tête + un seul exercice affiché ; glisser gauche / droite = exercice suivant / précédent, glisser depuis le bord gauche = retour aux séances. Voir « Séance par exercice » (fin de fichier).
+- **Record (20/10/2026)** : plus de badge texte ni de flammes ; la série qui bat le record porte une couronne + un reflet doré (voir « Série record » en fin de fichier).
 - **20/10/2026** : `render()` découpée en fonctions par bloc, validation d'une série en un geste (valeurs de la dernière fois), résumé de fin de séance, `navigator.vibrate` retiré. Voir les sections du 20/10/2026 en fin de fichier.
 - **Profil** : `duo_profile` commun aux 4 apps, réglé dans Réglages › « Qui es-tu sur ce téléphone ? ». **Plus d'écran « Qui s'entraîne ? »** : Entraînement ouvre les séances du profil du téléphone ; le sélecteur « Séance pour » est local à la séance ; celui de Suivi Progression est local à cet écran.
 
@@ -311,7 +312,7 @@ Deux zones distinctes : `.exercise-headwrap` (fond teinté — nom, cible, histo
 
 ### Historique et records
 - `getLastPerformance(profile, nom)` alimente les **placeholders gris** de chaque série et la ligne « Dernière fois : … ». Le placeholder ne devient une valeur **que si l'on valide la série avec le champ vide** (→ « Validation en un geste », 20/10/2026) ; sans validation, champ vide = vide dans l'export et dans le tonnage.
-- `getPersonalRecord(profile, nom)` affiche le record et déclenche le badge vert dès qu'une saisie le dépasse. Calculé **sur les archives uniquement**, au sens du **volume** (poids × reps de la meilleure série, `bestSetByVolume`) — voir « Onglet Entraînement » plus bas.
+- `getPersonalRecord(profile, nom)` affiche le record ; dès qu'une saisie le dépasse, la série concernée reçoit la couronne et le reflet dorés (`marquerSerieRecord`, 20/10/2026 — ~~badge vert puis flammes~~ retirés). Calculé **sur les archives uniquement**, au sens du **volume** (poids × reps de la meilleure série, `bestSetByVolume`) — voir « Onglet Entraînement » plus bas.
 - Les archives en corbeille sont exclues des deux. Les échauffements aussi (clés `_warm`, jamais lues par ces fonctions). Les circuits sont épargnés (pas de poids).
 - ⚠️ **Bug corrigé** : pour un exercice en méthode « par main » (haltères / poulie unilatérale), la courbe de progression ne doublait pas le poids comme le fait le tonnage — elle affichait le poids d'une seule main. Corrigé en appliquant le même facteur (`archiveLoadFactor()`, ex-`loadModeInfo().factor`) à la lecture ; effet rétroactif sur toutes les archives où la méthode avait été enregistrée.
 
@@ -485,7 +486,7 @@ Le graphique retrouve un exercice par son **nom exact** : une faute de frappe sc
 
 - **Validation de série** : léger agrandissement (1,08, sans rebond, 0,2 s) + onde verte courte (`checkRipple`, 0,28 s). Adouci le 24/09/2026, voir en fin de fichier.
 - **Séance à 100 %** : jauge verte, reflet qui la parcourt **une seule fois** (classe `celebrate`), libellé « Séance complète ».
-- **Record battu** : flammes autour de la carte de l'exercice, en plus du badge doré (voir « Flammes de record (21/09/2026) » en fin de fichier).
+- **Record battu** : couronne + reflet doré sur la série (voir « Série record » du 20/10/2026 en fin de fichier). ~~Flammes autour de la carte et badge doré~~ : retirés le 20/10/2026.
 - **Transitions d'écran** : 0,22 s / 16 px.
 - **Micro-animations** : enfoncement des boutons de variante et de duplication, flash de confirmation à la recopie.
 - **Toasts empilables** : 3 maximum, les plus anciens évincés. ⚠️ Le retrait du DOM est **différé** (temps du fondu) : ne jamais faire de `while` sur `stack.children`, ça boucle à l'infini. Filtrer d'abord sur `dataset.leaving`.
@@ -751,7 +752,9 @@ Audit statique de `app.js`, `style.css` et `index.html`, puis retrait de ce qui 
 - **Non vérifié sur iPhone.**
 
 
-## Flammes de record (21/09/2026)
+## ~~Flammes de record (21/09/2026)~~ → **retirées le 20/10/2026** (historique conservé ci-dessous, ne plus s'y fier)
+
+> `recordFireSet`, `createRecordFireEngine`, `.pr-fire`, `.pr-fire-fx` et le calcul `R_CARD` n'existent plus dans le code. Remplacées par la couronne + reflet doré sur la série record (section du 20/10/2026, fin de fichier). Le moteur reste consultable dans l'historique Git (commit précédant `chore: retrait des flammes de record`).
 
 Quand une saisie bat le record archivé, la carte de l'exercice s'embrase : halo doré + **vrai feu de particules** (canvas) qui sort de derrière la carte, sur le haut et les deux côtés. Demandé par Corentin. **Non vérifié sur iPhone** (prototype validé dans un navigateur de bureau, thèmes sombre et clair).
 
@@ -904,7 +907,7 @@ Les trois réutilisent la modale de récapitulatif déjà existante (`export-mod
 - Nouvelle fonction `currentExerciseMethodId(ex, exIdx, data)` — miroir de `archiveExerciseMethodId()` mais côté séance en cours, où l'objet `ex` est déjà sous la main. Retourne `null` si l'exercice n'a qu'une seule méthode plausible ou aucune (comportement inchangé dans ce cas).
 - `getPersonalRecord()` accepte désormais un 3ᵉ paramètre `methodId` : quand il n'est pas `null`, seules les archives faites avec la même méthode (`archiveExerciseMethodId(arc, exerciseName) === methodId`) entrent dans le calcul du record.
 - Card d'exercice (`view-session`) : `recordMethodId = currentExerciseMethodId(ex, exIdx, data)` calculé une fois par carte, passé à `getPersonalRecord()`. Changer de méthode via le sélecteur relance déjà un `render()` complet de la vue (comportement existant), donc la carte se remet à jour avec le bon record automatiquement.
-- Libellé de la méthode ajouté entre parenthèses à côté du record et du badge « Nouveau record » dès que l'exercice en propose plusieurs (ex. « Record 22,5 kg × 10 (Haltères) ») — sans ça, rien à l'écran ne rappelle qu'un record affiché correspond à une méthode précise.
+- Libellé de la méthode ajouté entre parenthèses à côté du record (et, avant le 20/10/2026, du badge « Nouveau record ») dès que l'exercice en propose plusieurs (ex. « Record 22,5 kg × 10 (Haltères) ») — sans ça, rien à l'écran ne rappelle qu'un record affiché correspond à une méthode précise.
 
 **Vérifié** : `node --check` sur `app.js`. Test en isolation (Node, `vm`, fonctions réelles du fichier chargées telles quelles avec des stubs DOM minimaux) : deux archives du même exercice, une aux haltères (22,5 kg × 10) une à la machine (60 kg × 8) — `getPersonalRecord(..., 'haltere')` renvoie bien 22,5×10, `getPersonalRecord(..., 'machine')` renvoie bien 60×8 (et non la plus grosse des deux par volume, comme avant), `currentExerciseMethodId()` renvoie `null` pour un exercice à méthode unique (Squat) et son record reste inchangé (pas de régression). **Non testé sur iPhone.**
 
@@ -947,7 +950,7 @@ Demande de Corentin : même design que le Portail, Course et Budget (charte §12
 
 **Fichiers** :
 - `index.html` : `<html lang="fr" data-app="muscu" class="verre">` ; police Unbounded ajoutée (Bebas Neue gardée pour les rares usages restants) ; mini-script « Halos : animation calée sur l'horloge » (→ dans `../commun.js` depuis le noyau commun ; identique aux 3 autres apps : les lumières continuent leur mouvement d'une app à l'autre) ; `<link>` vers `../verre.css?v=…` (versionné par le workflow) ; `theme-color` `#08080a`.
-- `app.js` : **`R_CARD` 18 → 24** (moteur des flammes de record) — il doit rester égal à `--r-lg`, passé à 24 px en design Verre.
+- `app.js` : **`R_CARD` 18 → 24** (moteur des flammes de record, retiré le 20/10/2026) — il doit rester égal à `--r-lg`, passé à 24 px en design Verre.
 - `sw.js` : `../verre.css` (hors du dossier du service worker) ajouté au précache et traité en réseau d'abord avant le filtre de périmètre (constante `FICHIER_VERRE`, même modèle que Course et Budget — → `FICHIERS_COMMUNS` depuis le noyau commun).
 
 **Rendu** :
@@ -1123,7 +1126,7 @@ Premières fois : autoriser l'accès à Santé et l'envoi vers `firestore.google
 **Demande de Corentin** : ne plus faire défiler toutes les cartes (et toutes leurs séries) pendant la séance. En haut, une rangée avec tous les exercices de la séance ; on en touche un, et seules ses séries s'affichent dessous. Validé sur maquette le même soir, avec deux décisions : **pas de passage automatique** à l'exercice suivant, et **glisser à gauche / à droite** pour changer d'exercice.
 
 - **Rail** (`#exo-rail`, dans l'en-tête collant, sous « ← Séances ») : un bouton par exercice dans l'ordre du jour, puis le cardio (🏃). Chaque bouton : numéro, nom (2 lignes max), une barre par série de travail (verte quand validée), ✓ vert quand l'exercice est terminé, ⇄ doré si l'exercice est remplacé aujourd'hui. Exercice affiché = teinte d'accent (bleu Corentin / rose Lisa). Le rail défile horizontalement et se recale pour garder l'exercice affiché visible.
-- **Un seul exercice affiché** : `render()` construit toujours **toutes** les cartes (saisies, records, flammes, échauffements inchangés) ; chaque carte et la carte cardio portent `.exo-page` + `data-pos` (emplacement d'origine, ou `cardio`), seule `.exo-page.actif` est visible. Pastille « Exercice 2 / 4 » en tête de carte.
+- **Un seul exercice affiché** : `render()` construit toujours **toutes** les cartes (saisies, records, échauffements inchangés ; flammes retirées depuis le 20/10/2026) ; chaque carte et la carte cardio portent `.exo-page` + `data-pos` (emplacement d'origine, ou `cardio`), seule `.exo-page.actif` est visible. Pastille « Exercice 2 / 4 » en tête de carte.
 - **Précédent / Suivant** (`.exo-nav`, sous l'exercice) : « Suivant : Leg Curl › » passe au vert (« ✓ Suivant : … ») quand toutes les séries de l'exercice sont validées. **Jamais de changement automatique** (décision de Corentin).
 - **Gestes** (« RETOUR PAR GLISSEMENT », `app.js`) : sur l'écran des exercices, glisser vers la **gauche** = suivant, vers la **droite** = précédent (≥ 60 px, geste franchement horizontal, rien au-delà du premier / dernier) ; possible en partant d'un champ ou d'un bouton (un tap reste un tap), **pas** depuis le champ en cours de saisie (déplacement du curseur), une liste déroulante (RPE) ni le rail. Glisser depuis le **bord gauche** (28 px, `SWIPE_BORD`) = retour aux séances, comme le geste retour d'iOS (avec le rappel d'archivage habituel). Ailleurs dans l'app, le retour par glissement est inchangé.
 - **Exercice affiché mémorisé** par séance et par profil : `localStorage duo_exo_<séance>_<profil>` (hors des données de séance : `sessionHasData`, l'annulation ↩️ et l'archive n'en voient rien). Effacé à l'archivage et à la remise à zéro 🔄. À défaut : **premier exercice pas encore terminé**. Changer l'ordre ou remplacer un exercice garde l'exercice affiché (mémorisé par emplacement).
@@ -1189,7 +1192,7 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **Badge texte `.pr-badge` supprimé** (élément, styles et `@keyframes prPop`).
 - **`marquerSerieRecord(card, serie, anime)`** (`app.js`, juste avant `construireLigneSerie`) : la série de travail au meilleur volume, si elle bat le record archivé (même règle qu'avant, par méthode), reçoit `.set-row.record` : couronne dorée SVG au-dessus du numéro (`.record-couronne`), numéro et poids (`input.champ-poids`) dorés, calque `.record-reflet` dont le `::before` balaie la ligne (0,7 s toutes les 2,5 s, boucle CSS infinie). Une seule série marquée par exercice ; si la saisie redescend sous le record, tout disparaît.
 - **Chute de la couronne** (`.tombe`, 0,6 s) seulement quand le record est battu **pendant la saisie** ; au rendu de l'écran (retour, changement de méthode…), elle est posée sans animation (`recordAnime`, passé à `true` après la construction des lignes). Lignes repérées par `data-serie`.
-- **Flammes de la carte (21/09/2026) conservées** (`recordFireSet`).
+- **Flammes de la carte (21/09/2026) retirées** à la demande de Corentin, le même soir : moteur de particules (`recordFireSet`, `createRecordFireEngine`, ~230 lignes de `app.js`), `.pr-fire`, `.pr-fire-fx` et leur bloc de `style.css` supprimés. La carte ne change plus d'aspect quand un record est battu : seule la série est marquée.
 - **Thème clair** : or `#a86f00` (contraste sur blanc) et reflet plus discret (`../verre.css`, fin). Mouvement réduit : pas de chute, pas de reflet.
 - **Fichiers** : `app.js`, `style.css` (bloc « Série record »), `../verre.css`.
 - **Vérifié** (Chromium, iPhone simulé, archives réelles de Lisa, sombre et clair) : rien au rendu sans record ; 80 kg × 12 → série 3 marquée, couronne qui tombe, reflet, or calculé `rgb(255,184,0)` / `rgb(168,111,0)` ; re-rendu → couronne sans chute ; poids effacé → plus rien ; aucune erreur JS. **Non vérifié sur iPhone.**
