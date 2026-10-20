@@ -1227,3 +1227,12 @@ La feuille « ⇅ Ordre de la séance » remplace les flèches ↑↓ par une po
 ## Lot 1 — corrections (20/10/2026)
 - Bouton ⇊ (recopie de série) : zone tactile étendue à 44 px par `::after`, visuel inchangé.
 - Thème clair : `--gold` passe à `#8a5a00` (l'or `#ffb800` était à ~1,6:1 sur le beige) — étiquettes remplacement, records, tags.
+
+## Lot 2 — barre « Reps → / ✓ Valider » au-dessus du clavier (20/10/2026)
+- Saisie du **poids** ou des **reps** d'une série de travail → barre collée au-dessus du clavier iOS (bloc « BARRE AU-DESSUS DU CLAVIER », fin de `app.js` ; styles `.barre-clavier` en fin de `style.css`).
+  - **Reps →** (sur le poids) / **‹ Poids** (sur les reps) : passe à l'autre champ de la même série, contenu sélectionné.
+  - **✓ Valider** : clique le ✓ de la ligne (reprise des valeurs de la dernière fois et ↩️ compris) puis ferme le clavier. Série déjà validée → le bouton devient « OK » et ferme seulement le clavier (jamais de décoche).
+  - Touche Entrée du clavier : poids → reps, reps → Valider (`enterKeyHint="next"` sur le poids).
+- Champs repérés par `data-clavier="poids|reps"`, coche par `data-valider` ; échauffements et circuits non concernés.
+- Position : `visualViewport` (`innerHeight − height − offsetTop`), recalculée au `resize` / `scroll`. Boutons actionnés au `touchstart` + `preventDefault` pour que le champ garde le focus (clavier ouvert) ; `mousedown` bloqué sur ordinateur.
+- **Vérifié** (Chromium, iPhone simulé) : barre visible au focus du poids, « Reps → » met le curseur dans les reps, « ✓ Valider » coche la série et masque la barre. **Non vérifié sur iPhone** (position exacte au-dessus du clavier et de sa barre d'accessoires à confirmer).

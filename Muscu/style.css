@@ -1495,3 +1495,11 @@
   .login-btn:disabled{ opacity:.6; }
   .dup-btn{ position:relative; }
   .dup-btn::after{ content:''; position:absolute; inset:-9px; }   /* zone tactile 44px sans changer le visuel (20/10/2026) */
+
+/* ===== Barre au-dessus du clavier (lot 2, 20/10/2026) ===== */
+.barre-clavier { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9000; display: flex; gap: 8px; padding: 6px 10px; background: var(--card-2, #2c2c2e); border-top: 1px solid var(--border); opacity: 0; pointer-events: none; transition: opacity 120ms ease-out; }
+.barre-clavier.visible { opacity: 1; pointer-events: auto; }
+.bc-bouton { flex: 1; min-height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); font-size: 16px; font-weight: 600; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+.bc-valider { background: var(--done, #12b981); border-color: transparent; color: #fff; font-weight: 700; }
+.bc-bouton:active, .bc-bouton.appui { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .barre-clavier { transition: none; } }

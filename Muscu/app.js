@@ -1715,6 +1715,8 @@ function construireLigneSerie(c, s){
        disparaissait silencieusement. parseNum() gère la virgule au calcul. */
     weightInput.type = 'text';
     weightInput.classList.add('champ-poids');
+    weightInput.dataset.clavier = 'poids';   /* barre « Reps → / ✓ Valider » (lot 2, 20/10/2026) */
+    weightInput.enterKeyHint = 'next';
     weightInput.inputMode = 'decimal';
     weightInput.autocomplete = 'off';
     /* 005 : la valeur de la dernière fois sert d'indication grisée. Elle ne devient
@@ -1741,6 +1743,7 @@ function construireLigneSerie(c, s){
     repsInput.type = 'text';
     repsInput.inputMode = 'numeric';
     repsInput.autocomplete = 'off';
+    repsInput.dataset.clavier = 'reps';
     repsInput.placeholder = (lastSet && !isNaN(lastSet.reps)) ? String(lastSet.reps) : 'reps';
     repsInput.value = savedSet.reps;
     repsInput.onfocus = armUndoSnapshot;
@@ -1801,6 +1804,7 @@ function construireLigneSerie(c, s){
 
   const checkBtn = document.createElement('button');
   checkBtn.className = 'check-btn' + (savedSet.done ? ' checked' : '');
+  checkBtn.dataset.valider = '1';
   checkBtn.textContent = '✓';
   checkBtn.onclick = () => {
     pushUndoSnapshot();
@@ -5456,3 +5460,80 @@ setTimeout(adjustBottomSpacing, 300); // sécurité si les polices/safe-area se 
 ;
 /* Date de MAJ, service worker et vérification de version : dans ../commun.js (noyau commun aux 4 apps,
    28/09/2026), chargé par index.html. */
+
+
+/* ============================================================
+   BARRE AU-DESSUS DU CLAVIER (lot 2, 20/10/2026)
+   Poids ou reps d'une série de travail en saisie → barre collée au-dessus du clavier iOS :
+   « Reps → » (ou « ‹ Poids ») passe à l'autre champ de la même série, « ✓ Valider » coche la série
+   (même effet que le ✓ de la ligne, reprise des valeurs de la dernière fois comprise) et ferme le
+   clavier. Position : visualViewport (le clavier ne réduit pas la page sur iPhone). Les boutons
+   agissent au toucher (touchstart + preventDefault) pour que le champ ne perde pas le focus.
+   ============================================================ */
+(function barreClavier(){
+  const barre = document.createElement('div');
+  barre.className = 'barre-clavier';
+  barre.setAttribute('role', 'toolbar');
+  barre.innerHTML = '<button type="button" class="bc-bouton" data-bc="autre"></button><button type="button" class="bc-bouton bc-valider" data-bc="valider">✓ Valider</button>';
+  document.body.appendChild(barre);
+  const bAutre = barre.querySelector('[data-bc="autre"]');
+  let champ = null;
+
+  const placer = () => {
+    const vv = window.visualViewport;
+    const bas = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    barre.style.transform = 'translateY(' + (-bas) + 'px)';
+  };
+  const montrer = (el) => {
+    champ = el;
+    const ligne = el.closest('.set-row');
+    const cocheFaite = ligne && ligne.querySelector('[data-valider].checked');
+    bAutre.textContent = el.dataset.clavier === 'poids' ? 'Reps →' : '‹ Poids';
+    barre.querySelector('.bc-valider').textContent = cocheFaite ? 'OK' : '✓ Valider';
+    placer();
+    barre.classList.add('visible');
+  };
+  const cacher = () => { champ = null; barre.classList.remove('visible'); };
+
+  document.addEventListener('focusin', (e) => {
+    if(e.target && e.target.dataset && e.target.dataset.clavier) montrer(e.target);
+  });
+  document.addEventListener('focusout', () => setTimeout(() => {
+    const a = document.activeElement;
+    if(!(a && a.dataset && a.dataset.clavier)) cacher();
+  }, 60));
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', () => { if(champ) placer(); });
+    window.visualViewport.addEventListener('scroll', () => { if(champ) placer(); });
+  }
+
+  const agir = (quoi) => {
+    if(!champ) return;
+    const ligne = champ.closest('.set-row');
+    if(!ligne) return cacher();
+    if(quoi === 'autre'){
+      const cible = ligne.querySelector('[data-clavier="' + (champ.dataset.clavier === 'poids' ? 'reps' : 'poids') + '"]');
+      if(cible){ cible.focus(); try{ cible.setSelectionRange(0, cible.value.length); }catch(_){} }
+      return;
+    }
+    const coche = ligne.querySelector('[data-valider]');
+    if(coche && !coche.classList.contains('checked')) coche.click();
+    champ.blur();
+    cacher();
+  };
+  barre.addEventListener('touchstart', (e) => {
+    const b = e.target.closest('[data-bc]'); if(!b) return;
+    e.preventDefault();   /* pas de perte de focus, pas de clic fantôme */
+    b.classList.add('appui'); setTimeout(() => b.classList.remove('appui'), 120);
+    agir(b.dataset.bc);
+  }, { passive: false });
+  barre.addEventListener('mousedown', (e) => e.preventDefault());   /* ordinateur : garder le focus */
+  barre.addEventListener('click', (e) => { const b = e.target.closest('[data-bc]'); if(b) agir(b.dataset.bc); });
+
+  /* Touche « suivant » du clavier sur le poids = passer aux reps */
+  document.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' || !champ) return;
+    e.preventDefault();
+    agir(champ.dataset.clavier === 'poids' ? 'autre' : 'valider');
+  });
+})();
