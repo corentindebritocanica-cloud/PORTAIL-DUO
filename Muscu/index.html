@@ -566,7 +566,7 @@
   const auth = getAuth(app);
 
   // Pont vers le script principal (non-module)
-  window.__fb = { db, doc, setDoc, deleteDoc };
+  window.__fb = { db, doc, setDoc, deleteDoc, deleteField };
   window.__auth = {
     signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
     signOut: () => signOut(auth),
@@ -617,6 +617,7 @@
      Firebase conserve la session localement, donc le mode hors-ligne survit :
      après une première connexion, l'app fonctionne en salle sans réseau. */
   let subscribed = false;
+  const desabonnements = [];
   /* 29/09/2026 (projet Firebase unique) : session PARTAGÉE avec Budget et Course (même projet,
      même origine). Une session ANONYME ouverte par Course ne donne pas accès aux données de Muscu
      (règles) : elle compte comme « pas connecté », l'écran de connexion s'affiche, et la connexion
@@ -627,10 +628,14 @@
     if(compte) window.__portail.rafraichirJeton();
     window.dispatchEvent(new Event('auth-changed'));
     if(compte && !subscribed){ subscribed = true; subscribeAll(); }
+    /* Audit 18-01 (20/10/2026) : à la déconnexion, on arrête les 4 écoutes ; elles sont recréées à la
+       reconnexion (avant : plus aucune écoute jusqu'au kill de la PWA → caches figés, et une mesure
+       enregistrée réécrivait les mensurations depuis une copie périmée). */
+    if(!compte && subscribed){ subscribed = false; desabonnements.splice(0).forEach(f => { try { f(); } catch(e){} }); }
   });
 
   function subscribeAll(){
-  onSnapshot(archivesCol, { includeMetadataChanges: true }, (snapshot) => {
+  desabonnements.push(onSnapshot(archivesCol, { includeMetadataChanges: true }, (snapshot) => {
     const all = [];
     snapshot.forEach(d => all.push(d.data()));
     all.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -651,9 +656,9 @@
     window.dispatchEvent(new Event('archives-updated'));
   }, (error) => {
     console.error('Erreur de synchronisation Firestore', error);
-  });
+  }));
 
-  onSnapshot(customSessionsCol, { includeMetadataChanges: true }, (snapshot) => {
+  desabonnements.push(onSnapshot(customSessionsCol, { includeMetadataChanges: true }, (snapshot) => {
     const all = [];
     snapshot.forEach(d => all.push(d.data()));
     all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -663,7 +668,7 @@
     window.dispatchEvent(new Event('custom-sessions-updated'));
   }, (error) => {
     console.error('Erreur de synchronisation Firestore (customSessions)', error);
-  });
+  }));
 
   /* Réglages du conseiller, partagés par les deux téléphones. Possible seulement
      parce que les règles sont fermées : sans authentification, y déposer une clé
@@ -674,7 +679,7 @@
      (une tentative par ouverture : un refus ne doit pas boucler avec le snapshot suivant). */
   const CLES_COACH = ['apiKey', 'groqApiKey'];
   let clesCoachEffacees = false;
-  onSnapshot(doc(db, 'settings', 'coach'), (snap) => {
+  desabonnements.push(onSnapshot(doc(db, 'settings', 'coach'), (snap) => {
     const reglages = snap.exists() ? snap.data() : {};
     const cles = CLES_COACH.filter(k => k in reglages);
     cles.forEach(k => { delete reglages[k]; });
@@ -692,9 +697,9 @@
     }
   }, (error) => {
     console.error('Erreur de synchronisation des réglages', error);
-  });
+  }));
 
-  onSnapshot(coachChatCol, { includeMetadataChanges: true }, (snapshot) => {
+  desabonnements.push(onSnapshot(coachChatCol, { includeMetadataChanges: true }, (snapshot) => {
     const all = [];
     snapshot.forEach(d => all.push(d.data()));
     all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -703,7 +708,7 @@
     window.dispatchEvent(new Event('coach-chat-updated'));
   }, (error) => {
     console.error('Erreur de synchronisation du fil du conseiller', error);
-  });
+  }));
   }
 </script>
 

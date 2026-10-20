@@ -1246,3 +1246,25 @@ La feuille « ⇅ Ordre de la séance » remplace les flèches ↑↓ par une po
 - **« Suivant › » dans la barre du bas** (`#btn-suivant`, à côté de « Séance terminée ») : passe à l'exercice suivant (`changerExo(1)`), caché sur le dernier ; **vert + reflet** quand l'exercice affiché est terminé (`.pret`, `.reflet`, mis à jour avec le rail dans `majRail`). Le « Suivant » sous l'exercice est masqué (CSS) ; « ‹ Préc. » y reste.
 - **Menu ⋯** (`#btn-menu-seance` → feuille `#menu-seance`, `ouvrirMenuSeance` / `fermerMenuSeance`) : **Ordre des exercices** (même id `#btn-ordre`, caché si un seul exercice, mention « modifié » en or) et **Réinitialiser la séance** (rouge, même confirmation). Point or sur ⋯ quand l'ordre est modifié. Les deux boutons ronds Réinitialiser et ⇅ quittent la barre.
 - **Vérifié** (Chromium, iPhone simulé) : barre 52 / 110 / 180 px sur une ligne, Suivant → exercice 2, ⋯ → Ordre ouvre la feuille d'ordre ; `?saisie=seance` ouvre la Séance 1 (aucune archive). **Non vérifié sur iPhone.**
+
+## Audit de code — corrections (20/10/2026)
+Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
+- **18-01** (`index.html`) : à la déconnexion, les 4 `onSnapshot` (archives, customSessions, settings/coach, coachChat) sont arrêtés (`desabonnements`) et `subscribed` repasse à `false` ; ils sont recréés à la reconnexion. Avant : plus aucune écoute après déconnexion → reconnexion sans fermer l'app (caches figés, et une mesure enregistrée réécrivait toutes les mensurations depuis une copie périmée).
+- **01-01** : `finishArchive` vide la pile ↩️ de la séance archivée (un ↩️ la ressuscitait → double archive).
+- **01-02** : séance perso supprimée pendant qu'elle est ouverte → retour à la liste (avant : Séance 1 affichée à sa place).
+- **01-03** : un seul séparateur décimal gardé (`sanitizeField`) : « 22,,5 » n'est plus lu 22.
+- **02-01** : ⇊ (recopier la série) met le tonnage à jour.
+- **03-01** : une séance avec seulement du cardio déclenche le rappel d'archivage.
+- **03-02** : échec d'archivage → la séance n'est restaurée que si rien n'a été ressaisi entre-temps.
+- **03-03** : glisser de l'ordre des exercices : `pointermove/up/cancel` écoutés sur `window` (capture perdue en glissant vers le haut).
+- **04-01 / 04-03** : modifier une mesure part du seul formulaire (un champ vidé efface la valeur ; tout vidé = mesure supprimée) ; valeur non numérique refusée.
+- **04-02** : date par défaut du formulaire Corps en heure locale (`dateLocale()`), plus la veille entre 0 h et 2 h.
+- **05-01** : delta de progression : signe/couleur calculés sur la valeur arrondie (plus de « −0 kg » rouge).
+- **05-02** : menu Progression : sélection disparue → retour à l'amorce (avant : menu vide).
+- **06-01** : corbeille / restauration d'archive en `merge` (+ `deleteField`, exposé dans `window.__fb`) au lieu de réécrire l'archive entière.
+- **06-02** : toast répété pendant son fondu : nouveau toast affiché.
+- **06-03** : `?saisie=seance` : attend la fin de la connexion (10 min max) au lieu de retomber sur la Séance 1 après 8 s.
+- **07-02 / 07-03 / 07-04 / 07-07** (`style.css`) : boutons du builder à zone tactile 44 px et ✕ écarté des flèches ; note d'exercice défilable au-delà de 140 px ; `.modal` avec `safe-area-inset-bottom` ; `--f-body` définie.
+- **07-06** (`sw.js`) : si `index.html` vient du cache (réseau lent), `app.js`/`style.css` aussi pendant 15 s (plus d'ancien HTML avec un JS récent) ; réponse non-OK → copie en cache ; repli `index.html` seulement pour une navigation.
+- **Non fait** : 07-05 (manifest propre à Muscu) — inutile tant que Muscu s'ouvre depuis le Portail (manifest racine).
+- **Non vérifié sur iPhone.**

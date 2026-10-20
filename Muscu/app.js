@@ -52,7 +52,7 @@ function escapeHtml(value){
 function sanitizeField(input, mode){
   const cleaned = mode === 'integer'
     ? input.value.replace(/[^0-9]/g, '')
-    : input.value.replace(/[^0-9.,]/g, '');
+    : input.value.replace(/[^0-9.,]/g, '').replace(/^([^.,]*[.,])(.*)$/, (m, a, b) => a + b.replace(/[.,]/g, '')); /* audit 01-03 : un seul séparateur (« 22,,5 » lu 22) */
   if(cleaned !== input.value) input.value = cleaned;
 }
 
@@ -67,6 +67,11 @@ function formatKg(value){
   if(value === null || value === undefined || isNaN(value)) return '—';
   const rounded = Math.round(value * 100) / 100;
   return rounded.toLocaleString('fr-FR') + ' kg';
+}
+
+/* Date du jour en heure locale (toISOString = UTC : la veille entre 0 h et 2 h à Paris) — audit 04-02 */
+function dateLocale(d = new Date()){
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /* Le clavier français produit "22,5" : parseFloat s'arrêterait à 22. */
@@ -1792,6 +1797,7 @@ function construireLigneSerie(c, s){
           repsInput.value = prev.reps;
           if(plateHint) updatePlateHint(plateHint, prev.weight, barPicker.barKg());
           refreshRecordBadge();
+          updateSessionProgress(); /* audit 02-01 : tonnage à jour */
           dupBtn.classList.remove('done'); void dupBtn.offsetWidth; dupBtn.classList.add('done');
           showToast('Série recopiée');
         } else {
@@ -2366,7 +2372,8 @@ let glisseOrdre = null;
     glisseOrdre = { li, y0:e.clientY, y:e.clientY, top0:li.offsetTop, id:e.pointerId };
     li.classList.add('souleve');
   });
-  liste.addEventListener('pointermove', (e) => {
+  /* Audit 03-03 : écoutés sur window — la capture du pointeur saute quand la ligne est réinsérée (glisser vers le haut) */
+  window.addEventListener('pointermove', (e) => {
     const g = glisseOrdre; if(!g || e.pointerId !== g.id) return;
     g.y = e.clientY;
     g.li.style.transform = calcul(g);
@@ -2394,8 +2401,8 @@ let glisseOrdre = null;
     }
     afficherOrdre();
   }
-  liste.addEventListener('pointerup', fin);
-  liste.addEventListener('pointercancel', fin);
+  window.addEventListener('pointerup', fin);
+  window.addEventListener('pointercancel', fin);
 })();
 function retablirOrdre(){
   pushUndoSnapshot();
@@ -2601,11 +2608,10 @@ function sessionHasData(sessionId, profile){
   if((d.sessionNote || '').trim() !== '') return true;
   const notes = d.notes || {};
   if(Object.keys(notes).some(k => (notes[k] || '').trim() !== '')) return true;
-  if(program && program.cardio){
-    if(d.cardioDone) return true;
-    if([d.cardioMinutes, d.cardioIncline, d.cardioSpeed, d.cardioNote]
-       .some(v => v != null && String(v).trim() !== '')) return true;
-  }
+  /* Audit 03-01 : la carte cardio est proposée dans toutes les séances, pas seulement si program.cardio */
+  if(d.cardioDone) return true;
+  if([d.cardioMinutes, d.cardioIncline, d.cardioSpeed, d.cardioNote]
+     .some(v => v != null && String(v).trim() !== '')) return true;
   return false;
 }
 
@@ -2771,13 +2777,19 @@ function finishArchive(){
     .catch((err) => {
       console.error('Erreur archivage Firestore', err);
       /* L'archive n'est pas passée : on rend sa séance à l'utilisateur. */
-      try{ storage.set(dataKey(archivedSessionId, archivedProfile), backup); }catch(e){ /* ignore */ }
-      showToast(firestoreErrorMessage(err, "de l'archivage"));
+      /* Audit 03-02 : on ne rend la séance que si rien n'a été ressaisi entre-temps */
+      if(!sessionHasData(archivedSessionId, archivedProfile)){
+        try{ storage.set(dataKey(archivedSessionId, archivedProfile), backup); }catch(e){ /* ignore */ }
+        showToast(firestoreErrorMessage(err, "de l'archivage"));
+      } else {
+        showToast(firestoreErrorMessage(err, "de l'archivage") + ' — séance déjà ressaisie, non restaurée');
+      }
       if(currentSessionId === archivedSessionId && currentProfile === archivedProfile) render();
     });
 
   delete leaveReminderDismissed[dataKey(archivedSessionId, archivedProfile)];
   saveDayData(currentSessionId, currentProfile, blankDayData());
+  delete undoStacks[dataKey(archivedSessionId, archivedProfile)]; /* audit 01-01 : ↩️ ne doit pas ressusciter la séance archivée */
   storage.set(cleExoActif(), '');   /* séance par exercice : la prochaine repart du premier */
   closeFinishModal();
   closeLeaveModal();
@@ -3454,7 +3466,7 @@ function renderBodyPanel(){
   const dateInput = document.getElementById('body-date');
   /* Toujours proposer aujourd'hui par défaut, mais la date reste modifiable :
      c'est ce qui permet d'ajouter une mesure prise un autre jour. */
-  if(dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+  if(dateInput && !dateInput.value) dateInput.value = dateLocale();
 
   /* Dernière valeur connue du profil affichée en placeholder (grisée) : un
      placeholder et non une vraie valeur, sinon enregistrer sans toucher un champ
@@ -3595,17 +3607,25 @@ function saveBodyEntry(){
      plutôt que de la remplacer : sans ça, ajouter le tour de taille un jour où
      le poids avait déjà été noté effaçait ce poids, puisque son champ, laissé
      vide cette fois-ci, aurait écrasé la valeur précédente. */
+  /* Audit 04-03 : une valeur non numérique (collée) est refusée */
+  if(BODY_FIELDS.some(f => { const v = get('body-' + f.id); return v && isNaN(parseFloat(v)); })){ showToast('Mesure invalide : chiffres uniquement'); return; }
+  /* Audit 04-01 : en modification, l'entrée vient du seul formulaire (un champ vidé efface la mesure) */
+  const enEdition = editingBodyAt !== null;
   const existingEntry = list.find(e => e.at === at);
-  const entry = Object.assign({ at, dateLabel: new Date(at).toLocaleDateString('fr-FR') }, existingEntry || {});
+  const base = enEdition ? {} : (existingEntry || {});
+  const entry = Object.assign({ at, dateLabel: new Date(at).toLocaleDateString('fr-FR') }, base);
   let hasValue = false;
   BODY_FIELDS.forEach(f => {
     const v = get('body-' + f.id);
     if(v){ entry[f.id] = v; hasValue = true; }
-    else if(!(f.id in entry)){ entry[f.id] = ''; }
+    else if(enEdition || !(f.id in entry)){ entry[f.id] = ''; }
   });
-  if(existingEntry && BODY_FIELDS.some(f => bodyEntryValue(existingEntry, f.id))) hasValue = true;
+  if(!enEdition && existingEntry && BODY_FIELDS.some(f => bodyEntryValue(existingEntry, f.id))) hasValue = true;
 
-  if(!hasValue){ showToast('Renseigne au moins une mesure'); return; }
+  if(!hasValue){
+    if(enEdition){ deleteBodyEntry(editingBodyAt); showToast('Mesure supprimée'); return; }
+    showToast('Renseigne au moins une mesure'); return;
+  }
 
   /* Si on éditait une mesure et qu'on a changé sa date, l'ancienne entrée (à
      l'ancien timestamp) doit disparaître : sans ce filtre en plus de celui sur
@@ -3642,7 +3662,7 @@ function editBodyEntry(at){
   const entry = bodyEntries(progressProfile).find(e => e.at === at);
   if(!entry) return;
   editingBodyAt = at;
-  document.getElementById('body-date').value = new Date(at).toISOString().slice(0, 10);
+  document.getElementById('body-date').value = dateLocale(new Date(at));
   BODY_FIELDS.forEach(f => {
     document.getElementById('body-' + f.id).value = bodyEntryValue(entry, f.id);
   });
@@ -4175,6 +4195,13 @@ function renderProgressExerciseList(){
   select.className = 'progress-select';
   select.id = 'progress-select';
 
+  /* Audit 05-02 : sélection disparue (archive supprimée, exercice renommé) → retour à l'amorce */
+  if(progressSelection !== null){
+    const cible = isMethodProgressKey(progressSelection) ? methodProgressExerciseName(progressSelection) : progressSelection;
+    const valides = getArchivedSessions(progressProfile).map(sess => tonnageKey(sess.id)).concat(names);
+    if(!valides.includes(cible)) progressSelection = null;
+  }
+
   /* Option d'amorce : sans elle, le premier exercice paraîtrait sélectionné
      alors qu'aucun graphique n'est encore affiché. */
   if(progressSelection === null){
@@ -4513,8 +4540,9 @@ function buildChartSvg(points){
 function buildDeltaHtml(points, unit, periodLabel){
   const delta = getProgressDelta(points);
   if(!delta) return '';
-  const sign = delta.diff > 0 ? '+' : (delta.diff < 0 ? '−' : '');
-  const cls = delta.diff > 0 ? 'up' : (delta.diff < 0 ? 'down' : 'flat');
+  const diffArr = Math.round(delta.diff * 10) / 10; /* audit 05-01 : signe calculé sur la valeur affichée (pas de « −0 » rouge) */
+  const sign = diffArr > 0 ? '+' : (diffArr < 0 ? '−' : '');
+  const cls = diffArr > 0 ? 'up' : (diffArr < 0 ? 'down' : 'flat');
   const abs = Math.abs(delta.diff);
   return `
     <div class="progress-delta ${cls}">
@@ -4710,7 +4738,7 @@ function deleteArchive(id){
   const arc = findArchiveAnywhere(id);
   if(!arc) return;
   const { db, doc, setDoc } = window.__fb;
-  setDoc(doc(db, 'archives', id), Object.assign({}, arc, { deletedAt: Date.now() }))
+  setDoc(doc(db, 'archives', id), { deletedAt: Date.now() }, { merge: true }) /* audit 06-01 : merge, ne réécrit pas l'archive entière */
     .catch((err) => {
       console.error('Erreur mise à la corbeille Firestore', err);
       showToast(firestoreErrorMessage(err, "de la suppression"));
@@ -4725,10 +4753,9 @@ function restoreArchive(id){
   }
   const arc = findArchiveAnywhere(id);
   if(!arc) return;
-  const restored = Object.assign({}, arc);
-  delete restored.deletedAt;
-  const { db, doc, setDoc } = window.__fb;
-  setDoc(doc(db, 'archives', id), restored)
+  const { db, doc, setDoc, deleteField } = window.__fb;
+  /* Audit 06-01 : merge + deleteField (avant : réécriture complète depuis la copie en cache) */
+  setDoc(doc(db, 'archives', id), { deletedAt: deleteField() }, { merge: true })
     .catch((err) => {
       console.error('Erreur restauration Firestore', err);
       showToast(firestoreErrorMessage(err, "de la restauration"));
@@ -4919,6 +4946,14 @@ window.addEventListener('archives-updated', () => {
   }
 });
 window.addEventListener('custom-sessions-updated', () => {
+  /* Audit 01-02 : séance perso supprimée (ici ou sur l'autre téléphone) alors qu'elle est ouverte → retour à la liste */
+  if(window.__customSessionsLoaded && String(currentSessionId || '').startsWith('custom_')
+     && !(window.customSessionsCache || []).some(c => c.id === currentSessionId)){
+    currentSessionId = SESSIONS[0].id;
+    storage.set("duo_session", currentSessionId);
+    const vue = document.querySelector('.view.active');
+    if(vue && vue.id === 'view-exercises'){ goToSessionView(); return; }
+  }
   const activeView = document.querySelector('.view.active');
   if(!activeView) return;
   if(activeView.id === 'view-session') renderSessionList();
@@ -5428,7 +5463,7 @@ function showToast(msg){
   if(!stack) return;
 
   /* Un même message répété est relancé plutôt que dupliqué. */
-  const existing = Array.prototype.find.call(stack.children, el => el.dataset.msg === msg);
+  const existing = Array.prototype.find.call(stack.children, el => !el.dataset.leaving && el.dataset.msg === msg); /* audit 06-02 : pas un toast en train de sortir */
   if(existing){
     clearTimeout(Number(existing.dataset.timer));
     existing.classList.remove('bump'); void existing.offsetWidth; existing.classList.add('bump');
@@ -5577,7 +5612,8 @@ setTimeout(adjustBottomSpacing, 300); // sécurité si les polices/safe-area se 
   try { history.replaceState(null, '', location.pathname); } catch(e){}
   const debut = Date.now();
   (function attendre(){
-    if(!window.__archivesLoaded && Date.now() - debut < 8000) return setTimeout(attendre, 150);
+    /* Audit 06-03 : tant que l'écran de connexion est affiché, on attend (10 min max) */
+    if(!window.__archivesLoaded && (Date.now() - debut < 8000 || (!window.__authUser && Date.now() - debut < 600000))) return setTimeout(attendre, 150);
     const id = prochaineSeanceId(currentProfile) || (SESSIONS[0] && SESSIONS[0].id);
     if(id) selectSession(id);
   })();
