@@ -540,32 +540,47 @@
   }
   .hist-last{ font-weight:500; }
   .hist-record{
-    /* Or (17/09/26), comme .pr-badge : un record se repère toujours de la
+    /* Or (17/09/26), comme la série record : un record se repère toujours de la
        même couleur, qu'il soit affiché en médaillon ou en mini-badge d'historique. */
     font-weight:700; color:var(--gold);
     background:rgba(255,184,0,0.12);
     border-radius:var(--r-sm); padding:2px 8px; margin-left:auto;
   }
-  .pr-badge{
-    display:flex; align-items:center; justify-content:center; gap:6px;
-    padding:9px 12px; border-radius:var(--r-pill); font-size:13px; font-weight:800;
-    /* Repris tel quel de la maquette "Fonte & Craie" (.pr-chip) le 17/09/26 :
-       pastille propre sur fond --card-2, liseré or fin — le motif craie
-       (pointillés + rotation) de l'ancienne identité "Ardoise & craie" est
-       abandonné ici, la maquette ne le reprenait pas. */
-    background:var(--card-2); color:var(--gold);
-    border:1px solid rgba(255,184,0,0.4);
+  /* Série record (20/10/2026) — remplace le badge « Nouveau record : … ». Couronne sur le
+     numéro, numéro et poids dorés, reflet doré toutes les 2,5 s (moment rare : exception
+     assumée à la retenue de la charte §11, choisie par Corentin). Transform/opacity seulement. */
+  .set-row.record{ position:relative; }
+  .set-row.record .set-num{ position:relative; }
+  .record-couronne{
+    position:absolute; left:50%; top:-15px; margin-left:-9px; width:18px; height:18px;
+    color:var(--gold); pointer-events:none; line-height:0;
   }
-  .pr-badge::before{ content:'🏆'; font-size:14px; }
-  .pr-badge.pop{ animation: prPop .45s cubic-bezier(.34,1.56,.64,1); }
-  @keyframes prPop{
-    0%{ transform:scale(.9); opacity:0; }
-    60%{ transform:scale(1.04); opacity:1; }
-    100%{ transform:scale(1); opacity:1; }
+  .record-couronne.tombe{ animation:recordCouronne .6s ease-out .1s both; }
+  @keyframes recordCouronne{
+    0%{ transform:translateY(-26px) rotate(-20deg); opacity:0; }
+    55%{ transform:translateY(2px) rotate(6deg); opacity:1; }
+    75%{ transform:translateY(-4px) rotate(-3deg); }
+    100%{ transform:translateY(0) rotate(0); opacity:1; }
+  }
+  .record-reflet{
+    position:absolute; inset:0; border-radius:inherit; overflow:hidden; pointer-events:none;
+  }
+  .record-reflet::before{
+    content:''; position:absolute; top:-12px; bottom:-12px; left:0; width:34px;
+    background:rgba(255,184,0,.30); transform:translateX(-60px) skewX(-20deg);
+    animation:recordReflet 2.5s ease-in-out infinite;
+  }
+  @keyframes recordReflet{
+    0%{ transform:translateX(-60px) skewX(-20deg); }
+    28%, 100%{ transform:translateX(480px) skewX(-20deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .record-couronne.tombe{ animation:none; }
+    .record-reflet{ display:none; }
   }
 
   /* ---------- FLAMMES DE RECORD (21/09/26) ----------
-     Quand une saisie bat le record archivé (même condition que .pr-badge), la
+     Quand une saisie bat le record archivé (même condition que la série record), la
      carte s'embrase : halo doré statique (box-shadow) + feu de particules dessiné
      sur un <canvas> par recordFireSet() dans app.js (voir le README de Muscu).
      Le canvas déborde de la carte (44 px au-dessus, 17 px sur les côtés — moins que

@@ -717,6 +717,8 @@ html.verre[data-app="muscu"] #view-exercises .set-row input:focus,
 html.verre[data-app="muscu"] #view-exercises select.rpe-input:focus{ border-color:rgba(255,255,255,.40); }
 html.verre[data-app="muscu"] #view-exercises .set-row.fait{ background:rgba(18,185,129,.08); }
 html.verre[data-app="muscu"] #view-exercises .set-row.fait .set-num{ color:var(--done); }
+html.verre[data-app="muscu"] #view-exercises .set-row.record .set-num,
+html.verre[data-app="muscu"] #view-exercises .set-row.record input.champ-poids{ color:var(--gold); }   /* série record, 20/10/2026 */
 html.verre[data-app="muscu"] #view-exercises .set-row.fait select.rpe-input{ color:var(--v-dim); }
 html.verre[data-app="muscu"] #view-exercises .set-row.fait input,
 html.verre[data-app="muscu"] #view-exercises .set-row.fait select.rpe-input{ background:transparent; border-color:transparent; box-shadow:none; font-weight:700; }
@@ -1183,3 +1185,8 @@ html.verre[data-style="clair"] .overlay-popup{ background:rgba(60,45,25,.35); }
 /* Muscu : rond de l'icône du gros bouton « Entraînement » (fond accent) — en clair, le panneau
    blanc effaçait l'icône blanche : voile sombre translucide à la place */
 html.verre[data-style="clair"][data-app="muscu"] .big-choice-btn.primary .choice-icon{ background:rgba(0,0,0,.22); }
+/* Série record (20/10/2026) : or plus foncé en clair (contraste sur fond blanc). */
+html.verre[data-style="clair"][data-app="muscu"] #view-exercises .set-row.record .set-num,
+html.verre[data-style="clair"][data-app="muscu"] #view-exercises .set-row.record input.champ-poids,
+html.verre[data-style="clair"][data-app="muscu"] .record-couronne{ color:#a86f00; }
+html.verre[data-style="clair"][data-app="muscu"] .record-reflet::before{ background:rgba(168,111,0,.18); }

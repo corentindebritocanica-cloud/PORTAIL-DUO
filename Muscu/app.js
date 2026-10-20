@@ -1318,12 +1318,9 @@ function construireCarteExercice(ex, exIdx, pos, total, prevu, data){
   construireEnteteExercice(c, pos, total, prevu);
   construireHistoriqueExercice(c);
 
-  /* Badge affiché dès qu'une série saisie dépasse le record archivé. */
-  const prBadge = document.createElement('div');
-  prBadge.className = 'pr-badge';
-  prBadge.style.display = 'none';
-  prBadge.textContent = '';
-  body.appendChild(prBadge);
+  /* Record battu (20/10/2026) : plus de badge texte (« Nouveau record : … »). La série qui bat
+     le record reçoit la couronne et le reflet doré (marquerSerieRecord). */
+  let recordAnime = false;   /* false tant que les lignes ne sont pas construites : pas de chute au rendu */
 
   /* Un exercice dont toutes les séries sont validées se signale discrètement :
      en salle, ça évite de recompter les coches pour savoir où on en est. */
@@ -1338,35 +1335,22 @@ function construireCarteExercice(ex, exIdx, pos, total, prevu, data){
   }
 
   function refreshRecordBadge(){
-    if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
+    if(isCircuitEx || !record){ marquerSerieRecord(card, 0, false); return; }
     const d = loadDayData(currentSessionId, currentProfile);
     /* La méthode en cours de saisie compte aussi dans la comparaison :
        un exercice passé aux haltères aujourd'hui double son volume, comme le
        reste de l'app. */
     const liveFactor = equipmentFactor(ex, exIdx, d);
-    let bestVol = 0, bestWeight = 0, bestReps = 0;
+    let bestVol = 0, bestSerie = 0;
     for(let n = 1; n <= ex.sets; n++){
       const cur = d.sets['ex' + exIdx + '_set' + n];
       if(!cur) continue;
-      const w = parseNum(cur.weight), r = parseNum(cur.reps);
-      const vol = setVolume(w, r, liveFactor);
-      if(!isNaN(vol) && vol > bestVol){ bestVol = vol; bestWeight = w; bestReps = r; }
+      const vol = setVolume(parseNum(cur.weight), parseNum(cur.reps), liveFactor);
+      if(!isNaN(vol) && vol > bestVol){ bestVol = vol; bestSerie = n; }
     }
-    if(bestVol > record.volume){
-      const wasHidden = prBadge.style.display === 'none';
-      const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
-      prBadge.textContent = 'Nouveau record' + (methodInfo ? ' (' + methodInfo.label + ')' : '') + ' : '
-        + formatKg(bestWeight) + ' × ' + bestReps
-        + '  (précédent : ' + formatKg(record.weight) + ' × ' + record.reps + ')';
-      prBadge.style.display = 'flex';
-      if(wasHidden){
-        prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
-      }
-      recordFireSet(card, true);
-    } else {
-      prBadge.style.display = 'none';
-      recordFireSet(card, false);
-    }
+    const battu = bestVol > record.volume;
+    marquerSerieRecord(card, battu ? bestSerie : 0, recordAnime);
+    recordFireSet(card, battu);
   }
   refreshRecordBadge();
   refreshCardState();
@@ -1382,6 +1366,8 @@ function construireCarteExercice(ex, exIdx, pos, total, prevu, data){
   construireEnteteSeries(c);
   const addWarm = construireEchauffements(c);
   for(let s = 1; s <= ex.sets; s++) construireLigneSerie(c, s);
+  refreshRecordBadge();   /* les lignes existent : pose la couronne sans animation */
+  recordAnime = true;
   construireNoteExercice(c, addWarm);
 
   return card;
@@ -1635,6 +1621,29 @@ function reprendreDerniereFois(serie, reprise){
   return repris;
 }
 
+/* Série record (20/10/2026, choix de Corentin parmi 10 maquettes) : couronne dorée posée sur le
+   numéro (chute courte la première fois), numéro et poids dorés, reflet doré qui balaie la ligne
+   toutes les 2,5 s tant que le record tient (CSS, `.set-row.record`). serie = 0 : rien de marqué. */
+const ICONE_COURONNE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5z"/></svg>';
+function marquerSerieRecord(card, serie, anime){
+  card.querySelectorAll('.set-row[data-serie]').forEach(row => {
+    const estRecord = Number(row.dataset.serie) === serie;
+    if(row.classList.contains('record') === estRecord) return;
+    row.classList.toggle('record', estRecord);
+    const num = row.querySelector('.set-num');
+    row.querySelectorAll('.record-couronne, .record-reflet').forEach(el => el.remove());
+    if(!estRecord) return;
+    const couronne = document.createElement('span');
+    couronne.className = 'record-couronne' + (anime ? ' tombe' : '');
+    couronne.innerHTML = ICONE_COURONNE;
+    if(num) num.appendChild(couronne);
+    const reflet = document.createElement('span');
+    reflet.className = 'record-reflet';
+    reflet.setAttribute('aria-hidden', 'true');
+    row.appendChild(reflet);
+  });
+}
+
 function construireLigneSerie(c, s){
   const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
   const { refreshRecordBadge, refreshCardState } = c;
@@ -1644,6 +1653,7 @@ function construireLigneSerie(c, s){
   const row = document.createElement('div');
   row.className = (isCircuit ? 'set-row circuit' : 'set-row') + (!isCircuit && rpeEnabled() ? ' with-rpe' : '')
     + (savedSet.done ? ' fait' : '');   /* série validée : ligne teintée verte (05/10/2026) */
+  row.dataset.serie = String(s);   /* repère de la série record (marquerSerieRecord) */
 
   const num = document.createElement('div');
   num.className = 'set-num';
@@ -1687,6 +1697,7 @@ function construireLigneSerie(c, s){
        invalide par Safari et `input.value` renvoie une chaîne vide — la saisie
        disparaissait silencieusement. parseNum() gère la virgule au calcul. */
     weightInput.type = 'text';
+    weightInput.classList.add('champ-poids');
     weightInput.inputMode = 'decimal';
     weightInput.autocomplete = 'off';
     /* 005 : la valeur de la dernière fois sert d'indication grisée. Elle ne devient
