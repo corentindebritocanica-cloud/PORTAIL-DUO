@@ -2324,34 +2324,61 @@ function afficherOrdre(){
     }
     ligne.appendChild(num);
     ligne.appendChild(nom);
-    [[-1, '↑', 'Monter'], [1, '↓', 'Descendre']].forEach(([sens, fleche, libelle]) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'builder-move-btn';
-      b.textContent = fleche;
-      b.setAttribute('aria-label', libelle + ' « ' + ex.name + ' »');
-      b.disabled = pos + sens < 0 || pos + sens >= n;
-      b.onclick = () => deplacerExercice(pos, sens);
-      ligne.appendChild(b);
-    });
+    ligne.dataset.slot = String(slot);
+    const poignee = document.createElement('button');
+    poignee.type = 'button';
+    poignee.className = 'ordre-poignee';
+    poignee.setAttribute('aria-label', 'Déplacer « ' + ex.name + ' »');
+    poignee.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+    ligne.appendChild(poignee);
     liste.appendChild(ligne);
   });
   document.getElementById('ordre-retablir').style.display = ordreEstModifie(data, n) ? '' : 'none';
 }
-function deplacerExercice(pos, sens){
-  const d = loadDayData(currentSessionId, currentProfile);
-  const n = programmeDuJour(currentSessionId, d).exercises.length;
-  const ordre = ordreDuJour(d, n);
-  const cible = pos + sens;
-  if(cible < 0 || cible >= n) return;
-  pushUndoSnapshot();
-  const tmp = ordre[pos]; ordre[pos] = ordre[cible]; ordre[cible] = tmp;
-  if(ordre.every((slot, i) => slot === i)) delete d.ordre;
-  else d.ordre = ordre;
-  saveDayData(currentSessionId, currentProfile, d);
-  afficherOrdre();
-  render();
-}
+/* Ordre de la séance : glisser la poignée (20/10/2026, même geste que les rayons de Course). */
+let glisseOrdre = null;
+(function(){
+  const liste = document.getElementById('ordre-liste');
+  const calcul = g => `translateY(${(g.y - g.y0) - (g.li.offsetTop - g.top0)}px) scale(1.02)`;
+  liste.addEventListener('pointerdown', (e) => {
+    const poignee = e.target.closest('.ordre-poignee'); if(!poignee) return;
+    const li = poignee.closest('.ordre-ligne');
+    e.preventDefault();
+    poignee.setPointerCapture(e.pointerId);
+    glisseOrdre = { li, y0:e.clientY, y:e.clientY, top0:li.offsetTop, id:e.pointerId };
+    li.classList.add('souleve');
+  });
+  liste.addEventListener('pointermove', (e) => {
+    const g = glisseOrdre; if(!g || e.pointerId !== g.id) return;
+    g.y = e.clientY;
+    g.li.style.transform = calcul(g);
+    const r = g.li.getBoundingClientRect(), centre = r.top + r.height/2;
+    const prec = g.li.previousElementSibling, suiv = g.li.nextElementSibling;
+    if(prec && centre < prec.getBoundingClientRect().top + prec.offsetHeight/2) liste.insertBefore(g.li, prec);
+    else if(suiv && centre > suiv.getBoundingClientRect().top + suiv.offsetHeight/2) liste.insertBefore(suiv, g.li);
+    else return;
+    liste.querySelectorAll('.ordre-num').forEach((n, k) => { n.textContent = String(k + 1); });
+    g.li.style.transform = calcul(g);
+  });
+  function fin(e){
+    const g = glisseOrdre; if(!g || e.pointerId !== g.id) return;
+    glisseOrdre = null;
+    g.li.classList.remove('souleve'); g.li.style.transform = '';
+    const ordre = [...liste.querySelectorAll('.ordre-ligne')].map(l => Number(l.dataset.slot));
+    const d = loadDayData(currentSessionId, currentProfile);
+    const n = programmeDuJour(currentSessionId, d).exercises.length;
+    if(ordre.length === n && ordre.join() !== ordreDuJour(d, n).join()){
+      pushUndoSnapshot();
+      if(ordre.every((slot, i) => slot === i)) delete d.ordre;
+      else d.ordre = ordre;
+      saveDayData(currentSessionId, currentProfile, d);
+      render();
+    }
+    afficherOrdre();
+  }
+  liste.addEventListener('pointerup', fin);
+  liste.addEventListener('pointercancel', fin);
+})();
 function retablirOrdre(){
   pushUndoSnapshot();
   const d = loadDayData(currentSessionId, currentProfile);
