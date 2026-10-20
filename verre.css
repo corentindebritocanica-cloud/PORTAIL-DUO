@@ -1209,9 +1209,9 @@ html.verre[data-style][data-app="muscu"] .session-btn.prochaine .session-icon{
    largeur de l'élément, quelle qu'elle soit ; couleur = `--reflet` (blanc translucide par défaut).
    Coupé par `prefers-reduced-motion`. Exception à la charte §11.2 assumée (§11.9c). */
 :where(.reflet, .btn-course-terminee, .exo-chrono.attente, .exo-nav-btn.suivant.pret,
-  .session-btn.prochaine, #btn-next-month.reflet){ position:relative; overflow:hidden; }
+  .session-btn.prochaine, .big-choice-btn.primary){ position:relative; overflow:hidden; }
 .reflet::after, .btn-course-terminee::after, .exo-chrono.attente::after, .exo-nav-btn.suivant.pret::after,
-.session-btn.prochaine::after{
+.session-btn.prochaine::after, .big-choice-btn.primary::after{
   content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
   background:linear-gradient(110deg, transparent 0 40%, var(--reflet, rgba(255,255,255,.30)) 40% 58%, transparent 58% 100%);
   transform:translateX(-100%); animation:reflet 2.5s ease-in-out infinite;
@@ -1221,6 +1221,6 @@ html.verre[data-style][data-app="muscu"] .session-btn.prochaine .session-icon{
 @keyframes reflet{ 0%{ transform:translateX(-100%); } 28%, 100%{ transform:translateX(100%); } }
 @media (prefers-reduced-motion: reduce){
   .reflet::after, .btn-course-terminee::after, .exo-chrono.attente::after, .exo-nav-btn.suivant.pret::after,
-  .session-btn.prochaine::after{ display:none; }
+  .session-btn.prochaine::after, .big-choice-btn.primary::after{ display:none; }
 }
 

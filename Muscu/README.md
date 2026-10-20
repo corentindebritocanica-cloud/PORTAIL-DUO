@@ -1219,4 +1219,4 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 
 ## Reflet sur les actions attendues (20/10/2026)
 
-Effet commun à 5 apps (bloc « REFLET » de `../verre.css`, détail dans le README racine). Muscu : **GO / Lancer** (`.exo-chrono.attente`), **Suivant** terminé (`.exo-nav-btn.suivant.pret`, reflet vert), **Séance terminée** (classe `.reflet` posée par `updateSessionProgress` quand `complete`), séance **À faire** de la liste (`.session-btn.prochaine`, reflet à l'accent). Fichiers : `app.js` (une ligne), `../verre.css`.
+Effet commun à 5 apps (bloc « REFLET » de `../verre.css`, détail dans le README racine). Muscu : **GO / Lancer** (`.exo-chrono.attente`), **Suivant** terminé (`.exo-nav-btn.suivant.pret`, reflet vert), **Séance terminée** (classe `.reflet` posée par `updateSessionProgress` quand `complete`), séance **À faire** de la liste (`.session-btn.prochaine`, reflet à l'accent), carte **Entraînement** du menu (`.big-choice-btn.primary`, ajoutée le même jour à la demande de Corentin). Fichiers : `app.js` (une ligne), `../verre.css`.
