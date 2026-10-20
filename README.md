@@ -1011,3 +1011,6 @@ Demande de Corentin : ne garder que le style **Simple** (renommé **Sombre**) et
 
 ## Éclat à l'appui — retour tactile visuel (20/10/2026)
 iOS PWA ne peut pas vibrer : en plus du `scale` existant, les boutons principaux s'éclaircissent à l'appui (`filter:brightness`, instantané, sans transition ; assombri en thème clair ; désactivé en reduced-motion). Liste de sélecteurs en fin de `verre.css`.
+
+## Lot 1 — contrastes du thème clair (20/10/2026)
+`--v-dim` clair passe de .60 à .70 (textes secondaires), « Mis à jour il y a X j » en or foncé `#8a5a00`. Bloc « THÈME CLAIR — contrastes » en fin de `verre.css` (Muscu `--gold`, Todo orange).

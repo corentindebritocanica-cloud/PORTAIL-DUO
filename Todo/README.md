@@ -68,3 +68,8 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - Aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="simple|clair">`, `../verre.css` habille.
 - Aucune règle propre à l'app : tout passe par les jetons.
 - Détail commun : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : liste, nouvelle tâche en clair et en sombre. Non vérifié sur iPhone (barre d'état en clair).
+
+## Lot 1 — corrections (20/10/2026)
+- Textes d'état vide corrigés (ils parlaient du « champ du haut », retiré le 12/10) : « Touche + pour ajouter une tâche ».
+- Pastilles de listes à 44 px de haut ; zone tactile d'« Effacer » étendue.
+- Thème clair : orange « Important » foncé (`#b45309`) pour un contraste lisible (dans verre.css).

@@ -198,8 +198,8 @@ function renderTaches(){
       + aFaire.map(([tid,t])=> ligneTache(tid, t, couleur)).join('') + '</div>';
   } else {
     html += faites.length
-      ? `<div class="vide"><h2>Tout est fait 🎉</h2><p>Ajoute une tâche avec le champ du haut.</p></div>`
-      : `<div class="vide"><h2>Rien à faire</h2><p>Écris une tâche dans le champ du haut, puis Entrée pour enchaîner la suivante.</p></div>`;
+      ? `<div class="vide"><h2>Tout est fait 🎉</h2><p>Touche + pour ajouter une tâche.</p></div>`
+      : `<div class="vide"><h2>Rien à faire</h2><p>Touche + pour ajouter ta première tâche.</p></div>`;
   }
   if(faites.length){
     html += `<div class="entete-termine">`

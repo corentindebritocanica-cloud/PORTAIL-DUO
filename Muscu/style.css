@@ -1493,3 +1493,5 @@
     font-family:inherit; box-shadow:0 10px 24px var(--accent-glow);
   }
   .login-btn:disabled{ opacity:.6; }
+  .dup-btn{ position:relative; }
+  .dup-btn::after{ content:''; position:absolute; inset:-9px; }   /* zone tactile 44px sans changer le visuel (20/10/2026) */

@@ -1223,7 +1223,7 @@
         // dépense datée de plus de 2 jours (anciennes lignes modifiées, antérieures à cette fonction).
         const NOTIF_DELAI_MS = 15000;
         const notifsEnAttente = new Map();   // id de ligne → { moisId, minuteur }
-        const ilYaJours = (j) => { const d = new Date(); d.setDate(d.getDate() - j); return d.toISOString().split('T')[0]; };
+        const ilYaJours = (j) => { const d = new Date(); d.setDate(d.getDate() - j); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
         const trouverDepense = (moisId, id) => {
             const m = state.donnees.find(x => x.id === moisId);
             return { mois: m, item: m && (m.depenses || []).find(x => x.id === id) };
@@ -1262,14 +1262,17 @@
         setupTableListeners('v2-sheets'); // V2 : les listes éditables sont dans les feuilles
         setupTableListeners('vue-fixes');
 
+        // Date du jour en heure locale (toISOString donne l'UTC : une saisie après minuit tombait la veille, 20/10/2026)
+        const dateLocale = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         // 6. Ajout de lignes
         document.body.addEventListener('click', (e) => {
             const type = e.target.dataset.add;
             if (type) {
                 const mois = getMoisActif();
-                const nouv = { id: genId(), libelle: "", montant: 0, date: new Date().toISOString().split('T')[0], categorie: state.categories[0] };
+                const nouv = { id: genId(), libelle: "", montant: 0, date: dateLocale(), categorie: state.categories[0] };
                 if (type === 'depenses') {
                     nouv.moyenPaiement = 'CB';
+                    if (state.categories.includes('🛒 Courses')) nouv.categorie = '🛒 Courses';   // 20/10/2026 : Courses par défaut pour une dépense
                     // V2 : qui a saisi la dépense (point bleu/rose). Champ en plus, ignoré par Budget v1.
                     nouv.par = localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin';
                 }

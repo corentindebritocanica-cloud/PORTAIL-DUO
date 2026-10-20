@@ -523,3 +523,8 @@ Suite à l'audit de sécurité du dépôt (5 auditeurs + contre-vérification). 
 ## Reflet sur « + Démarrer <mois> » (20/10/2026)
 
 Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README racine) sur le bouton **+ Démarrer <mois suivant>**, **seulement si le mois civil en cours a dépassé le dernier mois créé** (`dernier.annee * 12 + indice du mois < année × 12 + mois courant`) : la classe `.reflet` est posée / retirée dans `rendreMenu` (`app.js`) avec le texte du bouton. Pas de reflet tant que le mois courant existe déjà.
+
+## Lot 1 — corrections (20/10/2026)
+- Date du jour en heure locale (`dateLocale()`) au lieu de `toISOString()` (UTC) : une dépense saisie après minuit ne tombe plus la veille. Idem pour les dates relatives (`ilYaJours`).
+- Nouvelle dépense : catégorie « 🛒 Courses » par défaut (au lieu de la 1re catégorie, Loyer).
+- Champs date / menus des lignes à 16 px (au lieu de 13 px) : fin du zoom Safari au focus.

@@ -58,12 +58,11 @@
   #app[data-onglet="parametres"] .selecteur-listes{display:none;}
   .liste-chip{
     position:relative; flex-shrink:0; display:inline-flex; align-items:center; gap:7px;
-    min-height:40px; padding:0 16px; border-radius:var(--r-pill);
+    min-height:44px; padding:0 16px; border-radius:var(--r-pill);
     border:1px solid var(--border); background:var(--card); color:var(--text-dim);
     font-family:inherit; font-size:14px; font-weight:600; white-space:nowrap;
     transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) var(--ease-out);
   }
-  .liste-chip::after{content:''; position:absolute; inset:-2px 0;}
   .liste-chip:active{transform:scale(0.97);}
   .liste-chip.actif{background:var(--accent-soft); border-color:var(--c-liste, var(--accent)); color:var(--text);}
   .liste-pastille{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c-liste, var(--accent));}
@@ -295,3 +294,4 @@
 .choix-urgence button.actif{ background:var(--accent-soft); border-color:var(--accent); color:var(--text); }
 .choix-urgence button[data-urgence="1"].actif{ background:rgba(255,138,43,.16); border-color:#ff8a2b; color:#ff8a2b; }
 .choix-urgence button[data-urgence="2"].actif{ background:#ef4444; border-color:#ef4444; color:#fff; }
+.btn-effacer-terminees::after{content:''; position:absolute; inset:-4px -2px;}   /* zone tactile 44px (20/10/2026) */

@@ -916,7 +916,7 @@ html.verre[data-style="clair"]{
   --t-o-accent:none;
   --t-halo-op:0;
   --v-text:#231d15;
-  --v-dim:rgba(35,29,21,.60);
+  --v-dim:rgba(35,29,21,.70);   /* .60 → .70 (20/10/2026) : textes secondaires sous 4,5:1 sur le beige */
   --v-hair:rgba(70,50,20,.10);
   --v-ombre:rgba(70,50,20,.18);
   --v-f-chiffres:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
@@ -1234,3 +1234,10 @@ html.verre[data-style="clair"] :is(.go-btn, .bottom-btn, .exo-nav-btn, .check-bt
   .btn-action, .btn-small, .login-btn, .btn-tab, .mixte-btn, .big-choice-btn, .session-btn, .modal-actions button,
   .nav-add, .btn-ajouter, .case, .v2-tile, .v2-act):active{ filter:brightness(.92); }
 @media (prefers-reduced-motion:reduce){ html.verre :is(.go-btn,.bottom-btn,.exo-nav-btn,.check-btn,.btn-course-terminee,.btn-large,.btn-action,.btn-small,.login-btn,.btn-tab,.mixte-btn,.big-choice-btn,.session-btn,.modal-actions button,.nav-add,.btn-ajouter,.case,.v2-tile,.v2-act):active{ filter:none; } }
+
+/* THÈME CLAIR — contrastes (20/10/2026) : l'or #ffb800 et l'orange #ff8a2b étaient à ~2:1 sur le beige. */
+html.verre[data-style="clair"][data-app="muscu"]{ --gold:#8a5a00; }
+html.verre[data-style="clair"][data-app="portail"] .dash-maj.vieux{ color:#8a5a00; }
+html.verre[data-style="clair"][data-app="todo"] .urgence.u1,
+html.verre[data-style="clair"][data-app="todo"] .btn-flag[data-urgence="1"],
+html.verre[data-style="clair"][data-app="todo"] .choix-urgence button[data-urgence="1"].actif{ color:#b45309; border-color:#b45309; }

@@ -19,6 +19,12 @@
 
 ---
 
+## 🕛 Budget — dépense datée de la veille après minuit + zoom iOS sur les champs (20/10/2026)
+**Symptôme** : une dépense saisie entre minuit et 2 h (heure de Paris) prenait la date de la veille ; et chaque appui sur un champ date ou un menu d'une ligne faisait zoomer la page.
+**Cause** : `new Date().toISOString().split('T')[0]` renvoie la date **UTC**, pas la date locale. Le zoom : `font-size: 13px !important` sur `.item-bottom input[type=date], select` — sous 16 px, Safari iPhone zoome au focus.
+**Solution** : date construite avec `getFullYear()/getMonth()/getDate()` (heure locale) ; champs passés à 16 px.
+**Leçon** : ne jamais utiliser `toISOString()` pour une « date du jour » ; tout champ de saisie iOS ≥ 16 px, même avec `!important` ailleurs.
+
 ## 📳 Muscu — retour haptique et gros refactor sans filet (20/10/2026)
 
 ### 20/10/2026 — Muscu — `navigator.vibrate` ne fait rien sur iPhone

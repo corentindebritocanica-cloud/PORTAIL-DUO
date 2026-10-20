@@ -1223,3 +1223,7 @@ Effet commun à 5 apps (bloc « REFLET » de `../verre.css`, détail dans le REA
 
 ## Ordre de la séance : glisser-déposer (20/10/2026)
 La feuille « ⇅ Ordre de la séance » remplace les flèches ↑↓ par une poignée à 6 points à glisser (Pointer Events, `touch-action:none`, ligne soulevée, numéros mis à jour en direct) — même geste que l'ordre des rayons de Course. Format de données inchangé (`ordre` = emplacements d'origine dans l'ordre suivi, supprimé si identique à l'ordre prévu). Annulation (↶) possible après un déplacement. Testé en simulation souris ; à valider au doigt sur iPhone. `deplacerExercice()` supprimée.
+
+## Lot 1 — corrections (20/10/2026)
+- Bouton ⇊ (recopie de série) : zone tactile étendue à 44 px par `::after`, visuel inchangé.
+- Thème clair : `--gold` passe à `#8a5a00` (l'or `#ffb800` était à ~1,6:1 sur le beige) — étiquettes remplacement, records, tags.
