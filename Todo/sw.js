@@ -2,7 +2,7 @@
 // voir Course/README.md) : met en cache le shell statique ET le SDK Firebase compat chargé
 // depuis gstatic.com, pour une ouverture hors-ligne fiable. Seuls les noms de cache changent.
 
-const CACHE_NAME = 'todo-shell-r168';
+const CACHE_NAME = 'todo-shell-r171';
 // Préfixe utilisé pour ne nettoyer QUE les anciennes versions du cache de
 // CETTE app. caches.keys() renvoie tous les caches du domaine (Portail,
 // Muscu, Budget inclus) : ne jamais utiliser un filtre qui ne se base pas
