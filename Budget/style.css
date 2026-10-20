@@ -512,3 +512,12 @@ body.duo-chargement #reste-a-vivre, body.duo-chargement .v2-tile-mnt, body.duo-c
     color: transparent !important; background: var(--card-2); border-radius: 10px; animation: duoAttente 1.2s ease-in-out infinite alternate; }
 body.duo-chargement #reste-a-vivre { display: inline-block; min-width: 160px; }
 @media (prefers-reduced-motion: reduce) { body.duo-chargement #reste-a-vivre, body.duo-chargement .v2-tile-mnt { animation: none; } }
+
+/* Lot 3 (20/10/2026) : changer de mois en balayant l'onglet Mois */
+#vue-mensuelle { touch-action: pan-y; transition: transform .25s var(--ease-out, ease); }
+#vue-mensuelle.balaye-mois { transition: none; }
+#vue-mensuelle.arrive-droite { animation: moisDroite .25s var(--ease-out, ease); }
+#vue-mensuelle.arrive-gauche { animation: moisGauche .25s var(--ease-out, ease); }
+@keyframes moisDroite { from { opacity: .4; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes moisGauche { from { opacity: .4; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #vue-mensuelle, #vue-mensuelle.arrive-droite, #vue-mensuelle.arrive-gauche { transition: none; animation: none; } }

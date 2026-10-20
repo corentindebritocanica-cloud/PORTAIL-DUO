@@ -542,3 +542,7 @@ Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README
 - Écritures refusées → `duoEchec()` (`../commun.js`) : `sauvegarderMois`, `sauvegarderConfig`, suppression d'un mois, restauration.
 - 1er chargement : `<body class="duo-chargement">`, retirée au 1er instantané de `mois` ; montants en blocs gris (`style.css`, fin) et lignes grises dans « Dernières opérations » (`index.html`).
 - **Portail (lot 3)** : `?saisie=depense` (bouton « + » de la vitre) → `ouvrirSaisieDemandee()` au 1er instantané : mois en cours, feuille Dépenses, reflet sur « + Nouvelle dépense ». Résumé `portail/budget` : champ `dernieres` (3 dernières dépenses du mois : libellé ou catégorie, montant, emoji).
+
+## Lot 3 — changer de mois en balayant (20/10/2026)
+- Onglet Mois : **balayer vers la gauche = mois suivant, vers la droite = mois précédent** (`balayerMois`, `app.js` avant « 4. Actions Mois »), mêmes cibles que ‹ › du navigateur. Seuil 70 px ou pichenette ; geste horizontal seulement (`touch-action: pan-y`) ; départ à moins de 24 px du bord gauche ignoré (retour iOS) ; le contenu suit le doigt à 30 % (10 % s'il n'y a pas de mois de ce côté) et arrive en glissant (`.arrive-droite` / `.arrive-gauche`, coupé en mouvement réduit). Le toucher qui suit un balayage ne fait rien (un jour du calendrier n'est pas sélectionné).
+- **Vérifié** (Chromium, Firebase simulé) : Octobre → Septembre → Octobre au balayage ; `?saisie=depense` → feuille Dépenses ouverte sur Octobre 2026 avec reflet. **Non vérifié sur iPhone.**

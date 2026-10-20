@@ -1097,6 +1097,52 @@
             if (btn) { state.moisActifId = btn.dataset.moisId; state.jourSel = null; rafraichirTouteLInterface(); }
         });
 
+        // Lot 3 (20/10/2026) : CHANGER DE MOIS EN BALAYANT l'onglet Mois — vers la gauche = mois suivant, vers la
+        // droite = mois précédent (mêmes cibles que ‹ › du navigateur). Geste nettement horizontal seulement
+        // (touch-action: pan-y, le défilement vertical reste libre), seuil 70 px ou pichenette ; départ à moins
+        // de 24 px du bord gauche ignoré (geste retour d'iOS). Le contenu suit un peu le doigt (30 %).
+        (function balayerMois(){
+            const zone = document.getElementById('vue-mensuelle');
+            let g = null, aBalaye = false;
+            const voisin = (sens) => { const i = state.donnees.findIndex(m => m.id === state.moisActifId); return state.donnees[i + sens] || null; };
+            zone.addEventListener('pointerdown', (e) => {
+                if (g || (e.pointerType === 'mouse' && e.button !== 0) || e.clientX < 24) return;
+                if (e.target.closest('input, textarea, select')) return;
+                g = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), actif: false, dx: 0 };
+                aBalaye = false;
+            });
+            zone.addEventListener('pointermove', (e) => {
+                if (!g || e.pointerId !== g.id) return;
+                const dx = e.clientX - g.x, dy = e.clientY - g.y;
+                if (!g.actif) {
+                    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }
+                    if (Math.abs(dx) < 14) return;
+                    g.actif = true; aBalaye = true; zone.classList.add('balaye-mois');
+                    try { zone.setPointerCapture(e.pointerId); } catch (err) {}
+                }
+                g.dx = dx;
+                const bloque = !voisin(dx < 0 ? 1 : -1);
+                zone.style.transform = 'translateX(' + (dx * (bloque ? 0.1 : 0.3)).toFixed(1) + 'px)';
+            });
+            const finir = (e) => {
+                if (!g || e.pointerId !== g.id) return;
+                const { dx, actif, t } = g; g = null;
+                zone.classList.remove('balaye-mois'); zone.style.transform = '';
+                if (!actif) return;
+                const v = Math.abs(dx) / Math.max(1, performance.now() - t);
+                if (Math.abs(dx) < 70 && !(Math.abs(dx) > 30 && v > 0.5)) return;
+                const cible = voisin(dx < 0 ? 1 : -1);
+                if (!cible) return;
+                state.moisActifId = cible.id; state.jourSel = null;
+                rafraichirTouteLInterface();
+                zone.classList.remove('arrive-gauche', 'arrive-droite'); void zone.offsetWidth;
+                zone.classList.add(dx < 0 ? 'arrive-droite' : 'arrive-gauche');
+            };
+            zone.addEventListener('pointerup', finir);
+            zone.addEventListener('pointercancel', finir);
+            zone.addEventListener('click', (e) => { if (aBalaye) { e.preventDefault(); e.stopPropagation(); aBalaye = false; } }, true);
+        })();
+
         // 4. Actions Mois
         document.getElementById('btn-next-month').onclick = () => {
             const last = state.donnees[state.donnees.length - 1];

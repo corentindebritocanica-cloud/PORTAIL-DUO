@@ -19,6 +19,27 @@
 
 ---
 
+## 🧭 Lot 3 — liens vers la saisie, balayages, échecs d'enregistrement (20/10/2026)
+
+### 20/10/2026 — Portail + 4 apps — ouvrir une app « directement sur la saisie »
+**Symptôme attendu** : le « + » d'une vitre du Portail devait ouvrir l'app curseur dans le champ, clavier ouvert.
+**Cause racine** : sur iPhone, `focus()` n'ouvre le clavier que **pendant un geste de l'utilisateur** dans la page elle-même ; au chargement d'une page (même après un toucher dans le Portail), il ne fait rien de visible.
+**Solution** : `?saisie=…` dans l'URL, lu puis effacé (`history.replaceState`) par chaque app ; l'app amène l'écran juste avant le dernier toucher (feuille Dépenses + reflet sur « + Nouvelle dépense », fenêtre « Nouvelle tâche », séance du jour, recherche de Course avec reflet) au lieu de créer une ligne vide d'office.
+**Leçon généralisable** : ne jamais créer une donnée « pour pouvoir y mettre le curseur » au chargement ; préparer l'écran et laisser le toucher de l'utilisateur ouvrir le clavier.
+**Fichiers touchés** : `index.html`, `app.js` (Portail), `Budget/app.js`, `Course/app.js`, `Todo/app.js`, `Muscu/app.js`
+
+### 20/10/2026 — Todo, Budget — balayer une ligne faite de boutons
+**Point d'attention** : une ligne Todo est entièrement composée de `<button>` (case, texte, crayon) ; un balayage relâché sur la ligne déclenchait aussi le `click` du bouton sous le doigt (ouverture de la fenêtre).
+**Solution** : Pointer Events sur le conteneur (`pointerdown/move/up`), geste engagé seulement si nettement horizontal (> 12 px et plus que le vertical), `touch-action: pan-y` sur la zone (sinon iOS prend le geste pour un défilement et envoie `pointercancel`), et écouteur `click` **en capture** qui annule le clic suivant un balayage. Même schéma pour le changement de mois de Budget.
+**Leçon généralisable** : tout geste de balayage = `touch-action: pan-y` + clic suivant annulé en capture ; ignorer les départs à moins de 24 px du bord gauche (geste retour d'iOS).
+**Fichiers touchés** : `Todo/app.js`, `Todo/style.css`, `Budget/app.js`, `Budget/style.css`
+
+### 20/10/2026 — 5 apps — « hors ligne » et « échec » ne sont pas la même chose
+**Constat** : Budget affichait hors ligne un pop-up « Les modifications ne seront pas enregistrées », faux depuis le cache Firestore persistant (les écritures sont mises en file et partent au retour du réseau) ; à l'inverse, un vrai refus (droits, quota, session) ne s'affichait nulle part (Course, Todo : `console.warn` seulement).
+**Solution** : hors ligne = simple étiquette « Hors ligne » à côté du titre (CSS sur `html[data-sync="hors-ligne"]`) ; vrai refus = `duoEchec(err, quoi)` (`commun.js`), message en haut 6 s avec la raison traduite. Muscu avait déjà ses messages (`firestoreErrorMessage`).
+**Leçon généralisable** : avec la persistance Firestore, une promesse d'écriture **ne se rejette pas** hors ligne (elle attend) ; seul un refus du serveur la rejette → c'est le seul cas à montrer comme une erreur.
+**Fichiers touchés** : `commun.js`, `verre.css`, `Budget/*`, `Course/app.js`, `Todo/app.js`
+
 ## ⌨️ Saisie iPhone — re-rendu qui ferme le clavier ou avale un toucher (20/10/2026)
 
 ### 20/10/2026 — Budget (leçon valable pour toutes les apps) — focus perdu et clic perdu sur une liste re-rendue
