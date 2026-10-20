@@ -561,6 +561,6 @@ Audit à 20 relecteurs + 5 vérificateurs (compte rendu hors dépôt). Corrigé 
 - **09-08** : garde `idx < 0` avant `splice`.
 - **10-02** : cibles à 44 px (`.v2-seg button`, `#btn-next-month`, `.profile-switch-btn`, `#maj-btn`).
 - **10-03** : mise en page « bureau » seulement avec `(hover: hover)` : un iPhone en paysage garde la mise en page mobile.
-- **10-04** (`sw.js`) : une réponse réseau non-OK (404/5xx) laisse la place à la copie en cache ; repli sur `index.html` seulement pour une navigation.
+- **10-04** (`sw.js`) : une réponse réseau non-OK (404/5xx) laisse la place à la copie en cache ; repli sur `index.html` seulement pour une navigation ; minuteur de repli seulement pour la navigation, et `index.html` venu du cache → `app.js`/`style.css` du cache pendant 15 s (HTML et JS toujours de la même version).
 - **Non corrigé, accepté** : 09-09 — `notifie:true` écrit pendant `pagehide` peut ne partir qu'à la réouverture (cache persistant Firestore) ; au pire une 2e notification si la ligne est remodifiée dans les 2 jours.
 - **Non vérifié sur iPhone.**
