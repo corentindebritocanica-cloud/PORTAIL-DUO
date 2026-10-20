@@ -73,3 +73,8 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - Textes d'état vide corrigés (ils parlaient du « champ du haut », retiré le 12/10) : « Touche + pour ajouter une tâche ».
 - Pastilles de listes à 44 px de haut ; zone tactile d'« Effacer » étendue.
 - Thème clair : orange « Important » foncé (`#b45309`) pour un contraste lisible (dans verre.css).
+
+## Lot 2 — Entrée ajoute la tâche (20/10/2026)
+- Fenêtre « Nouvelle tâche » : **Entrée** ajoute la tâche, **vide le champ et garde la fenêtre ouverte**, clavier ouvert, pour enchaîner (`creerTache`, écouteur `keydown` sur `#modal-tache-texte`). Ligne de confirmation « ✓ « … » ajoutée » ; urgence remise à Aucune ; « Annuler » devient « Fermer ». Touche du clavier iOS : `enterkeyhint="send"`.
+- Fenêtre « Modifier » : Entrée = Enregistrer (avant : retour à la ligne, aplati de toute façon à l'enregistrement).
+- **Vérifié** (Chromium, Firebase simulé) : « Pain » ⏎ « Lait » ⏎ → 2 tâches, fenêtre ouverte, curseur dans le champ. **Non vérifié sur iPhone.**

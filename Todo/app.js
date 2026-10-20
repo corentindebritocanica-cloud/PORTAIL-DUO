@@ -349,24 +349,40 @@ function ouvrirModaleTache(id){
     `Ajoutée par ${PRENOM[t.creePar === 'lisa' ? 'lisa' : 'corentin']}${t.creeLe ? ' le ' + new Date(t.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'long' }) : ''}.`;
   annulerFermeture(modalTache);
   modalTache.style.display = 'flex';
+  champTexte.setAttribute('enterkeyhint', creation ? 'send' : 'done');
+  document.getElementById('btn-tache-annuler').textContent = 'Annuler';
   if(creation) champTexte.focus();   /* synchrone dans le geste : iOS ouvre le clavier */
 }
+function creerTache(texte){
+  const nid = nouvelId(), maintenant = Date.now();
+  const lid = infoListe(selectListe.value) ? selectListe.value : idListeAffichee();
+  const nt = { listeId: lid, texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
+  if(urgenceEdition) nt.urgence = urgenceEdition;
+  state.taches[nid] = nt; render();
+  ecrire(()=> docRef(COL_TACHES, nid).set(nt));
+}
+/* Lot 2 (20/10/2026) : Entrée = ajouter. En création, la fenêtre reste ouverte (champ vidé, clavier
+   ouvert) pour enchaîner les tâches ; en modification, Entrée = Enregistrer. Maj+Entrée : rien (pas de
+   retour à la ligne, le texte est mis sur une ligne à l'enregistrement). */
+champTexte.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter' || e.isComposing) return;
+  e.preventDefault();
+  if(tacheEditionId) return document.getElementById('btn-tache-enregistrer').click();
+  const texte = champTexte.value.trim().replace(/\s+/g, ' ').slice(0, 200);
+  if(!texte) return;
+  creerTache(texte);
+  champTexte.value = '';
+  urgenceEdition = 0; dessinerUrgenceEdition();
+  document.getElementById('modal-tache-info').textContent = '✓ « ' + texte + ' » ajoutée. Entrée pour la suivante.';
+  document.getElementById('btn-tache-annuler').textContent = 'Fermer';   /* rien à annuler : les tâches sont ajoutées */
+});
 function fermerModaleTache(){ fermerAnime(modalTache, ()=>{ modalTache.style.display = 'none'; }); tacheEditionId = null; }
 document.getElementById('btn-tache-annuler').addEventListener('click', fermerModaleTache);
 modalTache.addEventListener('click', (e)=>{ if(e.target === modalTache) fermerModaleTache(); });
 document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
   const texte = champTexte.value.trim().replace(/\s+/g, ' ').slice(0, 200);
   if(!texte){ champTexte.focus(); return; }
-  if(!tacheEditionId){   /* création depuis le bouton + */
-    const nid = nouvelId(), maintenant = Date.now();
-    const lid = infoListe(selectListe.value) ? selectListe.value : idListeAffichee();
-    const nt = { listeId: lid, texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
-    if(urgenceEdition) nt.urgence = urgenceEdition;
-    fermerModaleTache();
-    state.taches[nid] = nt; render();
-    ecrire(()=> docRef(COL_TACHES, nid).set(nt));
-    return;
-  }
+  if(!tacheEditionId){ creerTache(texte); fermerModaleTache(); return; }   /* création depuis le bouton + */
   const id = tacheEditionId, t = state.taches[id]; if(!t) return fermerModaleTache();
   const maj = {};
   if(texte !== t.texte) maj.texte = texte;
