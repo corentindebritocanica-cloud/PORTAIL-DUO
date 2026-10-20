@@ -541,4 +541,4 @@ Le bouton **Course terminée** (visible seulement quand un article est coché) r
 - Test : non vérifié bout en bout (Firebase bloqué en test) ; à valider sur iPhone.
 
 ## Ordre des rayons modifiable (20/10/2026)
-Réglages > « Ordre des rayons » : flèches ↑ ↓ par rayon. L'ordre est stocké dans `rayons/{id}.ordre` (Firestore, partagé entre les téléphones) et s'applique aux onglets Liste et Course et au menu de choix du rayon. Rayons sans `ordre` : alphabétique, après les rayons classés. Aucune règle Firestore à changer (rayons déjà en écriture).
+Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée, chaque rayon se déplace en glissant sa poignée (6 points, `touch-action:none`, Pointer Events). L'ordre est stocké dans `rayons/{id}.ordre` (Firestore, partagé entre les téléphones) et s'applique aux onglets Liste et Course et au menu de choix du rayon. Rayons sans `ordre` : alphabétique, après les rayons classés. Aucune règle Firestore à changer. Le glisser n'a été testé qu'en simulation de souris : à valider au doigt sur iPhone.

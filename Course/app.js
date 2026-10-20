@@ -727,29 +727,62 @@ function renderReglagesListes(){
 document.getElementById('reglages-listes').addEventListener('click', (e)=>{
   const b = e.target.closest('.ligne-liste'); if(b) ouvrirModaleListe(b.dataset.liste);
 });
-/* Ordre des rayons (20/10/2026) : flèches ↑ ↓ dans Réglages, enregistré dans Firestore (rayons/{id}.ordre). */
+/* Ordre des rayons (20/10/2026) : feuille du bas avec liste triable (poignée à glisser), enregistré dans
+   Firestore (rayons/{id}.ordre). Réglages n'affiche qu'une ligne qui ouvre la feuille. */
+const modalRayons = document.getElementById('modal-rayons');
+const listeOrdreRayons = document.getElementById('liste-ordre-rayons');
 function renderReglagesRayons(){
-  const c = document.getElementById('reglages-rayons'); if(!c) return;
-  const r = nomsRayonsTries();
-  c.innerHTML = r.map(([id,x],i)=>
-    `<div class="ligne-rayon"><span class="nom-produit">${escapeHtml(x.nom||'')}</span>`
-    + `<button type="button" class="btn-ordre" data-rayon="${id}" data-sens="-1" aria-label="Monter" ${i===0?'disabled':''}><svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"/></svg></button>`
-    + `<button type="button" class="btn-ordre" data-rayon="${id}" data-sens="1" aria-label="Descendre" ${i===r.length-1?'disabled':''}><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button></div>`
-  ).join('') || '<p class="param-desc">Aucun rayon pour le moment.</p>';
+  const n = Object.keys(state.rayons).length;
+  const l = document.getElementById('reglages-rayons-info'); if(l) l.textContent = n ? `${n} rayon${n>1?'s':''}` : 'Aucun rayon';
+  if(modalRayons.style.display === 'flex' && !glisseRayon) remplirOrdreRayons();
 }
-document.getElementById('reglages-rayons').addEventListener('click', (e)=>{
-  const b = e.target.closest('.btn-ordre'); if(!b || b.disabled) return;
-  const ids = nomsRayonsTries().map(([id])=> id);
-  const i = ids.indexOf(b.dataset.rayon), j = i + Number(b.dataset.sens);
-  if(i < 0 || j < 0 || j >= ids.length) return;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
+function remplirOrdreRayons(){
+  listeOrdreRayons.innerHTML = nomsRayonsTries().map(([id,x],i)=>
+    `<li class="ligne-ordre" data-rayon="${id}"><span class="num-ordre">${i+1}</span>`
+    + `<span class="nom-produit">${escapeHtml(x.nom||'')}</span>`
+    + `<button type="button" class="poignee-ordre" aria-label="Déplacer ${escapeHtml(x.nom||'')}"><svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button></li>`
+  ).join('') || '<li class="param-desc">Aucun rayon pour le moment.</li>';
+}
+function ouvrirOrdreRayons(){ remplirOrdreRayons(); modalRayons.style.display = 'flex'; }
+function fermerOrdreRayons(){ fermerAnime(modalRayons, ()=>{ modalRayons.style.display = 'none'; }); }
+document.getElementById('btn-ordre-rayons').addEventListener('click', ouvrirOrdreRayons);
+document.getElementById('btn-ordre-fermer').addEventListener('click', fermerOrdreRayons);
+modalRayons.addEventListener('click', (e)=>{ if(e.target===modalRayons) fermerOrdreRayons(); });
+
+let glisseRayon = null;
+listeOrdreRayons.addEventListener('pointerdown', (e)=>{
+  const poignee = e.target.closest('.poignee-ordre'); if(!poignee) return;
+  const li = poignee.closest('.ligne-ordre');
+  e.preventDefault();
+  poignee.setPointerCapture(e.pointerId);
+  glisseRayon = { li, poignee, y0:e.clientY, top0:li.offsetTop, id:e.pointerId };
+  li.classList.add('souleve');
+});
+listeOrdreRayons.addEventListener('pointermove', (e)=>{
+  const g = glisseRayon; if(!g || e.pointerId !== g.id) return;
+  g.li.style.transform = `translateY(${(e.clientY - g.y0) - (g.li.offsetTop - g.top0)}px) scale(1.02)`;
+  const r = g.li.getBoundingClientRect(), centre = r.top + r.height/2;
+  const prec = g.li.previousElementSibling, suiv = g.li.nextElementSibling;
+  if(prec && centre < prec.getBoundingClientRect().top + prec.offsetHeight/2) listeOrdreRayons.insertBefore(g.li, prec);
+  else if(suiv && centre > suiv.getBoundingClientRect().top + suiv.offsetHeight/2) listeOrdreRayons.insertBefore(suiv, g.li);
+  else return;
+  listeOrdreRayons.querySelectorAll('.num-ordre').forEach((n,k)=> n.textContent = k+1);
+  g.li.style.transform = `translateY(${(e.clientY - g.y0) - (g.li.offsetTop - g.top0)}px) scale(1.02)`;
+});
+function finGlisseRayon(e){
+  const g = glisseRayon; if(!g || e.pointerId !== g.id) return;
+  glisseRayon = null;
+  g.li.classList.remove('souleve'); g.li.style.transform = '';
+  const ids = [...listeOrdreRayons.querySelectorAll('.ligne-ordre')].map(x=> x.dataset.rayon);
   ids.forEach((id,k)=>{
-    if(state.rayons[id].ordre === k) return;
+    if(!state.rayons[id] || state.rayons[id].ordre === k) return;
     state.rayons[id].ordre = k;                       /* effet immédiat ; Firestore confirme ensuite */
     dbUpdateDoc('rayons', id, { ordre: k }).catch(()=>{});
   });
-  render();
-});
+  render(); remplirOrdreRayons();
+}
+listeOrdreRayons.addEventListener('pointerup', finGlisseRayon);
+listeOrdreRayons.addEventListener('pointercancel', finGlisseRayon);
 document.getElementById('btn-nouvelle-liste').addEventListener('click', ()=> ouvrirModaleListe(null));
 
 const modalListe = document.getElementById('modal-liste');

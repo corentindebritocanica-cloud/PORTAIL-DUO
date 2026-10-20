@@ -82,7 +82,9 @@
         <div class="bloc-param">
           <h3>Ordre des rayons</h3>
           <p class="param-desc">Ordre d'affichage des rayons dans les onglets Liste et Course (par exemple dans le sens de ton magasin).</p>
-          <div id="reglages-rayons"></div>
+          <button type="button" class="ligne-liste" id="btn-ordre-rayons">
+            <span class="infos-produit"><span class="nom-produit">Ordre des rayons</span><span class="rayon-produit" id="reglages-rayons-info"></span></span>
+            <span class="btn-crayon" aria-hidden="true">&#8645;</span></button>
         </div>
         <div class="bloc-param">
           <h3>Application</h3>
@@ -151,6 +153,15 @@
 </div>
 
 <!-- Création / renommage / suppression d'une liste de courses (30/09/2026) — voir « LISTES » dans app.js -->
+<div class="modal-fond" id="modal-rayons" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-rayons-titre">
+  <div class="modal-carte">
+    <h2 id="modal-rayons-titre">Ordre des rayons</h2>
+    <p class="param-desc">Glisse la poignée pour placer les rayons dans le sens de ton magasin.</p>
+    <ul class="liste-ordre" id="liste-ordre-rayons"></ul>
+    <div class="modal-actions"><button class="btn-enregistrer" id="btn-ordre-fermer">Terminé</button></div>
+  </div>
+</div>
+
 <div class="modal-fond" id="modal-liste" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-liste-titre">
   <div class="modal-carte">
     <h2 id="modal-liste-titre">Nouvelle liste</h2>
