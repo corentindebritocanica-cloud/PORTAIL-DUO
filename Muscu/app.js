@@ -112,12 +112,6 @@ function firestoreErrorMessage(err, action){
   return `Échec ${action} — vérifie ta connexion`;
 }
 
-/* ---------- VIBRATION (retour haptique à la validation) ---------- */
-function vibrate(){
-  try{
-    if(navigator.vibrate) navigator.vibrate(15);
-  }catch(e){ /* API non supportée, ignoré silencieusement */ }
-}
 
 /* ---------- DONNEES DU PROGRAMME ---------- */
 /* Icônes de groupe musculaire (SVG inline, dessinées pour l'app) */
@@ -524,7 +518,6 @@ function launchSessionChrono(){
     d.startedAt = Date.now();
     saveDayData(currentSessionId, currentProfile, d);
   }
-  vibrate();
   render();
   showToast("C'est parti 💪");
 }
@@ -1203,6 +1196,10 @@ function updateSessionProgress(){
   majRail(false);
 }
 
+/* ---------- RENDU DE LA SÉANCE ----------
+   render() découpée le 20/10/2026 : une fonction par bloc de l'écran (note de séance,
+   carte d'exercice et ses sections, cardio, navigation). Comportement inchangé.
+   Les sections d'une carte partagent un contexte `c` (voir construireCarteExercice). */
 function render(){
   applyThemeColor();
 
@@ -1221,6 +1218,35 @@ function render(){
   data.variants = data.variants || {};
   data.notes = data.notes || {};
 
+  const sessionNoteWrap = construireNoteSeance(data);
+
+  /* Bouton « GO » (30/09/2026) : depuis le 05/10/2026, c'est le chrono de l'en-tête qui affiche
+     « GO » tant que la séance n'est pas lancée (updateSessionTimer / clicChrono). */
+
+  majBoutonOrdre(data, dayProgram);
+
+  /* Ordre suivi aujourd'hui ; exIdx reste l'EMPLACEMENT d'origine (clés de saisie).
+     Séance par exercice (05/10/2026) : toutes les cartes sont construites (records, flammes,
+     saisies inchangés), une seule est affichée — celle choisie dans le rail (afficherExo). */
+  const ordreAffiche = ordreDuJour(data, dayProgram.exercises.length);
+  ordreAffiche.forEach((exIdx, pos) => {
+    main.appendChild(construireCarteExercice(dayProgram.exercises[exIdx], exIdx, pos,
+      ordreAffiche.length, prevuProgram.exercises[exIdx], data));
+  });
+
+  main.appendChild(construireCarteCardio(data, dayProgram.cardio));
+
+  main.appendChild(construireNavExo());
+  main.appendChild(sessionNoteWrap);
+
+  construireRail(dayProgram, ordreAffiche, prevuProgram);
+  afficherExo(choisirExoActif(data, dayProgram, ordreAffiche), 0);
+  updateSessionProgress();
+  startSessionTimer();
+}
+
+/* Note de séance (bas de page). */
+function construireNoteSeance(data){
   /* Note de séance : contexte global du jour (fatigue, douleur, matériel,
      changement de programme). Distincte des notes d'exercice, qui répondent à
      « comment s'est passé CET exercice ». */
@@ -1243,12 +1269,10 @@ function render(){
     saveDayData(currentSessionId, currentProfile, d);
   };
   sessionNoteWrap.appendChild(sessionNoteInput);
-  /* Séance par exercice (05/10/2026) : la note de séance est ajoutée tout en bas de la page,
-     sous les boutons Précédent / Suivant (voir la fin de render()). */
+  return sessionNoteWrap;
+}
 
-  /* Bouton « GO » (30/09/2026) : depuis le 05/10/2026, c'est le chrono de l'en-tête qui affiche
-     « GO » tant que la séance n'est pas lancée (updateSessionTimer / clicChrono). */
-
+function majBoutonOrdre(data, dayProgram){
   /* Ordre du jour (01/10/2026) : bouton ⇅ de la barre du bas (#btn-ordre, 05/10/2026 —
      avant : en tête de séance), feuille #ordre-modal. */
   const ordreBtn = document.getElementById('btn-ordre');
@@ -1256,660 +1280,718 @@ function render(){
     ordreBtn.style.display = dayProgram.exercises.length > 1 ? '' : 'none';
     ordreBtn.classList.toggle('actif', ordreEstModifie(data, dayProgram.exercises.length));
   }
+}
 
-  /* Ordre suivi aujourd'hui ; exIdx reste l'EMPLACEMENT d'origine (clés de saisie).
-     Séance par exercice (05/10/2026) : toutes les cartes sont construites (records, flammes,
-     saisies inchangés), une seule est affichée — celle choisie dans le rail (afficherExo). */
-  const ordreAffiche = ordreDuJour(data, dayProgram.exercises.length);
-  ordreAffiche.forEach((exIdx, pos) => {
-    const ex = dayProgram.exercises[exIdx];
-    const card = document.createElement('div');
-    card.className = 'exercise-card exo-page';
-    card.dataset.pos = String(exIdx);
+/* Carte d'un exercice : identité (en-tête, historique), puis saisie (méthode, séries, note).
+   `c` = contexte partagé par les sections : exercice, emplacement, données du jour, nœuds
+   de la carte, historique, barre, et les rafraîchissements (badge record, état complet). */
+function construireCarteExercice(ex, exIdx, pos, total, prevu, data){
+  const card = document.createElement('div');
+  card.className = 'exercise-card exo-page';
+  card.dataset.pos = String(exIdx);
 
-    /* 109 : la carte se lit en deux temps — l'identité de l'exercice (ce que
-       c'est, ce qu'on vise, ce qu'on avait fait), puis la zone de saisie. Les
-       deux blocs ont des fonds distincts séparés par un filet. */
-    const headWrap = document.createElement('div');
-    headWrap.className = 'exercise-headwrap';
-    card.appendChild(headWrap);
+  /* 109 : la carte se lit en deux temps — l'identité de l'exercice (ce que
+     c'est, ce qu'on vise, ce qu'on avait fait), puis la zone de saisie. Les
+     deux blocs ont des fonds distincts séparés par un filet. */
+  const headWrap = document.createElement('div');
+  headWrap.className = 'exercise-headwrap';
+  card.appendChild(headWrap);
 
-    const body = document.createElement('div');
-    body.className = 'exercise-body';
-    card.appendChild(body);
+  const body = document.createElement('div');
+  body.className = 'exercise-body';
+  card.appendChild(body);
+  /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
+  const isCircuitEx = ex.logType === 'circuit';
+  /* Méthode actuellement sélectionnée pour CET exercice dans CETTE séance —
+     sert à isoler "Dernière fois" ET le record : voir currentExerciseMethodId().
+     Change de valeur au clic sur le sélecteur de méthode plus bas, qui relance
+     un render() complet de la vue et recalcule donc cette carte à jour. */
+  const recordMethodId = isCircuitEx ? null : currentExerciseMethodId(ex, exIdx, data);
+  const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name, recordMethodId);
+  const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name, recordMethodId);
+  const isCircuit = isCircuitEx;
+  const isBarbell = !isCircuit && getExerciseEquipmentId(ex, exIdx, data) === 'barre';
+  const plateHints = [];
+  const c = { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record,
+    barPicker: null, plateHints, refreshRecordBadge: null, refreshCardState: null };
 
-    const head = document.createElement('div');
-    head.className = 'exercise-head';
-    head.innerHTML = `
-      <div class="exercise-rang">Exercice ${pos + 1} sur ${ordreAffiche.length}</div>
-      <div class="exercise-name">${escapeHtml(ex.name)}</div>
-      <div class="exercise-target">${escapeHtml((ex.target && ex.target[currentProfile]) || '')}</div>
-    `;
-    /* Remplacement du jour (01/10/2026) : rappel de l'exercice prévu, et bouton ⇄. */
-    const prevu = prevuProgram.exercises[exIdx];
-    if(prevu && ex !== prevu){
-      const tag = document.createElement('div');
-      tag.className = 'exercise-swap-tag';
-      tag.textContent = '⇄ À la place de « ' + prevu.name + ' » · cette séance seulement';
-      head.appendChild(tag);
+  construireEnteteExercice(c, pos, total, prevu);
+  construireHistoriqueExercice(c);
+
+  /* Badge affiché dès qu'une série saisie dépasse le record archivé. */
+  const prBadge = document.createElement('div');
+  prBadge.className = 'pr-badge';
+  prBadge.style.display = 'none';
+  prBadge.textContent = '';
+  body.appendChild(prBadge);
+
+  /* Un exercice dont toutes les séries sont validées se signale discrètement :
+     en salle, ça évite de recompter les coches pour savoir où on en est. */
+  function refreshCardState(){
+    const d = loadDayData(currentSessionId, currentProfile);
+    let done = 0;
+    for(let n = 1; n <= ex.sets; n++){
+      const cur = d.sets['ex' + exIdx + '_set' + n];
+      if(cur && cur.done) done++;
     }
-    headWrap.appendChild(head);
-    const swapBtn = document.createElement('button');
-    swapBtn.type = 'button';
-    swapBtn.className = 'exercise-swap-btn';
-    swapBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>';
-    swapBtn.setAttribute('aria-label', 'Remplacer cet exercice pour cette séance');
-    swapBtn.onclick = () => ouvrirRemplacement(exIdx);
-    headWrap.appendChild(swapBtn);
+    card.classList.toggle('complete', done === ex.sets && ex.sets > 0);
+  }
 
-    /* 005 / 006 : contexte historique de l'exercice, lu une seule fois par carte. */
-    const isCircuitEx = ex.logType === 'circuit';
-    /* Méthode actuellement sélectionnée pour CET exercice dans CETTE séance —
-       sert à isoler "Dernière fois" ET le record : voir currentExerciseMethodId().
-       Change de valeur au clic sur le sélecteur de méthode plus bas, qui relance
-       un render() complet de la vue et recalcule donc cette carte à jour. */
-    const recordMethodId = isCircuitEx ? null : currentExerciseMethodId(ex, exIdx, data);
-    const lastPerf = isCircuitEx ? null : getLastPerformance(currentProfile, ex.name, recordMethodId);
-    const record = isCircuitEx ? null : getPersonalRecord(currentProfile, ex.name, recordMethodId);
-
-    if(lastPerf || record){
-      const histRow = document.createElement('div');
-      histRow.className = 'exercise-history';
-      if(lastPerf){
-        const best = lastPerf.sets.reduce(function(a, b){ return b.weight > a.weight ? b : a; });
-        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
-        const span = document.createElement('span');
-        span.className = 'hist-last';
-        span.textContent = 'Dernière fois · ' + formatKg(best.weight)
-          + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel
-          + (methodInfo ? ' (' + methodInfo.label + ')' : '');
-        histRow.appendChild(span);
-      }
-      if(record){
-        /* Le record affiche la série réellement faite (poids × reps), pas un
-           chiffre de volume abstrait : c'est ce qui reste lisible et vérifiable
-           d'un coup d'œil en salle. Le volume ne sert qu'en coulisse à décider
-           QUELLE série est le record. Méthode ajoutée entre parenthèses dès que
-           l'exercice en propose plusieurs (24/09/26) : sans ça, rien à l'écran
-           ne rappelle qu'un record "Machine" ne veut pas dire grand-chose une
-           fois qu'on est passé aux haltères. */
-        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
-        const rec = document.createElement('span');
-        rec.className = 'hist-record';
-        rec.textContent = 'Record · ' + formatKg(record.weight) + ' × ' + record.reps
-          + (methodInfo ? ' (' + methodInfo.label + ')' : '');
-        histRow.appendChild(rec);
-      }
-      headWrap.appendChild(histRow);
+  function refreshRecordBadge(){
+    if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
+    const d = loadDayData(currentSessionId, currentProfile);
+    /* La méthode en cours de saisie compte aussi dans la comparaison :
+       un exercice passé aux haltères aujourd'hui double son volume, comme le
+       reste de l'app. */
+    const liveFactor = equipmentFactor(ex, exIdx, d);
+    let bestVol = 0, bestWeight = 0, bestReps = 0;
+    for(let n = 1; n <= ex.sets; n++){
+      const cur = d.sets['ex' + exIdx + '_set' + n];
+      if(!cur) continue;
+      const w = parseNum(cur.weight), r = parseNum(cur.reps);
+      const vol = setVolume(w, r, liveFactor);
+      if(!isNaN(vol) && vol > bestVol){ bestVol = vol; bestWeight = w; bestReps = r; }
     }
-
-    /* Badge affiché dès qu'une série saisie dépasse le record archivé. */
-    const prBadge = document.createElement('div');
-    prBadge.className = 'pr-badge';
-    prBadge.style.display = 'none';
-    prBadge.textContent = '';
-    body.appendChild(prBadge);
-
-    /* Un exercice dont toutes les séries sont validées se signale discrètement :
-       en salle, ça évite de recompter les coches pour savoir où on en est. */
-    function refreshCardState(){
-      const d = loadDayData(currentSessionId, currentProfile);
-      let done = 0;
-      for(let n = 1; n <= ex.sets; n++){
-        const cur = d.sets['ex' + exIdx + '_set' + n];
-        if(cur && cur.done) done++;
+    if(bestVol > record.volume){
+      const wasHidden = prBadge.style.display === 'none';
+      const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
+      prBadge.textContent = 'Nouveau record' + (methodInfo ? ' (' + methodInfo.label + ')' : '') + ' : '
+        + formatKg(bestWeight) + ' × ' + bestReps
+        + '  (précédent : ' + formatKg(record.weight) + ' × ' + record.reps + ')';
+      prBadge.style.display = 'flex';
+      if(wasHidden){
+        prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
       }
-      card.classList.toggle('complete', done === ex.sets && ex.sets > 0);
+      recordFireSet(card, true);
+    } else {
+      prBadge.style.display = 'none';
+      recordFireSet(card, false);
     }
+  }
+  refreshRecordBadge();
+  refreshCardState();
+  c.refreshRecordBadge = refreshRecordBadge;
+  c.refreshCardState = refreshCardState;
 
-    function refreshRecordBadge(){
-      if(isCircuitEx || !record){ prBadge.style.display = 'none'; return; }
-      const d = loadDayData(currentSessionId, currentProfile);
-      /* La méthode en cours de saisie compte aussi dans la comparaison :
-         un exercice passé aux haltères aujourd'hui double son volume, comme le
-         reste de l'app. */
-      const liveFactor = equipmentFactor(ex, exIdx, d);
-      let bestVol = 0, bestWeight = 0, bestReps = 0;
-      for(let n = 1; n <= ex.sets; n++){
-        const cur = d.sets['ex' + exIdx + '_set' + n];
-        if(!cur) continue;
-        const w = parseNum(cur.weight), r = parseNum(cur.reps);
-        const vol = setVolume(w, r, liveFactor);
-        if(!isNaN(vol) && vol > bestVol){ bestVol = vol; bestWeight = w; bestReps = r; }
-      }
-      if(bestVol > record.volume){
-        const wasHidden = prBadge.style.display === 'none';
-        const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
-        prBadge.textContent = 'Nouveau record' + (methodInfo ? ' (' + methodInfo.label + ')' : '') + ' : '
-          + formatKg(bestWeight) + ' × ' + bestReps
-          + '  (précédent : ' + formatKg(record.weight) + ' × ' + record.reps + ')';
-        prBadge.style.display = 'flex';
-        if(wasHidden){
-          prBadge.classList.remove('pop'); void prBadge.offsetWidth; prBadge.classList.add('pop');
-        }
-        recordFireSet(card, true);
-      } else {
-        prBadge.style.display = 'none';
-        recordFireSet(card, false);
-      }
+  construireSelecteurMethode(c);
+
+  /* Barre : on affiche sous chaque série ce qu'il faut charger de chaque côté. */
+  c.barPicker = isBarbell ? buildBarWeightPicker(ex, plateHints) : null;
+  if(c.barPicker) body.appendChild(c.barPicker.el);
+
+  construireEnteteSeries(c);
+  const addWarm = construireEchauffements(c);
+  for(let s = 1; s <= ex.sets; s++) construireLigneSerie(c, s);
+  construireNoteExercice(c, addWarm);
+
+  return card;
+}
+
+function construireEnteteExercice(c, pos, total, prevu){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  const head = document.createElement('div');
+  head.className = 'exercise-head';
+  head.innerHTML = `
+    <div class="exercise-rang">Exercice ${pos + 1} sur ${total}</div>
+    <div class="exercise-name">${escapeHtml(ex.name)}</div>
+    <div class="exercise-target">${escapeHtml((ex.target && ex.target[currentProfile]) || '')}</div>
+  `;
+  /* Remplacement du jour (01/10/2026) : rappel de l'exercice prévu, et bouton ⇄. */
+  if(prevu && ex !== prevu){
+    const tag = document.createElement('div');
+    tag.className = 'exercise-swap-tag';
+    tag.textContent = '⇄ À la place de « ' + prevu.name + ' » · cette séance seulement';
+    head.appendChild(tag);
+  }
+  headWrap.appendChild(head);
+  const swapBtn = document.createElement('button');
+  swapBtn.type = 'button';
+  swapBtn.className = 'exercise-swap-btn';
+  swapBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>';
+  swapBtn.setAttribute('aria-label', 'Remplacer cet exercice pour cette séance');
+  swapBtn.onclick = () => ouvrirRemplacement(exIdx);
+  headWrap.appendChild(swapBtn);
+}
+
+function construireHistoriqueExercice(c){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  if(lastPerf || record){
+    const histRow = document.createElement('div');
+    histRow.className = 'exercise-history';
+    if(lastPerf){
+      const best = lastPerf.sets.reduce(function(a, b){ return b.weight > a.weight ? b : a; });
+      const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
+      const span = document.createElement('span');
+      span.className = 'hist-last';
+      span.textContent = 'Dernière fois · ' + formatKg(best.weight)
+        + (isNaN(best.reps) ? '' : ' × ' + best.reps) + '  ·  ' + lastPerf.dateLabel
+        + (methodInfo ? ' (' + methodInfo.label + ')' : '');
+      histRow.appendChild(span);
     }
-    refreshRecordBadge();
-    refreshCardState();
-
-    /* Le sélecteur de méthode ne s'affiche QUE si l'exercice a plusieurs
-       méthodes plausibles (Liste B, voir plus haut) : un Squat ou une Leg
-       Extension n'ont qu'une méthode, pas de bouton à leur imposer. Quand il y
-       en a plusieurs, la première de la liste fait foi tant que rien n'a été
-       tapé explicitement (voir getExerciseEquipmentId) — elle apparaît donc
-       déjà « selected » à l'ouverture. */
-    const equipmentList = (ex.equipment || []);
-    if(!isCircuitEx && equipmentList.length > 1){
-      const variantKey = exerciseKey(ex, exIdx);
-      const currentEquip = getExerciseEquipmentId(ex, exIdx, data);
-
-      const variantRow = document.createElement('div');
-      variantRow.className = 'variant-row';
-      equipmentList.forEach(id => {
-        const info = equipmentInfo(id);
-        if(!info) return;
-        const optBtn = document.createElement('button');
-        optBtn.className = 'variant-btn' + (currentEquip === id ? ' selected' : '');
-        optBtn.innerHTML = `<span class="variant-icon">${EQUIPMENT_ICONS[id] || ''}</span>`
-          + `<span class="variant-name">${escapeHtml(info.label)}</span>`
-          + `<span class="variant-sub">${info.factor === 2 ? 'poids par main' : 'charge totale'}</span>`;
-        optBtn.onclick = () => {
-          pushUndoSnapshot();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.variants = d.variants || {};
-          if(exIdx in d.variants) delete d.variants[exIdx]; /* migration ancienne clé */
-          d.variants[variantKey] = id;
-          saveDayData(currentSessionId, currentProfile, d);
-          render();
-        };
-        variantRow.appendChild(optBtn);
-      });
-      body.appendChild(variantRow);
-
-      const info = equipmentInfo(currentEquip);
-      if(info){
-        const variantHint = document.createElement('div');
-        variantHint.className = 'variant-hint' + (info.factor === 2 ? ' doubled' : '');
-        variantHint.textContent = info.hint;
-        body.appendChild(variantHint);
-      }
+    if(record){
+      /* Le record affiche la série réellement faite (poids × reps), pas un
+         chiffre de volume abstrait : c'est ce qui reste lisible et vérifiable
+         d'un coup d'œil en salle. Le volume ne sert qu'en coulisse à décider
+         QUELLE série est le record. Méthode ajoutée entre parenthèses dès que
+         l'exercice en propose plusieurs (24/09/26) : sans ça, rien à l'écran
+         ne rappelle qu'un record "Machine" ne veut pas dire grand-chose une
+         fois qu'on est passé aux haltères. */
+      const methodInfo = recordMethodId ? equipmentInfo(recordMethodId) : null;
+      const rec = document.createElement('span');
+      rec.className = 'hist-record';
+      rec.textContent = 'Record · ' + formatKg(record.weight) + ' × ' + record.reps
+        + (methodInfo ? ' (' + methodInfo.label + ')' : '');
+      histRow.appendChild(rec);
     }
+    headWrap.appendChild(histRow);
+  }
+}
 
-    const isCircuit = ex.logType === 'circuit';
-    let addWarm = null;
-    /* Barre : on affiche sous chaque série ce qu'il faut charger de chaque côté. */
-    const isBarbell = !isCircuit && getExerciseEquipmentId(ex, exIdx, data) === 'barre';
-    const plateHints = [];
-    const barPicker = isBarbell ? buildBarWeightPicker(ex, plateHints) : null;
-    if(barPicker) body.appendChild(barPicker.el);
+function construireSelecteurMethode(c){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  /* Le sélecteur de méthode ne s'affiche QUE si l'exercice a plusieurs
+     méthodes plausibles (Liste B, voir plus haut) : un Squat ou une Leg
+     Extension n'ont qu'une méthode, pas de bouton à leur imposer. Quand il y
+     en a plusieurs, la première de la liste fait foi tant que rien n'a été
+     tapé explicitement (voir getExerciseEquipmentId) — elle apparaît donc
+     déjà « selected » à l'ouverture. */
+  const equipmentList = (ex.equipment || []);
+  if(!isCircuitEx && equipmentList.length > 1){
+    const variantKey = exerciseKey(ex, exIdx);
+    const currentEquip = getExerciseEquipmentId(ex, exIdx, data);
 
-    const gridHeader = document.createElement('div');
-    gridHeader.className = isCircuit ? 'set-grid-header circuit' : 'set-grid-header';
-    const perHand = !isCircuit && equipmentFactor(ex, exIdx, data) === 2;
-    const showRpe = !isCircuit && rpeEnabled();
-    gridHeader.className = 'set-grid-header' + (isCircuit ? ' circuit' : '') + (showRpe ? ' with-rpe' : '');
-    gridHeader.innerHTML = isCircuit
-      ? `<span>Tour</span><span>Résultat</span><span>✓</span>`
-      : `<span>Sér.</span><span>${perHand ? 'Kg / main' : 'Poids kg'}</span><span>${perHand ? 'Reps / bras' : 'Reps'}</span>${showRpe ? '<span>RPE</span>' : ''}<span></span><span>✓</span>`;
-    body.appendChild(gridHeader);
-
-    /* Séries d'échauffement : rendues AVANT les séries de travail, avec leurs
-       propres clés `_warm`. Elles ne consomment aucune des N séries prévues —
-       c'est tout le sens de les avoir séparées du reste (voir plus haut). */
-    if(!isCircuit){
-      const nWarm = warmupCount(data, ex, exIdx);
-      for(let n = 1; n <= nWarm; n++){
-        const wKey = warmupKey(exIdx, n);
-        const wSet = data.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
-
-        const wRow = document.createElement('div');
-        wRow.className = 'set-row warmup-row' + (rpeEnabled() ? ' with-rpe' : '');
-
-        const wNum = document.createElement('div');
-        wNum.className = 'set-num kind-warmup';
-        wNum.textContent = 'É';
-        wRow.appendChild(wNum);
-
-        const wPlate = barPicker ? buildPlateHint(wSet.weight, barPicker.barKg()) : null;
-        const wWeight = document.createElement('input');
-        if(wPlate) plateHints.push({ el: wPlate, weight: () => wWeight.value });
-        wWeight.type = 'text'; wWeight.inputMode = 'decimal'; wWeight.autocomplete = 'off';
-        wWeight.placeholder = 'kg';
-        wWeight.value = wSet.weight;
-        wWeight.onfocus = armUndoSnapshot;
-        wWeight.oninput = () => {
-          sanitizeField(wWeight, 'decimal');
-          snapshotBeforeEdit();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
-          d.sets[wKey].weight = wWeight.value;
-          saveDayData(currentSessionId, currentProfile, d);
-          if(wPlate) updatePlateHint(wPlate, wWeight.value, barPicker.barKg());
-        };
-        wRow.appendChild(wWeight);
-
-        const wReps = document.createElement('input');
-        wReps.type = 'text'; wReps.inputMode = 'numeric'; wReps.autocomplete = 'off';
-        wReps.placeholder = 'reps';
-        wReps.value = wSet.reps;
-        wReps.onfocus = armUndoSnapshot;
-        wReps.oninput = () => {
-          sanitizeField(wReps, 'integer');
-          snapshotBeforeEdit();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
-          d.sets[wKey].reps = wReps.value;
-          saveDayData(currentSessionId, currentProfile, d);
-        };
-        wRow.appendChild(wReps);
-
-        if(rpeEnabled()){
-          wRow.appendChild(buildRpeSelect(wSet.rpe, (value) => {
-            pushUndoSnapshot();
-            const d = loadDayData(currentSessionId, currentProfile);
-            d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
-            d.sets[wKey].rpe = value;
-            saveDayData(currentSessionId, currentProfile, d);
-          }));
-        }
-
-        /* Retirer ne s'affiche que sur la DERNIÈRE ligne : la donnée sous-jacente
-           est un compteur, pas une liste adressable une par une. Si le bouton
-           apparaissait sur chaque ligne, retirer la première effacerait aussi
-           les suivantes — sans le dire. Un seul bouton, sans ambiguïté. */
-        if(n === nWarm){
-          const wDel = document.createElement('button');
-          wDel.className = 'dup-btn';
-          wDel.textContent = '×';
-          wDel.title = 'Retirer cet échauffement';
-          wDel.onclick = () => { pushUndoSnapshot(); setWarmupCount(ex, exIdx, nWarm - 1); };
-          wRow.appendChild(wDel);
-        } else {
-          const spacer = document.createElement('div');
-          wRow.appendChild(spacer);
-        }
-
-        const wCheck = document.createElement('button');
-        wCheck.className = 'check-btn' + (wSet.done ? ' checked' : '');
-        wCheck.textContent = '✓';
-        wCheck.onclick = () => {
-          pushUndoSnapshot();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
-          d.sets[wKey].done = !d.sets[wKey].done;
-          saveDayData(currentSessionId, currentProfile, d);
-          wCheck.classList.toggle('checked', d.sets[wKey].done);
-          if(d.sets[wKey].done) vibrate();
-        };
-        wRow.appendChild(wCheck);
-
-        body.appendChild(wRow);
-        if(wPlate) body.appendChild(wPlate);
-      }
-
-      if(nWarm < 4){
-        /* Rangé sous les séries, à côté de « + Note » (05/10/2026) — les échauffements
-           ajoutés s'affichent toujours AVANT les séries de travail. */
-        addWarm = document.createElement('button');
-        addWarm.className = 'add-warmup-btn';
-        addWarm.textContent = '+ Échauffement';
-        addWarm.onclick = () => { pushUndoSnapshot(); setWarmupCount(ex, exIdx, nWarm + 1); };
-      }
-    }
-
-    for(let s = 1; s <= ex.sets; s++){
-      const setKey = `ex${exIdx}_set${s}`;
-      const savedSet = data.sets[setKey] || { weight:'', reps:'', duration:'', info:'', rpe:'', done:false };
-
-      const row = document.createElement('div');
-      row.className = (isCircuit ? 'set-row circuit' : 'set-row') + (!isCircuit && rpeEnabled() ? ' with-rpe' : '')
-        + (savedSet.done ? ' fait' : '');   /* série validée : ligne teintée verte (05/10/2026) */
-
-      const num = document.createElement('div');
-      num.className = 'set-num';
-      num.textContent = isCircuit ? `Tour ${s}` : s;
-      row.appendChild(num);
-
-      if(isCircuit){
-        /* Un circuit enchaîne plusieurs mouvements de natures différentes —
-           des répétitions pour l'un, des secondes pour l'autre. Deux cases
-           chiffrées ne peuvent pas représenter ça : une seule case libre laisse
-           noter ce qui a réellement été fait, dans les mots de l'exercice.
-           Ces valeurs n'entrent pas dans le tonnage, qui n'a pas de sens sans charge. */
-        const circuitInfo = document.createElement('input');
-        circuitInfo.type = 'text';
-        circuitInfo.autocomplete = 'off';
-        circuitInfo.placeholder = 'ex : 12 relevés + 45 s';
-        /* Reprise des anciennes saisies chiffrées, pour ne rien perdre. */
-        circuitInfo.value = savedSet.info != null && savedSet.info !== ''
-          ? savedSet.info
-          : [savedSet.reps ? savedSet.reps + ' reps' : '', savedSet.duration ? savedSet.duration + ' s' : '']
-              .filter(Boolean).join(' + ');
-        circuitInfo.onfocus = armUndoSnapshot;
-        circuitInfo.oninput = () => {
-          snapshotBeforeEdit();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', duration:'', info:'', done:false };
-          d.sets[setKey].info = circuitInfo.value;
-          saveDayData(currentSessionId, currentProfile, d);
-        };
-        row.appendChild(circuitInfo);
-      }
-
-      const plateHint = barPicker ? buildPlateHint(savedSet.weight, barPicker.barKg()) : null;
-      if(!isCircuit){
-        const weightInput = document.createElement('input');
-        if(plateHint) plateHints.push({ el: plateHint, weight: () => weightInput.value });
-        /* type="text" et non "number" : avec un clavier français, "22,5" est jugé
-           invalide par Safari et `input.value` renvoie une chaîne vide — la saisie
-           disparaissait silencieusement. parseNum() gère la virgule au calcul. */
-        weightInput.type = 'text';
-        weightInput.inputMode = 'decimal';
-        weightInput.autocomplete = 'off';
-        /* 005 : la valeur de la dernière fois sert d'indication grisée. Ce n'est
-           jamais une valeur saisie : si l'utilisateur ne tape rien, la série
-           reste vide dans l'export et dans le tonnage. */
-        const lastSet = lastPerf ? lastPerf.sets.find(function(x){ return x.set === s; }) : null;
-        weightInput.placeholder = (lastSet && !isNaN(lastSet.weight)) ? formatKg(lastSet.weight) : 'kg';
-        weightInput.value = savedSet.weight;
-        weightInput.onfocus = armUndoSnapshot;
-        weightInput.oninput = () => {
-          sanitizeField(weightInput, 'decimal');
-          snapshotBeforeEdit();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
-          d.sets[setKey].weight = weightInput.value;
-          saveDayData(currentSessionId, currentProfile, d);
-          if(plateHint) updatePlateHint(plateHint, weightInput.value, barPicker.barKg());
-          updateSessionProgress(); /* tonnage recalculé en direct */
-          refreshRecordBadge();
-        };
-        row.appendChild(weightInput);
-
-        const repsInput = document.createElement('input');
-        repsInput.type = 'text';
-        repsInput.inputMode = 'numeric';
-        repsInput.autocomplete = 'off';
-        repsInput.placeholder = (lastSet && !isNaN(lastSet.reps)) ? String(lastSet.reps) : 'reps';
-        repsInput.value = savedSet.reps;
-        repsInput.onfocus = armUndoSnapshot;
-        repsInput.oninput = () => {
-          sanitizeField(repsInput, 'integer');
-          snapshotBeforeEdit();
-          const d = loadDayData(currentSessionId, currentProfile);
-          d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
-          d.sets[setKey].reps = repsInput.value;
-          saveDayData(currentSessionId, currentProfile, d);
-          updateSessionProgress(); /* tonnage recalculé en direct */
-          refreshRecordBadge(); /* le volume dépend des reps, pas que du poids */
-        };
-        row.appendChild(repsInput);
-
-        if(rpeEnabled()){
-          row.appendChild(buildRpeSelect(savedSet.rpe, (value) => {
-            pushUndoSnapshot();
-            const d = loadDayData(currentSessionId, currentProfile);
-            d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', duration:'', info:'', rpe:'', done:false };
-            d.sets[setKey].rpe = value;
-            saveDayData(currentSessionId, currentProfile, d);
-          }));
-        }
-
-        if(s > 1){
-          const dupBtn = document.createElement('button');
-          dupBtn.className = 'dup-btn';
-          dupBtn.textContent = '⇊';
-          dupBtn.title = 'Recopier la série précédente';
-          dupBtn.onclick = () => {
-            pushUndoSnapshot();
-            const prevKey = `ex${exIdx}_set${s-1}`;
-            const d = loadDayData(currentSessionId, currentProfile);
-            const prev = d.sets[prevKey];
-            if(prev){
-              d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
-              d.sets[setKey].weight = prev.weight;
-              d.sets[setKey].reps = prev.reps;
-              saveDayData(currentSessionId, currentProfile, d);
-              weightInput.value = prev.weight;
-              repsInput.value = prev.reps;
-              if(plateHint) updatePlateHint(plateHint, prev.weight, barPicker.barKg());
-              refreshRecordBadge();
-              dupBtn.classList.remove('done'); void dupBtn.offsetWidth; dupBtn.classList.add('done');
-              showToast('Série recopiée');
-            } else {
-              showToast('Rien à recopier');
-            }
-          };
-          row.appendChild(dupBtn);
-        } else {
-          const spacer = document.createElement('div');
-          row.appendChild(spacer);
-        }
-      }
-
-      const checkBtn = document.createElement('button');
-      checkBtn.className = 'check-btn' + (savedSet.done ? ' checked' : '');
-      checkBtn.textContent = '✓';
-      checkBtn.onclick = () => {
+    const variantRow = document.createElement('div');
+    variantRow.className = 'variant-row';
+    equipmentList.forEach(id => {
+      const info = equipmentInfo(id);
+      if(!info) return;
+      const optBtn = document.createElement('button');
+      optBtn.className = 'variant-btn' + (currentEquip === id ? ' selected' : '');
+      optBtn.innerHTML = `<span class="variant-icon">${EQUIPMENT_ICONS[id] || ''}</span>`
+        + `<span class="variant-name">${escapeHtml(info.label)}</span>`
+        + `<span class="variant-sub">${info.factor === 2 ? 'poids par main' : 'charge totale'}</span>`;
+      optBtn.onclick = () => {
         pushUndoSnapshot();
         const d = loadDayData(currentSessionId, currentProfile);
-        d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
-        d.sets[setKey].done = !d.sets[setKey].done;
+        d.variants = d.variants || {};
+        if(exIdx in d.variants) delete d.variants[exIdx]; /* migration ancienne clé */
+        d.variants[variantKey] = id;
         saveDayData(currentSessionId, currentProfile, d);
-        checkBtn.classList.toggle('checked', d.sets[setKey].done);
-        row.classList.toggle('fait', d.sets[setKey].done);
-        if(d.sets[setKey].done){
-          vibrate();   /* animation « pulse » + onde retirées le 12/10/2026 (action la plus répétée, charte §11.2) */
-        }
-        refreshCardState();
-        updateSessionProgress();
+        render();
       };
-      row.appendChild(checkBtn);
+      variantRow.appendChild(optBtn);
+    });
+    body.appendChild(variantRow);
 
-      body.appendChild(row);
-      if(plateHint) body.appendChild(plateHint);
+    const info = equipmentInfo(currentEquip);
+    if(info){
+      const variantHint = document.createElement('div');
+      variantHint.className = 'variant-hint' + (info.factor === 2 ? ' doubled' : '');
+      variantHint.textContent = info.hint;
+      body.appendChild(variantHint);
+    }
+  }
+}
+
+function construireEnteteSeries(c){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  const gridHeader = document.createElement('div');
+  gridHeader.className = isCircuit ? 'set-grid-header circuit' : 'set-grid-header';
+  const perHand = !isCircuit && equipmentFactor(ex, exIdx, data) === 2;
+  const showRpe = !isCircuit && rpeEnabled();
+  gridHeader.className = 'set-grid-header' + (isCircuit ? ' circuit' : '') + (showRpe ? ' with-rpe' : '');
+  gridHeader.innerHTML = isCircuit
+    ? `<span>Tour</span><span>Résultat</span><span>✓</span>`
+    : `<span>Sér.</span><span>${perHand ? 'Kg / main' : 'Poids kg'}</span><span>${perHand ? 'Reps / bras' : 'Reps'}</span>${showRpe ? '<span>RPE</span>' : ''}<span></span><span>✓</span>`;
+  body.appendChild(gridHeader);
+}
+
+/* Retourne le bouton « + Échauffement » (rangé à côté de « + Note »), ou null. */
+function construireEchauffements(c){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  let addWarm = null;
+  /* Séries d'échauffement : rendues AVANT les séries de travail, avec leurs
+     propres clés `_warm`. Elles ne consomment aucune des N séries prévues —
+     c'est tout le sens de les avoir séparées du reste (voir plus haut). */
+  if(!isCircuit){
+    const nWarm = warmupCount(data, ex, exIdx);
+    for(let n = 1; n <= nWarm; n++){
+      const wKey = warmupKey(exIdx, n);
+      const wSet = data.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
+
+      const wRow = document.createElement('div');
+      wRow.className = 'set-row warmup-row' + (rpeEnabled() ? ' with-rpe' : '');
+
+      const wNum = document.createElement('div');
+      wNum.className = 'set-num kind-warmup';
+      wNum.textContent = 'É';
+      wRow.appendChild(wNum);
+
+      const wPlate = barPicker ? buildPlateHint(wSet.weight, barPicker.barKg()) : null;
+      const wWeight = document.createElement('input');
+      if(wPlate) plateHints.push({ el: wPlate, weight: () => wWeight.value });
+      wWeight.type = 'text'; wWeight.inputMode = 'decimal'; wWeight.autocomplete = 'off';
+      wWeight.placeholder = 'kg';
+      wWeight.value = wSet.weight;
+      wWeight.onfocus = armUndoSnapshot;
+      wWeight.oninput = () => {
+        sanitizeField(wWeight, 'decimal');
+        snapshotBeforeEdit();
+        const d = loadDayData(currentSessionId, currentProfile);
+        d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
+        d.sets[wKey].weight = wWeight.value;
+        saveDayData(currentSessionId, currentProfile, d);
+        if(wPlate) updatePlateHint(wPlate, wWeight.value, barPicker.barKg());
+      };
+      wRow.appendChild(wWeight);
+
+      const wReps = document.createElement('input');
+      wReps.type = 'text'; wReps.inputMode = 'numeric'; wReps.autocomplete = 'off';
+      wReps.placeholder = 'reps';
+      wReps.value = wSet.reps;
+      wReps.onfocus = armUndoSnapshot;
+      wReps.oninput = () => {
+        sanitizeField(wReps, 'integer');
+        snapshotBeforeEdit();
+        const d = loadDayData(currentSessionId, currentProfile);
+        d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
+        d.sets[wKey].reps = wReps.value;
+        saveDayData(currentSessionId, currentProfile, d);
+      };
+      wRow.appendChild(wReps);
+
+      if(rpeEnabled()){
+        wRow.appendChild(buildRpeSelect(wSet.rpe, (value) => {
+          pushUndoSnapshot();
+          const d = loadDayData(currentSessionId, currentProfile);
+          d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
+          d.sets[wKey].rpe = value;
+          saveDayData(currentSessionId, currentProfile, d);
+        }));
+      }
+
+      /* Retirer ne s'affiche que sur la DERNIÈRE ligne : la donnée sous-jacente
+         est un compteur, pas une liste adressable une par une. Si le bouton
+         apparaissait sur chaque ligne, retirer la première effacerait aussi
+         les suivantes — sans le dire. Un seul bouton, sans ambiguïté. */
+      if(n === nWarm){
+        const wDel = document.createElement('button');
+        wDel.className = 'dup-btn';
+        wDel.textContent = '×';
+        wDel.title = 'Retirer cet échauffement';
+        wDel.onclick = () => { pushUndoSnapshot(); setWarmupCount(ex, exIdx, nWarm - 1); };
+        wRow.appendChild(wDel);
+      } else {
+        const spacer = document.createElement('div');
+        wRow.appendChild(spacer);
+      }
+
+      const wCheck = document.createElement('button');
+      wCheck.className = 'check-btn' + (wSet.done ? ' checked' : '');
+      wCheck.textContent = '✓';
+      wCheck.onclick = () => {
+        pushUndoSnapshot();
+        const d = loadDayData(currentSessionId, currentProfile);
+        d.sets[wKey] = d.sets[wKey] || { weight:'', reps:'', rpe:'', done:false };
+        d.sets[wKey].done = !d.sets[wKey].done;
+        saveDayData(currentSessionId, currentProfile, d);
+        wCheck.classList.toggle('checked', d.sets[wKey].done);
+      };
+      wRow.appendChild(wCheck);
+
+      body.appendChild(wRow);
+      if(wPlate) body.appendChild(wPlate);
     }
 
-    const noteWrap = document.createElement('div');
-    noteWrap.className = 'note-wrap';
-    const noteLabel = document.createElement('span');
-    noteLabel.className = 'note-label';
-    noteLabel.textContent = '🗒️ Info';
-    noteWrap.appendChild(noteLabel);
+    if(nWarm < 4){
+      /* Rangé sous les séries, à côté de « + Note » (05/10/2026) — les échauffements
+         ajoutés s'affichent toujours AVANT les séries de travail. */
+      addWarm = document.createElement('button');
+      addWarm.className = 'add-warmup-btn';
+      addWarm.textContent = '+ Échauffement';
+      addWarm.onclick = () => { pushUndoSnapshot(); setWarmupCount(ex, exIdx, nWarm + 1); };
+    }
+  }
+  return addWarm;
+}
 
-    const noteInput = document.createElement('textarea');
-    noteInput.className = 'note-input';
-    noteInput.rows = 1;
-    noteInput.placeholder = "Pourquoi pas fait / charge réduite... (optionnel)";
-    noteInput.value = readByExercise(data.notes, ex, exIdx);
-    noteInput.onfocus = armUndoSnapshot;
-    noteInput.oninput = () => {
+/* Validation en un geste (20/10/2026) : une série validée avec un champ poids ou reps vide
+   reprend la valeur de la même série la dernière fois (celle affichée en gris). Un champ déjà
+   rempli n'est jamais remplacé. Retourne true si au moins un champ a été repris. */
+function reprendreDerniereFois(serie, reprise){
+  if(!reprise) return false;
+  let repris = false;
+  const { lastSet, weightInput, repsInput } = reprise;
+  if(String(serie.weight || '').trim() === '' && !isNaN(lastSet.weight)){
+    serie.weight = String(Math.round(lastSet.weight * 100) / 100).replace('.', ',');
+    weightInput.value = serie.weight;
+    repris = true;
+  }
+  if(String(serie.reps || '').trim() === '' && !isNaN(lastSet.reps)){
+    serie.reps = String(lastSet.reps);
+    repsInput.value = serie.reps;
+    repris = true;
+  }
+  return repris;
+}
+
+function construireLigneSerie(c, s){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  const { refreshRecordBadge, refreshCardState } = c;
+  const setKey = `ex${exIdx}_set${s}`;
+  const savedSet = data.sets[setKey] || { weight:'', reps:'', duration:'', info:'', rpe:'', done:false };
+
+  const row = document.createElement('div');
+  row.className = (isCircuit ? 'set-row circuit' : 'set-row') + (!isCircuit && rpeEnabled() ? ' with-rpe' : '')
+    + (savedSet.done ? ' fait' : '');   /* série validée : ligne teintée verte (05/10/2026) */
+
+  const num = document.createElement('div');
+  num.className = 'set-num';
+  num.textContent = isCircuit ? `Tour ${s}` : s;
+  row.appendChild(num);
+
+  if(isCircuit){
+    /* Un circuit enchaîne plusieurs mouvements de natures différentes —
+       des répétitions pour l'un, des secondes pour l'autre. Deux cases
+       chiffrées ne peuvent pas représenter ça : une seule case libre laisse
+       noter ce qui a réellement été fait, dans les mots de l'exercice.
+       Ces valeurs n'entrent pas dans le tonnage, qui n'a pas de sens sans charge. */
+    const circuitInfo = document.createElement('input');
+    circuitInfo.type = 'text';
+    circuitInfo.autocomplete = 'off';
+    circuitInfo.placeholder = 'ex : 12 relevés + 45 s';
+    /* Reprise des anciennes saisies chiffrées, pour ne rien perdre. */
+    circuitInfo.value = savedSet.info != null && savedSet.info !== ''
+      ? savedSet.info
+      : [savedSet.reps ? savedSet.reps + ' reps' : '', savedSet.duration ? savedSet.duration + ' s' : '']
+          .filter(Boolean).join(' + ');
+    circuitInfo.onfocus = armUndoSnapshot;
+    circuitInfo.oninput = () => {
       snapshotBeforeEdit();
       const d = loadDayData(currentSessionId, currentProfile);
-      d.notes = d.notes || {};
-      if(exIdx in d.notes) delete d.notes[exIdx]; /* migration ancienne clé */
-      d.notes[exerciseKey(ex, exIdx)] = noteInput.value;
+      d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', duration:'', info:'', done:false };
+      d.sets[setKey].info = circuitInfo.value;
       saveDayData(currentSessionId, currentProfile, d);
     };
-    noteWrap.appendChild(noteInput);
-    /* « + Note » (05/10/2026) : la note d'exercice reste repliée tant qu'elle est vide. */
-    const ajouts = document.createElement('div');
-    ajouts.className = 'exo-ajouts';
-    if(addWarm) ajouts.appendChild(addWarm);
-    if(!noteInput.value){
-      noteWrap.style.display = 'none';
-      const noteBtn = document.createElement('button');
-      noteBtn.type = 'button';
-      noteBtn.className = 'add-warmup-btn add-note-btn';
-      noteBtn.textContent = '+ Note';
-      noteBtn.onclick = () => {
-        noteWrap.style.display = '';
-        noteBtn.remove();
-        if(!ajouts.children.length) ajouts.remove();
-        noteInput.focus();
-      };
-      ajouts.appendChild(noteBtn);
-    }
-    if(ajouts.children.length) body.appendChild(ajouts);
-    body.appendChild(noteWrap);
+    row.appendChild(circuitInfo);
+  }
 
-    main.appendChild(card);
-  });
+  const plateHint = barPicker ? buildPlateHint(savedSet.weight, barPicker.barKg()) : null;
+  /* Valeurs de la dernière fois (20/10/2026) : reprises dans les champs restés vides
+     quand on valide la série (voir checkBtn). */
+  let reprise = null;
+  if(!isCircuit){
+    const weightInput = document.createElement('input');
+    if(plateHint) plateHints.push({ el: plateHint, weight: () => weightInput.value });
+    /* type="text" et non "number" : avec un clavier français, "22,5" est jugé
+       invalide par Safari et `input.value` renvoie une chaîne vide — la saisie
+       disparaissait silencieusement. parseNum() gère la virgule au calcul. */
+    weightInput.type = 'text';
+    weightInput.inputMode = 'decimal';
+    weightInput.autocomplete = 'off';
+    /* 005 : la valeur de la dernière fois sert d'indication grisée. Elle ne devient
+       une valeur saisie qu'en validant la série avec le champ vide (20/10/2026) :
+       sans validation, la série reste vide dans l'export et dans le tonnage. */
+    const lastSet = lastPerf ? lastPerf.sets.find(function(x){ return x.set === s; }) : null;
+    weightInput.placeholder = (lastSet && !isNaN(lastSet.weight)) ? formatKg(lastSet.weight) : 'kg';
+    weightInput.value = savedSet.weight;
+    weightInput.onfocus = armUndoSnapshot;
+    weightInput.oninput = () => {
+      sanitizeField(weightInput, 'decimal');
+      snapshotBeforeEdit();
+      const d = loadDayData(currentSessionId, currentProfile);
+      d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
+      d.sets[setKey].weight = weightInput.value;
+      saveDayData(currentSessionId, currentProfile, d);
+      if(plateHint) updatePlateHint(plateHint, weightInput.value, barPicker.barKg());
+      updateSessionProgress(); /* tonnage recalculé en direct */
+      refreshRecordBadge();
+    };
+    row.appendChild(weightInput);
+
+    const repsInput = document.createElement('input');
+    repsInput.type = 'text';
+    repsInput.inputMode = 'numeric';
+    repsInput.autocomplete = 'off';
+    repsInput.placeholder = (lastSet && !isNaN(lastSet.reps)) ? String(lastSet.reps) : 'reps';
+    repsInput.value = savedSet.reps;
+    repsInput.onfocus = armUndoSnapshot;
+    if(lastSet) reprise = { lastSet, weightInput, repsInput };
+    repsInput.oninput = () => {
+      sanitizeField(repsInput, 'integer');
+      snapshotBeforeEdit();
+      const d = loadDayData(currentSessionId, currentProfile);
+      d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
+      d.sets[setKey].reps = repsInput.value;
+      saveDayData(currentSessionId, currentProfile, d);
+      updateSessionProgress(); /* tonnage recalculé en direct */
+      refreshRecordBadge(); /* le volume dépend des reps, pas que du poids */
+    };
+    row.appendChild(repsInput);
+
+    if(rpeEnabled()){
+      row.appendChild(buildRpeSelect(savedSet.rpe, (value) => {
+        pushUndoSnapshot();
+        const d = loadDayData(currentSessionId, currentProfile);
+        d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', duration:'', info:'', rpe:'', done:false };
+        d.sets[setKey].rpe = value;
+        saveDayData(currentSessionId, currentProfile, d);
+      }));
+    }
+
+    if(s > 1){
+      const dupBtn = document.createElement('button');
+      dupBtn.className = 'dup-btn';
+      dupBtn.textContent = '⇊';
+      dupBtn.title = 'Recopier la série précédente';
+      dupBtn.onclick = () => {
+        pushUndoSnapshot();
+        const prevKey = `ex${exIdx}_set${s-1}`;
+        const d = loadDayData(currentSessionId, currentProfile);
+        const prev = d.sets[prevKey];
+        if(prev){
+          d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
+          d.sets[setKey].weight = prev.weight;
+          d.sets[setKey].reps = prev.reps;
+          saveDayData(currentSessionId, currentProfile, d);
+          weightInput.value = prev.weight;
+          repsInput.value = prev.reps;
+          if(plateHint) updatePlateHint(plateHint, prev.weight, barPicker.barKg());
+          refreshRecordBadge();
+          dupBtn.classList.remove('done'); void dupBtn.offsetWidth; dupBtn.classList.add('done');
+          showToast('Série recopiée');
+        } else {
+          showToast('Rien à recopier');
+        }
+      };
+      row.appendChild(dupBtn);
+    } else {
+      const spacer = document.createElement('div');
+      row.appendChild(spacer);
+    }
+  }
+
+  const checkBtn = document.createElement('button');
+  checkBtn.className = 'check-btn' + (savedSet.done ? ' checked' : '');
+  checkBtn.textContent = '✓';
+  checkBtn.onclick = () => {
+    pushUndoSnapshot();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.sets[setKey] = d.sets[setKey] || { weight:'', reps:'', done:false };
+    d.sets[setKey].done = !d.sets[setKey].done;
+    const repris = d.sets[setKey].done && reprendreDerniereFois(d.sets[setKey], reprise);
+    saveDayData(currentSessionId, currentProfile, d);
+    checkBtn.classList.toggle('checked', d.sets[setKey].done);
+    row.classList.toggle('fait', d.sets[setKey].done);
+    if(repris){
+      if(plateHint) updatePlateHint(plateHint, reprise.weightInput.value, barPicker.barKg());
+      refreshRecordBadge();
+    }
+    refreshCardState();
+    updateSessionProgress();
+  };
+  row.appendChild(checkBtn);
+
+  body.appendChild(row);
+  if(plateHint) body.appendChild(plateHint);
+}
+
+function construireNoteExercice(c, addWarm){
+  const { ex, exIdx, data, card, body, headWrap, isCircuit, isCircuitEx, recordMethodId, lastPerf, record, barPicker, plateHints } = c;
+  const noteWrap = document.createElement('div');
+  noteWrap.className = 'note-wrap';
+  const noteLabel = document.createElement('span');
+  noteLabel.className = 'note-label';
+  noteLabel.textContent = '🗒️ Info';
+  noteWrap.appendChild(noteLabel);
+
+  const noteInput = document.createElement('textarea');
+  noteInput.className = 'note-input';
+  noteInput.rows = 1;
+  noteInput.placeholder = "Pourquoi pas fait / charge réduite... (optionnel)";
+  noteInput.value = readByExercise(data.notes, ex, exIdx);
+  noteInput.onfocus = armUndoSnapshot;
+  noteInput.oninput = () => {
+    snapshotBeforeEdit();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.notes = d.notes || {};
+    if(exIdx in d.notes) delete d.notes[exIdx]; /* migration ancienne clé */
+    d.notes[exerciseKey(ex, exIdx)] = noteInput.value;
+    saveDayData(currentSessionId, currentProfile, d);
+  };
+  noteWrap.appendChild(noteInput);
+  /* « + Note » (05/10/2026) : la note d'exercice reste repliée tant qu'elle est vide. */
+  const ajouts = document.createElement('div');
+  ajouts.className = 'exo-ajouts';
+  if(addWarm) ajouts.appendChild(addWarm);
+  if(!noteInput.value){
+    noteWrap.style.display = 'none';
+    const noteBtn = document.createElement('button');
+    noteBtn.type = 'button';
+    noteBtn.className = 'add-warmup-btn add-note-btn';
+    noteBtn.textContent = '+ Note';
+    noteBtn.onclick = () => {
+      noteWrap.style.display = '';
+      noteBtn.remove();
+      if(!ajouts.children.length) ajouts.remove();
+      noteInput.focus();
+    };
+    ajouts.appendChild(noteBtn);
+  }
+  if(ajouts.children.length) body.appendChild(ajouts);
+  body.appendChild(noteWrap);
+}
 
   /* Le cardio est proposé à la fin de CHAQUE séance, même celles qui n'en
      prévoient pas : la case à cocher décide, et les champs n'apparaissent que
      si elle est cochée. Une séance sans cardio reste donc une simple ligne. */
-  {
-    const cardioPlan = dayProgram.cardio;
-    const cardioCard = document.createElement('div');
-    cardioCard.className = 'cardio-card exo-page' + (data.cardioDone ? '' : ' collapsed');
-    cardioCard.dataset.pos = 'cardio';
+function construireCarteCardio(data, cardioPlan){
 
-    const topRow = document.createElement('div');
-    topRow.className = 'cardio-top-row';
-    const cardioRang = document.createElement('div');
-    cardioRang.className = 'exercise-rang';
-    cardioRang.textContent = 'Pour finir';
-    cardioCard.appendChild(cardioRang);
-    topRow.innerHTML = `
-      <div class="label">
-        <span class="icon">🏃</span>
-        <div class="cardio-text">
-          <span class="name">${escapeHtml(cardioPlan ? cardioPlan.name : 'Cardio')}</span>
-          <span class="cardio-suggestion">${cardioPlan
-            ? 'Suggestion : ' + escapeHtml(cardioPlan.targetMinutes) + ' min'
-            : 'Optionnel — coche si tu en as fait'}</span>
-        </div>
+  const cardioCard = document.createElement('div');
+  cardioCard.className = 'cardio-card exo-page' + (data.cardioDone ? '' : ' collapsed');
+  cardioCard.dataset.pos = 'cardio';
+
+  const topRow = document.createElement('div');
+  topRow.className = 'cardio-top-row';
+  const cardioRang = document.createElement('div');
+  cardioRang.className = 'exercise-rang';
+  cardioRang.textContent = 'Pour finir';
+  cardioCard.appendChild(cardioRang);
+  topRow.innerHTML = `
+    <div class="label">
+      <span class="icon">🏃</span>
+      <div class="cardio-text">
+        <span class="name">${escapeHtml(cardioPlan ? cardioPlan.name : 'Cardio')}</span>
+        <span class="cardio-suggestion">${cardioPlan
+          ? 'Suggestion : ' + escapeHtml(cardioPlan.targetMinutes) + ' min'
+          : 'Optionnel — coche si tu en as fait'}</span>
       </div>
-    `;
-    const cardioBtn = document.createElement('button');
-    cardioBtn.className = 'check-btn' + (data.cardioDone ? ' checked' : '');
-    cardioBtn.textContent = '✓';
-    cardioBtn.title = data.cardioDone ? 'Cardio fait' : 'Cocher si tu as fait du cardio';
-    cardioBtn.onclick = () => {
-      pushUndoSnapshot();
-      const d = loadDayData(currentSessionId, currentProfile);
-      d.cardioDone = !d.cardioDone;
-      saveDayData(currentSessionId, currentProfile, d);
-      if(d.cardioDone) vibrate();
-      /* re-render complet : les champs apparaissent ou disparaissent */
-      render();
-    };
-    topRow.appendChild(cardioBtn);
-    cardioCard.appendChild(topRow);
+    </div>
+  `;
+  const cardioBtn = document.createElement('button');
+  cardioBtn.className = 'check-btn' + (data.cardioDone ? ' checked' : '');
+  cardioBtn.textContent = '✓';
+  cardioBtn.title = data.cardioDone ? 'Cardio fait' : 'Cocher si tu as fait du cardio';
+  cardioBtn.onclick = () => {
+    pushUndoSnapshot();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.cardioDone = !d.cardioDone;
+    saveDayData(currentSessionId, currentProfile, d);
+    /* re-render complet : les champs apparaissent ou disparaissent */
+    render();
+  };
+  topRow.appendChild(cardioBtn);
+  cardioCard.appendChild(topRow);
 
-    const fieldsRow = document.createElement('div');
-    fieldsRow.className = 'cardio-fields-row';
+  const fieldsRow = document.createElement('div');
+  fieldsRow.className = 'cardio-fields-row';
 
-    const minutesField = document.createElement('div');
-    minutesField.className = 'cardio-field';
-    const minutesFieldLabel = document.createElement('span');
-    minutesFieldLabel.className = 'cardio-field-label';
-    minutesFieldLabel.textContent = 'Minutes';
-    minutesField.appendChild(minutesFieldLabel);
+  const minutesField = document.createElement('div');
+  minutesField.className = 'cardio-field';
+  const minutesFieldLabel = document.createElement('span');
+  minutesFieldLabel.className = 'cardio-field-label';
+  minutesFieldLabel.textContent = 'Minutes';
+  minutesField.appendChild(minutesFieldLabel);
 
-    const minutesInput = document.createElement('input');
-    minutesInput.type = 'text';
-    minutesInput.inputMode = 'numeric';
-    minutesInput.className = 'cardio-minutes-input';
-    minutesInput.placeholder = 'min';
-    minutesInput.value = data.cardioMinutes || '';
-    minutesInput.onfocus = armUndoSnapshot;
-    minutesInput.oninput = () => {
-      sanitizeField(minutesInput, 'integer');
-      snapshotBeforeEdit();
-      const d = loadDayData(currentSessionId, currentProfile);
-      d.cardioMinutes = minutesInput.value;
-      saveDayData(currentSessionId, currentProfile, d);
-    };
-    minutesField.appendChild(minutesInput);
-    fieldsRow.appendChild(minutesField);
+  const minutesInput = document.createElement('input');
+  minutesInput.type = 'text';
+  minutesInput.inputMode = 'numeric';
+  minutesInput.className = 'cardio-minutes-input';
+  minutesInput.placeholder = 'min';
+  minutesInput.value = data.cardioMinutes || '';
+  minutesInput.onfocus = armUndoSnapshot;
+  minutesInput.oninput = () => {
+    sanitizeField(minutesInput, 'integer');
+    snapshotBeforeEdit();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.cardioMinutes = minutesInput.value;
+    saveDayData(currentSessionId, currentProfile, d);
+  };
+  minutesField.appendChild(minutesInput);
+  fieldsRow.appendChild(minutesField);
 
-    const inclineField = document.createElement('div');
-    inclineField.className = 'cardio-field';
-    const inclineFieldLabel = document.createElement('span');
-    inclineFieldLabel.className = 'cardio-field-label';
-    inclineFieldLabel.textContent = '% Inclinaison';
-    inclineField.appendChild(inclineFieldLabel);
+  const inclineField = document.createElement('div');
+  inclineField.className = 'cardio-field';
+  const inclineFieldLabel = document.createElement('span');
+  inclineFieldLabel.className = 'cardio-field-label';
+  inclineFieldLabel.textContent = '% Inclinaison';
+  inclineField.appendChild(inclineFieldLabel);
 
-    const inclineInput = document.createElement('input');
-    inclineInput.type = 'text';
-    inclineInput.inputMode = 'decimal';
-    inclineInput.className = 'cardio-minutes-input';
-    inclineInput.placeholder = '%';
-    inclineInput.value = data.cardioIncline || '';
-    inclineInput.onfocus = armUndoSnapshot;
-    inclineInput.oninput = () => {
-      sanitizeField(inclineInput, 'decimal');
-      snapshotBeforeEdit();
-      const d = loadDayData(currentSessionId, currentProfile);
-      d.cardioIncline = inclineInput.value;
-      saveDayData(currentSessionId, currentProfile, d);
-    };
-    inclineField.appendChild(inclineInput);
-    fieldsRow.appendChild(inclineField);
+  const inclineInput = document.createElement('input');
+  inclineInput.type = 'text';
+  inclineInput.inputMode = 'decimal';
+  inclineInput.className = 'cardio-minutes-input';
+  inclineInput.placeholder = '%';
+  inclineInput.value = data.cardioIncline || '';
+  inclineInput.onfocus = armUndoSnapshot;
+  inclineInput.oninput = () => {
+    sanitizeField(inclineInput, 'decimal');
+    snapshotBeforeEdit();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.cardioIncline = inclineInput.value;
+    saveDayData(currentSessionId, currentProfile, d);
+  };
+  inclineField.appendChild(inclineInput);
+  fieldsRow.appendChild(inclineField);
 
-    const speedField = document.createElement('div');
-    speedField.className = 'cardio-field';
-    const speedFieldLabel = document.createElement('span');
-    speedFieldLabel.className = 'cardio-field-label';
-    speedFieldLabel.textContent = 'Vitesse';
-    speedField.appendChild(speedFieldLabel);
+  const speedField = document.createElement('div');
+  speedField.className = 'cardio-field';
+  const speedFieldLabel = document.createElement('span');
+  speedFieldLabel.className = 'cardio-field-label';
+  speedFieldLabel.textContent = 'Vitesse';
+  speedField.appendChild(speedFieldLabel);
 
-    const speedInput = document.createElement('input');
-    speedInput.type = 'text';
-    speedInput.inputMode = 'decimal';
-    speedInput.className = 'cardio-minutes-input';
-    speedInput.placeholder = 'ex: 5';
-    speedInput.value = data.cardioSpeed || '';
-    speedInput.onfocus = armUndoSnapshot;
-    speedInput.oninput = () => {
-      snapshotBeforeEdit();
-      const d = loadDayData(currentSessionId, currentProfile);
-      d.cardioSpeed = speedInput.value;
-      saveDayData(currentSessionId, currentProfile, d);
-    };
-    speedField.appendChild(speedInput);
-    fieldsRow.appendChild(speedField);
+  const speedInput = document.createElement('input');
+  speedInput.type = 'text';
+  speedInput.inputMode = 'decimal';
+  speedInput.className = 'cardio-minutes-input';
+  speedInput.placeholder = 'ex: 5';
+  speedInput.value = data.cardioSpeed || '';
+  speedInput.onfocus = armUndoSnapshot;
+  speedInput.oninput = () => {
+    snapshotBeforeEdit();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.cardioSpeed = speedInput.value;
+    saveDayData(currentSessionId, currentProfile, d);
+  };
+  speedField.appendChild(speedInput);
+  fieldsRow.appendChild(speedField);
 
-    cardioCard.appendChild(fieldsRow);
+  cardioCard.appendChild(fieldsRow);
 
-    const cardioNoteWrap = document.createElement('div');
-    cardioNoteWrap.className = 'note-wrap';
-    const cardioNoteLabel = document.createElement('span');
-    cardioNoteLabel.className = 'note-label';
-    cardioNoteLabel.textContent = '🗒️ Info';
-    cardioNoteWrap.appendChild(cardioNoteLabel);
+  const cardioNoteWrap = document.createElement('div');
+  cardioNoteWrap.className = 'note-wrap';
+  const cardioNoteLabel = document.createElement('span');
+  cardioNoteLabel.className = 'note-label';
+  cardioNoteLabel.textContent = '🗒️ Info';
+  cardioNoteWrap.appendChild(cardioNoteLabel);
 
-    const cardioNoteInput = document.createElement('textarea');
-    cardioNoteInput.className = 'note-input';
-    cardioNoteInput.rows = 1;
-    cardioNoteInput.placeholder = "Sensation, essoufflement, raison d'un cardio écourté... (optionnel)";
-    cardioNoteInput.value = data.cardioNote || '';
-    cardioNoteInput.onfocus = armUndoSnapshot;
-    cardioNoteInput.oninput = () => {
-      snapshotBeforeEdit();
-      const d = loadDayData(currentSessionId, currentProfile);
-      d.cardioNote = cardioNoteInput.value;
-      saveDayData(currentSessionId, currentProfile, d);
-    };
-    cardioNoteWrap.appendChild(cardioNoteInput);
-    cardioCard.appendChild(cardioNoteWrap);
+  const cardioNoteInput = document.createElement('textarea');
+  cardioNoteInput.className = 'note-input';
+  cardioNoteInput.rows = 1;
+  cardioNoteInput.placeholder = "Sensation, essoufflement, raison d'un cardio écourté... (optionnel)";
+  cardioNoteInput.value = data.cardioNote || '';
+  cardioNoteInput.onfocus = armUndoSnapshot;
+  cardioNoteInput.oninput = () => {
+    snapshotBeforeEdit();
+    const d = loadDayData(currentSessionId, currentProfile);
+    d.cardioNote = cardioNoteInput.value;
+    saveDayData(currentSessionId, currentProfile, d);
+  };
+  cardioNoteWrap.appendChild(cardioNoteInput);
+  cardioCard.appendChild(cardioNoteWrap);
 
-    /* Non coché : la carte se réduit à sa ligne du haut. Les champs restent dans
-       le DOM avec leurs valeurs — décocher par erreur n'efface donc rien. */
-    if(!data.cardioDone){
-      fieldsRow.style.display = 'none';
-      cardioNoteWrap.style.display = 'none';
-    }
-
-    main.appendChild(cardioCard);
+  /* Non coché : la carte se réduit à sa ligne du haut. Les champs restent dans
+     le DOM avec leurs valeurs — décocher par erreur n'efface donc rien. */
+  if(!data.cardioDone){
+    fieldsRow.style.display = 'none';
+    cardioNoteWrap.style.display = 'none';
   }
 
+  return cardioCard;
+}
+
+function construireNavExo(){
   /* Précédent / Suivant (05/10/2026) : sous l'exercice affiché. Jamais de passage automatique
      à l'exercice suivant (décision de Corentin) : « Suivant » passe au vert quand toutes les
      séries de l'exercice sont validées, c'est tout. */
@@ -1919,13 +2001,7 @@ function render(){
     + '<button type="button" class="exo-nav-btn suivant" id="exo-suivant"></button>';
   nav.querySelector('.precedent').onclick = () => changerExo(-1);
   nav.querySelector('.suivant').onclick = () => changerExo(1);
-  main.appendChild(nav);
-  main.appendChild(sessionNoteWrap);
-
-  construireRail(dayProgram, ordreAffiche, prevuProgram);
-  afficherExo(choisirExoActif(data, dayProgram, ordreAffiche), 0);
-  updateSessionProgress();
-  startSessionTimer();
+  return nav;
 }
 
 /* ---------- SÉANCE PAR EXERCICE (05/10/2026) ----------
@@ -2474,7 +2550,83 @@ function leaveAndArchive(){
 }
 
 /* ---------- SÉANCE TERMINÉE (copier / archiver) ---------- */
+/* ---------- RÉSUMÉ DE FIN DE SÉANCE (20/10/2026) ----------
+   En tête de la fenêtre « Séance terminée », avant de copier ou d'archiver : durée, tonnage
+   (et écart avec la dernière fois sur la même séance), séries validées, records battus.
+   Mêmes règles que le reste de l'app : séries comptées comme dans updateSessionProgress,
+   record = meilleur volume par méthode (refreshRecordBadge), séance comparée seulement à une
+   archive de même clé de tonnage et jamais si un exercice a été remplacé (getArchivedSessions). */
+function resumeFinDeSeance(){
+  const data = loadDayData(currentSessionId, currentProfile);
+  const dayProgram = programmeDuJour(currentSessionId, data);
+  let total = 0, faites = 0;
+  const records = [];
+  dayProgram.exercises.forEach((ex, exIdx) => {
+    const circuit = ex.logType === 'circuit';
+    const facteur = circuit ? 1 : equipmentFactor(ex, exIdx, data);
+    let meilleur = 0;
+    for(let s = 1; s <= ex.sets; s++){
+      total++;
+      const cur = data.sets['ex' + exIdx + '_set' + s];
+      if(!cur) continue;
+      if(cur.done) faites++;
+      if(circuit) continue;
+      const vol = setVolume(parseNum(cur.weight), parseNum(cur.reps), facteur);
+      if(!isNaN(vol) && vol > meilleur) meilleur = vol;
+    }
+    if(circuit) return;
+    const rec = getPersonalRecord(currentProfile, ex.name, currentExerciseMethodId(ex, exIdx, data));
+    if(rec && meilleur > rec.volume) records.push(ex.name);
+  });
+  if(dayProgram.cardio){ total++; if(data.cardioDone) faites++; }
+
+  const actuelle = {
+    sessionId: currentSessionId,
+    exerciseNames: dayProgram.exercises.map(ex => ex.name),
+    variants: data.variants || {},
+    remplacements: listeRemplacements(data, currentSessionId)
+  };
+  let precedent = null;
+  if(!archiveModifiee(actuelle)){
+    const cle = cleTonnageArchive(actuelle);
+    precedent = getArchivesList(currentProfile).find(arc =>
+      arc.sessionId === currentSessionId && !archiveModifiee(arc)
+      && cleTonnageArchive(arc) === cle && arc.tonnage > 0) || null;
+  }
+  return {
+    duree: sessionElapsedSec(data, Date.now()),
+    tonnage: Math.round(computeSessionTonnage(dayProgram, data)),
+    total, faites, records, precedent
+  };
+}
+function afficherResumeFin(){
+  const el = document.getElementById('finish-resume');
+  if(!el) return;
+  const r = resumeFinDeSeance();
+  const kg = n => Math.round(n).toLocaleString('fr-FR') + ' kg';
+  let ecart = '';
+  if(r.precedent && r.tonnage > 0){
+    const diff = r.tonnage - r.precedent.tonnage;
+    const quand = String(r.precedent.dateLabel || '').slice(0, 5);
+    ecart = '<span class="finish-ecart' + (diff > 0 ? ' plus' : '') + '">'
+      + (diff > 0 ? '+' : diff < 0 ? '−' : '= ') + (diff ? kg(Math.abs(diff)) : '')
+      + (quand ? ' vs ' + escapeHtml(quand) : '') + '</span>';
+  }
+  const tuile = (val, lab, extra, cls) => '<div class="finish-stat' + (cls ? ' ' + cls : '') + '">'
+    + '<span class="finish-stat-val">' + val + '</span>'
+    + '<span class="finish-stat-lab">' + lab + '</span>' + (extra || '') + '</div>';
+  const nbRec = r.records.length;
+  el.innerHTML = '<div class="finish-stats">'
+    + tuile(r.duree != null ? escapeHtml(formatDuration(r.duree)) : '—', 'Durée')
+    + tuile(r.tonnage > 0 ? kg(r.tonnage) : '—', 'Tonnage', ecart)
+    + tuile(r.faites + ' / ' + r.total, 'Séries', '', r.total > 0 && r.faites === r.total ? 'complet' : '')
+    + tuile(String(nbRec), nbRec > 1 ? 'Records' : 'Record', '', nbRec ? 'record' : '')
+    + '</div>'
+    + (nbRec ? '<div class="finish-records">' + r.records.map(n => '<span>' + escapeHtml(n) + '</span>').join('') + '</div>' : '');
+}
+
 function openFinishModal(){
+  afficherResumeFin();
   annulerFermeture(document.getElementById('finish-modal'));
   document.getElementById('finish-modal').classList.add('open');
 }

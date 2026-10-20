@@ -1048,10 +1048,12 @@ html.verre[data-style][data-app="muscu"] #view-exercises .hist-last,
 html.verre[data-style][data-app="muscu"] #view-exercises .check-btn:not(.checked),
 html.verre[data-style][data-app="muscu"] .exo-nav-btn,
 html.verre[data-style][data-app="muscu"] .lifetime-card,
+html.verre[data-style][data-app="muscu"] .finish-stat,
 html.verre[data-style][data-app="muscu"] .big-choice-btn .choice-icon,
 html.verre[data-style][data-app="muscu"] .session-btn .session-icon{
   background:var(--t-panneau); border-color:var(--t-arete); box-shadow:var(--t-o-panneau);
 }
+html.verre[data-style][data-app="muscu"] .finish-stat.record{ border-color:rgba(255,184,0,.55); }   /* résumé de fin, 20/10/2026 */
 
 /* ---------- CREUX (champs, pistes, cases) ---------- */
 html.verre[data-style][data-app="portail"] .gauge,

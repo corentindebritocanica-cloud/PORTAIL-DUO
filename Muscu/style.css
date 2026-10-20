@@ -1123,6 +1123,27 @@
   .finish-box{ max-width:360px; padding:22px 20px; }
   .finish-title{ font-size:18px; font-weight:800; margin:0 0 4px 0 !important; }
   .finish-sub{ font-size:13px; color:var(--text-dim); margin:0 0 16px 0 !important; }
+  /* Résumé de fin de séance (20/10/2026) : 4 tuiles, records en puces dorées. */
+  .finish-resume{ margin:12px 0 14px; }
+  .finish-stats{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .finish-stat{
+    display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0;
+    padding:10px 12px; border-radius:16px; background:var(--card-2); border:1px solid var(--border);
+  }
+  .finish-stat-val{
+    font-family:var(--v-f-chiffres, inherit); font-size:20px; font-weight:600; line-height:1.15;
+    color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .finish-stat-lab{ font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--text-dim); }
+  .finish-ecart{ font-size:12px; font-weight:600; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .finish-ecart.plus{ color:var(--done); }
+  .finish-stat.complet .finish-stat-val{ color:var(--done); }
+  .finish-stat.record{ border-color:rgba(255,184,0,.55); }
+  .finish-records{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .finish-records span{
+    padding:5px 10px; border-radius:999px; font-size:12.5px; font-weight:600; color:var(--text);
+    border:1px solid rgba(255,184,0,.55); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .finish-actions{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
   .finish-btn{
     padding:15px 12px; border-radius:var(--r-md); border:1px solid var(--border);

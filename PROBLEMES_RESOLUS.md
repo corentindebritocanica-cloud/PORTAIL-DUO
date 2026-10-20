@@ -19,6 +19,23 @@
 
 ---
 
+## 📳 Muscu — retour haptique et gros refactor sans filet (20/10/2026)
+
+### 20/10/2026 — Muscu — `navigator.vibrate` ne fait rien sur iPhone
+**Symptôme** : `vibrate()` était appelée à chaque série validée, au GO et au cardio, sans jamais rien produire sur l'iPhone — sans erreur non plus.
+**Cause racine** : Safari iOS n'implémente pas l'API Vibration (`navigator.vibrate` est `undefined`) ; le `try` + test d'existence masquait l'absence.
+**Solution** : fonction et appels supprimés. Une PWA iOS n'a **aucun** accès au moteur haptique : le retour se fait visuellement (couleur, `:active`).
+**Leçon généralisable** : une API web « protégée » par `if(navigator.x)` peut rester morte des mois sans que rien ne le signale. Avant d'en ajouter une, vérifier sa prise en charge par Safari iOS (caniuse), pas seulement par Chrome.
+**Fichiers touchés** : `Muscu/app.js`
+
+### 20/10/2026 — Muscu — découper une fonction de 700 lignes sans rien casser
+**Symptôme** : `render()` (écran de séance) faisait ~720 lignes ; chaque ajout risquait une régression invisible.
+**Solution** : découpage **mécanique** par plages de lignes (script, pas à la main), puis comparaison du `innerHTML` de l'écran avant / après dans Chromium sur données réelles (4 séances × 2 profils, plus une coche et une saisie, et le contenu du `localStorage` après). Seule différence trouvée : l'indentation à l'intérieur des gabarits `` `…` `` (désindentés avec leur fonction) → comparer en normalisant les espaces.
+**Leçon généralisable** : pour un refactor « sans changement visible », un instantané du DOM avant / après sur données réelles vaut mieux que la relecture ; les espaces des template literals changent avec l'indentation, pas le rendu.
+**Fichiers touchés** : `Muscu/app.js`
+
+---
+
 ## 🌓 5 apps — passage au thème Clair : texte blanc sur fond blanc (18/10/2026)
 
 ### 18/10/2026 — Muscu + toutes apps — icône invisible et barre d'état illisible en clair
@@ -1049,4 +1066,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 18 octobre 2026 (soir)
+**Dernière mise à jour de ce fichier** : 20 octobre 2026
