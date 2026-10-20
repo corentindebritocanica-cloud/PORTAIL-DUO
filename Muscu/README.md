@@ -1216,3 +1216,7 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **Pas de saut à l'ouverture** : `prochaineSeanceId` renvoie `null` tant que `window.__archivesLoaded` est faux (rien n'est mis en évidence), puis la liste est redessinée à l'arrivée des archives (déjà le cas, `renderSessionList` appelée par le snapshot).
 - **Fichiers** : `app.js`, `style.css`, `../verre.css` (fin : teinte sur le panneau, par-dessus la règle « panneau »).
 - **Vérifié** (Chromium, iPhone simulé, archives réelles dont la dernière est la Séance 4, Lisa en sombre et Corentin en clair) : avant chargement → aucune mise en évidence ; après → « Séance 1 · À faire » ; sans archive → Séance 1 ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+## Reflet sur les actions attendues (20/10/2026)
+
+Effet commun à 5 apps (bloc « REFLET » de `../verre.css`, détail dans le README racine). Muscu : **GO / Lancer** (`.exo-chrono.attente`), **Suivant** terminé (`.exo-nav-btn.suivant.pret`, reflet vert), **Séance terminée** (classe `.reflet` posée par `updateSessionProgress` quand `complete`), séance **À faire** de la liste (`.session-btn.prochaine`, reflet à l'accent). Fichiers : `app.js` (une ligne), `../verre.css`.

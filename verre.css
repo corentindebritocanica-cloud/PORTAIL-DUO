@@ -1199,3 +1199,28 @@ html.verre[data-style][data-app="muscu"] .session-btn.prochaine{
 html.verre[data-style][data-app="muscu"] .session-btn.prochaine .session-icon{
   background:color-mix(in srgb, var(--accent) 24%, var(--t-panneau));
 }
+
+/* ---------- REFLET (20/10/2026, d'après la série record de Muscu) ----------
+   Une bande de lumière balaie l'élément toutes les 2,5 s (0,7 s de balayage, puis pause) pour
+   signaler « c'est ici qu'il faut appuyer ». Réservé aux éléments dont l'action est ATTENDUE à cet
+   instant (bouton qui n'apparaît que s'il y a quelque chose à valider, séance à faire, séance
+   complète…) ; ajouter la classe `.reflet` à un élément, ou l'inscrire dans la liste ci-dessous
+   quand son état est déjà porté par une classe. `transform` seul (GPU) ; la bande fait ~18 % de la
+   largeur de l'élément, quelle qu'elle soit ; couleur = `--reflet` (blanc translucide par défaut).
+   Coupé par `prefers-reduced-motion`. Exception à la charte §11.2 assumée (§11.9c). */
+:where(.reflet, .btn-course-terminee, .exo-chrono.attente, .exo-nav-btn.suivant.pret,
+  .session-btn.prochaine, #btn-next-month.reflet){ position:relative; overflow:hidden; }
+.reflet::after, .btn-course-terminee::after, .exo-chrono.attente::after, .exo-nav-btn.suivant.pret::after,
+.session-btn.prochaine::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(110deg, transparent 0 40%, var(--reflet, rgba(255,255,255,.30)) 40% 58%, transparent 58% 100%);
+  transform:translateX(-100%); animation:reflet 2.5s ease-in-out infinite;
+}
+.exo-nav-btn.suivant.pret{ --reflet:rgba(18,185,129,.30); }
+.session-btn.prochaine{ --reflet:rgba(var(--accent-rgb),.22); }
+@keyframes reflet{ 0%{ transform:translateX(-100%); } 28%, 100%{ transform:translateX(100%); } }
+@media (prefers-reduced-motion: reduce){
+  .reflet::after, .btn-course-terminee::after, .exo-chrono.attente::after, .exo-nav-btn.suivant.pret::after,
+  .session-btn.prochaine::after{ display:none; }
+}
+

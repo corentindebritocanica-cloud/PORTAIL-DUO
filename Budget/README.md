@@ -519,3 +519,7 @@ Suite à l'audit de sécurité du dépôt (5 auditeurs + contre-vérification). 
 - Pop-ups « Nouveautés » et boîte de dialogue : fermeture animée (`fermerAnime`, `annulerFermeture` avant réouverture). Le pop-up hors-ligne (événement système) se ferme toujours d'un coup.
 - Transition de fond sur `body` retirée (reste du thème clair).
 - Mouvement réduit : toast et pop-ups gardent leur fondu, sans déplacement (avant : tout coupé).
+
+## Reflet sur « + Démarrer <mois> » (20/10/2026)
+
+Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README racine) sur le bouton **+ Démarrer <mois suivant>**, **seulement si le mois civil en cours a dépassé le dernier mois créé** (`dernier.annee * 12 + indice du mois < année × 12 + mois courant`) : la classe `.reflet` est posée / retirée dans `rendreMenu` (`app.js`) avec le texte du bouton. Pas de reflet tant que le mois courant existe déjà.

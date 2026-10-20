@@ -509,6 +509,9 @@
             if (dernier) {
                 const i = NOMS_MOIS.indexOf(dernier.nom.split(' ')[0]);
                 btnNext.textContent = '+ Démarrer ' + NOMS_MOIS[(i + 1) % 12];
+                /* Reflet (20/10/2026) : un nouveau mois civil a commencé et n'est pas encore créé. */
+                const now = new Date();
+                btnNext.classList.toggle('reflet', i >= 0 && (dernier.annee * 12 + i) < (now.getFullYear() * 12 + now.getMonth()));
             }
         };
 

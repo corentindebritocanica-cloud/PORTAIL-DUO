@@ -599,6 +599,10 @@ Pour une bottom-bar ou un sélecteur d'onglets où un fond coloré ("pilule") se
 
 La série qui bat le record reçoit une couronne (chute de 0,6 s, **une seule fois**, seulement quand le record est battu pendant la saisie) et un reflet doré qui balaie la ligne **toutes les 2,5 s en boucle** tant que le record tient. **Écart à §11.2** (animation répétée) confirmé par Corentin après comparaison de 10 maquettes ; limité par : moment rare (un record, pas une série ordinaire), `transform` seul (GPU), une seule ligne animée par exercice, coupé par `prefers-reduced-motion`, or plus foncé en thème clair. Remplace le badge texte et les flammes de carte (21/09/2026), retirés le même jour.
 
+### 11.9c Exception assumée : reflet sur l'action attendue (20/10/2026, choix de Corentin)
+
+Généralisation du reflet de la série record (§11.9b) : une bande de lumière traverse un élément toutes les 2,5 s (0,7 s de balayage, puis pause) — classe `.reflet` ou liste du bloc « REFLET » de `verre.css`. **Écart à §11.2** (animation répétée) confirmé par Corentin. Garde-fous : seulement pour une action **attendue maintenant** (bouton qui n'existe que s'il y a quelque chose à valider, séance à faire, séance complète, mois à démarrer) ; jamais décoratif ; au plus un ou deux éléments à l'écran ; `transform` seul ; coupé par `prefers-reduced-motion`. Liste à jour des éléments équipés : README racine, section « Reflet ».
+
 ### 11.10 Anti-patterns à traquer lors des audits futurs
 
 - ❌ `transition: all` (toujours cibler les propriétés)

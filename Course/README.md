@@ -530,3 +530,7 @@ Architecture, abonnement et relais : README racine, « Notifications du duo ». 
 - Aucun changement dans le code de l'app : `../commun.js` pose `<html data-style="simple|clair">`, `../verre.css` habille.
 - Aucune règle propre à l'app : tout passe par les jetons.
 - Détail commun : README racine, « Thème Sombre · Clair ». **Vérifié** (Chromium, Firebase simulé) : Liste, Course en clair et en sombre. Non vérifié sur iPhone (barre d'état en clair).
+
+## Reflet sur « Course terminée » (20/10/2026)
+
+Le bouton **Course terminée** (visible seulement quand un article est coché) reçoit l'effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README racine) : une bande de lumière le traverse toutes les 2,5 s. Aucun changement de code dans l'app : le sélecteur `.btn-course-terminee` est dans la liste du bloc commun.

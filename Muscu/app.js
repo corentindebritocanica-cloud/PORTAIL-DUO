@@ -1191,6 +1191,9 @@ function updateSessionProgress(){
     }
     if(!complete) track.classList.remove('celebrate');
   }
+  /* Reflet (20/10/2026) : « Séance terminée » brille quand tout est validé. */
+  const btnFin = document.querySelector('.bottom-btn.btn-export');
+  if(btnFin) btnFin.classList.toggle('reflet', complete);
   const fill = document.getElementById('session-progress-fill');
   const label = document.getElementById('session-progress-label');
   const tonnageLabel = document.getElementById('session-tonnage-label');
