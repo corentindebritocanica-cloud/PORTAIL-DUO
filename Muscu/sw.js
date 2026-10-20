@@ -124,9 +124,11 @@ function reseauPuisCache(requete){
     let termine = false;
     const repliCache = () => caches.match(cleCache(requete)).then((r) => r || (navigation ? caches.match(new URL('index.html', self.registration.scope).href) : undefined));
     const servirCache = (r) => { termine = true; if (navigation) shellDepuisCache = Date.now(); resolve(r); };
-    const minuteur = setTimeout(() => {
+    // Audit 13-02 : minuteur seulement pour la navigation — un HTML neuf arrivé à temps n'est pas
+    // complété par un app.js / style.css ancien (le cache ne sert alors qu'en cas d'échec réseau).
+    const minuteur = navigation ? setTimeout(() => {
       repliCache().then((r) => { if (r && !termine) servirCache(r); });
-    }, DELAI_RESEAU_MS);
+    }, DELAI_RESEAU_MS) : null;
     // Requête neuve avec cache:'no-cache' : force la revalidation auprès du serveur (304 si inchangé)
     // et évite de resservir une copie du cache HTTP de Safari (GitHub Pages : max-age=600).
     fetch(new Request(requete.url, { cache: 'no-cache' })).then((reponse) => {
