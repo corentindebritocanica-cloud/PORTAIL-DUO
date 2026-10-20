@@ -542,3 +542,10 @@ Le bouton **Course terminée** (visible seulement quand un article est coché) r
 
 ## Ordre des rayons modifiable (20/10/2026)
 Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée, chaque rayon se déplace en glissant sa poignée (6 points, `touch-action:none`, Pointer Events). L'ordre est stocké dans `rayons/{id}.ordre` (Firestore, partagé entre les téléphones) et s'applique aux onglets Liste et Course et au menu de choix du rayon. Rayons sans `ordre` : alphabétique, après les rayons classés. Aucune règle Firestore à changer. Le glisser n'a été testé qu'en simulation de souris : à valider au doigt sur iPhone.
+
+## Lot 2 — saisie (20/10/2026)
+- **Recherche sans accents ni majuscules** (`sansAccents`, `renderListe`) : « creme » trouve « Crème fraîche ».
+- **« Créer « mot tapé » »** quand la recherche ne trouve rien : ouvre la fenêtre d'ajout avec le nom prérempli (1re lettre en majuscule, `creerDepuisRecherche`, `ouvrirModale(id, nomPropose)`). La recherche reste affichée : le produit créé apparaît, prêt à cocher.
+- **Toute la ligne coche** (onglets Liste et Course) : écouteur unique sur `.carte-produit[data-coche]` ; le champ quantité, le crayon et la case gardent leur rôle (rien ne coche deux fois). Retour visuel `:active` sur la carte.
+- Champ quantité passé de 14 à **16 px** (Safari iPhone zoomait au focus).
+- **Vérifié** (Chromium, Firebase simulé) : « creme » → 1 résultat, appui sur le nom → coché, appui sur la quantité → rien, « brioche » → bouton Créer → fenêtre avec « Brioche ». **Non vérifié sur iPhone.**

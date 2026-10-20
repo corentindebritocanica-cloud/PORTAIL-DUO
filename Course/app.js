@@ -223,17 +223,24 @@ function nomsRayonsTries(){
   return Object.entries(state.rayons).sort((a,b)=> (o(a[1]) - o(b[1])) || (a[1].nom||'').localeCompare(b[1].nom||''));
 }
 
+/* Lot 2 (20/10/2026) : recherche sans accents ni majuscules (« creme » trouve « Crème »). */
+const sansAccents = (s)=> String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+
 function renderListe(){
   const conteneur = document.getElementById('liste-produits');
-  const recherche = state.recherche.trim().toLowerCase();
+  const recherche = sansAccents(state.recherche);
 
   /* Catalogue commun (30/09/2026, v2) : tous les produits, quelle que soit la liste choisie. */
   const items = Object.entries(state.produits).filter(([id,p])=>
-    !recherche || (p.nom||'').toLowerCase().includes(recherche)
+    !recherche || sansAccents(p.nom).includes(recherche)
   );
 
   if(items.length===0){
-    conteneur.innerHTML = `<div class="vide"><h2>Rien trouvé</h2><p>Essaie un autre mot, ou ajoute le produit avec le bouton +.</p></div>`;
+    /* Lot 2 : rien trouvé → « Créer "mot tapé" » ouvre la fenêtre d'ajout avec le nom prérempli. */
+    const mot = state.recherche.trim();
+    conteneur.innerHTML = mot
+      ? `<div class="vide"><h2>Rien trouvé</h2><button type="button" class="btn-creer-recherche" onclick="creerDepuisRecherche()">Créer « ${escapeHtml(mot)} »</button></div>`
+      : `<div class="vide"><h2>Rien trouvé</h2><p>Ajoute un produit avec le bouton +.</p></div>`;
     return;
   }
 
@@ -257,7 +264,7 @@ function carteProduitListe(id, p){
   const autre = p.aAcheter && lid !== idListeAffichee();
   const nomListe = escapeHtml(infoListe(lid).nom || '');
   return `
-    <div class="carte-produit">
+    <div class="carte-produit" data-coche="liste" data-id="${id}">
       <button class="case ${p.aAcheter?'checked':''}" style="--c-liste:${couleur}" onclick="toggleAAcheter('${id}')" aria-label="À acheter${p.aAcheter ? ' (' + nomListe + ')' : ''}">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
@@ -488,7 +495,7 @@ function carteProduitCourse(id, p){
     details.push(`<span class="nom-liste" style="--c-liste:${couleur}">${escapeHtml(infoListe(lid).nom || '')}</span>`);
   if(p.quantite) details.push(escapeHtml(p.quantite));
   return `
-    <div class="carte-produit ${p.achete?'achete-carte':''}">
+    <div class="carte-produit ${p.achete?'achete-carte':''}" data-coche="course" data-id="${id}">
       <button class="case case-liste ${p.achete?'checked':''}" style="--c-liste:${couleur}" onclick="toggleAchete('${id}')" aria-label="Acheté">
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
@@ -498,6 +505,14 @@ function carteProduitCourse(id, p){
       </div>
     </div>`;
 }
+
+/* Lot 2 (20/10/2026) : toute la ligne coche (sauf le champ quantité et le crayon, qui gardent leur rôle). */
+document.addEventListener('click', (e)=>{
+  const carte = e.target.closest('.carte-produit[data-coche]');
+  if(!carte || e.target.closest('button, input, select, textarea, a')) return;
+  if(carte.dataset.coche === 'liste') toggleAAcheter(carte.dataset.id);
+  else toggleAchete(carte.dataset.id);
+});
 
 function toggleAchete(id){
   const p = state.produits[id]; if(!p) return;
@@ -623,11 +638,11 @@ selectRayon.addEventListener('change', ()=>{
   champNouveauRayon.style.display = selectRayon.value==='__nouveau__' ? 'block' : 'none';
 });
 
-function ouvrirModale(id){
+function ouvrirModale(id, nomPropose){
   state.editionId = id || null;
   const p = id ? state.produits[id] : null;
   document.getElementById('modal-titre').textContent = id ? 'Modifier le produit' : 'Ajouter un produit';
-  document.getElementById('modal-nom').value = p ? (p.nom||'') : '';
+  document.getElementById('modal-nom').value = p ? (p.nom||'') : (nomPropose || '');
   peuplerSelectRayons(p ? p.rayonId : '');
   champNouveauRayon.style.display = 'none';
   document.getElementById('modal-nouveau-rayon').value = '';
@@ -635,6 +650,11 @@ function ouvrirModale(id){
   annulerFermeture(modal);
   modal.style.display = 'flex';
   setTimeout(()=> document.getElementById('modal-nom').focus(), 50);
+}
+/* Lot 2 : nom tapé dans la recherche, première lettre en majuscule. */
+function creerDepuisRecherche(){
+  const mot = state.recherche.trim();
+  ouvrirModale(null, mot.charAt(0).toUpperCase() + mot.slice(1));
 }
 function fermerModale(){ fermerAnime(modal, ()=>{ modal.style.display = 'none'; }); state.editionId = null; }
 
