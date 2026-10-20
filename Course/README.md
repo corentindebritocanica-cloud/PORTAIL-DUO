@@ -561,3 +561,18 @@ Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée,
 - **« Pas trouvé »** (onglet Course) : bouton sur chaque article non acheté → champ **`pasTrouve: true`**, l'article passe dans la section « 🚫 Pas trouvé (N) » (avant le caddie) ; « Trouvé » le remet dans son rayon ; le cocher acheté efface le marqueur. **« Course terminée »** laisse ces articles à acheter et efface seulement le marqueur (prochaine course). Nouveau champ ignoré par les anciennes versions.
 - **Annuler pendant 4 s** après chaque coche (Liste, Habituels, Course) et chaque « Pas trouvé » : toast `#toast-annuler` (`toastAnnuler`) au-dessus du bouton + ; Annuler réécrit les champs d'avant (`aAcheter`, `listeId`, `ajoutePar`, `ajouteLe` / `achete`, `pasTrouve`). Un seul toast, le dernier geste gagne.
 - **Vérifié** (Chromium, Firebase simulé) : sections Habituels / À acheter (2) / Tous les produits, coche par Habituels puis Annuler (retour à faux), « Pas trouvé » → section dédiée. **Non vérifié sur iPhone.**
+
+## Audit de code — corrections (20/10/2026)
+Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
+- **11-01** : décocher / recocher depuis l'onglet Liste remet `achete` et `pasTrouve` à `false` (avant : un produit recoché retombait directement dans le caddie ou dans « Pas trouvé ») ; Annuler restaure aussi ces deux champs.
+- **12-01 / 12-02** : fenêtre produit — ids créés localement (`colRef(...).doc()`), écritures non attendues, fenêtre fermée tout de suite (avant : bloquée hors ligne jusqu'à l'accusé serveur, 2e tap = doublon, et une fermeture pendant l'attente transformait une modification en création). Même chose pour la suppression.
+- **11-02** : la fenêtre « Ajouté à la liste » (10 s) est armée à la connexion, plus au chargement du script.
+- **11-03** : pas de re-rendu pendant la saisie d'une Qté/info (le champ et la frappe étaient détruits par `innerHTML`) ; rejoué au `blur`.
+- **12-03** : suppression d'une liste : lot refusé → déplacement produit par produit vers Maison, puis seulement suppression de la liste (en ligne).
+- **12-04** : un 2e `dialogue()` résout le 1er à `false` au lieu de le laisser en attente.
+- **13-02** (`sw.js`) : minuteur de repli (1,5 s) seulement pour la navigation ; `index.html` venu du cache → `app.js`/`style.css` du cache pendant 15 s ; réponse non-OK → copie en cache ; repli `index.html` seulement pour une navigation.
+- **13-03** : `manifest.json` aux couleurs actuelles (`#0d1014`) et deux icônes (`../icone-512.png` any, `../icone-512-maskable.png` maskable) au lieu d'une data-URI « any maskable ».
+- **13-04** : boutons Corentin / Lisa à 44 px.
+- **Rejeté** : 12-05 (« Course terminée » n'apparaît que s'il y a au moins un acheté).
+- **Non fait** : 20-04 (`apple-touch-icon` en data-URI dans `index.html`) — à tester sur iPhone avant de changer.
+- **Non vérifié sur iPhone.**

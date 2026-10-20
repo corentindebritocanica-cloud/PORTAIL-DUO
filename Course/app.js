@@ -51,7 +51,7 @@ function docRef(nom, id){ return db.collection(nom).doc(id); }
 const signalerEchec = (quoi)=> (e)=>{ if(window.duoEchec) duoEchec(e, quoi); throw e; };
 let produitsCharges = false;   /* lot 3 : faux si ni aperçu ni 1er instantané → lignes grises au lieu de « Rien trouvé » */
 function dbUpdateDoc(nom, id, val){ return firestorePret.then(()=> docRef(nom, id).update(val)).catch(signalerEchec('Modification')); }
-function dbAddDoc(nom, val){ return firestorePret.then(()=> colRef(nom).add(val)).catch(signalerEchec('Ajout')); }
+function dbAddDoc(nom, val){ return firestorePret.then(()=> colRef(nom).add(val)).catch(signalerEchec('Ajout')).catch(()=>{}); }
 function dbDeleteDoc(nom, id){ return firestorePret.then(()=> docRef(nom, id).delete()).catch(signalerEchec('Suppression')); }
 /* 24/09/2026 : `includeMetadataChanges: true`. Sans cette option, quand le serveur confirme
    que le cache local est déjà à jour (aucune modification depuis la dernière ouverture),
@@ -318,7 +318,7 @@ function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
   const ici = idListeAffichee();
   /* Lot 3 : Annuler pendant 4 s — on remet les champs tels qu'ils étaient avant la coche. */
-  const avant = { aAcheter: !!p.aAcheter, listeId: p.listeId || ici };
+  const avant = { aAcheter: !!p.aAcheter, listeId: p.listeId || ici, achete: !!p.achete, pasTrouve: !!p.pasTrouve };
   if('ajoutePar' in p) avant.ajoutePar = p.ajoutePar;
   if('ajouteLe' in p) avant.ajouteLe = p.ajouteLe;
   const nom = p.nom || 'Produit';
@@ -326,10 +326,11 @@ function toggleAAcheter(id){
   toastAnnuler(message, ()=>{ dbUpdateDoc('produits', id, avant); planifierNotifListe(); });
   if(!p.aAcheter){
     /* ajoutePar / ajouteLe (01/10/2026) : servent à la fenêtre « Ajouté à la liste » de l'autre téléphone. */
-    dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici, ajoutePar: lireProfilCommun().toLowerCase(), ajouteLe: Date.now() });
+    /* Audit 11-01 : achete / pasTrouve remis à false (sinon re-coché → directement dans le caddie / « Pas trouvé ») */
+    dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici, achete: false, pasTrouve: false, ajoutePar: lireProfilCommun().toLowerCase(), ajouteLe: Date.now() });
     planifierNotifListe();
   }
-  else if(listeDe(p) === ici){ dbUpdateDoc('produits', id, { aAcheter: false }); planifierNotifListe(); }
+  else if(listeDe(p) === ici){ dbUpdateDoc('produits', id, { aAcheter: false, achete: false, pasTrouve: false }); planifierNotifListe(); }
   else dbUpdateDoc('produits', id, { listeId: ici });   /* simple changement de liste : le nombre à acheter ne bouge pas */
 }
 /* NOTIFICATIONS DU DUO — voir README, « Notifications » (Course).
@@ -689,8 +690,11 @@ const modal = document.getElementById('modal-produit');
    dialogue({ titre, texte, ok, annuler, danger }) → Promise<boolean>. Tap sur le fond = annuler.
    Classe .modal-fond : la mise a jour auto au retour dans l'app (utilisateurOccupe) la
    voit comme une fenetre ouverte et n'interrompt rien. */
+let resoudreDialogue = null;   /* audit 12-04 : un 2e dialogue résout le 1er (false) au lieu de le laisser en attente */
 function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', danger = true } = {}){
+  if(resoudreDialogue){ const r = resoudreDialogue; resoudreDialogue = null; r(false); }
   return new Promise((resolve)=>{
+    resoudreDialogue = resolve;
     const fond = document.getElementById('dialogue');
     const bOk = document.getElementById('dialogue-ok');
     const bAnnuler = document.getElementById('dialogue-annuler');
@@ -699,7 +703,7 @@ function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', dang
     t.textContent = texte; t.style.display = texte ? '' : 'none';
     bOk.textContent = ok; bOk.className = danger ? 'btn-danger' : 'btn-enregistrer';
     bAnnuler.textContent = annuler || ''; bAnnuler.style.display = annuler ? '' : 'none';
-    const fermer = (res)=>{ fermerAnime(fond, ()=>{ fond.style.display = 'none'; }); bOk.onclick = bAnnuler.onclick = fond.onclick = null; resolve(res); };
+    const fermer = (res)=>{ fermerAnime(fond, ()=>{ fond.style.display = 'none'; }); bOk.onclick = bAnnuler.onclick = fond.onclick = null; if(resoudreDialogue === resolve) resoudreDialogue = null; resolve(res); };
     bOk.onclick = ()=> fermer(true);
     bAnnuler.onclick = ()=> fermer(false);
     fond.onclick = (e)=>{ if(e.target===fond) fermer(false); };
@@ -745,9 +749,13 @@ document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=> ouvri
 document.getElementById('btn-modal-annuler').addEventListener('click', fermerModale);
 modal.addEventListener('click', (e)=>{ if(e.target===modal) fermerModale(); });
 
+/* Audit 12-01 / 12-02 : ids créés localement, écritures non attendues, modale fermée tout de suite.
+   Avant : `await` de l'accusé serveur → modale bloquée hors ligne, 2e tap = doublon, et une fermeture
+   pendant l'attente transformait l'édition en création. */
 document.getElementById('btn-modal-enregistrer').addEventListener('click', async ()=>{
   const nom = document.getElementById('modal-nom').value.trim();
   if(!nom) return;
+  const idEdition = state.editionId;
   let rayonId = selectRayon.value;
 
   if(rayonId==='__nouveau__'){
@@ -759,19 +767,22 @@ document.getElementById('btn-modal-enregistrer').addEventListener('click', async
     if(existant){
       rayonId = existant[0];
     } else {
-      const ref = await dbAddDoc('rayons', { nom: nomRayon });
+      await firestorePret;
+      const ref = colRef('rayons').doc();
+      ref.set({ nom: nomRayon }).catch(signalerEchec('Ajout')).catch(()=>{});
       rayonId = ref.id;
     }
   }
+  fermerModale();
 
   /* Catalogue commun (30/09/2026, v2) : un produit n'appartient à aucune liste ; `listeId` n'est
      posé qu'au moment où on le coche (toggleAAcheter). */
-  if(state.editionId){
-    await dbUpdateDoc('produits', state.editionId, { nom, rayonId });
+  if(idEdition){
+    dbUpdateDoc('produits', idEdition, { nom, rayonId });
   } else {
-    await dbAddDoc('produits', { nom, rayonId, quantite:'', aAcheter:false, achete:false, compteur:0 });
+    await firestorePret;
+    colRef('produits').doc().set({ nom, rayonId, quantite:'', aAcheter:false, achete:false, compteur:0 }).catch(signalerEchec('Ajout')).catch(()=>{});
   }
-  fermerModale();
 });
 
 document.getElementById('btn-modal-supprimer').addEventListener('click', async ()=>{
@@ -780,8 +791,8 @@ document.getElementById('btn-modal-supprimer').addEventListener('click', async (
   const nom = (state.produits[id] && state.produits[id].nom) || 'ce produit';
   const oui = await dialogue({ titre:'Supprimer « ' + nom + ' » ?', texte:'Le produit sera retiré définitivement de la liste.', ok:'Supprimer' });
   if(!oui) return;
-  await dbDeleteDoc('produits', id);
   fermerModale();
+  dbDeleteDoc('produits', id);   /* audit 12-01 : pas d'attente de l'accusé serveur */
 });
 
 /* ============================================================
@@ -971,13 +982,21 @@ document.getElementById('btn-liste-supprimer').addEventListener('click', async (
   if(state.listeActive === id) choisirListe(LISTE_DEFAUT);
   if(state.filtreCourse === id) state.filtreCourse = TOUTES;
   await firestorePret;
-  const refs = coches.map(([pid])=> docRef('produits', pid));
+  /* Audit 12-03 : lot refusé (produit supprimé entre-temps) → écriture produit par produit, et la liste
+     n'est supprimée qu'ensuite (avant : produits restés sur une liste supprimée). Hors ligne, rien n'est attendu. */
+  const refs = coches.map(([pid])=> docRef('produits', pid)).filter(r=> state.produits[r.id]);
+  const lots = [];
   for(let i = 0; i < refs.length; i += 400){
     const lot = db.batch();
-    refs.slice(i, i+400).forEach(r=> lot.update(r, { listeId: LISTE_DEFAUT }));
-    lot.commit().catch(err=> console.warn('Produits non déplacés :', err));
+    const part = refs.slice(i, i+400);
+    part.forEach(r=> lot.update(r, { listeId: LISTE_DEFAUT }));
+    lots.push(lot.commit().catch(err=>{
+      console.warn('Produits non déplacés en lot, un par un :', err);
+      return Promise.all(part.map(r=> r.update({ listeId: LISTE_DEFAUT }).catch(e=> console.warn('Produit non déplacé :', r.id, e))));
+    }));
   }
-  docRef('listes', id).delete().catch(err=> console.warn('Liste non supprimée :', err));
+  const supprimerListe = ()=> docRef('listes', id).delete().catch(err=> console.warn('Liste non supprimée :', err));
+  if(navigator.onLine && lots.length) Promise.all(lots).then(supprimerListe); else supprimerListe();
 });
 
 /* ============================================================
@@ -1064,7 +1083,18 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
 /* ============================================================
    RENDU GLOBAL + DÉMARRAGE
    ============================================================ */
+/* Audit 11-03 : pas de re-rendu pendant la saisie d'une Qté/info (innerHTML détruisait le champ et la frappe) ;
+   il est rejoué à la sortie du champ. Règle déjà notée dans PROBLEMES_RESOLUS.md (incident Budget). */
+let renduEnAttente = false;
 function render(){
+  const actif = document.activeElement;
+  if(actif && actif.classList && actif.classList.contains('qte-produit')){
+    if(!renduEnAttente){
+      renduEnAttente = true;
+      actif.addEventListener('blur', ()=>{ renduEnAttente = false; setTimeout(render, 0); }, { once:true });
+    }
+    return;
+  }
   renderSelecteurListes();
   renderListe();
   renderCourse();
@@ -1121,6 +1151,7 @@ function demarrer(){
     afficherConnexion(!compte);
     if(compte){
       if(ecoutes) return;
+      finOuverture = Date.now() + FENETRE_OUVERTURE_MS;   /* audit 11-02 : fenêtre « Ajouté à la liste » armée à la connexion, pas au chargement */
       ecoutes = [
         dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; produitsCharges = true; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); if(!cache) nouveautesAuServeur(); }),
         dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); }),
