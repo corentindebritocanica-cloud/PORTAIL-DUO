@@ -332,3 +332,11 @@
   .n-rayon{margin-left:auto; min-width:20px; padding:2px 7px; border-radius:99px; background:rgba(128,128,128,.18); font-size:11px; text-align:center;}
   .section-rayon.replie .carte-produit{display:none;}
   @media (prefers-reduced-motion:reduce){ .chevron-rayon{transition:none;} }
+
+  /* Ordre des rayons (20/10/2026) */
+  .ligne-rayon{display:flex; align-items:center; gap:6px; min-height:48px; border-bottom:1px solid var(--border);}
+  .ligne-rayon .nom-produit{flex:1; min-width:0; margin:0;}
+  .btn-ordre{width:44px; height:44px; flex:none; display:grid; place-items:center; background:none; border:0; color:var(--text); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .btn-ordre svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;}
+  .btn-ordre:active{transform:scale(0.9);}
+  .btn-ordre:disabled{opacity:.25;}

@@ -218,7 +218,9 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
    RENDU — Liste
    ============================================================ */
 function nomsRayonsTries(){
-  return Object.entries(state.rayons).sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+  /* Ordre choisi dans Réglages (champ `ordre` du rayon) ; sans ordre : alphabétique, après les rayons classés. */
+  const o = r=> typeof r.ordre === 'number' ? r.ordre : Infinity;
+  return Object.entries(state.rayons).sort((a,b)=> (o(a[1]) - o(b[1])) || (a[1].nom||'').localeCompare(b[1].nom||''));
 }
 
 function renderListe(){
@@ -725,6 +727,29 @@ function renderReglagesListes(){
 document.getElementById('reglages-listes').addEventListener('click', (e)=>{
   const b = e.target.closest('.ligne-liste'); if(b) ouvrirModaleListe(b.dataset.liste);
 });
+/* Ordre des rayons (20/10/2026) : flèches ↑ ↓ dans Réglages, enregistré dans Firestore (rayons/{id}.ordre). */
+function renderReglagesRayons(){
+  const c = document.getElementById('reglages-rayons'); if(!c) return;
+  const r = nomsRayonsTries();
+  c.innerHTML = r.map(([id,x],i)=>
+    `<div class="ligne-rayon"><span class="nom-produit">${escapeHtml(x.nom||'')}</span>`
+    + `<button type="button" class="btn-ordre" data-rayon="${id}" data-sens="-1" aria-label="Monter" ${i===0?'disabled':''}><svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"/></svg></button>`
+    + `<button type="button" class="btn-ordre" data-rayon="${id}" data-sens="1" aria-label="Descendre" ${i===r.length-1?'disabled':''}><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></button></div>`
+  ).join('') || '<p class="param-desc">Aucun rayon pour le moment.</p>';
+}
+document.getElementById('reglages-rayons').addEventListener('click', (e)=>{
+  const b = e.target.closest('.btn-ordre'); if(!b || b.disabled) return;
+  const ids = nomsRayonsTries().map(([id])=> id);
+  const i = ids.indexOf(b.dataset.rayon), j = i + Number(b.dataset.sens);
+  if(i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  ids.forEach((id,k)=>{
+    if(state.rayons[id].ordre === k) return;
+    state.rayons[id].ordre = k;                       /* effet immédiat ; Firestore confirme ensuite */
+    dbUpdateDoc('rayons', id, { ordre: k }).catch(()=>{});
+  });
+  render();
+});
 document.getElementById('btn-nouvelle-liste').addEventListener('click', ()=> ouvrirModaleListe(null));
 
 const modalListe = document.getElementById('modal-liste');
@@ -908,6 +933,7 @@ function render(){
   renderListe();
   renderCourse();
   renderReglagesListes();
+  renderReglagesRayons();
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

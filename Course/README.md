@@ -539,3 +539,6 @@ Le bouton **Course terminée** (visible seulement quand un article est coché) r
 - Onglet Course : le titre de chaque rayon est un bouton (chevron + nom + nombre d'articles restants). Appui = replie/déplie le rayon ; l'état replié est mémorisé par appareil (`localStorage['course_rayons_replies']`, liste d'ids de rayons, `_sans` pour « Sans rayon »). La section « Dans le caddie » reste toujours dépliée.
 - Zone tactile 44 px, chevron animé en `transform` seulement (désactivé en `prefers-reduced-motion`).
 - Test : non vérifié bout en bout (Firebase bloqué en test) ; à valider sur iPhone.
+
+## Ordre des rayons modifiable (20/10/2026)
+Réglages > « Ordre des rayons » : flèches ↑ ↓ par rayon. L'ordre est stocké dans `rayons/{id}.ordre` (Firestore, partagé entre les téléphones) et s'applique aux onglets Liste et Course et au menu de choix du rayon. Rayons sans `ordre` : alphabétique, après les rayons classés. Aucune règle Firestore à changer (rayons déjà en écriture).
