@@ -21,6 +21,8 @@
    6. Connexion du duo pour Course et le Portail (connexionDuo, #connexion)
    7. Notifications du duo : envoi au relais Apps Script (notifierDuo, 30/09/2026)
    8. Gestes : retour d'appui :active sur iOS + fermeture animée des modales (fermerAnime, 12/10/2026)
+   9. États communs (lot 3, 20/10/2026) : message si un enregistrement échoue (duoEchec),
+      lignes grises d'attente (lignesAttente). Le « Hors ligne » en texte est en CSS (verre.css).
 
    CE QUI RESTE DANS CHAQUE APP : la constante DERNIERE_MAJ (index.html, mise à
    jour par le workflow), le bandeau #maj-toast (index.html : sa position dépend
@@ -332,5 +334,48 @@
   };
   window.annulerFermeture = function(fond){
     if (fond && fond._vFerme) { clearTimeout(fond._vFerme); fond._vFerme = null; fond.classList.remove('v-ferme'); }
+  };
+
+  /* ---------- 9. ÉTATS COMMUNS (lot 3, 20/10/2026) ----------
+     a) duoEchec(err, quoi) : un enregistrement refusé (droits, quota, session…) affichait au mieux
+        une pastille rouge, au pire rien. Message en haut de l'écran, 6 s, même style dans les 5 apps.
+        Hors ligne, Firestore met les écritures en file sans erreur : ce message ne concerne donc
+        que les vrais échecs. Un message identique n'est pas répété dans les 4 s.
+     b) lignesAttente(n) : HTML de n lignes grises (styles .duo-attente dans verre.css), à afficher
+        tant que la 1re lecture de la base n'est pas arrivée, au lieu d'un « Rien à faire » trompeur. */
+  var RAISONS = {
+    'permission-denied': 'accès refusé — reconnecte-toi',
+    'unauthenticated': 'session expirée — reconnecte-toi',
+    'resource-exhausted': 'quota Firebase du jour atteint',
+    'unavailable': 'serveur injoignable',
+    'deadline-exceeded': 'serveur trop lent',
+    'not-found': 'élément introuvable (supprimé ailleurs ?)',
+    'invalid-argument': 'donnée refusée par la base'
+  };
+  var dernierEchec = { texte: '', le: 0 }, minuteurEchec = null;
+  window.duoEchec = function(err, quoi){
+    try {
+      var code = err && err.code ? String(err.code).replace(/^firestore\//, '') : '';
+      var raison = RAISONS[code] || (code || (err && err.message) || 'erreur inconnue');
+      var texte = 'Pas enregistré (' + String(quoi || 'modification').toLowerCase() + ') : ' + raison + '.';
+      if (texte === dernierEchec.texte && Date.now() - dernierEchec.le < 4000) return;
+      dernierEchec = { texte: texte, le: Date.now() };
+      var el = document.getElementById('duo-echec');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'duo-echec'; el.setAttribute('role', 'alert');
+        el.addEventListener('click', function(){ el.classList.remove('visible'); });
+        document.body.appendChild(el);
+      }
+      el.textContent = '⚠️ ' + texte;
+      el.classList.add('visible');
+      clearTimeout(minuteurEchec);
+      minuteurEchec = setTimeout(function(){ el.classList.remove('visible'); }, 6000);
+    } catch (e) { console.warn('[duoEchec]', e); }
+  };
+  window.lignesAttente = function(n){
+    var h = '<div class="duo-attente" aria-busy="true" aria-label="Chargement">';
+    for (var i = 0; i < (n || 4); i++) h += '<div class="duo-attente-ligne"><span></span><span></span></div>';
+    return h + '</div>';
   };
 })();

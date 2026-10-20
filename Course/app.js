@@ -47,9 +47,12 @@ const firestorePret = new Promise(r=> signalerFirestorePret = r);
 
 function colRef(nom){ return db.collection(nom); }
 function docRef(nom, id){ return db.collection(nom).doc(id); }
-function dbUpdateDoc(nom, id, val){ return firestorePret.then(()=> docRef(nom, id).update(val)); }
-function dbAddDoc(nom, val){ return firestorePret.then(()=> colRef(nom).add(val)); }
-function dbDeleteDoc(nom, id){ return firestorePret.then(()=> docRef(nom, id).delete()); }
+/* Lot 3 (20/10/2026) : un refus de la base s'affiche (duoEchec, ../commun.js) puis l'erreur continue son chemin. */
+const signalerEchec = (quoi)=> (e)=>{ if(window.duoEchec) duoEchec(e, quoi); throw e; };
+let produitsCharges = false;   /* lot 3 : faux si ni aperçu ni 1er instantané → lignes grises au lieu de « Rien trouvé » */
+function dbUpdateDoc(nom, id, val){ return firestorePret.then(()=> docRef(nom, id).update(val)).catch(signalerEchec('Modification')); }
+function dbAddDoc(nom, val){ return firestorePret.then(()=> colRef(nom).add(val)).catch(signalerEchec('Ajout')); }
+function dbDeleteDoc(nom, id){ return firestorePret.then(()=> docRef(nom, id).delete()).catch(signalerEchec('Suppression')); }
 /* 24/09/2026 : `includeMetadataChanges: true`. Sans cette option, quand le serveur confirme
    que le cache local est déjà à jour (aucune modification depuis la dernière ouverture),
    Firestore n'envoie AUCUN nouvel événement : l'app restait sur `fromCache = true` pour
@@ -229,6 +232,7 @@ const sansAccents = (s)=> String(s||'').normalize('NFD').replace(/[\u0300-\u036f
 function renderListe(){
   const conteneur = document.getElementById('liste-produits');
   const recherche = sansAccents(state.recherche);
+  if(!produitsCharges){ conteneur.innerHTML = lignesAttente(6); return; }
 
   /* Catalogue commun (30/09/2026, v2) : tous les produits, quelle que soit la liste choisie. */
   const items = Object.entries(state.produits).filter(([id,p])=>
@@ -431,6 +435,7 @@ function updateQuantite(id, val){
    ============================================================ */
 function renderCourse(){
   const conteneur = document.getElementById('liste-course');
+  if(!produitsCharges){ conteneur.innerHTML = lignesAttente(5); return; }
   const filtre = filtreCourse();   /* toutes les listes, ou une seule (pastilles) */
   const items = Object.entries(state.produits).filter(([id,p])=> p.aAcheter && (filtre === TOUTES || listeDe(p) === filtre));
   if(items.length===0){
@@ -1007,7 +1012,7 @@ let firestoreRecu = { produits:false, rayons:false };
   try {
     const a = JSON.parse(localStorage.getItem(CLE_APERCU) || 'null');
     if(a && a.produits && typeof a.produits === 'object' && a.rayons && typeof a.rayons === 'object'){
-      state.produits = a.produits; state.rayons = a.rayons;
+      state.produits = a.produits; state.rayons = a.rayons; produitsCharges = true;
       if(a.listes && typeof a.listes === 'object'){ state.listes = a.listes; listesConnues = true; }   /* 30/09/2026 */
       render();
     }
@@ -1039,7 +1044,7 @@ function demarrer(){
     if(compte){
       if(ecoutes) return;
       ecoutes = [
-        dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); if(!cache) nouveautesAuServeur(); }),
+        dbOnCollection('produits', (obj, cache)=>{ state.produits = obj; produitsCharges = true; if(!cache) portailRecu.produits = true; render(); recuDeFirestore('produits'); planifierPublicationPortail(); if(!cache) nouveautesAuServeur(); }),
         dbOnCollection('rayons', (obj, cache)=>{ state.rayons = obj; if(!cache) portailRecu.rayons = true; render(); recuDeFirestore('rayons'); planifierPublicationPortail(); }),
         /* Listes de courses (30/09/2026) : petite collection, une écoute de plus. Si elle échoue
            (règles pas encore publiées), l'app reste utilisable avec la seule liste Maison. */

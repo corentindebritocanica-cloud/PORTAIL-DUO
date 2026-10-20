@@ -47,9 +47,10 @@ function nouvelId(){
   a.forEach(n=> s += c[n % 62]); return s;
 }
 /* Envoi : n'attend jamais l'accusé du serveur (hors ligne, la promesse ne se résoudrait qu'au retour du réseau). */
-function ecrire(action){
-  firestorePret.then(action).catch(err=> console.warn('Écriture Firestore :', err));
+function ecrire(action, quoi){
+  firestorePret.then(action).catch(err=>{ console.warn('Écriture Firestore :', err); if(window.duoEchec) duoEchec(err, quoi || 'Modification'); });   /* lot 3 : message visible */
 }
+let tachesChargees = false;   /* lot 3 : ni aperçu ni 1er instantané → lignes grises au lieu de « Rien à faire » */
 
 /* Pastille de connexion à côté du titre (../verre.css) : vert = serveur, or = cache local, rouge = hors ligne. */
 function majStatutConnexion(depuisCache){
@@ -188,6 +189,7 @@ const URGENCE_NOM = ['aucune', 'importante', 'urgente'];
 function urgenceDe(t){ const u = Number(t && t.urgence); return u === 1 || u === 2 ? u : 0; }
 function renderTaches(){
   const conteneur = document.getElementById('liste-taches');
+  if(!tachesChargees){ conteneur.innerHTML = lignesAttente(5); return; }
   const id = idListeAffichee(), couleur = couleurListe(id);
   const taches = Object.entries(state.taches).filter(([,t])=> listeDe(t) === id);
   const aFaire = taches.filter(([,t])=> !t.fait).sort((a,b)=> urgenceDe(b[1]) - urgenceDe(a[1]) || (a[1].ordre||0) - (b[1].ordre||0));
@@ -580,7 +582,7 @@ const firestoreRecu = { listes:false, taches:false };
   try {
     const a = JSON.parse(localStorage.getItem(CLE_APERCU) || 'null');
     if(a && a.taches && typeof a.taches === 'object' && a.listes && typeof a.listes === 'object'){
-      state.taches = a.taches; state.listes = a.listes;
+      state.taches = a.taches; state.listes = a.listes; tachesChargees = true;
     }
   } catch (e) {}
   render();
@@ -608,7 +610,7 @@ function demarrer(){
       if(ecoutes) return;
       ecoutes = [
         dbOnCollection(COL_LISTES, (obj, cache)=>{ state.listes = obj; if(!cache) portailRecu.listes = true; render(); recuDeFirestore('listes'); planifierPublicationPortail(); }),
-        dbOnCollection(COL_TACHES, (obj, cache)=>{ state.taches = obj; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
+        dbOnCollection(COL_TACHES, (obj, cache)=>{ state.taches = obj; tachesChargees = true; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
       ];
     } else if(ecoutes){
       ecoutes.forEach(arret=> arret()); ecoutes = null;

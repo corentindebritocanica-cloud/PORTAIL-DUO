@@ -1241,3 +1241,43 @@ html.verre[data-style="clair"][data-app="portail"] .dash-maj.vieux{ color:#8a5a0
 html.verre[data-style="clair"][data-app="todo"] .urgence.u1,
 html.verre[data-style="clair"][data-app="todo"] .btn-flag[data-urgence="1"],
 html.verre[data-style="clair"][data-app="todo"] .choix-urgence button[data-urgence="1"].actif{ color:#b45309; border-color:#b45309; }
+
+
+/* ---------- ÉTATS COMMUNS (lot 3, 20/10/2026) ----------
+   a) Hors ligne en TEXTE : la pastille rouge à côté du titre devient « Hors ligne ».
+   b) #duo-echec : message d'enregistrement refusé (commun.js, duoEchec).
+   c) .duo-attente : lignes grises pendant le 1er chargement (commun.js, lignesAttente). */
+html.verre[data-sync="hors-ligne"][data-app] .app-title-brand::after,
+html.verre[data-sync="hors-ligne"][data-app] #titre-onglet::after,
+html.verre[data-sync="hors-ligne"][data-app] .big-question::after,
+html.verre[data-sync="hors-ligne"][data-app] #exercises-profile-label::after,
+html.verre[data-app="budget"] .status-dot.offline::after{
+  content:'Hors ligne'; width:auto; height:auto; padding:3px 9px; border-radius:999px;
+  font:700 12px/1.2 -apple-system, BlinkMacSystemFont, "Inter", sans-serif; letter-spacing:0;
+  text-transform:none; color:#fff; background:#ef4444; box-shadow:none; top:-3px;
+}
+html.verre[data-app="budget"] .status-dot.offline{ width:auto; height:auto; background:none; box-shadow:none; animation:none; }
+html.verre[data-app="budget"] .status-dot.offline::after{ display:inline-block; position:relative; }
+
+#duo-echec{
+  position:fixed; left:50%; top:calc(env(safe-area-inset-top, 0px) + 8px); z-index:10050;
+  width:max-content; max-width:calc(100% - 32px); padding:12px 16px; border-radius:14px;
+  background:#7f1d1d; color:#fff; font:600 15px/1.35 -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  transform:translate(-50%, -140%); opacity:0; pointer-events:none;
+  transition:transform .3s var(--ease-drawer, ease), opacity .2s ease;
+}
+#duo-echec.visible{ transform:translate(-50%, 0); opacity:1; pointer-events:auto; }
+
+.duo-attente{ display:flex; flex-direction:column; gap:10px; padding:6px 0; }
+.duo-attente-ligne{ display:flex; flex-direction:column; gap:8px; padding:14px; border-radius:16px; background:var(--card, rgba(255,255,255,.06)); }
+.duo-attente-ligne span{ display:block; height:12px; border-radius:6px; background:rgba(128,128,128,.28); animation:duoAttente 1.2s ease-in-out infinite alternate; }
+.duo-attente-ligne span:first-child{ width:62%; height:14px; }
+.duo-attente-ligne span:last-child{ width:34%; }
+.duo-attente-ligne:nth-child(2) span{ animation-delay:.15s; }
+.duo-attente-ligne:nth-child(3) span{ animation-delay:.3s; }
+@keyframes duoAttente{ from{ opacity:.45; } to{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){
+  .duo-attente-ligne span{ animation:none; }
+  #duo-echec{ transition:opacity .2s ease; transform:translate(-50%, 0); }
+}

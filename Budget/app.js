@@ -406,6 +406,7 @@
                 const depuisCache = snap.metadata.fromCache;            // vrai = données du cache local, pas encore du serveur
                 const ecrituresLocales = snap.metadata.hasPendingWrites; // vrai = écho de MA modification
 
+                document.body.classList.remove('duo-chargement');   // lot 3 : fin des lignes grises d'attente
                 if (data.length) {
                     state.firstLoad = false;
                     state.donnees = trierMois(data);
@@ -443,7 +444,7 @@
 
         const sauvegarderMois = (mois) => {
             setSyncDot('saving');
-            refMois(mois.id).set(clean(mois)).then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); });
+            refMois(mois.id).set(clean(mois)).then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); duoEchec(e, 'Modification'); });
         };
 
         const sauvegarderDonnees = () => {
@@ -460,7 +461,7 @@
             const batch = db.batch();
             anciensIds.forEach(id => { if (!nouveauxIds.has(id)) batch.delete(refMois(id)); });
             nouvellesDonnees.forEach(m => batch.set(refMois(m.id), clean(m)));
-            return batch.commit().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); throw e; });
+            return batch.commit().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); duoEchec(e, 'Restauration'); throw e; });
         };
 
 
@@ -470,7 +471,7 @@
                 categories: state.categories,
                 corbeille: state.corbeille,
                 objectifsProvisions: state.objectifsProvisions
-            })).then(() => { if(!silencieux) setSyncDot('online'); }).catch((e) => { console.error(e); setSyncDot('offline'); });
+            })).then(() => { if(!silencieux) setSyncDot('online'); }).catch((e) => { console.error(e); setSyncDot('offline'); duoEchec(e, 'Réglage'); });
         };
 
         // --- Navigation et Vues ---
@@ -1102,7 +1103,7 @@
                 state.donnees = state.donnees.filter(m => m.id !== idASupprimer);
                 state.moisActifId = state.donnees.length ? state.donnees[state.donnees.length - 1].id : null;
                 setSyncDot('saving');
-                refMois(idASupprimer).delete().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); });
+                refMois(idASupprimer).delete().then(() => setSyncDot('online')).catch((e) => { console.error(e); setSyncDot('offline'); duoEchec(e, 'Suppression'); });
             });
         };
 
@@ -1507,12 +1508,10 @@
 
         // --- Hors-ligne ---
         window.addEventListener('offline', () => {
-            setSyncDot('offline');
-            document.getElementById('offline-popup').classList.remove('hidden');
+            setSyncDot('offline');   // « Hors ligne » en texte (verre.css, lot 3) ; ancien pop-up retiré : il disait à tort que rien n'était enregistré
         });
         window.addEventListener('online', () => {
             setSyncDot('online');
-            document.getElementById('offline-popup').classList.add('hidden');
         });
 
         /* Date de MAJ, service worker et vérification de version : dans ../commun.js (noyau commun aux 4 apps,

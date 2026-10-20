@@ -549,3 +549,8 @@ Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée,
 - **Toute la ligne coche** (onglets Liste et Course) : écouteur unique sur `.carte-produit[data-coche]` ; le champ quantité, le crayon et la case gardent leur rôle (rien ne coche deux fois). Retour visuel `:active` sur la carte.
 - Champ quantité passé de 14 à **16 px** (Safari iPhone zoomait au focus).
 - **Vérifié** (Chromium, Firebase simulé) : « creme » → 1 résultat, appui sur le nom → coché, appui sur la quantité → rien, « brioche » → bouton Créer → fenêtre avec « Brioche ». **Non vérifié sur iPhone.**
+
+## Lot 3 — états communs (20/10/2026)
+- `dbUpdateDoc` / `dbAddDoc` / `dbDeleteDoc` : un refus affiche `duoEchec()` (`../commun.js`) puis l'erreur continue (les `await` existants voient toujours l'échec).
+- `produitsCharges` : faux tant que ni l'aperçu local ni le 1er instantané de `produits` ne sont arrivés → `lignesAttente()` dans Liste et Course (et en HTML statique dans `index.html`) au lieu de « Rien trouvé » / « Rien à acheter ».
+- « Hors ligne » en texte à côté du titre (`../verre.css`).

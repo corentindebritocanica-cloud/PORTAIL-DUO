@@ -78,3 +78,8 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - Fenêtre « Nouvelle tâche » : **Entrée** ajoute la tâche, **vide le champ et garde la fenêtre ouverte**, clavier ouvert, pour enchaîner (`creerTache`, écouteur `keydown` sur `#modal-tache-texte`). Ligne de confirmation « ✓ « … » ajoutée » ; urgence remise à Aucune ; « Annuler » devient « Fermer ». Touche du clavier iOS : `enterkeyhint="send"`.
 - Fenêtre « Modifier » : Entrée = Enregistrer (avant : retour à la ligne, aplati de toute façon à l'enregistrement).
 - **Vérifié** (Chromium, Firebase simulé) : « Pain » ⏎ « Lait » ⏎ → 2 tâches, fenêtre ouverte, curseur dans le champ. **Non vérifié sur iPhone.**
+
+## Lot 3 — états communs (20/10/2026)
+- `ecrire(action, quoi)` : un refus affiche `duoEchec()` (`../commun.js`).
+- `tachesChargees` : lignes grises (`lignesAttente`) tant que ni l'aperçu ni le 1er instantané des tâches ne sont là, au lieu de « Rien à faire ».
+- « Hors ligne » en texte à côté du titre (`../verre.css`).

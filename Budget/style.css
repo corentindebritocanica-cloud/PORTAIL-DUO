@@ -506,3 +506,9 @@ html[data-style="clair"] .v2-sheet { box-shadow: 0 -12px 40px rgba(70,50,20,.18)
 .cat-rapide:active { transform: scale(0.97); }
 .cat-rapide.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 @media (prefers-reduced-motion: reduce) { .btn-signe, .cat-rapide { transition: none !important; } }
+
+/* Lot 3 (20/10/2026) : 1er chargement — montants en blocs gris au lieu de « 0 € » (classe retirée au 1er instantané) */
+body.duo-chargement #reste-a-vivre, body.duo-chargement .v2-tile-mnt, body.duo-chargement #v2-revenus, body.duo-chargement #jours-restants, body.duo-chargement #detail-reste {
+    color: transparent !important; background: var(--card-2); border-radius: 10px; animation: duoAttente 1.2s ease-in-out infinite alternate; }
+body.duo-chargement #reste-a-vivre { display: inline-block; min-width: 160px; }
+@media (prefers-reduced-motion: reduce) { body.duo-chargement #reste-a-vivre, body.duo-chargement .v2-tile-mnt { animation: none; } }

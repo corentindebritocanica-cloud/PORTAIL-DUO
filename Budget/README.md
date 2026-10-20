@@ -536,3 +536,8 @@ Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README
 - **4 pastilles de catégories récentes** sous la ligne neuve (`state.ligneNeuve`, effacé à la fermeture de la feuille) : catégories des dépenses les plus récentes (tous mois, hors la ligne neuve), complétées par Courses / Restaurant / Loisirs / Santé. Un appui règle la catégorie sans re-rendu.
 - **Re-rendu protégé pendant la saisie** (`saisieEnCours`, `planifierRendu`) : un instantané Firestore (écho de ma propre écriture, `portail`, ou modification de l'autre téléphone) remplaçait toute la liste et fermait le clavier ; il attend maintenant la sortie du champ (`focusout`). Le `change` réapplique la valeur affichée (`majChamp`) avant d'enregistrer, et le re-rendu qui suit est différé de 350 ms (sinon il remplaçait la pastille touchée entre l'appui et le relâcher : clic perdu).
 - **Vérifié** (Chromium, Firebase simulé) : curseur dans le montant, « 12,5 » enregistré 12.5, pastille Santé appliquée, ± → −12.5. **Non vérifié sur iPhone.**
+
+## Lot 3 — états communs (20/10/2026)
+- Pop-up « Connexion perdue » supprimé (`index.html`, `app.js`) : remplacé par l'étiquette « Hors ligne » à côté du titre (`verre.css`).
+- Écritures refusées → `duoEchec()` (`../commun.js`) : `sauvegarderMois`, `sauvegarderConfig`, suppression d'un mois, restauration.
+- 1er chargement : `<body class="duo-chargement">`, retirée au 1er instantané de `mois` ; montants en blocs gris (`style.css`, fin) et lignes grises dans « Dernières opérations » (`index.html`).
