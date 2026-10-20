@@ -1037,6 +1037,17 @@ function showView(viewId, direction){
   if(typeof adjustBottomSpacing === 'function') adjustBottomSpacing();
 }
 
+/* Séance à faire (20/10/2026) : la même règle que « Prochaine séance » du Portail
+   (calculerResumePortailMuscu) — celle qui suit, dans l'ordre de SESSIONS, la dernière séance
+   fixe archivée du profil ; la première si rien n'est archivé. null tant que les archives ne
+   sont pas chargées (sinon la mise en évidence sauterait d'une séance à l'autre). */
+function prochaineSeanceId(profile){
+  if(!window.__archivesLoaded) return null;
+  const derniere = getArchivesList(profile).find(a => isFixedSessionId(a.sessionId));   /* triées de la plus récente à la plus ancienne */
+  const idx = derniere ? SESSIONS.findIndex(x => x.id === derniere.sessionId) : -1;
+  return SESSIONS[(idx + 1) % SESSIONS.length].id;
+}
+
 function renderSessionList(){
   renderSessionProfileToggle();
   const title = document.getElementById('session-view-title');
@@ -1044,15 +1055,19 @@ function renderSessionList(){
 
   const list = document.getElementById('session-list');
   list.innerHTML = '';
+  const aFaire = prochaineSeanceId(currentProfile);
   SESSIONS.forEach(fixed => {
     const session = getSession(fixed.id);
     const modified = !!getSessionOverride(fixed.id);
     const row = document.createElement('div');
-    row.className = 'session-btn custom-session-row' + (session.id === currentSessionId ? ' selected' : '');
+    /* La bordure « selected » (dernière séance ouverte) cède la place à « à faire » : deux mises
+       en évidence côte à côte ne diraient plus laquelle faire. */
+    const estAFaire = fixed.id === aFaire;
+    row.className = 'session-btn custom-session-row' + (estAFaire ? ' prochaine' : (!aFaire && session.id === currentSessionId ? ' selected' : ''));
     row.innerHTML = `
       <span class="session-icon">${session.muscleIcon}</span>
       <span class="session-text">
-        <span class="s-label">${escapeHtml(session.label)}${modified ? ' <span class="s-tag">modifiée</span>' : ''}</span>
+        <span class="s-label">${escapeHtml(session.label)}${modified ? ' <span class="s-tag">modifiée</span>' : ''}${estAFaire ? ' <span class="s-afaire">À faire</span>' : ''}</span>
         <span class="s-subtitle">${escapeHtml(session.title)}</span>
       </span>
     `;

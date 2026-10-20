@@ -1206,3 +1206,13 @@ Demande de Corentin : « rapproche-toi au maximum du prototype ». Ce qui change
 - **Non fait (piste restée ouverte)** : rappel de la note de la séance précédente en haut de l'exercice (maquettes 3 et 4).
 - **Fichiers** : `app.js`, `style.css`, `../verre.css`.
 - **Vérifié** (Chromium, iPhone 390 × 844 simulé, sombre et clair) : champ vide visible (46 px, aucun « + Note »), saisie d'une note longue (108 px, crayon à l'accent, enregistrée sous la bonne clé), re-rendu → note et hauteur retrouvées ; aucune erreur JS. **Non vérifié sur iPhone.**
+
+## Séance à faire mise en évidence dans la liste (20/10/2026)
+
+**Demande de Corentin** : dans l'onglet Entraînement (liste « Choisis ta séance »), mettre en évidence la séance à faire — le Portail donne déjà l'information (« Prochaine séance »).
+- **Même règle que le Portail** (`calculerResumePortailMuscu`) : la séance fixe qui suit, dans l'ordre de `SESSIONS`, la dernière séance fixe **archivée** du profil affiché ; la première (Séance 1) si rien n'est archivé ; après la Séance 4, retour à la Séance 1. Fonction `prochaineSeanceId(profile)` (`app.js`, avant `renderSessionList`). Les séances personnalisées ne sont jamais « à faire ».
+- **Profil** : suit le sélecteur « Séance pour » (`currentProfile`) — basculer sur Lisa montre sa prochaine séance, pas celle du téléphone.
+- **Affichage** : classe `.session-btn.prochaine` (bord et fond à l'accent du profil, icône teintée) + pastille **« À faire »** (`.s-afaire`) après le nom. La bordure `.selected` (dernière séance ouverte) n'est plus posée tant que la mise en évidence est connue — deux mises en évidence ne diraient plus laquelle faire ; elle reste le repli avant le chargement des archives.
+- **Pas de saut à l'ouverture** : `prochaineSeanceId` renvoie `null` tant que `window.__archivesLoaded` est faux (rien n'est mis en évidence), puis la liste est redessinée à l'arrivée des archives (déjà le cas, `renderSessionList` appelée par le snapshot).
+- **Fichiers** : `app.js`, `style.css`, `../verre.css` (fin : teinte sur le panneau, par-dessus la règle « panneau »).
+- **Vérifié** (Chromium, iPhone simulé, archives réelles dont la dernière est la Séance 4, Lisa en sombre et Corentin en clair) : avant chargement → aucune mise en évidence ; après → « Séance 1 · À faire » ; sans archive → Séance 1 ; aucune erreur JS. **Non vérifié sur iPhone.**

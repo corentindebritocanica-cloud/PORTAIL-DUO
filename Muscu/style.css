@@ -275,6 +275,13 @@
     border-color:var(--accent);
   }
   .session-btn.selected .session-icon{ background:var(--tint-strong); }
+  /* Séance à faire (20/10/2026) : bord et fond à l'accent du profil + pastille « À faire ». */
+  .session-btn.prochaine{ border-color:var(--accent); background:var(--tint); }
+  .session-btn.prochaine .session-icon{ background:var(--tint-strong); }
+  .s-afaire{
+    display:inline-block; vertical-align:2px; margin-left:6px; padding:3px 9px; border-radius:var(--r-pill);
+    background:var(--accent); color:#fff; font-size:11px; font-weight:800; letter-spacing:.3px; line-height:1.2;
+  }
   .custom-session-row{ cursor:pointer; }
   .s-tag{
     font-family:var(--f-body); font-size:10px; font-weight:800; letter-spacing:0.4px; text-transform:uppercase;

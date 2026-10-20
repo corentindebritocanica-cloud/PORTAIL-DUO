@@ -1191,3 +1191,11 @@ html.verre[data-style="clair"][data-app="muscu"] #view-exercises .set-row.record
 html.verre[data-style="clair"][data-app="muscu"] #view-exercises .set-row.record input.champ-poids,
 html.verre[data-style="clair"][data-app="muscu"] .record-couronne{ color:#a86f00; }
 html.verre[data-style="clair"][data-app="muscu"] .record-reflet::before{ background:rgba(168,111,0,.18); }
+
+/* Séance à faire (20/10/2026) : teinte d'accent sur le panneau, par-dessus la règle « panneau » ci-dessus. */
+html.verre[data-style][data-app="muscu"] .session-btn.prochaine{
+  background:color-mix(in srgb, var(--accent) 16%, var(--t-panneau)); border-color:var(--accent);
+}
+html.verre[data-style][data-app="muscu"] .session-btn.prochaine .session-icon{
+  background:color-mix(in srgb, var(--accent) 24%, var(--t-panneau));
+}
