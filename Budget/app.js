@@ -385,6 +385,18 @@
         window.addEventListener('pagehide', secoursPublicationPortail);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') secoursPublicationPortail(); });
 
+        // Lot 2 (20/10/2026) : un champ de ligne a le focus → le re-rendu attend qu'on en sorte
+        const saisieEnCours = () => { const a = document.activeElement; return !!(a && a.dataset && a.dataset.field && a.closest('.item-row')); };
+        document.addEventListener('focusout', () => setTimeout(() => {
+            if (state.rendreApresSaisie && !saisieEnCours()) { state.rendreApresSaisie = false; rafraichirTouteLInterface(); }
+        }, 0));
+
+        let minuteurRendu = null;
+        const planifierRendu = () => {
+            clearTimeout(minuteurRendu);
+            minuteurRendu = setTimeout(() => { if (saisieEnCours()) state.rendreApresSaisie = true; else rafraichirTouteLInterface(); }, 350);
+        };
+
         // --- Logique DB ---
         const attacherEcouteurs = () => {
             unsubMois = colMois().onSnapshot((snap) => {
@@ -403,7 +415,8 @@
                     gererNouveautes(state.donnees, depuisCache, ecrituresLocales);
                     if (!depuisCache) portailServeurVu = true;
                     planifierPublicationPortail();
-                    rafraichirTouteLInterface();
+                    if (saisieEnCours()) state.rendreApresSaisie = true; // Lot 2 : ne pas casser le champ actif
+                    else rafraichirTouteLInterface();
                 } else {
                     // Ne jamais créer le mois par défaut sur un snapshot vide issu du cache local
                     if (state.firstLoad && !depuisCache) {
@@ -423,7 +436,7 @@
                     state.categories = c.categories || state.categories;
                     state.corbeille = (c.corbeille || []).filter(i => i.typeOriginal !== 'epargne'); // anciennes lignes de la carte Épargne supprimée
                     state.objectifsProvisions = c.objectifsProvisions || [];
-                    rafraichirTouteLInterface();
+                    if (saisieEnCours()) state.rendreApresSaisie = true; else rafraichirTouteLInterface();
                 }
             }, (err) => { console.error("Erreur écoute Firestore (config) :", err); setSyncDot('offline'); });
         };
@@ -542,6 +555,19 @@
             return solde;
         };
 
+        // Lot 2 (20/10/2026) : 4 dernières catégories utilisées, en pastilles sous une dépense qu'on vient de créer
+        const categoriesRecentes = () => {
+            const toutes = [];
+            state.donnees.forEach(m => (m.depenses || []).forEach(d => { if (d.id !== state.ligneNeuve && d.categorie && (Number(d.montant) || 0) !== 0) toutes.push(d); }));
+            toutes.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+            const vues = [];
+            toutes.forEach(d => { if (!vues.includes(d.categorie) && state.categories.includes(d.categorie)) vues.push(d.categorie); });
+            ['🛒 Courses', '🍽️ Restaurant', '🎬 Loisirs', '🏥 Santé'].forEach(c => { if (!vues.includes(c) && state.categories.includes(c)) vues.push(c); });
+            return vues.slice(0, 4);
+        };
+        const pastillesCategories = (item) => `<div class="cat-rapides"><button type="button" class="btn-signe" data-signe="${esc(item.id)}" aria-label="Dépense ou remboursement">±</button>${categoriesRecentes().map(c =>
+            `<button type="button" class="cat-rapide${item.categorie === c ? ' on' : ''}" data-cat-rapide="${esc(c)}" data-id="${esc(item.id)}">${esc(c)}</button>`).join('')}</div>`;
+
         // --- Rendu des tableaux ---
         const rendreLignes = (containerId, tableau, type) => {
             const container = document.getElementById(containerId);
@@ -615,7 +641,7 @@
                             <div class="item-top">
                                 <textarea data-id="${esc(item.id)}" data-type="${type}" data-field="libelle" placeholder="Note...">${esc(item.libelle || '')}</textarea>
                                 <div class="item-montant">
-                                    <input type="number" value="${mntFinal}" class="${negCls}" data-id="${esc(item.id)}" data-type="${type}" data-field="montant">
+                                    <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" value="${mntFinal ? mntFinal : ''}" class="${negCls}" data-id="${esc(item.id)}" data-type="${type}" data-field="montant" aria-label="Montant">
                                     ${payIcon}
                                 </div>
                             </div>
@@ -625,6 +651,7 @@
                                     ${options}
                                 </select>
                             </div>
+                            ${type === 'depenses' && state.ligneNeuve === item.id ? pastillesCategories(item) : ''}
                             ${mixteRow}
                         </div>
                         <button class="btn-delete" data-del-type="${type}" data-del-id="${esc(item.id)}">✕</button>
@@ -869,6 +896,7 @@
             if (!w) return;
             w.classList.remove('open');
             w.setAttribute('aria-hidden', 'true');
+            if (w.id === 'sheet-depenses') state.ligneNeuve = null;
             if (!document.querySelector('.v2-sheet-wrap.open')) document.body.classList.remove('v2-feuille');
         };
         document.getElementById('v2-sheets').addEventListener('click', (e) => {
@@ -890,9 +918,7 @@
             // Focus pendant le geste (sinon iOS n'ouvre pas le clavier)
             if (act.dataset.action === 'depense') {
                 ouvrirFeuille('depenses');
-                document.querySelector('#sheet-depenses [data-add="depenses"]').click();
-                const t = document.querySelector('#conteneur-depenses textarea');
-                if (t) t.focus();
+                document.querySelector('#sheet-depenses [data-add="depenses"]').click(); // met le curseur dans le montant
             } else if (act.dataset.action === 'revenu') { ouvrirFeuille('revenus'); document.getElementById('revenus_add').focus(); }
             else if (act.dataset.action === 'especes') { ouvrirFeuille('revenus'); document.getElementById('especes_add').focus(); }
             else if (act.dataset.action === 'chercher') { ouvrirFeuille('depenses'); document.getElementById('search-bar').focus(); }
@@ -1082,14 +1108,16 @@
 
         // 5. Manipulation des lignes (Délégation d'événements)
         const setupTableListeners = (containerId) => {
-            document.getElementById(containerId).addEventListener('input', (e) => {
+            // Lot 2 : aussi rejouée au « change » — un instantané Firestore reçu pendant la saisie remplace
+            // state.donnees (le re-rendu attend la sortie du champ) : la valeur affichée est réappliquée avant d'enregistrer.
+            const majChamp = (e) => {
                 const mois = getMoisActif();
                 const { id, type, field } = e.target.dataset;
                 if (!mois || !type || !Array.isArray(mois[type])) return; // V2 : champs de revenus (gérés plus bas) dans la même feuille
                 const item = mois[type].find(x => x.id === id);
                 if (item) {
                     if (field === 'montant') {
-                        let val = parseFloat(e.target.value) || 0;
+                        let val = parseFloat(String(e.target.value).replace(',', '.').replace(/\s/g, '')) || 0; // clavier décimal FR : virgule
                         item.montant = val;
                     } else {
                         item[field] = e.target.value;
@@ -1101,12 +1129,15 @@
                         if(sel) sel.value = item.categorie;
                     }
                     if (e.target.tagName === 'TEXTAREA') autoResize(e.target);
+                    if (field === 'montant') e.target.classList.toggle('montant-neg', item.montant < 0);
                 }
-            });
+            };
+            document.getElementById(containerId).addEventListener('input', majChamp);
 
             document.getElementById(containerId).addEventListener('change', (e) => {
+                majChamp(e);
                 sauvegarderDonnees();
-                rafraichirTouteLInterface();
+                planifierRendu(); // Lot 2 : différé — un re-rendu immédiat (au blur) avalait le toucher sur la pastille / le bouton voisin
                 // NOTIFICATIONS (30/09/2026) : une dépense qui vient de recevoir un montant prévient l'autre
                 const d = e.target && e.target.dataset;
                 if (d && d.type === 'depenses' && d.id) planifierNotifDepense(state.moisActifId, d.id);
@@ -1136,6 +1167,34 @@
                     
                     sauvegarderDonnees();
                     rafraichirTouteLInterface();
+                    return;
+                }
+
+                // Lot 2 : ± bascule dépense / remboursement (le clavier décimal n'a pas de signe moins)
+                const signe = e.target.closest('[data-signe]');
+                if (signe) {
+                    const item = getMoisActif().depenses.find(x => x.id === signe.dataset.signe);
+                    const champ = signe.closest('.item-row').querySelector('[data-field="montant"]');
+                    if (!item || !champ) return;
+                    if (!item.montant) { champ.value = '-'; champ.focus(); return; } // pendant le geste : le clavier s'ouvre
+                    item.montant = -item.montant;
+                    if (item.moyenPaiement === 'MIXTE') item.montantEspeces = Math.min(parseFloat(item.montantEspeces) || 0, Math.max(item.montant, 0));
+                    champ.value = item.montant;
+                    champ.classList.toggle('montant-neg', item.montant < 0);
+                    sauvegarderDonnees();
+                    return;
+                }
+                const catR = e.target.closest('[data-cat-rapide]');
+                if (catR) {
+                    const item = getMoisActif().depenses.find(x => x.id === catR.dataset.id);
+                    if (!item) return;
+                    item.categorie = catR.dataset.catRapide;
+                    const row = catR.closest('.item-row');
+                    const sel = row.querySelector('select[data-field="categorie"]');
+                    if (sel) sel.value = item.categorie;
+                    row.querySelectorAll('.cat-rapide').forEach(b => b.classList.toggle('on', b === catR));
+                    sauvegarderDonnees();
+                    planifierNotifDepense(state.moisActifId, item.id);
                     return;
                 }
 
@@ -1278,8 +1337,12 @@
                 }
                 
                 mois[type].unshift(nouv);
+                if (type === 'depenses') state.ligneNeuve = nouv.id;
                 sauvegarderDonnees();
                 rafraichirTouteLInterface();
+                // Lot 2 : curseur dans le montant (pendant le geste, sinon iOS n'ouvre pas le clavier)
+                const champ = document.querySelector(`#conteneur-${type} .item-row[data-id="${CSS.escape(nouv.id)}"] [data-field="montant"]`);
+                if (champ && type !== 'fixes') champ.focus();
 
                 // Déplie automatiquement la carte correspondante si elle était repliée
                 const conteneur = document.getElementById('conteneur-' + type);

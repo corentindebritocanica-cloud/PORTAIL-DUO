@@ -528,3 +528,11 @@ Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README
 - Date du jour en heure locale (`dateLocale()`) au lieu de `toISOString()` (UTC) : une dépense saisie après minuit ne tombe plus la veille. Idem pour les dates relatives (`ilYaJours`).
 - Nouvelle dépense : catégorie « 🛒 Courses » par défaut (au lieu de la 1re catégorie, Loyer).
 - Champs date / menus des lignes à 16 px (au lieu de 13 px) : fin du zoom Safari au focus.
+
+## Lot 2 — saisie d'une dépense (20/10/2026)
+- **Montant en premier** : « − Dépense » (tableau de bord) et « + Nouvelle dépense » (feuille) créent la ligne et mettent le curseur dans le **montant** (avant : libellé). `focus()` appelé pendant le geste, sinon iOS n'ouvre pas le clavier.
+- **Clavier décimal** : champ montant des Dépenses / Charges / Provisions en `type="text" inputmode="decimal"`, **vide** quand la valeur est 0 (`placeholder="0"`), virgule acceptée (`replace(',', '.')`). Les Fixes gardent `type="number"`.
+- **Signe** : le clavier décimal n'a pas de « − ». Bouton rond **±** en tête des pastilles de la ligne neuve : inverse le montant (ou met « - » dans un champ vide). Une ligne déjà négative garde son « - » à l'édition. ⚠️ Passer une **ancienne** dépense positive en remboursement n'est plus possible au clavier : la recréer.
+- **4 pastilles de catégories récentes** sous la ligne neuve (`state.ligneNeuve`, effacé à la fermeture de la feuille) : catégories des dépenses les plus récentes (tous mois, hors la ligne neuve), complétées par Courses / Restaurant / Loisirs / Santé. Un appui règle la catégorie sans re-rendu.
+- **Re-rendu protégé pendant la saisie** (`saisieEnCours`, `planifierRendu`) : un instantané Firestore (écho de ma propre écriture, `portail`, ou modification de l'autre téléphone) remplaçait toute la liste et fermait le clavier ; il attend maintenant la sortie du champ (`focusout`). Le `change` réapplique la valeur affichée (`majChamp`) avant d'enregistrer, et le re-rendu qui suit est différé de 350 ms (sinon il remplaçait la pastille touchée entre l'appui et le relâcher : clic perdu).
+- **Vérifié** (Chromium, Firebase simulé) : curseur dans le montant, « 12,5 » enregistré 12.5, pastille Santé appliquée, ± → −12.5. **Non vérifié sur iPhone.**

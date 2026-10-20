@@ -168,7 +168,7 @@ input[type="number"] { background: var(--card-2); border-radius: var(--r-sm); pa
 .item-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
 .item-top textarea { flex: 1; font-weight: 600; padding: 0; resize: none; min-height: 24px; overflow: hidden; font-size: 15px; }
 .item-montant { display: flex; align-items: center; gap: 6px; }
-.item-top input[type="number"] { width: 90px; min-height: 44px; text-align: right; font-weight: 700; border: none; }
+.item-top input[type="number"], .item-top input[data-field="montant"] { width: 90px; min-height: 44px; text-align: right; font-weight: 700; border: none; }
 .item-bottom { display: flex; gap: 8px; align-items: center; }
 .item-bottom input[type="date"], .item-bottom select { flex: 1; min-width: 0; min-height: 44px; background: var(--card-2); font-size: 16px !important; padding: 6px 10px; /* 16px : sous 16px, Safari iPhone zoome au focus (20/10/2026) */ border-radius: var(--r-sm); color: var(--text-dim); }
 /* Onglet Fixes (ligne minimaliste) */
@@ -496,3 +496,13 @@ html[data-style="clair"] .v2-jour.c-avenir { background: rgba(245,181,74,.14); }
 html[data-style="clair"] .a-esp { background: var(--card); }
 html[data-style="clair"] .v2-sheet-fond { background: rgba(60,45,25,.35); }
 html[data-style="clair"] .v2-sheet { box-shadow: 0 -12px 40px rgba(70,50,20,.18); }
+
+/* Lot 2 (20/10/2026) : saisie d'une dépense — bouton ± et pastilles des catégories récentes */
+.btn-signe { width: 44px; height: 44px; flex: 0 0 44px; background: var(--card-2); border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim); font-size: 18px; font-weight: 700; transition: transform var(--t-fast) var(--ease-out); }
+.btn-signe:active { transform: scale(0.97); }
+.cat-rapides { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 2px; scrollbar-width: none; }
+.cat-rapides::-webkit-scrollbar { display: none; }
+.cat-rapide { flex: 0 0 auto; min-height: 44px; padding: 0 12px; border-radius: 999px; background: var(--card-2); border: 1px solid var(--border); color: var(--text); font-size: 14px; white-space: nowrap; transition: transform var(--t-fast) var(--ease-out); }
+.cat-rapide:active { transform: scale(0.97); }
+.cat-rapide.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (prefers-reduced-motion: reduce) { .btn-signe, .cat-rapide { transition: none !important; } }
