@@ -16,7 +16,9 @@
 <!-- Design « Verre » DÉFINITIF (28/09/2026) : feuille commune à la RACINE du dépôt (../verre.css), appliquée
      par la classe html.verre posée en dur ci-dessus. style.css garde la base, verre.css l'habille. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap">
+<!-- Audit 07-01 / 10-01 / 13-01 (20/10/2026) : feuille Google Fonts non bloquante (réseau « fantôme » = page blanche) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap"></noscript>
 <!-- Noyau commun (28/09/2026) : ../commun.js à la racine du dépôt — halos calés sur l'horloge, transition
      « vitre → app », date de MAJ, service worker, vérification de version. Dans le <head>, sans defer. -->
 <script src="../commun.js?v=202610202210270200"></script>

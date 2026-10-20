@@ -108,13 +108,28 @@ function cleCache(requete){
   u.search = '';   // app.js?v=… et app.js partagent la même entrée de cache
   return u.href;
 }
+// Audit 07-06 / 13-02 / 10-04 (20/10/2026) :
+//  - index.html servi depuis le cache (réseau trop lent) → pendant 15 s, app.js / style.css aussi depuis le
+//    cache, sinon un ancien HTML tournait avec un JS récent (ids absents → exception) ;
+//  - une réponse réseau non-OK (404/5xx) laisse la place à la copie en cache ;
+//  - repli sur index.html seulement pour une navigation (jamais à la place d'un JS/CSS).
+let shellDepuisCache = 0;
 function reseauPuisCache(requete){
+  const navigation = requete.mode === 'navigate';
+  // Audit 16-03 : contrôle de version (commun.js, index.html?verif=…) → réseau seul, jamais la copie en cache
+  if (new URL(requete.url).searchParams.has('verif')) return fetch(new Request(requete.url, { cache: 'no-store' }));
+  if (!navigation && Date.now() - shellDepuisCache < 15000) {
+    return caches.match(cleCache(requete)).then((r) => r || fetch(requete));
+  }
   return new Promise((resolve) => {
     let termine = false;
-    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
-    const minuteur = setTimeout(() => {
-      repliCache().then((r) => { if (r && !termine) { termine = true; resolve(r); } });
-    }, DELAI_RESEAU_MS);
+    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || (navigation ? caches.match(new URL('index.html', self.registration.scope).href) : undefined));
+    const servirCache = (r) => { termine = true; if (navigation) shellDepuisCache = Date.now(); resolve(r); };
+    // Audit 13-02 : minuteur seulement pour la navigation — un HTML neuf arrivé à temps n'est pas
+    // complété par un app.js / style.css ancien (le cache ne sert alors qu'en cas d'échec réseau).
+    const minuteur = navigation ? setTimeout(() => {
+      repliCache().then((r) => { if (r && !termine) servirCache(r); });
+    }, DELAI_RESEAU_MS) : null;
     // Requête neuve avec cache:'no-cache' : force la revalidation auprès du serveur (304 si inchangé)
     // et évite de resservir une copie du cache HTTP de Safari (GitHub Pages : max-age=600).
     fetch(new Request(requete.url, { cache: 'no-cache' })).then((reponse) => {
@@ -122,11 +137,14 @@ function reseauPuisCache(requete){
         const copie = reponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(cleCache(requete), copie));
       }
-      if (!termine) { termine = true; clearTimeout(minuteur); resolve(reponse); }
+      if (termine) return;
+      clearTimeout(minuteur);
+      if (!reponse || !reponse.ok) { repliCache().then((r) => { if (termine) return; if (r) servirCache(r); else { termine = true; resolve(reponse); } }); return; }
+      termine = true; resolve(reponse);
     }).catch(() => {
       clearTimeout(minuteur);
       if (termine) return;
-      repliCache().then((r) => { termine = true; resolve(r || Response.error()); });
+      repliCache().then((r) => { if (termine) return; if (r) servirCache(r); else { termine = true; resolve(Response.error()); } });
     });
   });
 }

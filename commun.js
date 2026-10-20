@@ -130,7 +130,7 @@
   function utilisateurOccupe(){
     var a = document.activeElement;
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return true;
-    return Array.prototype.some.call(document.querySelectorAll('.overlay-popup, .confirm-overlay, .modal-overlay, .login-overlay, .modal-fond'), estVisible);
+    return Array.prototype.some.call(document.querySelectorAll('.overlay-popup, .confirm-overlay, .modal-overlay, .login-overlay, .modal-fond, .v2-sheet-wrap.open'), estVisible);
   }
   function afficherBandeau(){ var t = document.getElementById('maj-toast'); if (t) t.style.display = 'flex'; }
   async function verifierVersion(force){
@@ -139,7 +139,7 @@
     if (!force && Date.now() - dernierControle < 30000) return;
     dernierControle = Date.now();
     try {
-      var rep = await fetch('index.html', { cache: 'no-store' });
+      var rep = await fetch('index.html?verif=' + Date.now(), { cache: 'no-store' });   /* audit 16-03 : réseau seul dans le SW */
       if (!rep.ok) return;
       var m = (await rep.text()).match(/DERNIERE_MAJ\s*=\s*'([^']+)'/);
       if (!m) return;

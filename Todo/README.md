@@ -92,3 +92,11 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - **Balayer** une tâche : vers la droite (> 80 px) = faite / remise à faire, vers la gauche = supprimée ; fond vert / rouge au-delà du seuil ; geste horizontal seulement (`touch-action: pan-y`), le toucher qui suit n'ouvre pas la tâche.
 - **Annuler 4 s** (`toastAnnuler`) après une coche (case ou balayage) et une suppression par balayage : restaure l'état (`basculerFait`, `supprimerTache` qui réécrit la tâche complète).
 - **Vérifié** (Chromium, Firebase simulé) : Tout = 3 tâches de 2 listes, Mes tâches = 2, balayage gauche → supprimée puis Annuler → restaurée, balayage droite → faite sans ouvrir la fenêtre. **Non vérifié sur iPhone** (geste au doigt).
+
+## Audit de code — corrections (20/10/2026)
+- **17-01** : balayage ignoré s'il part à moins de 24 px du bord gauche (geste retour d'iOS) ; `pointercancel` remet la ligne en place **sans** cocher ni supprimer.
+- **17-02** : `aBalaye` remis à `false` à tout `pointerdown` et 400 ms après la fin du geste (iOS n'envoie pas de `click` après un glisser : le toucher suivant était avalé).
+- **17-03** : une tâche créée avant le 1er instantané Firestore est réappliquée sur cet instantané (elle disparaissait puis revenait).
+- `sw.js` : même logique réseau d'abord que les autres apps (minuteur pour la navigation seulement, HTML et JS de la même version, `?verif=` en réseau seul) ; feuille Google Fonts non bloquante (`index.html`).
+- **Rejeté** : 17-04 (jeton expiré du secours REST : renouvelé à chaque publication).
+- **Non vérifié sur iPhone.**

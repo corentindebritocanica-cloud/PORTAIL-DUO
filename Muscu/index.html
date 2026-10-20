@@ -24,7 +24,9 @@
      système — ne pas y toucher, ça a été calé pour iOS Safari. Si hors-ligne,
      repli silencieux sur la pile système (voir --f-display). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap">
+<!-- Audit 07-01 / 10-01 / 13-01 (20/10/2026) : feuille Google Fonts non bloquante (réseau « fantôme » = page blanche) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Unbounded:wght@300;400;600&display=swap"></noscript>
 <link rel="stylesheet" href="style.css?v=202610202208580200">
 <!-- Design « Verre » (28/09/2026) : feuille commune à la RACINE du dépôt (../verre.css), appliquée par la classe
      html.verre posée en dur ci-dessus. style.css garde la base (jetons, structure), verre.css l'habille. -->

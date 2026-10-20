@@ -576,3 +576,4 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - **Rejeté** : 12-05 (« Course terminée » n'apparaît que s'il y a au moins un acheté).
 - **Non fait** : 20-04 (`apple-touch-icon` en data-URI dans `index.html`) — à tester sur iPhone avant de changer.
 - **Non vérifié sur iPhone.**
+- **Ajouts (même audit)** : feuille Google Fonts non bloquante (13-01) ; `?verif=` (contrôle de version de `commun.js`) en réseau seul dans `sw.js`.

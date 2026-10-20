@@ -19,6 +19,52 @@
 
 ---
 
+## 🔍 Audit de code des 5 apps — leçons transversales (20/10/2026)
+
+### 20/10/2026 — Budget (leçon valable partout) — glisser-déposer sur une liste filtrée = lignes masquées supprimées
+**Symptôme** : (trouvé à l'audit, pas encore vu) recherche ou filtre Tous / Corentin / Lisa actif, on réordonne une ligne → toutes les lignes masquées disparaissent du mois, enregistré dans Firestore, sans corbeille.
+**Fausses pistes explorées** : aucune.
+**Cause racine** : `onEnd` de Sortable reconstruisait le tableau à partir des seuls enfants du DOM, qui ne contiennent que les lignes visibles.
+**Solution** : réordonner les ids visibles dans les places qu'ils occupaient dans le tableau complet ; les masquées ne bougent pas. **Règle** : ne jamais reconstruire une donnée à partir du DOM d'une vue filtrée.
+**Fichiers touchés** : `Budget/app.js`
+
+### 20/10/2026 — Course, Portail (leçon valable partout) — `await` d'une écriture Firestore = interface bloquée hors ligne
+**Symptôme** : fenêtre produit (Course) ou boutons Notifications (Portail) bloqués tant que le réseau ne revient pas ; un 2e tap crée un doublon.
+**Cause racine** : avec le cache persistant, la promesse d'un `add/set/update/delete` ne se résout qu'à l'accusé **du serveur**. Le cache local est déjà à jour bien avant.
+**Solution** : id créé localement (`collection.doc()`), écriture lancée **sans `await`** avec un `.catch`, fenêtre fermée tout de suite. Lire l'état à modifier (ex. `editionId`) **avant** tout `await`.
+**Fichiers touchés** : `Course/app.js`, `app.js`
+
+### 20/10/2026 — Muscu — écoutes Firestore jamais relancées après déconnexion → reconnexion
+**Symptôme** : (audit) après « Se déconnecter » puis reconnexion sans fermer l'app, plus rien ne se met à jour ; une mesure enregistrée réécrit les mensurations depuis une copie figée (perte de celles de l'autre téléphone).
+**Cause racine** : drapeau `subscribed` jamais remis à `false`, désabonnements des `onSnapshot` non gardés.
+**Solution** : tableau `desabonnements`, vidé à la déconnexion (`subscribed = false`) ; réabonnement à la connexion suivante. Même schéma que Budget / Course / Todo.
+**Fichiers touchés** : `Muscu/index.html`
+
+### 20/10/2026 — 5 apps — service worker « réseau d'abord » : HTML et JS de versions différentes, `index.html` servi à la place d'un JS
+**Symptôme** : (audit) sur réseau lent juste après un déploiement, ancien `index.html` (cache) avec `app.js` neuf (réseau), ou l'inverse → id absent, exception, page cassée ; un JS manquant en cache recevait `index.html` (SyntaxError).
+**Cause racine** : un minuteur de repli indépendant par fichier ; repli sur `index.html` pour n'importe quelle requête ; une réponse 404/5xx servie telle quelle.
+**Solution** : minuteur seulement pour la navigation ; si `index.html` vient du cache, `app.js`/`style.css` aussi pendant 15 s (`shellDepuisCache`) ; repli `index.html` seulement si `request.mode === 'navigate'` ; réponse non-OK → copie en cache ; contrôle de version de `commun.js` (`index.html?verif=…`) en réseau seul ; `commun.js` en fichier critique du Portail.
+**Fichiers touchés** : `sw.js`, `Budget/sw.js`, `Course/sw.js`, `Muscu/sw.js`, `Todo/sw.js`, `commun.js`
+
+### 20/10/2026 — 5 apps — feuille Google Fonts bloquante = page blanche sur réseau « fantôme »
+**Symptôme** : (audit) Wi-Fi connecté sans internet + cache HTTP de Safari expiré → page blanche au-delà du repli du SW.
+**Cause racine** : `<link rel="stylesheet">` d'une autre origine bloque le rendu et n'est jamais servi par le SW.
+**Solution** : chargement non bloquant (`media="print" onload="this.media='all'"` + `<noscript>`) dans Budget / Course / Muscu / Todo ; supprimé du Portail (police système partout).
+**Fichiers touchés** : `index.html`, `Budget/index.html`, `Course/index.html`, `Muscu/index.html`, `Todo/index.html`
+
+### 20/10/2026 — Todo, Budget — balayage : `pointercancel` qui valide, toucher suivant avalé
+**Symptôme** : (audit) un geste annulé par iOS cochait/supprimait une tâche ; après un glisser, le toucher suivant sur un bouton ne faisait rien.
+**Cause racine** : `finir` exécutait l'action aussi sur `pointercancel` ; iOS n'envoie pas de `click` après un glisser, donc `aBalaye` restait vrai.
+**Solution** : `pointercancel` → la ligne revient, aucune action ; `aBalaye` remis à `false` à tout `pointerdown` et 400 ms après la fin ; départ à moins de 24 px du bord gauche ignoré (Todo).
+**Fichiers touchés** : `Todo/app.js`, `Budget/app.js`
+
+### 20/10/2026 — CI — auto-version : un run en attente annulé ne perd plus ses changements
+**Symptôme** : voir l'entrée du 23/09/2026 (« Muscu jamais rebumpée »).
+**Solution** : le diff est calculé depuis le **dernier commit du robot** (`git log --author='github-actions\[bot\]'`) au lieu de `event.before` : un run annulé est rattrapé par le suivant, de même qu'un push de plusieurs commits. Workflow limité à `main` (un lancement manuel depuis une autre branche poussait cette branche sur main). La piste « groupe de concurrence par app » du 23/09 ne marchait pas (le groupe ne peut pas dépendre des chemins modifiés).
+**Fichiers touchés** : `.github/workflows/auto-version.yml`
+
+---
+
 ## 🧭 Lot 3 — liens vers la saisie, balayages, échecs d'enregistrement (20/10/2026)
 
 ### 20/10/2026 — Portail + 4 apps — ouvrir une app « directement sur la saisie »
@@ -597,6 +643,7 @@
 **Leçon généralisable** : pousser plusieurs commits qui déclenchent le **même** workflow à quelques secondes d'écart peut silencieusement en faire « sauter » un ou plusieurs sans aucune erreur visible (le run annulé n'est pas un run en échec — pas de croix rouge automatique à repérer, juste un run marqué « cancelled » dans l'historique) dès qu'un `concurrency.group` unique est partagé par tous les déclencheurs. **Toujours vérifier `DERNIERE_MAJ` de chaque app concernée après une série de pushs rapprochés** ; en cas de doute, un déclenchement manuel du workflow (traite tout, sans dépendre du diff Git) est le rattrapage le plus sûr.
 **Vérifié** : historique des runs (`/actions/workflows/.../runs`) montrant Muscu marquée « cancelled » aux deux séries ; `DERNIERE_MAJ` des 4 apps identique après le déclenchement manuel.
 **Fichiers concernés** : `.github/workflows/auto-version.yml` (non modifié), `PROBLEMES_RESOLUS.md`
+**Corrigé le 20/10/2026** : diff depuis le dernier commit du robot — voir l'entrée « CI — auto-version » du 20/10/2026.
 
 ---
 

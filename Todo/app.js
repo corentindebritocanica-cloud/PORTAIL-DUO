@@ -50,6 +50,10 @@ function nouvelId(){
 function ecrire(action, quoi){
   firestorePret.then(action).catch(err=>{ console.warn('Écriture Firestore :', err); if(window.duoEchec) duoEchec(err, quoi || 'Modification'); });   /* lot 3 : message visible */
 }
+/* Audit 17-03 : tâches créées avant le 1er instantané Firestore, réappliquées sur cet instantané (sinon
+   elles disparaissaient puis revenaient). */
+let premierInstantane = false;
+const creeesAvantInstantane = {};
 let tachesChargees = false;   /* lot 3 : ni aperçu ni 1er instantané → lignes grises au lieu de « Rien à faire » */
 
 /* Pastille de connexion à côté du titre (../verre.css) : vert = serveur, or = cache local, rouge = hors ligne. */
@@ -357,8 +361,10 @@ function toastAnnuler(texte, annuler){
   let g = null, aBalaye = false;
   const SEUIL = 80;
   zone.addEventListener('pointerdown', (e)=>{
+    aBalaye = false;   /* audit 17-02 : tout nouveau toucher remet le drapeau (iOS n'envoie pas de click après un glisser) */
     const ligne = e.target.closest('.tache'); if(!ligne || g) return;
     if(e.pointerType === 'mouse' && e.button !== 0) return;
+    if(e.clientX < 24) return;   /* audit 17-01 : départ au bord gauche = geste retour d'iOS (PROBLEMES_RESOLUS) */
     g = { id: e.pointerId, ligne, x: e.clientX, y: e.clientY, actif: false, dx: 0 };
     aBalaye = false;
   });
@@ -383,6 +389,8 @@ function toastAnnuler(texte, annuler){
     if(!actif) return;
     ligne.classList.remove('balaye', 'pret-droite', 'pret-gauche');
     ligne.style.transform = '';
+    setTimeout(()=>{ aBalaye = false; }, 400);   /* audit 17-02 */
+    if(e.type === 'pointercancel') return;      /* audit 17-01 : geste annulé par iOS → la ligne revient, aucune action */
     const id = ligne.dataset.id;
     if(dx > SEUIL) basculerFait(id);
     else if(dx < -SEUIL) supprimerTache(id);
@@ -486,6 +494,7 @@ function creerTache(texte){
   if(urgenceEdition) nt.urgence = urgenceEdition;
   if(pourEdition !== 'tous') nt.pour = pourEdition;   /* lot 3 */
   state.taches[nid] = nt; render();
+  if(!premierInstantane) creeesAvantInstantane[nid] = nt;
   ecrire(()=> docRef(COL_TACHES, nid).set(nt));
 }
 /* Lot 2 (20/10/2026) : Entrée = ajouter. En création, la fenêtre reste ouverte (champ vidé, clavier
@@ -739,7 +748,9 @@ function demarrer(){
       if(ecoutes) return;
       ecoutes = [
         dbOnCollection(COL_LISTES, (obj, cache)=>{ state.listes = obj; if(!cache) portailRecu.listes = true; render(); recuDeFirestore('listes'); planifierPublicationPortail(); }),
-        dbOnCollection(COL_TACHES, (obj, cache)=>{ state.taches = obj; tachesChargees = true; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
+        dbOnCollection(COL_TACHES, (obj, cache)=>{
+          if(!premierInstantane){ premierInstantane = true; Object.keys(creeesAvantInstantane).forEach(k=>{ if(!obj[k]) obj[k] = creeesAvantInstantane[k]; delete creeesAvantInstantane[k]; }); }
+          state.taches = obj; tachesChargees = true; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
       ];
     } else if(ecoutes){
       ecoutes.forEach(arret=> arret()); ecoutes = null;

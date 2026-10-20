@@ -564,3 +564,4 @@ Audit à 20 relecteurs + 5 vérificateurs (compte rendu hors dépôt). Corrigé 
 - **10-04** (`sw.js`) : une réponse réseau non-OK (404/5xx) laisse la place à la copie en cache ; repli sur `index.html` seulement pour une navigation ; minuteur de repli seulement pour la navigation, et `index.html` venu du cache → `app.js`/`style.css` du cache pendant 15 s (HTML et JS toujours de la même version).
 - **Non corrigé, accepté** : 09-09 — `notifie:true` écrit pendant `pagehide` peut ne partir qu'à la réouverture (cache persistant Firestore) ; au pire une 2e notification si la ligne est remodifiée dans les 2 jours.
 - **Non vérifié sur iPhone.**
+- **Ajouts (même audit)** : balayer pour changer de mois — `pointercancel` ne change pas de mois et le toucher suivant n'est plus avalé (même correctif que Todo) ; notification de dépense avec `tag: 'depense-<id>'` (16-02) ; feuille Google Fonts non bloquante (10-01) ; `?verif=` en réseau seul dans `sw.js` (16-03).

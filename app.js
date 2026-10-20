@@ -110,7 +110,7 @@
     const statut = (etat) => { document.documentElement.dataset.sync = navigator.onLine ? etat : 'hors-ligne'; };
     statut('envoi');
     window.addEventListener('offline', () => statut('hors-ligne'));
-    window.addEventListener('online', () => statut('envoi'));
+    window.addEventListener('online', () => { statut('envoi'); if (!db) demarrerBase(); });
     const nombre = (x, min, max) => (typeof x === 'number' && isFinite(x) && x >= min && x <= max) ? x : null;
     const entier = (x, min, max) => { const n = nombre(x, min, max); return n === null ? null : Math.round(n); };
     const texte = (x, max) => (typeof x === 'string') ? x.slice(0, max) : '';
@@ -308,14 +308,20 @@
     }
 
     /* ---- Firebase : chargé APRÈS le premier affichage, jamais bloquant ---- */
+    const scriptsCharges = new Set();   /* audit 15-03 : un nouvel essai ne recharge pas un script déjà là */
     function chargerScript(src){
+      if (scriptsCharges.has(src)) return Promise.resolve();
       return new Promise((ok, ko) => {
         const s = document.createElement('script');
-        s.src = src; s.onload = ok; s.onerror = () => ko(new Error('chargement impossible : ' + src));
+        s.src = src; s.onload = () => { scriptsCharges.add(src); ok(); }; s.onerror = () => { s.remove(); ko(new Error('chargement impossible : ' + src)); };
         document.head.appendChild(s);
       });
     }
+    /* Audit 15-03 : si le SDK n'a pas pu être chargé, nouvel essai au retour au premier plan et au retour du réseau. */
+    let demarrageEnCours = false;
     async function demarrerBase(){
+      if (db || demarrageEnCours) return;
+      demarrageEnCours = true;
       try {
         await chargerScript(SDK + 'firebase-app-compat.js');
         await Promise.all([chargerScript(SDK + 'firebase-auth-compat.js'), chargerScript(SDK + 'firebase-firestore-compat.js')]);
@@ -337,7 +343,7 @@
         });
       } catch (err) {
         console.warn('[portail] base indisponible, affichage du dernier état connu :', err);
-      }
+      } finally { demarrageEnCours = false; }
     }
 
     /* Relecture forcée depuis le SERVEUR (jamais le cache local) au retour au premier plan.
@@ -348,10 +354,15 @@
        sur le téléphone de Lisa). Ce filet de sécurité force une lecture serveur à chaque retour
        visible, indépendamment de l'état de l'écoute en direct. */
     /* Renvoie true si la lecture serveur a réussi. */
+    /* Audit 14-02 : chaque instantané incrémente `generation` ; une lecture partie avant et arrivée après
+       ne réaffiche pas un état plus ancien. */
+    let generation = 0;
     async function rafraichirDepuisServeur(){
       if (!db || !connecte()) return false; // Firestore pas prêt (ou pas connecté) : le prochain onSnapshot fera foi
+      const gen = generation;
       try {
         const snap = await db.collection('portail').get({ source: 'server' });
+        if (gen !== generation) return true;
         const obj = {};
         snap.forEach((doc) => { obj[doc.id] = doc.data(); });
         resume = obj; charge = true;
@@ -374,6 +385,7 @@
       if (!db || !connecte()) return;
       arreterEcoute();
       desabonner = db.collection('portail').onSnapshot((snap) => {
+        generation++;
         if (!snap.metadata.fromCache) statut('ok');
         const obj = {};
         snap.forEach((doc) => { obj[doc.id] = doc.data(); });
@@ -431,6 +443,7 @@
     async function lireParRest(){
       if (!connecte()) return false;
       const u = authPortail.currentUser;
+      const gen = generation;
       const jeton = await u.getIdToken();                 /* mis en cache par Firebase, renouvelé seul */
       const rep = await fetch(URL_REST_PORTAIL, { headers: { 'Authorization': 'Bearer ' + jeton }, cache: 'no-store' });
       if (!rep.ok) return false;
@@ -440,6 +453,7 @@
         const id = d.name.split('/').pop();
         obj[id] = depuisValeurFirestore({ mapValue: { fields: d.fields || {} } });
       });
+      if (gen !== generation) return true;            /* audit 14-02 : un instantané plus récent est déjà affiché */
       if (!charge) { charge = true; afficher(); }   /* lot 3 : même vide, la réponse du serveur met fin au chargement */
       const avant = JSON.stringify(resume), apres = JSON.stringify(obj);
       if (apres !== avant) {                              /* ne redessine que si quelque chose a changé */
@@ -456,12 +470,14 @@
         let ok = false;
         try { ok = await lireParRest(); } catch (e) { ok = false; }
         if (!ok) ok = await rafraichirDepuisServeur();
-        statut(ok ? 'ok' : (db ? 'hors-ligne' : 'envoi'));   /* base pas encore prête : on reste « en cours » */
+        /* Audit 15-04 : sans session, une lecture impossible n'est pas « hors ligne » */
+        if (ok) statut('ok'); else if (db && connecte()) statut('hors-ligne'); else if (!db) statut('envoi');   /* base pas encore prête : on reste « en cours » */
       } finally { lectureEnCours = false; }
     }
     function demarrerSondage(){ if (!sondage) sondage = setInterval(sonder, SONDAGE_MS); }
     function arreterSondage(){ clearInterval(sondage); sondage = null; }
     function auRetour(){
+      if (!db) demarrerBase();
       afficher();
       ecouter();
       sonder();
@@ -537,7 +553,8 @@
       let id = lsLire(CLE_NOTIF_ID);
       if (!id || !/^[a-z0-9]{8,32}$/.test(id)) { id = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)); lsEcrire(CLE_NOTIF_ID, id); }
       const doc = { token, profil: profilActif(), maj: Date.now(), appareil: appareil() };
-      await db.collection('notifAbonnes').doc(id).set(doc);
+      /* Audit 14-01 : pas d'attente de l'accusé serveur (hors ligne, l'interface restait bloquée) */
+      db.collection('notifAbonnes').doc(id).set(doc).catch((e) => console.warn('[notif] abonnement non enregistré :', e));
       lsEcrire(CLE_NOTIF_ETAT, JSON.stringify({ token, profil: doc.profil, maj: doc.maj }));
     }
     /* Au démarrage (session du duo confirmée) et au retour sur le Portail : jeton toujours à jour. */
@@ -576,8 +593,8 @@
     async function desactiverNotif(){
       notifTravail = true; afficherNotif('Désactivation…');
       const id = lsLire(CLE_NOTIF_ID);
-      try { if (id && db && notifSessionOk) await db.collection('notifAbonnes').doc(id).delete(); } catch (e) { console.warn('[notif] suppression de l\'abonnement impossible :', e); }
-      try { const m = await messaging(); await m.deleteToken(); } catch (e) { console.warn('[notif] jeton non supprimé :', e); }
+      if (id && db && notifSessionOk) db.collection('notifAbonnes').doc(id).delete().catch((e) => console.warn('[notif] suppression de l\'abonnement impossible :', e));   /* audit 14-01 : sans attendre */
+      try { const m = await messaging(); await Promise.race([m.deleteToken(), new Promise((ok) => setTimeout(ok, 8000))]); } catch (e) { console.warn('[notif] jeton non supprimé :', e); }   /* audit 14-01 : 8 s max hors ligne */
       lsEcrire(CLE_NOTIF_ETAT, null);
       notifTravail = false; afficherNotif();
     }

@@ -16,7 +16,9 @@
 <!-- Habillage commun (../verre.css, racine du dépôt) : Todo reprend les règles de Course
      (sélecteurs :is([data-app="course"],[data-app="todo"])) et sa propre lumière violette (--v-todo). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap">
+<!-- Audit 07-01 / 10-01 / 13-01 (20/10/2026) : feuille Google Fonts non bloquante (réseau « fantôme » = page blanche) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600&display=swap"></noscript>
 <!-- Noyau commun ../commun.js : style au choix, halos, transition, date de MAJ, service worker,
      vérification de version, connexion du duo. Dans le <head>, sans defer. -->
 <script src="../commun.js?v=202610202213000200"></script>

@@ -1268,3 +1268,4 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - **07-06** (`sw.js`) : si `index.html` vient du cache (réseau lent), `app.js`/`style.css` aussi pendant 15 s (plus d'ancien HTML avec un JS récent) ; réponse non-OK → copie en cache ; repli `index.html` seulement pour une navigation.
 - **Non fait** : 07-05 (manifest propre à Muscu) — inutile tant que Muscu s'ouvre depuis le Portail (manifest racine).
 - **Non vérifié sur iPhone.**
+- **Ajouts (même audit)** : feuille Google Fonts non bloquante (07-01, `media="print" onload`) ; `?verif=` (contrôle de version de `commun.js`) en réseau seul dans `sw.js`.

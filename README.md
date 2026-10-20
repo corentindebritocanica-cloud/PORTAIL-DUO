@@ -1036,3 +1036,18 @@ iOS PWA ne peut pas vibrer : en plus du `scale` existant, les boutons principaux
 - **Réglages dans une feuille** : engrenage en haut à droite (`#btn-reglages`) → feuille `#reglages` avec thème, notifications, recharger et date de MAJ (mêmes éléments et id, déplacés). Fermeture : ✕, fond, Échap.
 - **Chargement** : sans cache local ni réponse de la base, les cartes affichent « Chargement… » et des blocs gris (`.dash.chargement`) au lieu de « Ouvre l'app une fois pour remplir cette carte ».
 - **Vérifié** (Chromium, résumés simulés) : rendu des 4 vitres, feuille Réglages, un toucher sur une vitre du fond ouvre Courses. **Non vérifié sur iPhone.**
+
+## Audit de code — corrections Portail, `commun.js`, CI (20/10/2026)
+Audit à 20 relecteurs + 5 vérificateurs (détail par app dans chaque README). Portail et fichiers communs :
+- **14-01** : activer / désactiver les notifications n'attend plus l'accusé serveur (hors ligne, les boutons restaient bloqués) ; `deleteToken` limité à 8 s.
+- **14-02** : compteur `generation` incrémenté à chaque instantané : une lecture REST / SDK partie avant et arrivée après ne réaffiche plus un état plus ancien.
+- **15-01** : feuille Google Fonts (Bebas Neue / Unbounded) **retirée du Portail** : bloquante hors ligne et plus utilisée (police du système partout depuis le 05/10/2026). Les mentions de Bebas Neue plus haut dans ce README sont historiques. Dans les 4 apps, la feuille est chargée **sans bloquer** (`media="print" onload`).
+- **15-02** (`sw.js`) : `commun.js` en fichier **critique** ; repli `index.html` / page de secours seulement pour une navigation ; minuteur de repli seulement pour la navigation ; `index.html` venu du cache → JS/CSS du cache pendant 15 s ; réponse non-OK → copie en cache. Même logique dans les 4 `sw.js` des apps.
+- **15-03** : SDK Firebase non chargé → nouvel essai au retour au premier plan et au retour du réseau (`demarrerBase` protégée contre deux démarrages).
+- **15-04** : sans session, la pastille ne passe plus à « Hors ligne ».
+- **16-01** (`commun.js`) : le rechargement automatique voit une feuille Budget ouverte (`.v2-sheet-wrap.open`) comme « occupé » → bandeau au lieu de recharger.
+- **16-03** (`commun.js` + 5 `sw.js`) : contrôle de version sur `index.html?verif=…`, servi **réseau seul** par les SW (avant : copie en cache sur réseau lent → « à jour » à tort).
+- **16-02** : Budget envoie un `tag` par dépense : un doublon de notification remplace la première.
+- **19-01 / 19-03** (`.github/workflows/auto-version.yml`) : diff calculé depuis le dernier commit du robot (un run en attente annulé est rattrapé) ; workflow limité à `main`.
+- **Non fait** : 20-02 (versions du SDK Firebase différentes : Budget 10.8.1, Course / Todo / Portail 10.12.2, Muscu 12.18.0, même cache IndexedDB) — à tester sur iPhone avant d'aligner ; 18-02 (relais Apps Script : compteur global avant vérification du jeton) — compromis déjà documenté.
+- **Non vérifié sur iPhone.**

@@ -1140,6 +1140,8 @@
                 const { dx, actif, t } = g; g = null;
                 zone.classList.remove('balaye-mois'); zone.style.transform = '';
                 if (!actif) return;
+                setTimeout(() => { aBalaye = false; }, 400);   // même correctif que Todo (audit 17-01/17-02) : pas de toucher avalé
+                if (e.type === 'pointercancel') return;        // geste annulé par iOS : pas de changement de mois
                 const v = Math.abs(dx) / Math.max(1, performance.now() - t);
                 if (Math.abs(dx) < 70 && !(Math.abs(dx) > 30 && v > 0.5)) return;
                 const cible = voisin(dx < 0 ? 1 : -1);
@@ -1410,6 +1412,7 @@
                 titre: 'Dépense de ' + qui,
                 corps: montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' + (details ? ' — ' + details : ''),
                 url: './Budget/',
+                tag: 'depense-' + item.id,   // audit 16-02 : un doublon (page tuée après l'envoi keepalive) remplace la 1re notification
                 keepalive
             });
         }

@@ -117,6 +117,8 @@ function cleCache(requete){
 let shellDepuisCache = 0;
 function reseauPuisCache(requete){
   const navigation = requete.mode === 'navigate';
+  // Audit 16-03 : contrôle de version (commun.js, index.html?verif=…) → réseau seul, jamais la copie en cache
+  if (new URL(requete.url).searchParams.has('verif')) return fetch(new Request(requete.url, { cache: 'no-store' }));
   if (!navigation && Date.now() - shellDepuisCache < 15000) {
     return caches.match(cleCache(requete)).then((r) => r || fetch(requete));
   }

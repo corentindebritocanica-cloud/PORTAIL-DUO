@@ -14,10 +14,11 @@ const CACHE_PREFIX = 'portail-duo-shell-';
 // peut pas s'afficher sans eux, ANNEXES = son confort seulement (icône, manifest). Si
 // cache.addAll() échoue à cause d'UN SEUL fichier annexe (404 passager pendant un déploiement,
 // par ex.), les fichiers critiques doivent quand même finir en cache.
-const SHELL_CRITIQUES = ['./', './index.html', './style.css', './app.js'];
-// commun.js (28/09/2026) : noyau commun aux 4 apps (halos, SW, vérification de version) — annexe elle aussi.
+// Audit 15-02 (20/10/2026) : commun.js passe en CRITIQUES — app.js en dépend sans garde.
+const SHELL_CRITIQUES = ['./', './index.html', './style.css', './app.js', './commun.js'];
+// commun.js (28/09/2026) : noyau commun aux 4 apps (halos, SW, vérification de version).
 // verre.css (28/09/2026) : habillage « Verre » commun aux 4 apps — annexe (sans lui, la page s'affiche en mode classique).
-const SHELL_ANNEXES = ['./manifest.json', './icone-192.png', './icone-512.png', './icone-512-maskable.png', './verre.css', './commun.js'];
+const SHELL_ANNEXES = ['./manifest.json', './icone-192.png', './icone-512.png', './icone-512-maskable.png', './verre.css'];
 
 // SDK Firebase (autre origine, gstatic.com) pour le tableau de bord (22/09/2026) : mis en cache en mode
 // 'no-cors' (réponse opaque, mais utilisable comme source de script) pour que le Portail puisse relire
@@ -113,19 +114,32 @@ function pageSecours(){
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
 }
+// Audit 15-02 / 16-03 / 13-02 (20/10/2026) : repli index.html / page de secours seulement pour une navigation ;
+// contrôle de version (?verif=) en réseau seul ; index.html servi du cache → JS/CSS du cache 15 s ;
+// minuteur seulement pour la navigation ; réponse non-OK → copie en cache.
+let shellDepuisCache = 0;
 function reseauPuisCache(requete){
+  const navigation = requete.mode === 'navigate';
+  if (new URL(requete.url).searchParams.has('verif')) return fetch(new Request(requete.url, { cache: 'no-store' }));
+  if (!navigation && Date.now() - shellDepuisCache < 15000) {
+    return caches.match(cleCache(requete)).then((r) => r || fetch(requete));
+  }
   return new Promise((resolve) => {
     let termine = false;
     const finir = (r) => { if (!termine) { termine = true; resolve(r); } };
-    const repliCache = () => caches.match(cleCache(requete)).then((r) => r || caches.match(new URL('index.html', self.registration.scope).href));
+    const secours = () => navigation ? pageSecours() : Response.error();
+    const repliCache = () => caches.match(cleCache(requete)).then((r) => {
+      if (r) { if (navigation) shellDepuisCache = Date.now(); return r; }
+      return navigation ? caches.match(new URL('index.html', self.registration.scope).href).then((i) => { if (i) shellDepuisCache = Date.now(); return i; }) : undefined;
+    });
     // ⚠️ 22/09/2026 : à ce délai, on résout TOUJOURS — avec le cache s'il a quelque chose,
     // sinon avec la page de secours. Avant ce correctif, un cache vide au moment du délai
     // laissait la promesse ouverte en attendant l'échec du fetch réseau, qui peut prendre
     // bien plus de 4 s sur iPhone en zone de mauvais réseau (DNS/TCP qui traînent) : la page
     // restait alors noire, potentiellement très longtemps (voir README).
-    const minuteur = setTimeout(() => {
-      repliCache().then((r) => finir(r || pageSecours()));
-    }, DELAI_RESEAU_MS);
+    const minuteur = navigation ? setTimeout(() => {
+      if (!termine) repliCache().then((r) => finir(r || secours()));
+    }, DELAI_RESEAU_MS) : null;
     // Requête neuve avec cache:'no-cache' : force la revalidation auprès du serveur (304 si inchangé)
     // et évite de resservir une copie du cache HTTP de Safari (GitHub Pages : max-age=600).
     fetch(new Request(requete.url, { cache: 'no-cache' })).then((reponse) => {
@@ -134,10 +148,13 @@ function reseauPuisCache(requete){
         caches.open(CACHE_NAME).then((cache) => cache.put(cleCache(requete), copie));
       }
       clearTimeout(minuteur);
+      if (termine) return;
+      if (!reponse || !reponse.ok) { repliCache().then((r) => finir(r || reponse)); return; }
       finir(reponse);
     }).catch(() => {
       clearTimeout(minuteur);
-      repliCache().then((r) => finir(r || pageSecours()));
+      if (termine) return;
+      repliCache().then((r) => finir(r || secours()));
     });
   });
 }
