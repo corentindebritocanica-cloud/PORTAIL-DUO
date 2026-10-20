@@ -1297,6 +1297,9 @@ function majBoutonOrdre(data, dayProgram){
   if(ordreBtn){
     ordreBtn.style.display = dayProgram.exercises.length > 1 ? '' : 'none';
     ordreBtn.classList.toggle('actif', ordreEstModifie(data, dayProgram.exercises.length));
+    /* Lot 3 : le bouton vit dans le menu ⋯ ; le point sur ⋯ signale un ordre modifié */
+    const menuBtn = document.getElementById('btn-menu-seance');
+    if(menuBtn) menuBtn.classList.toggle('actif', ordreEstModifie(data, dayProgram.exercises.length));
   }
 }
 
@@ -2179,6 +2182,17 @@ function majRail(montrerActif){
       suiv.setAttribute('aria-label', 'Exercice suivant : ' + nomDe(positions[i + 1]));
     }
   }
+  /* Lot 3 (20/10/2026) : « Suivant › » dans la barre du bas (le pouce y est déjà) ; reflet vert quand
+     l'exercice affiché est terminé. Le nom de l'exercice suivant reste lisible dans le rail. */
+  const bSuiv = document.getElementById('btn-suivant');
+  if(bSuiv){
+    const reste = i >= 0 && i < positions.length - 1;
+    bSuiv.style.display = reste ? '' : 'none';
+    const pret = reste && exoTermine(data, dayProgram, exoActif);
+    bSuiv.classList.toggle('pret', pret);
+    bSuiv.classList.toggle('reflet', pret);
+    bSuiv.setAttribute('aria-label', reste ? 'Exercice suivant : ' + nomDe(positions[i + 1]) : '');
+  }
 }
 
 /* ---------- FEUILLE « REMPLACER L'EXERCICE » (01/10/2026) ----------
@@ -2412,6 +2426,16 @@ function confirmAction(){
 }
 
 /* ---------- RESET ---------- */
+/* Menu ⋯ de la séance (lot 3, 20/10/2026) */
+function ouvrirMenuSeance(){
+  const m = document.getElementById('menu-seance');
+  annulerFermeture(m);
+  m.classList.add('open');
+}
+function fermerMenuSeance(){
+  const m = document.getElementById('menu-seance');
+  fermerAnime(m, () => m.classList.remove('open'));
+}
 function askReset(){
   showConfirm('Réinitialiser les données de cette séance pour ce profil ?', doReset);
 }

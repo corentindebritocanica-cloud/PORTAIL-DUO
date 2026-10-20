@@ -1241,3 +1241,8 @@ La feuille « ⇅ Ordre de la séance » remplace les flèches ↑↓ par une po
 - `?saisie=seance` (bouton « + » de la vitre du Portail) → séance « À faire » ouverte d'office (`saisieDepuisPortail`, fin de `app.js`), dès que les archives sont chargées (8 s au plus, sinon Séance 1).
 - Résumé `portail/muscu` : champ `derniere` (dernière séance archivée de chaque profil : `label`, `title`, `le`) → « Lisa a fait Séance 3 hier » sur la vitre.
 - États communs : Muscu avait déjà ses squelettes et ses messages d'échec ; seule l'étiquette « Hors ligne » en texte s'applique (`../verre.css`).
+
+## Lot 3 — barre du bas : ⋯ · Suivant › · Séance terminée (20/10/2026)
+- **« Suivant › » dans la barre du bas** (`#btn-suivant`, à côté de « Séance terminée ») : passe à l'exercice suivant (`changerExo(1)`), caché sur le dernier ; **vert + reflet** quand l'exercice affiché est terminé (`.pret`, `.reflet`, mis à jour avec le rail dans `majRail`). Le « Suivant » sous l'exercice est masqué (CSS) ; « ‹ Préc. » y reste.
+- **Menu ⋯** (`#btn-menu-seance` → feuille `#menu-seance`, `ouvrirMenuSeance` / `fermerMenuSeance`) : **Ordre des exercices** (même id `#btn-ordre`, caché si un seul exercice, mention « modifié » en or) et **Réinitialiser la séance** (rouge, même confirmation). Point or sur ⋯ quand l'ordre est modifié. Les deux boutons ronds Réinitialiser et ⇅ quittent la barre.
+- **Vérifié** (Chromium, iPhone simulé) : barre 52 / 110 / 180 px sur une ligne, Suivant → exercice 2, ⋯ → Ordre ouvre la feuille d'ordre ; `?saisie=seance` ouvre la Séance 1 (aucune archive). **Non vérifié sur iPhone.**

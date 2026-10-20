@@ -1503,3 +1503,18 @@
 .bc-valider { background: var(--done, #12b981); border-color: transparent; color: #fff; font-weight: 700; }
 .bc-bouton:active, .bc-bouton.appui { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) { .barre-clavier { transition: none; } }
+
+/* ===== Lot 3 (20/10/2026) : barre du bas ⋯ · Suivant › · Séance terminée, menu ⋯ ===== */
+.btn-menu-seance{ position:relative; flex:0 0 52px; }
+.btn-menu-seance.actif::after{ content:''; position:absolute; top:8px; right:10px; width:8px; height:8px; border-radius:50%; background:var(--gold); }
+.btn-suivant{ flex:0 0 auto; padding-left:18px; padding-right:16px; background:var(--card-2); color:var(--text); border-color:var(--border); gap:4px; white-space:nowrap; }
+#bottom-bar .btn-export{ white-space:nowrap; }
+.btn-suivant.pret{ background:var(--done); border-color:transparent; color:#fff; }
+#view-exercises .exo-nav-btn.suivant{ display:none !important; }   /* remplacé par #btn-suivant */
+.menu-seance-actions{ display:flex; flex-direction:column; gap:10px; margin:14px 0 6px; }
+.menu-action{ display:flex; align-items:center; gap:12px; min-height:52px; padding:0 16px; border-radius:16px; border:1px solid var(--border); background:var(--card-2); color:var(--text); font-size:16px; font-weight:600; font-family:inherit; text-align:left; }
+.menu-action span:first-of-type{ flex:1; }
+.menu-action:active{ transform:scale(.98); }
+.menu-action.danger{ color:var(--danger); }
+.menu-action-etat{ display:none; font-size:12px; font-weight:700; color:var(--gold); }
+.menu-action.actif .menu-action-etat{ display:inline; }
