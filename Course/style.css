@@ -347,3 +347,29 @@
   .poignee-ordre{width:48px; height:48px; flex:none; display:grid; place-items:center; background:none; border:0; color:var(--text-dim); touch-action:none; cursor:grab; -webkit-tap-highlight-color:transparent;}
   .poignee-ordre svg{width:22px; height:22px; fill:currentColor;}
   .ligne-ordre.souleve{z-index:2; background:var(--card); border-radius:14px; box-shadow:var(--shadow-lg); border-bottom-color:transparent;}
+
+  /* ---------- Lot 3 (20/10/2026) : À acheter en tête, Habituels, Pas trouvé, toast Annuler ---------- */
+  .habituels{ margin-top:14px; }
+  .habituels-rail{ display:flex; gap:8px; overflow-x:auto; padding:2px 0 6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .habituels-rail::-webkit-scrollbar{ display:none; }
+  .chip-habituel{ flex:0 0 auto; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card-2); color:var(--text); font-size:14px; font-weight:600; white-space:nowrap; position:relative; }
+  .chip-habituel::after{ content:''; position:absolute; inset:-2px 0; }
+  .chip-habituel:active{ transform:scale(.96); }
+  .section-a-acheter .titre-rayon{ color:var(--accent); }
+  .btn-pas-trouve{ flex-shrink:0; min-height:36px; padding:0 12px; border-radius:999px; border:1px solid var(--border); background:var(--card-2); color:var(--text-dim); font-size:13px; font-weight:600; position:relative; }
+  .btn-pas-trouve::after{ content:''; position:absolute; inset:-4px; }
+  .btn-pas-trouve.actif{ color:var(--text); }
+  .section-pas-trouve .titre-rayon{ color:var(--danger, #ef4444); }
+  #toast-annuler{
+    position:fixed; left:50%; z-index:9990; display:flex; align-items:center; gap:14px;
+    bottom:calc(var(--tabbar-height, 64px) + var(--add-gap, 12px) + var(--add-size, 56px) + 12px);   /* au-dessus du bouton + (comme #maj-toast) */
+    max-width:calc(100% - 32px); padding:8px 8px 8px 18px; border-radius:999px;
+    background:var(--card, #1c1c1e); color:var(--text, #fff); border:1px solid var(--border, rgba(255,255,255,.12));
+    box-shadow:0 8px 24px rgba(0,0,0,.4); font-size:14px; font-weight:600;
+    transform:translate(-50%, 140%); opacity:0; pointer-events:none;
+    transition:transform .28s var(--ease-drawer, ease), opacity .2s ease;
+  }
+  #toast-annuler.visible{ transform:translate(-50%, 0); opacity:1; pointer-events:auto; }
+  .toast-annuler-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .toast-annuler-btn{ flex:0 0 auto; min-height:40px; padding:0 16px; border-radius:999px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; }
+  @media (prefers-reduced-motion: reduce){ #toast-annuler{ transition:opacity .2s ease; transform:translate(-50%, 0); } }

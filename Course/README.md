@@ -555,3 +555,9 @@ Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée,
 - `produitsCharges` : faux tant que ni l'aperçu local ni le 1er instantané de `produits` ne sont arrivés → `lignesAttente()` dans Liste et Course (et en HTML statique dans `index.html`) au lieu de « Rien trouvé » / « Rien à acheter ».
 - « Hors ligne » en texte à côté du titre (`../verre.css`).
 - **Portail (lot 3)** : `?saisie=liste` (bouton « + » de la vitre) → onglet Liste, reflet sur la recherche (`saisieDepuisPortail`, fin de `app.js`).
+
+## Lot 3 — À acheter en tête, Habituels, Pas trouvé, Annuler (20/10/2026)
+- **Onglet Liste, sans recherche** : bandeau **Habituels** (produits achetés au moins 2 fois — `compteur` — pas encore cochés, les 10 plus fréquents ; un toucher coche pour la liste affichée, `bandeauHabituels`), puis section **« À acheter (N) »** (cochés par la liste affichée, ordre alphabétique), puis **« Tous les produits »** (popularité, comme avant). Avec une recherche : résultats seuls, inchangé.
+- **« Pas trouvé »** (onglet Course) : bouton sur chaque article non acheté → champ **`pasTrouve: true`**, l'article passe dans la section « 🚫 Pas trouvé (N) » (avant le caddie) ; « Trouvé » le remet dans son rayon ; le cocher acheté efface le marqueur. **« Course terminée »** laisse ces articles à acheter et efface seulement le marqueur (prochaine course). Nouveau champ ignoré par les anciennes versions.
+- **Annuler pendant 4 s** après chaque coche (Liste, Habituels, Course) et chaque « Pas trouvé » : toast `#toast-annuler` (`toastAnnuler`) au-dessus du bouton + ; Annuler réécrit les champs d'avant (`aAcheter`, `listeId`, `ajoutePar`, `ajouteLe` / `achete`, `pasTrouve`). Un seul toast, le dernier geste gagne.
+- **Vérifié** (Chromium, Firebase simulé) : sections Habituels / À acheter (2) / Tous les produits, coche par Habituels puis Annuler (retour à faux), « Pas trouvé » → section dédiée. **Non vérifié sur iPhone.**

@@ -257,8 +257,36 @@ function renderListe(){
     return (a[1].nom||'').localeCompare(b[1].nom||'');
   });
 
-  conteneur.innerHTML = items.map(([id,p])=> carteProduitListe(id,p)).join('');
+  /* Lot 3 (20/10/2026) : sans recherche — bandeau « Habituels », puis « À acheter (N) » (ce que la liste
+     affichée a coché, par ordre alphabétique), puis tous les autres produits (popularité). Avec une
+     recherche : les résultats seuls, comme avant. */
+  if(recherche){ conteneur.innerHTML = items.map(([id,p])=> carteProduitListe(id,p)).join(''); return; }
+  const ici = idListeAffichee();
+  const aAcheter = items.filter(([,p])=> p.aAcheter && listeDe(p) === ici)
+    .sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+  const autres = items.filter(([,p])=> !(p.aAcheter && listeDe(p) === ici));
+  let html = bandeauHabituels();
+  if(aAcheter.length) html += `<div class="section-rayon section-a-acheter"><p class="titre-rayon">À acheter (${aAcheter.length})</p>`
+    + aAcheter.map(([id,p])=> carteProduitListe(id,p)).join('') + '</div>';
+  if(autres.length) html += `<div class="section-rayon"><p class="titre-rayon">${aAcheter.length ? 'Tous les produits' : 'Produits'}</p>`
+    + autres.map(([id,p])=> carteProduitListe(id,p)).join('') + '</div>';
+  conteneur.innerHTML = html;
 }
+
+/* Lot 3 : « Habituels » = produits achetés au moins 2 fois (compteur de « Course terminée »), pas encore
+   cochés, les 10 plus fréquents. Un toucher les coche pour la liste affichée. */
+function bandeauHabituels(){
+  const h = Object.entries(state.produits).filter(([,p])=> !p.aAcheter && (p.compteur||0) >= 2)
+    .sort((a,b)=> (b[1].compteur||0) - (a[1].compteur||0) || (a[1].nom||'').localeCompare(b[1].nom||'')).slice(0, 10);
+  if(!h.length) return '';
+  return `<div class="habituels"><p class="titre-rayon">Habituels</p><div class="habituels-rail">`
+    + h.map(([id,p])=> `<button type="button" class="chip-habituel" data-habituel="${escapeHtml(id)}">+ ${escapeHtml(p.nom||'')}</button>`).join('')
+    + '</div></div>';
+}
+document.getElementById('liste-produits').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-habituel]');
+  if(b) toggleAAcheter(b.dataset.habituel);
+});
 
 /* Coche à la couleur de la liste qui a coché le produit (--c-liste). Coché par une AUTRE liste
    que celle choisie : le nom de cette liste s'affiche en couleur sous le produit. */
@@ -289,6 +317,13 @@ function carteProduitListe(id, p){
 function toggleAAcheter(id){
   const p = state.produits[id]; if(!p) return;
   const ici = idListeAffichee();
+  /* Lot 3 : Annuler pendant 4 s — on remet les champs tels qu'ils étaient avant la coche. */
+  const avant = { aAcheter: !!p.aAcheter, listeId: p.listeId || ici };
+  if('ajoutePar' in p) avant.ajoutePar = p.ajoutePar;
+  if('ajouteLe' in p) avant.ajouteLe = p.ajouteLe;
+  const nom = p.nom || 'Produit';
+  const message = !p.aAcheter ? '« ' + nom + ' » ajouté' : (listeDe(p) === ici ? '« ' + nom + ' » retiré' : '« ' + nom + ' » déplacé');
+  toastAnnuler(message, ()=>{ dbUpdateDoc('produits', id, avant); planifierNotifListe(); });
   if(!p.aAcheter){
     /* ajoutePar / ajouteLe (01/10/2026) : servent à la fenêtre « Ajouté à la liste » de l'autre téléphone. */
     dbUpdateDoc('produits', id, { aAcheter: true, listeId: ici, ajoutePar: lireProfilCommun().toLowerCase(), ajouteLe: Date.now() });
@@ -447,7 +482,8 @@ function renderCourse(){
      section « Dans le caddie », tout en bas — en haut ne reste que ce qu'il reste à acheter. */
   const parRayon = {};
   const caddie = items.filter(([id,p])=> p.achete).sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
-  items.filter(([id,p])=> !p.achete).forEach(([id,p])=> (parRayon[p.rayonId||''] ||= []).push([id,p]));
+  const pasTrouves = items.filter(([id,p])=> !p.achete && p.pasTrouve).sort((a,b)=> (a[1].nom||'').localeCompare(b[1].nom||''));
+  items.filter(([id,p])=> !p.achete && !p.pasTrouve).forEach(([id,p])=> (parRayon[p.rayonId||''] ||= []).push([id,p]));
 
   let html = '';
   nomsRayonsTries().forEach(([rayonId, rayon])=>{
@@ -461,6 +497,11 @@ function renderCourse(){
   if(parRayon['']){
     html += debutRayon('_sans', 'Sans rayon', parRayon[''].length);
     parRayon[''].forEach(([id,p])=> html += carteProduitCourse(id,p));
+    html += `</div>`;
+  }
+  if(pasTrouves.length){
+    html += `<div class="section-rayon section-pas-trouve"><p class="titre-rayon">🚫 Pas trouvé (${pasTrouves.length})</p>`;
+    pasTrouves.forEach(([id,p])=> html += carteProduitCourse(id,p));
     html += `</div>`;
   }
   if(caddie.length){
@@ -508,6 +549,7 @@ function carteProduitCourse(id, p){
         <p class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom||'')}</p>
         ${details.length ? `<p class="rayon-produit">${details.join(' · ')}</p>` : ''}
       </div>
+      ${p.achete ? '' : `<button type="button" class="btn-pas-trouve ${p.pasTrouve ? 'actif' : ''}" onclick="togglePasTrouve('${id}')">${p.pasTrouve ? 'Trouvé' : 'Pas trouvé'}</button>`}
     </div>`;
 }
 
@@ -521,11 +563,44 @@ document.addEventListener('click', (e)=>{
 
 function toggleAchete(id){
   const p = state.produits[id]; if(!p) return;
-  dbUpdateDoc('produits', id, { achete: !p.achete });
+  const avant = { achete: !!p.achete, pasTrouve: !!p.pasTrouve };
+  dbUpdateDoc('produits', id, p.achete ? { achete:false } : { achete:true, pasTrouve:false });   /* lot 3 : acheté → plus « pas trouvé » */
+  toastAnnuler('« ' + (p.nom || 'Produit') + ' » ' + (p.achete ? 'remis à acheter' : 'dans le caddie'), ()=> dbUpdateDoc('produits', id, avant));
   // Pas de mise a jour optimiste ici : le listener temps reel sur 'produits'
   // rappelle render()/renderCourse() a chaque ecriture, qui recalcule
   // correctement la visibilite du bouton (evite un etat incorrect si on
   // decoche le dernier produit coche).
+}
+
+/* Lot 3 (20/10/2026) : « Pas trouvé » en magasin — le produit quitte son rayon pour la section « Pas trouvé »,
+   reste sur la liste à « Course terminée » (seul le marqueur est effacé), et repart avec la prochaine course. */
+function togglePasTrouve(id){
+  const p = state.produits[id]; if(!p) return;
+  const avant = !!p.pasTrouve;
+  dbUpdateDoc('produits', id, { pasTrouve: !avant });
+  toastAnnuler('« ' + (p.nom || 'Produit') + ' » ' + (avant ? 'remis dans son rayon' : 'pas trouvé'), ()=> dbUpdateDoc('produits', id, { pasTrouve: avant }));
+}
+
+/* Lot 3 : toast « Annuler » (4 s) après une coche — un seul à la fois, le dernier geste gagne. */
+let minuteurToastAnnuler = null, actionAnnuler = null;
+function toastAnnuler(texte, annuler){
+  let t = document.getElementById('toast-annuler');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast-annuler'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
+    t.innerHTML = '<span class="toast-annuler-txt"></span><button type="button" class="toast-annuler-btn">Annuler</button>';
+    t.querySelector('button').addEventListener('click', ()=>{
+      const f = actionAnnuler; actionAnnuler = null;
+      clearTimeout(minuteurToastAnnuler); t.classList.remove('visible');
+      if(f) f();
+    });
+    document.body.appendChild(t);
+  }
+  t.querySelector('.toast-annuler-txt').textContent = texte;
+  actionAnnuler = annuler;
+  t.classList.add('visible');
+  clearTimeout(minuteurToastAnnuler);
+  minuteurToastAnnuler = setTimeout(()=>{ t.classList.remove('visible'); actionAnnuler = null; }, 4000);
 }
 
 document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
@@ -554,6 +629,9 @@ document.getElementById('btn-course-terminee').addEventListener('click', ()=>{
         });
     });
   });
+  /* Lot 3 : les « pas trouvé » restent à acheter, sans leur marqueur (prochaine course). */
+  Object.entries(state.produits).filter(([id,p])=> p.pasTrouve && (filtre === TOUTES || listeDe(p) === filtre))
+    .forEach(([id])=> dbUpdateDoc('produits', id, { pasTrouve:false }).catch(()=>{}));
   notifierCoursesFaites(aEffacer.length);   /* NOTIFICATIONS : « Les courses sont faites ! » à l'autre */
 });
 
