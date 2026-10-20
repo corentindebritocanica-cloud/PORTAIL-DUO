@@ -97,6 +97,7 @@
     const NOMS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const el = (id) => document.getElementById(id);
     let resume = {};
+    let charge = false;   /* lot 3 (20/10/2026) : faux tant que ni le cache local ni la base n'ont répondu → cartes « en chargement » */
     let authPortail = null; // session du duo, gardée pour la relecture REST (sonder)
     /* 29/09/2026 : `portail/*` est réservé au compte e-mail du duo (firestore.rules). Une session
        anonyme (anciennes versions) ne compte pas. */
@@ -123,11 +124,21 @@
       if (h < 24) return 'il y a ' + h + ' h';
       return 'il y a ' + Math.floor(h / 24) + ' j';
     }
+    /* Lot 3 : « aujourd'hui », « hier », « lundi » (7 derniers jours) ; '' au-delà. */
+    function jourRelatif(ms){
+      const j0 = new Date(); j0.setHours(0, 0, 0, 0);
+      const jd = new Date(ms); jd.setHours(0, 0, 0, 0);
+      const n = Math.round((j0 - jd) / 864e5);
+      if (n < 0 || n > 6) return '';
+      if (n === 0) return "aujourd'hui";
+      if (n === 1) return 'hier';
+      return jd.toLocaleDateString('fr-FR', { weekday: 'long' });
+    }
     /* En-tête de carte : fraîcheur des chiffres. Plus de 24 h : affichée en couleur d'alerte. */
     function pied(id, d){
       const maj = nombre(d && d.maj, 1e12, 4e12);
       const n = el(id);
-      n.textContent = maj ? 'Mis à jour ' + depuis(maj) : "Ouvre l'app une fois pour remplir cette carte";
+      n.textContent = maj ? 'Mis à jour ' + depuis(maj) : (charge ? "Ouvre l'app une fois pour remplir cette carte" : 'Chargement…');
       n.classList.toggle('vieux', !!maj && Date.now() - maj > 86400000);
     }
     /* Profil actif de Muscu (même origine que le Portail) : sert à choisir « la prochaine séance ». */
@@ -157,6 +168,14 @@
          partir des vraies archives (dernière séance de chacun, série, semaine en cours) ; voir
          calculerPhraseMuscu dans Muscu/app.js. Une phrase par défaut tant qu'aucune donnée n'est arrivée. */
       el('mu-phrase').textContent = texte(d && d.phrase, 140) || 'Une nouvelle semaine à deux, à vous de la rendre belle !';
+      /* Lot 3 (20/10/2026) : dernière séance de l'AUTRE (portail/muscu.derniere), si elle date de moins de 7 jours. */
+      const autre = p === 'lisa' ? 'corentin' : 'lisa';
+      const da = d && d.derniere && d.derniere[autre];
+      const le = nombre(da && da.le, 1e12, 4e12);
+      const quand = le ? jourRelatif(le) : '';
+      const nomSeance = da ? (texte(da.label, 30) || texte(da.title, 40)) : '';
+      el('mu-autre').hidden = !(quand && nomSeance);
+      el('mu-autre').textContent = (quand && nomSeance) ? (autre === 'lisa' ? 'Lisa' : 'Corentin') + ' a fait ' + nomSeance + ' ' + quand : '';
       pied('mu-maj', d);
     }
 
@@ -176,6 +195,7 @@
         el('bu-days').textContent = d ? "Ce mois n'est pas encore démarré dans Budget" : '';
         el('bu-peek').textContent = '';
         el('bu-spent').textContent = '';
+        el('bu-dernieres').hidden = true;
       } else {
         const neg = reste < 0;
         el('bu-int').textContent = (neg ? '−' : '') + Math.abs(reste).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -199,6 +219,18 @@
         el('bu-days').textContent = (neg ? 'Budget dépassé' + (phrase ? ' · ' : '') : '') + phrase;
         el('bu-spent').textContent = (depense !== null && budget !== null)
           ? eur2(depense) + ' dépensés sur ' + eur2(budget) + ' (' + Math.round(pct) + ' %)' : '';
+        /* Lot 3 (20/10/2026) : 3 dernières dépenses (portail/budget.dernieres), écrites en textContent. */
+        const box = el('bu-dernieres');
+        box.textContent = '';
+        (Array.isArray(d.dernieres) ? d.dernieres.slice(0, 3) : []).forEach((x) => {
+          const lib = texte(x && x.l, 30), m = nombre(x && x.m, -1e7, 1e7), e = texte(x && x.e, 4);
+          if (!lib || m === null) return;
+          const ligne = document.createElement('span'); ligne.className = 'dash-ligne';
+          const g = document.createElement('span'); g.textContent = (e ? e + ' ' : '') + lib;
+          const dr = document.createElement('span'); dr.className = 'dash-ligne-m' + (m < 0 ? ' pos' : ''); dr.textContent = (m < 0 ? '+' : '') + eur2(Math.abs(m));
+          ligne.appendChild(g); ligne.appendChild(dr); box.appendChild(ligne);
+        });
+        box.hidden = box.children.length === 0;
       }
       pied('bu-maj', d);
     }
@@ -214,7 +246,7 @@
         el('co-peek').textContent = '';
       } else {
         el('co-int').textContent = String(n);
-        el('co-peek').textContent = String(n);
+        el('co-peek').textContent = n + (n > 1 ? ' produits' : ' produit');   /* lot 3 : unité sur la vitre du fond */
         el('co-label').textContent = n === 0 ? 'rien à acheter' : (n > 1 ? 'produits' : 'produit');
         (Array.isArray(d.rayons) ? d.rayons.slice(0, 3) : []).forEach((r) => {
           const nom = texte(r && r.nom, 26), k = entier(r && r.n, 0, 9999);
@@ -245,9 +277,10 @@
         el('to-peek').textContent = '';
       } else {
         el('to-int').textContent = String(n);
-        el('to-peek').textContent = String(n);
+        el('to-peek').textContent = n + (n > 1 ? ' tâches' : ' tâche');
         const urg = entier(d.urgentes, 0, 99999) || 0;   /* 12/10/2026 : tâches urgentes (urgence 2) */
-        el('to-label').textContent = n === 0 ? 'tout est fait' : (n > 1 ? 'tâches' : 'tâche') + (urg ? ' · ' + urg + (urg > 1 ? ' urgentes' : ' urgente') : '');
+        const ret = entier(d.enRetard, 0, 99999) || 0;   /* lot 3 : à faire depuis plus de 7 jours */
+        el('to-label').textContent = n === 0 ? 'tout est fait' : (n > 1 ? 'tâches' : 'tâche') + (urg ? ' · ' + urg + (urg > 1 ? ' urgentes' : ' urgente') : '') + (ret ? ' · ' + ret + ' en retard' : '');
         (Array.isArray(d.listes) ? d.listes.slice(0, 3) : []).forEach((l) => {
           const nom = texte(l && l.nom, 26), k = entier(l && l.n, 0, 99999);
           if (!nom || k === null) return;
@@ -271,6 +304,7 @@
       afficherBudget(resume.budget);
       afficherCourses(resume.courses);
       afficherTodo(resume.todo);
+      document.querySelector('.dash').classList.toggle('chargement', !charge);   /* lot 3 : chiffres en blocs gris */
     }
 
     /* ---- Firebase : chargé APRÈS le premier affichage, jamais bloquant ---- */
@@ -320,7 +354,7 @@
         const snap = await db.collection('portail').get({ source: 'server' });
         const obj = {};
         snap.forEach((doc) => { obj[doc.id] = doc.data(); });
-        resume = obj;
+        resume = obj; charge = true;
         try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
         afficher();
         return true;
@@ -343,7 +377,7 @@
         if (!snap.metadata.fromCache) statut('ok');
         const obj = {};
         snap.forEach((doc) => { obj[doc.id] = doc.data(); });
-        resume = obj;
+        resume = obj; charge = true;
         try { localStorage.setItem(CLE_CACHE, JSON.stringify(obj)); } catch (e) {}
         afficher();
       }, (err) => console.warn('[portail] lecture impossible :', err));
@@ -406,9 +440,10 @@
         const id = d.name.split('/').pop();
         obj[id] = depuisValeurFirestore({ mapValue: { fields: d.fields || {} } });
       });
+      if (!charge) { charge = true; afficher(); }   /* lot 3 : même vide, la réponse du serveur met fin au chargement */
       const avant = JSON.stringify(resume), apres = JSON.stringify(obj);
       if (apres !== avant) {                              /* ne redessine que si quelque chose a changé */
-        resume = obj;
+        resume = obj; charge = true;
         try { localStorage.setItem(CLE_CACHE, apres); } catch (e) {}
         afficher();
       }
@@ -561,6 +596,7 @@
 
     try { resume = JSON.parse(localStorage.getItem(CLE_CACHE)) || {}; } catch (e) { resume = {}; }
     if (typeof resume !== 'object' || resume === null) resume = {};
+    charge = Object.keys(resume).length > 0;
     afficher();
     window.addEventListener('load', () => setTimeout(demarrerBase, 0));
     demarrerSondage();                                   /* sans effet tant que Firestore n'est pas prêt */
@@ -612,18 +648,22 @@
     const retirerNomTransition = () => ordre.forEach((k) => carte(k).style.removeProperty('view-transition-name'));
     window.addEventListener('pageshow', retirerNomTransition);
 
-    /* Toucher une vitre du fond : elle passe devant (les autres gardent leur ordre). */
+    /* Lot 3 (20/10/2026) : OUVERTURE EN UN TOUCHER — toucher n'importe quelle vitre (devant ou fond) ouvre son
+       app (avant : une vitre du fond venait d'abord devant, 2e toucher pour ouvrir). La pile tourne au glisser.
+       Bouton « + » de chaque vitre : ouvre l'app directement sur la saisie (?saisie=…, lu par chaque app). */
     ordre.forEach((k) => {
       carte(k).addEventListener('click', (e) => {
-        if (root.classList.contains('verre') && k === pile[0] && !e.defaultPrevented) {
+        if (e.defaultPrevented) return;
+        const plus = e.target.closest('.dash-plus');
+        if (plus) e.preventDefault();
+        if (root.classList.contains('verre')) {
           retirerNomTransition();
           carte(k).style.setProperty('view-transition-name', 'vitre');
         }
-        if (!root.classList.contains('verre') || k === pile[0]) return;   /* devant (ou mode classique) : ouvre l'app */
-        e.preventDefault();
-        pile = [k, ...pile.filter((x) => x !== k)];
-        empiler();
+        if (plus) location.href = plus.dataset.saisie;
       });
+      const plus = carte(k).querySelector('.dash-plus');
+      if (plus) plus.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); plus.click(); } });
     });
 
     /* GLISSER VERTICAL (28/09/2026) — vers le HAUT : la vitre de devant part au fond, la suivante
@@ -674,6 +714,16 @@
     /* Nettoyage des réglages de l'essai (interrupteur « Essai Verre » et curseur d'intensité,
        retirés quand le design est devenu définitif le 28/09/2026). */
     try { localStorage.removeItem('duo-verre'); localStorage.removeItem('duo-verre-intensite'); localStorage.removeItem('portail-verre-devant'); } catch (e) {}
+  })();
+
+  /* Lot 3 (20/10/2026) : réglages dans une feuille (engrenage en haut à droite). */
+  (function(){
+    const f = document.getElementById('reglages');
+    const fermer = () => fermerAnime(f, () => f.classList.remove('open'));
+    document.getElementById('btn-reglages').addEventListener('click', () => { annulerFermeture(f); f.classList.add('open'); });
+    document.getElementById('reglages-fermer').addEventListener('click', fermer);
+    f.addEventListener('click', (e) => { if (e.target === f) fermer(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && f.classList.contains('open')) fermer(); });
   })();
 
   document.getElementById('hardReload').addEventListener('click', async (e) => {

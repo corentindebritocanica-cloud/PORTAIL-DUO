@@ -36,6 +36,10 @@
   <main>
     <header class="topbar">
       <p class="app-title"><span class="app-title-brand">Portail Duo</span> · Corentin &amp; Lisa</p>
+      <!-- Lot 3 (20/10/2026) : réglages (thème, notifications, recharger) rangés dans une feuille -->
+      <button type="button" class="btn-reglages" id="btn-reglages" aria-label="Réglages" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </header>
 
     <div class="dash-titre">
@@ -57,12 +61,14 @@
             <span class="choice-desc dash-maj" id="mu-maj"></span>
           </span>
           <span class="verre-peek verre-seul" id="mu-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Muscu/?saisie=seance" aria-label="Commencer la prochaine séance">+</span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
           <span class="dash-label" id="mu-next-label">Prochaine séance</span>
           <span class="dash-value" id="mu-next">—</span>
           <span class="dash-sub" id="mu-next-sub"></span>
+          <span class="dash-sub dash-autre" id="mu-autre" hidden></span>
           <span class="dash-sep"></span>
           <!-- Phrase motivante du duo (22/09/26) : remplace le compte "X/4 séances", pas
                représentatif d'un rythme qui varie. Calculée par Muscu (portail/muscu.phrase). -->
@@ -81,6 +87,7 @@
             <span class="choice-desc dash-maj" id="bu-maj"></span>
           </span>
           <span class="verre-peek verre-seul" id="bu-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Budget/?saisie=depense" aria-label="Ajouter une dépense">+</span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -89,6 +96,7 @@
           <span class="dash-sub" id="bu-days"></span>
           <span class="gauge"><span class="gauge-fill" id="bu-fill"></span></span>
           <span class="dash-meta" id="bu-spent"></span>
+          <span class="dash-lignes" id="bu-dernieres" hidden></span>
         </span>
       </a>
 
@@ -100,6 +108,7 @@
             <span class="choice-desc dash-maj" id="co-maj"></span>
           </span>
           <span class="verre-peek verre-seul" id="co-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Course/?saisie=liste" aria-label="Ajouter à la liste de courses">+</span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -119,6 +128,7 @@
             <span class="choice-desc dash-maj" id="to-maj"></span>
           </span>
           <span class="verre-peek verre-seul" id="to-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Todo/?saisie=tache" aria-label="Ajouter une tâche">+</span>
           <span class="choice-chev">›</span>
         </span>
         <span class="dash-body">
@@ -131,8 +141,16 @@
     </div>
 
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
-    <p class="verre-astuce verre-seul">Touche une vitre ou fais glisser la pile vers le haut ou le bas</p>
+    <p class="verre-astuce verre-seul">Touche une vitre pour ouvrir l'app, « + » pour saisir directement, glisse la pile pour la faire tourner</p>
 
+
+  </main>
+
+  <!-- Réglages du Portail (lot 3, 20/10/2026) : feuille ouverte par l'engrenage. Mêmes éléments et mêmes id qu'avant
+       (thème, notifications, recharger, date de MAJ) : le code de app.js et commun.js n'a pas changé. -->
+  <div class="modal-overlay" id="reglages" role="dialog" aria-modal="true" aria-labelledby="reglages-titre">
+    <div class="modal-sheet reglages-sheet">
+      <div class="reglages-tete"><h2 id="reglages-titre">Réglages</h2><button type="button" class="reglages-fermer" id="reglages-fermer" aria-label="Fermer">✕</button></div>
     <!-- Thème des 5 apps (18/10/2026) : Sombre (data-style="simple") / Clair (data-style="clair"). Choix mémorisé dans
          localStorage duo-style (commun.js), appliqué par verre.css — voir « THÈME SOMBRE · CLAIR » dans le README.
          Avant : Verre / Relief / Argile / Simple (supprimés le 18/10/2026). -->
@@ -160,8 +178,8 @@
       </button>
     </div>
     <p id="derniere-maj" class="derniere-maj"></p>
-  </main>
-
+    </div>
+  </div>
   <!-- Connexion du duo (29/09/2026) : même compte e-mail que Budget et Muscu (session partagée). Masquée par
        défaut, ouverte seulement quand Firebase répond « pas de session » — voir connexionDuo() dans commun.js. -->
   <div class="connexion-duo" id="connexion" role="dialog" aria-modal="true" aria-labelledby="connexion-titre">

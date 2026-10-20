@@ -83,3 +83,4 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - `ecrire(action, quoi)` : un refus affiche `duoEchec()` (`../commun.js`).
 - `tachesChargees` : lignes grises (`lignesAttente`) tant que ni l'aperçu ni le 1er instantané des tâches ne sont là, au lieu de « Rien à faire ».
 - « Hors ligne » en texte à côté du titre (`../verre.css`).
+- **Portail (lot 3)** : `?saisie=tache` → fenêtre « Nouvelle tâche » ouverte (`saisieDepuisPortail`, fin de `app.js`). Résumé `portail/todo` : champ `enRetard` (tâches à faire depuis plus de 7 jours).

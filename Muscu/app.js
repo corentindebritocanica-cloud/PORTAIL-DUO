@@ -4814,9 +4814,16 @@ function calculerResumePortailMuscu(archives, getSessionFn, now){
     const s = getSessionFn(SESSIONS[(idx + 1) % SESSIONS.length].id);
     prochaine[p] = { label: String(s.label || ''), title: String(s.title || ''), nbExos: (s.exercises || []).length, cardio: !!s.cardio };
   });
+  /* Lot 3 (20/10/2026) : dernière séance archivée de chacun → le Portail affiche « séance faite par l'autre ». */
+  const derniere = {};
+  profils.forEach(p => {
+    const a = (archives[p] || []).find(x => x && x.createdAt);
+    if(a) derniere[p] = { label: String(a.sessionLabel || '').slice(0, 30), title: String(a.sessionTitle || '').slice(0, 70), le: a.createdAt };
+  });
   const semaineCorentin = parSemaine.corentin[debut] || 0, semaineLisa = parSemaine.lisa[debut] || 0;
   return {
     prochaine: prochaine,
+    derniere: derniere,
     phrase: calculerPhraseMuscu(archives, semaineCorentin, semaineLisa, serie, now)
   };
 }
@@ -5536,4 +5543,18 @@ setTimeout(adjustBottomSpacing, 300); // sécurité si les polices/safe-area se 
     e.preventDefault();
     agir(champ.dataset.clavier === 'poids' ? 'autre' : 'valider');
   });
+})();
+
+/* Lot 3 (20/10/2026) : « + » de la vitre Musculation du Portail → ?saisie=seance : ouvre directement la
+   séance « À faire » du profil du téléphone (même règle que la liste et le Portail, prochaineSeanceId),
+   dès que les archives sont chargées (8 s au plus ; sinon Séance 1). */
+(function saisieDepuisPortail(){
+  if(new URLSearchParams(location.search).get('saisie') !== 'seance') return;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  const debut = Date.now();
+  (function attendre(){
+    if(!window.__archivesLoaded && Date.now() - debut < 8000) return setTimeout(attendre, 150);
+    const id = prochaineSeanceId(currentProfile) || (SESSIONS[0] && SESSIONS[0].id);
+    if(id) selectSession(id);
+  })();
 })();

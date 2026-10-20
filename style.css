@@ -247,3 +247,44 @@
   font-size:12px; line-height:1.45; color:var(--v-dim, #8a97a8);
 }
 .notif-aide:empty{ display:none; }
+
+
+/* ---------- Lot 3 (20/10/2026) : bouton « + » des vitres, dernières dépenses, feuille Réglages ---------- */
+.dash-plus{
+  flex:0 0 auto; width:44px; height:44px; margin-left:auto; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; font-weight:300; line-height:1; color:var(--text);
+  background:var(--card-2); border:1px solid var(--border); cursor:pointer;
+  -webkit-tap-highlight-color:transparent; transition:transform var(--t-fast) var(--ease-out);
+}
+.dash-plus:active{ transform:scale(.92); }
+.verre-peek + .dash-plus{ margin-left:8px; }
+.dash-autre{ font-weight:600; color:var(--text); }
+.dash-lignes{ display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+.dash-lignes[hidden]{ display:none; }
+.dash-ligne{ display:flex; justify-content:space-between; gap:12px; font-size:14px; }
+.dash-ligne > span:first-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-ligne-m{ flex:0 0 auto; font-weight:700; font-variant-numeric:tabular-nums; }
+.dash-ligne-m.pos{ color:var(--done, #12b981); }
+.btn-reglages{
+  flex:0 0 auto; width:44px; height:44px; border-radius:50%; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--card-2); border:1px solid var(--border); color:var(--text-dim);
+  transition:transform var(--t-fast) var(--ease-out);
+}
+.btn-reglages svg{ width:21px; height:21px; }
+.btn-reglages:active{ transform:scale(.94); }
+.reglages-sheet{ text-align:center; max-height:88vh; overflow-y:auto; overscroll-behavior:contain; }
+.reglages-tete{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.reglages-tete h2{ margin:0; }
+.reglages-fermer{ width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--card-2); color:var(--text-dim); font-size:16px; }
+@media (prefers-reduced-motion: reduce){ .dash-plus, .btn-reglages{ transition:none; } }
+.dash.chargement .dash-int, .dash.chargement .dash-value, .dash.chargement #mu-phrase{
+  color:transparent !important; background:rgba(128,128,128,.28); border-radius:10px; animation:duoAttente 1.2s ease-in-out infinite alternate; }
+.dash.chargement .dash-int{ display:inline-block; min-width:110px; }
+.dash.chargement .dash-value{ display:inline-block; min-width:180px; }
+@media (prefers-reduced-motion: reduce){ .dash.chargement .dash-int, .dash.chargement .dash-value, .dash.chargement #mu-phrase{ animation:none; } }
+.reglages-sheet .style-choix-titre{ margin:20px 0 8px; font-size:13px; }
+.reglages-sheet .notif-aide{ margin:10px 0 0; font-size:13px; }
+.reglages-sheet .derniere-maj{ margin:10px 0 0; font-size:12px; }
+.reglages-sheet .reload-row{ margin-top:22px; }

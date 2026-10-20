@@ -1236,3 +1236,8 @@ La feuille « ⇅ Ordre de la séance » remplace les flèches ↑↓ par une po
 - Champs repérés par `data-clavier="poids|reps"`, coche par `data-valider` ; échauffements et circuits non concernés.
 - Position : `visualViewport` (`innerHeight − height − offsetTop`), recalculée au `resize` / `scroll`. Boutons actionnés au `touchstart` + `preventDefault` pour que le champ garde le focus (clavier ouvert) ; `mousedown` bloqué sur ordinateur.
 - **Vérifié** (Chromium, iPhone simulé) : barre visible au focus du poids, « Reps → » met le curseur dans les reps, « ✓ Valider » coche la série et masque la barre. **Non vérifié sur iPhone** (position exacte au-dessus du clavier et de sa barre d'accessoires à confirmer).
+
+## Lot 3 — Portail (20/10/2026)
+- `?saisie=seance` (bouton « + » de la vitre du Portail) → séance « À faire » ouverte d'office (`saisieDepuisPortail`, fin de `app.js`), dès que les archives sont chargées (8 s au plus, sinon Séance 1).
+- Résumé `portail/muscu` : champ `derniere` (dernière séance archivée de chaque profil : `label`, `title`, `le`) → « Lisa a fait Séance 3 hier » sur la vitre.
+- États communs : Muscu avait déjà ses squelettes et ses messages d'échec ; seule l'étiquette « Hors ligne » en texte s'applique (`../verre.css`).

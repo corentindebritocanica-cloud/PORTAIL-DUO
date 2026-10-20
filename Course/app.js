@@ -1092,3 +1092,17 @@ document.getElementById('btn-vider-cache').addEventListener('click', async ()=>{
   } catch (e) { console.warn('Nettoyage du cache :', e); }
   window.location.reload();
 });
+
+/* Lot 3 (20/10/2026) : « + » de la vitre Courses du Portail → ?saisie=liste. Onglet Liste, reflet sur la
+   recherche (point d'entrée pour cocher ou créer un produit) ; le focus est tenté, mais sur iPhone le clavier
+   ne s'ouvre qu'au toucher. */
+(function saisieDepuisPortail(){
+  if(new URLSearchParams(location.search).get('saisie') !== 'liste') return;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  const bouton = document.querySelector('nav.tabbar button[data-tab="liste"]');
+  if(bouton && state.ongletActif !== 'liste') bouton.click();
+  const barre = document.querySelector('.barre-recherche .searchbar') || champRecherche.parentElement;
+  barre.classList.add('reflet');
+  champRecherche.addEventListener('focus', ()=> barre.classList.remove('reflet'), { once:true });
+  try { champRecherche.focus({ preventScroll:true }); } catch(e){}
+})();

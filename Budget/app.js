@@ -337,7 +337,15 @@
             const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions) + sommeEspeces(m.depenses);
             const r2 = (n) => Math.round(n * 100) / 100;
             const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate() };
+            // Lot 3 (20/10/2026) : 3 dernières dépenses du mois pour la vitre du Portail (libellé ou catégorie, montant, emoji)
+            const dernieres = (m.depenses || []).filter(d => (Number(d.montant) || 0) !== 0)
+                .slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+                .slice(0, 3).map(d => {
+                    const cat = String(d.categorie || '');
+                    const emoji = (cat.match(/^\S+/) || [''])[0].slice(0, 4);
+                    return { l: String(d.libelle || cat.replace(/^\S+\s*/, '') || 'Dépense').replace(/\s+/g, ' ').trim().slice(0, 30), m: r2(Number(d.montant) || 0), e: emoji };
+                });
+            return { mois: nom, reste: r2(budget - depense), budget: r2(budget), depense: r2(depense), joursRestants: dernierJour - now.getDate(), dernieres };
         };
         // 23/09/2026 (v2) — PUBLICATION FIABLE (même principe que Courses, voir README du Portail) :
         // regroupement ramené à 0,3 s ; `portailOk` = écriture CONFIRMÉE par le serveur ; au
@@ -397,6 +405,23 @@
             minuteurRendu = setTimeout(() => { if (saisieEnCours()) state.rendreApresSaisie = true; else rafraichirTouteLInterface(); }, 350);
         };
 
+        // Lot 3 (20/10/2026) : « + » de la vitre Budget du Portail → ?saisie=depense. Feuille Dépenses ouverte sur le
+        // MOIS EN COURS (s'il existe), reflet sur « + Nouvelle dépense » : le toucher crée la ligne et ouvre le clavier
+        // (un focus automatique au chargement n'ouvre pas le clavier sur iPhone, et créer la ligne d'office
+        // laisserait une dépense vide si on renonce).
+        let saisieDemandee = new URLSearchParams(location.search).get('saisie') === 'depense';
+        if (saisieDemandee) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+        const ouvrirSaisieDemandee = () => {
+            if (!saisieDemandee || !state.donnees.length) return;
+            saisieDemandee = false;
+            const now = new Date();
+            const courant = state.donnees.find(m => m.nom === NOMS_MOIS[now.getMonth()] + ' ' + now.getFullYear());
+            if (courant && courant.id !== state.moisActifId) { state.moisActifId = courant.id; rafraichirTouteLInterface(); }
+            ouvrirFeuille('depenses');
+            const b = document.querySelector('#sheet-depenses [data-add="depenses"]');
+            if (b) { b.classList.add('reflet'); b.addEventListener('click', () => b.classList.remove('reflet'), { once: true }); }
+        };
+
         // --- Logique DB ---
         const attacherEcouteurs = () => {
             unsubMois = colMois().onSnapshot((snap) => {
@@ -418,6 +443,7 @@
                     planifierPublicationPortail();
                     if (saisieEnCours()) state.rendreApresSaisie = true; // Lot 2 : ne pas casser le champ actif
                     else rafraichirTouteLInterface();
+                    ouvrirSaisieDemandee();
                 } else {
                     // Ne jamais créer le mois par défaut sur un snapshot vide issu du cache local
                     if (state.firstLoad && !depuisCache) {

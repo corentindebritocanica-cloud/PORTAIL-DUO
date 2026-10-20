@@ -209,7 +209,9 @@ html.verre[data-app="portail"] .dash{
    donc rien ne change. */
 html.verre[data-app="portail"] main{ flex:1 0 auto; }
 html.verre[data-app="portail"] .dash{ margin-top:auto; }
-html.verre[data-app="portail"] .derniere-maj{ margin-bottom:auto; }
+html.verre[data-app="portail"] .derniere-maj{ margin-bottom:0; }
+html.verre[data-app="portail"] .dash-plus{ background:var(--v-soft); border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi); color:var(--v-text); }
+html.verre[data-app="portail"] .btn-reglages{ background:var(--v-soft); border-color:var(--v-edge); color:var(--v-text); }
 html.verre[data-app="portail"] .dash-card{
   grid-area:1 / 1;
   --dy:198px; --sc:1;
@@ -284,7 +286,7 @@ html.verre[data-app="portail"] .gauge-fill.over{ background:var(--danger); box-s
 html.verre[data-app="portail"] .chip{ background:var(--v-soft); border:1px solid var(--v-edge); }
 html.verre[data-app="portail"] .chip-n{ background:var(--v-frigo); box-shadow:0 0 10px rgba(18,185,129,.7); }
 html.verre[data-app="portail"] .dash-maj.vieux{ color:var(--v-argent); }
-html.verre[data-app="portail"] .verre-astuce{ text-align:center; font-size:12px; color:var(--v-dim); margin:14px 0 0; }
+html.verre[data-app="portail"] .verre-astuce{ text-align:center; font-size:12px; color:var(--v-dim); margin:14px 0 auto; }   /* lot 3 : margin-bottom auto (centrage), la date de MAJ est dans la feuille Réglages */
 html.verre[data-app="portail"] .modal-sheet{ border-radius:34px 34px 0 0; border-color:var(--v-edge); box-shadow:inset 0 1px 0 var(--v-hi), var(--shadow-lg); }
 /* ==========================================================================
    COURSE — une plaque de verre, des lignes (pas de cartes)

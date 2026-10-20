@@ -1019,3 +1019,20 @@ iOS PWA ne peut pas vibrer : en plus du `scale` existant, les boutons principaux
 - **« Hors ligne » en texte** (`verre.css`, fin) : quand `html[data-sync="hors-ligne"]` (ou `.status-dot.offline` dans Budget), la pastille rouge à côté du titre devient une étiquette rouge « Hors ligne ». Les 5 apps. Budget : l'ancien pop-up « Connexion perdue » est supprimé (il affirmait à tort que rien n'était enregistré : le cache Firestore met les écritures en file).
 - **Échec d'enregistrement** : `duoEchec(err, quoi)` (`commun.js` §9) affiche « ⚠️ Pas enregistré (quoi) : raison. » en haut de l'écran 6 s (touchable pour fermer) ; raisons traduites (accès refusé, session expirée, quota…), même message pas répété avant 4 s. Branché sur les écritures de Budget (`sauvegarderMois`, config, suppression, restauration), Course (`dbUpdateDoc` / `dbAddDoc` / `dbDeleteDoc`) et Todo (`ecrire`). Muscu avait déjà ses messages (`firestoreErrorMessage`) : inchangé. Hors ligne, Firestore n'échoue pas (file d'attente) : le message ne concerne que les vrais refus.
 - **Lignes grises d'attente** : `lignesAttente(n)` (`commun.js`) + `.duo-attente` (`verre.css`). Course et Todo : affichées tant que ni l'aperçu local ni le 1er instantané ne sont là (avant : « Rien trouvé » / « Rien à faire »), aussi en HTML statique dans `Course/index.html`. Budget : `body.duo-chargement` — montants du tableau de bord en blocs gris et 3 lignes dans « Dernières opérations » au lieu de « 0 € » jusqu'au 1er instantané. Muscu avait déjà ses squelettes (archives, progression).
+
+## Lot 3 — Portail : « + », un toucher, unités, cartes enrichies, Réglages (20/10/2026)
+- **Ouverture en un toucher** : toucher n'importe quelle vitre (devant ou fond) ouvre son app (avant : une vitre du fond venait d'abord devant). La pile tourne toujours au glisser. Texte d'astuce mis à jour.
+- **Bouton « + »** sur chaque vitre (`.dash-plus`, `data-saisie`) → app ouverte sur la saisie (`?saisie=…`, paramètre effacé de l'URL par l'app) :
+  - Musculation `?saisie=seance` : séance « À faire » du profil du téléphone ouverte d'office (`prochaineSeanceId`, attend les archives 8 s au plus).
+  - Budget `?saisie=depense` : feuille Dépenses du mois en cours, reflet sur « + Nouvelle dépense » (le toucher crée la ligne ET ouvre le clavier ; créer la ligne d'office laisserait une dépense vide et le clavier ne s'ouvre pas sans toucher sur iPhone).
+  - Courses `?saisie=liste` : onglet Liste, reflet sur la recherche.
+  - Todo `?saisie=tache` : fenêtre « Nouvelle tâche » ouverte.
+- **Unités sur les vitres du fond** : « 5 produits », « 4 tâches » (avant : nombre seul).
+- **Cartes enrichies** (nouveaux champs des résumés `portail/*`, aucune règle Firestore à changer) :
+  - Muscu : `derniere: { corentin|lisa: { label, title, le } }` → « Lisa a fait Séance 3 hier » (dernière séance de l'**autre** profil, 7 derniers jours : aujourd'hui / hier / jour de la semaine).
+  - Budget : `dernieres: [{ l, m, e }]` (3 dernières dépenses du mois en cours) → lignes « 🛒 Leclerc · 80,50 € », remboursement en vert.
+  - Todo : `enRetard` = tâches à faire depuis plus de 7 jours (pas d'échéance dans Todo) → « 4 tâches · 1 urgente · 2 en retard ».
+  - Tant qu'une app n'a pas republié son résumé avec la nouvelle version, la ligne correspondante n'apparaît pas.
+- **Réglages dans une feuille** : engrenage en haut à droite (`#btn-reglages`) → feuille `#reglages` avec thème, notifications, recharger et date de MAJ (mêmes éléments et id, déplacés). Fermeture : ✕, fond, Échap.
+- **Chargement** : sans cache local ni réponse de la base, les cartes affichent « Chargement… » et des blocs gris (`.dash.chargement`) au lieu de « Ouvre l'app une fois pour remplir cette carte ».
+- **Vérifié** (Chromium, résumés simulés) : rendu des 4 vitres, feuille Réglages, un toucher sur une vitre du fond ouvre Courses. **Non vérifié sur iPhone.**

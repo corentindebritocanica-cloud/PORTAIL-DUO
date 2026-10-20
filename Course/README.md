@@ -554,3 +554,4 @@ Réglages > « Ordre des rayons » ouvre une feuille du bas : liste numérotée,
 - `dbUpdateDoc` / `dbAddDoc` / `dbDeleteDoc` : un refus affiche `duoEchec()` (`../commun.js`) puis l'erreur continue (les `await` existants voient toujours l'échec).
 - `produitsCharges` : faux tant que ni l'aperçu local ni le 1er instantané de `produits` ne sont arrivés → `lignesAttente()` dans Liste et Course (et en HTML statique dans `index.html`) au lieu de « Rien trouvé » / « Rien à acheter ».
 - « Hors ligne » en texte à côté du titre (`../verre.css`).
+- **Portail (lot 3)** : `?saisie=liste` (bouton « + » de la vitre) → onglet Liste, reflet sur la recherche (`saisieDepuisPortail`, fin de `app.js`).

@@ -529,7 +529,10 @@ function calculerResumePortail(){
   const parListe = listesTriees().map(([id,l])=> ({ nom: (l.nom || '').slice(0, 30), n: restantes(id), couleur: couleurListe(id) }))
     .filter(x=> x.n > 0).sort((a,b)=> b.n - a.n || a.nom.localeCompare(b.nom));
   const urgentes = Object.values(state.taches).filter(t=> !t.fait && urgenceDe(t) === 2).length;
-  return { aFaire: parListe.reduce((s,x)=> s + x.n, 0), urgentes, listes: parListe.slice(0, 3) };
+  /* Lot 3 (20/10/2026) : « en retard » = à faire depuis plus de 7 jours (pas d'échéance dans Todo). */
+  const limite = Date.now() - 7 * 864e5;
+  const enRetard = Object.values(state.taches).filter(t=> !t.fait && infoListe(listeDe(t)) && (t.creeLe || Infinity) < limite).length;
+  return { aFaire: parListe.reduce((s,x)=> s + x.n, 0), urgentes, enRetard, listes: parListe.slice(0, 3) };
 }
 function rafraichirJetonPortail(){
   const u = auth && auth.currentUser;
@@ -620,3 +623,11 @@ function demarrer(){
 dbReady.then(demarrer);
 
 /* Date de MAJ, service worker et vérification de version : ../commun.js. */
+
+/* Lot 3 (20/10/2026) : « + » de la vitre Todo du Portail → ?saisie=tache : fenêtre « Nouvelle tâche » ouverte
+   d'office (sur iPhone, le clavier s'ouvre au toucher du champ). */
+(function saisieDepuisPortail(){
+  if(new URLSearchParams(location.search).get('saisie') !== 'tache') return;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  ouvrirModaleTache(null);
+})();

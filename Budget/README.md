@@ -541,3 +541,4 @@ Effet reflet commun (bloc « REFLET » de `../verre.css`, détail dans le README
 - Pop-up « Connexion perdue » supprimé (`index.html`, `app.js`) : remplacé par l'étiquette « Hors ligne » à côté du titre (`verre.css`).
 - Écritures refusées → `duoEchec()` (`../commun.js`) : `sauvegarderMois`, `sauvegarderConfig`, suppression d'un mois, restauration.
 - 1er chargement : `<body class="duo-chargement">`, retirée au 1er instantané de `mois` ; montants en blocs gris (`style.css`, fin) et lignes grises dans « Dernières opérations » (`index.html`).
+- **Portail (lot 3)** : `?saisie=depense` (bouton « + » de la vitre) → `ouvrirSaisieDemandee()` au 1er instantané : mois en cours, feuille Dépenses, reflet sur « + Nouvelle dépense ». Résumé `portail/budget` : champ `dernieres` (3 dernières dépenses du mois : libellé ou catégorie, montant, emoji).
