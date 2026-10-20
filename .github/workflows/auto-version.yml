@@ -47,7 +47,8 @@ concurrency:
 jobs:
   bump:
     # Un commit poussé par ce robot ne relance jamais le workflow
-    if: github.actor != 'github-actions[bot]'
+    # Audit 19-03 : jamais depuis une autre branche (le push final vise main)
+    if: github.actor != 'github-actions[bot]' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,9 +66,15 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ]; then
             CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html'
           else
-            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # Audit 19-01 : diff depuis le dernier commit du robot (un run en attente annulé, ou un push de
+            # plusieurs commits, ne fait plus perdre de changements) ; repli sur event.before puis HEAD~1.
+            DERNIER_BOT=$(git log --author='github-actions\[bot\]' -1 --format=%H || true)
+            if [ -n "$DERNIER_BOT" ] && git merge-base --is-ancestor "$DERNIER_BOT" HEAD; then
+              BEFORE="$DERNIER_BOT"
+            elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               BEFORE="HEAD~1"
             fi
+            echo "Changements calculés depuis $BEFORE"
             CHANGED=$(git diff --name-only "$BEFORE" HEAD)
           fi
           VERRE=0; COMMUN=0
