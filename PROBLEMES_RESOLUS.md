@@ -19,6 +19,20 @@
 
 ---
 
+## ⌨️ Saisie iPhone — re-rendu qui ferme le clavier ou avale un toucher (20/10/2026)
+
+### 20/10/2026 — Budget (leçon valable pour toutes les apps) — focus perdu et clic perdu sur une liste re-rendue
+**Symptôme** (trouvé en préparant le lot 2, Chromium + Firebase simulé) : (1) « − Dépense » met le curseur dans la nouvelle ligne, mais le champ perdait aussitôt le focus ; (2) taper un montant puis toucher une pastille juste dessous ne faisait rien.
+**Fausses pistes explorées** : feuille encore invisible au moment du `focus()` (non : focus OK juste après le clic).
+**Cause racine** : (1) chaque instantané Firestore (écho de sa propre écriture, document `config`, `portail`, ou modification de l'autre téléphone) appelait `rafraichirTouteLInterface()` → `innerHTML` de la liste remplacé → champ actif détruit → sur iPhone le clavier se ferme. (2) Le `change` du champ (déclenché au blur, donc à l'appui sur le bouton voisin) re-rendait tout : la pastille sous le doigt était remplacée entre l'appui et le relâcher → pas de `click`.
+**Solution** : `saisieEnCours()` (champ d'une ligne actif) → l'instantané met l'état à jour mais le re-rendu attend `focusout` ; au `change`, la valeur affichée est réappliquée (l'état a pu être remplacé par un instantané pendant la frappe) ; re-rendu après `change` différé de 350 ms (`planifierRendu`).
+**Leçons généralisables** :
+- Une liste rendue par `innerHTML` + `onSnapshot` : **ne jamais re-rendre pendant qu'un de ses champs a le focus**.
+- Ne pas re-rendre de façon synchrone au `change`/`blur` si des boutons voisins doivent rester touchables.
+- Clavier décimal (`inputmode="decimal"`) : **pas de signe moins** sur iPhone ; prévoir un bouton ± si des valeurs négatives existent. Virgule française : `replace(',', '.')`.
+- Bouton qui doit agir sans fermer le clavier : `touchstart` + `preventDefault` (et `mousedown` + `preventDefault` sur ordinateur).
+**Fichiers touchés** : `Budget/app.js` (même principe appliqué à la barre clavier de `Muscu/app.js`)
+
 ## 🕛 Budget — dépense datée de la veille après minuit + zoom iOS sur les champs (20/10/2026)
 **Symptôme** : une dépense saisie entre minuit et 2 h (heure de Paris) prenait la date de la veille ; et chaque appui sur un champ date ou un menu d'une ligne faisait zoomer la page.
 **Cause** : `new Date().toISOString().split('T')[0]` renvoie la date **UTC**, pas la date locale. Le zoom : `font-size: 13px !important` sur `.item-bottom input[type=date], select` — sous 16 px, Safari iPhone zoome au focus.
