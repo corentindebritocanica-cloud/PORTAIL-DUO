@@ -84,3 +84,11 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - `tachesChargees` : lignes grises (`lignesAttente`) tant que ni l'aperçu ni le 1er instantané des tâches ne sont là, au lieu de « Rien à faire ».
 - « Hors ligne » en texte à côté du titre (`../verre.css`).
 - **Portail (lot 3)** : `?saisie=tache` → fenêtre « Nouvelle tâche » ouverte (`saisieDepuisPortail`, fin de `app.js`). Résumé `portail/todo` : champ `enRetard` (tâches à faire depuis plus de 7 jours).
+
+## Lot 3 — Pour qui, Mes tâches, Tout, balayer + Annuler (20/10/2026)
+- **Pour qui** : champ **`pour`** = `corentin` | `lisa` | `tous` (absent = tous), choisi dans la fenêtre (« Pour : Corentin / Lisa / Les deux », défaut Les deux, gardé d'une tâche à l'autre avec Entrée). Étiquette « Pour moi » / « Pour Lisa » sur la ligne (pas sur les tâches faites).
+- **Filtre « Mes tâches »** (en tête de liste, mémorisé `todo_mes_taches`) : tâches pour moi ou pour les deux (`pourMoi`).
+- **Pastille « Tout »** en tête des listes (id virtuel `__tout__`, jamais écrit en base) : toutes les listes ensemble, chaque ligne à la couleur et avec le nom de sa liste ; une nouvelle tâche créée depuis Tout va dans Général (`listeCible`) ; « Effacer » efface les terminées visibles (`tachesVisibles`).
+- **Balayer** une tâche : vers la droite (> 80 px) = faite / remise à faire, vers la gauche = supprimée ; fond vert / rouge au-delà du seuil ; geste horizontal seulement (`touch-action: pan-y`), le toucher qui suit n'ouvre pas la tâche.
+- **Annuler 4 s** (`toastAnnuler`) après une coche (case ou balayage) et une suppression par balayage : restaure l'état (`basculerFait`, `supprimerTache` qui réécrit la tâche complète).
+- **Vérifié** (Chromium, Firebase simulé) : Tout = 3 tâches de 2 listes, Mes tâches = 2, balayage gauche → supprimée puis Annuler → restaurée, balayage droite → faite sans ouvrir la fenêtre. **Non vérifié sur iPhone** (geste au doigt).

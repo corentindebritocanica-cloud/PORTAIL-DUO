@@ -93,7 +93,8 @@ const state = {
   taches: {},
   listeActive: (()=>{ try { return localStorage.getItem(CLE_LISTE_ACTIVE) || LISTE_DEFAUT; } catch (e) { return LISTE_DEFAUT; } })(),
   termineOuvert: (()=>{ try { return localStorage.getItem(CLE_TERMINE_OUVERT) === '1'; } catch (e) { return false; } })(),
-  onglet: 'taches'
+  onglet: 'taches',
+  mesTaches: (()=>{ try { return localStorage.getItem('todo_mes_taches') === '1'; } catch (e) { return false; } })()   /* lot 3 */
 };
 /* « Nouveau » : tâches ajoutées par l'autre depuis la dernière visite (mémorisée au départ de l'app). */
 let vuLe = (()=>{ try { return parseInt(localStorage.getItem(CLE_VU_LE) || '0', 10) || 0; } catch (e) { return 0; } })();
@@ -140,7 +141,19 @@ function couleurListe(id){
   return PALETTE_LISTES.includes(c) ? c : PALETTE_LISTES[0];   /* valeur de la base jamais injectée telle quelle dans le style */
 }
 function listeDe(t){ return (t && t.listeId && infoListe(t.listeId)) ? t.listeId : LISTE_DEFAUT; }
-function idListeAffichee(){ return infoListe(state.listeActive) ? state.listeActive : LISTE_DEFAUT; }
+/* Lot 3 (20/10/2026) : pastille « Tout » = toutes les listes ensemble (id virtuel, jamais écrit en base). */
+const TOUT = '__tout__';
+function idListeAffichee(){ if(state.listeActive === TOUT) return TOUT; return infoListe(state.listeActive) ? state.listeActive : LISTE_DEFAUT; }
+/* Liste où ranger une nouvelle tâche : la liste affichée, ou Général depuis « Tout ». */
+function listeCible(){ const id = idListeAffichee(); return id === TOUT ? LISTE_DEFAUT : id; }
+/* Lot 3 : POUR QUI — champ `pour` = 'corentin' | 'lisa' | 'tous' (absent = tous). */
+function pourDe(t){ return t && (t.pour === 'corentin' || t.pour === 'lisa') ? t.pour : 'tous'; }
+function pourMoi(t){ const p = pourDe(t); return p === 'tous' || p === state.profil; }
+/* Tâches visibles : liste affichée (ou toutes) et filtre « Mes tâches ». */
+function tachesVisibles(){
+  const id = idListeAffichee();
+  return Object.entries(state.taches).filter(([,t])=> (id === TOUT || listeDe(t) === id) && (!state.mesTaches || pourMoi(t)));
+}
 function choisirListe(id){
   state.listeActive = id;
   try { localStorage.setItem(CLE_LISTE_ACTIVE, id); } catch (e) {}
@@ -173,12 +186,16 @@ function ligneTache(id, t, couleur){
   const detail = t.fait
     ? `Fait${t.faitPar ? ' par ' + PRENOM[t.faitPar === 'lisa' ? 'lisa' : 'corentin'] : ''}${t.faitLe ? ' · ' + dateCourte(t.faitLe) : ''}`
     : `${PRENOM[auteur]} · ${dateCourte(t.creeLe)}`;
+  const nomListe = idListeAffichee() === TOUT ? (infoListe(listeDe(t)) || {}).nom || '' : '';
+  const pour = pourDe(t);
+  const etiquettePour = (pour !== 'tous' && !t.fait) ? `<span class="pour-tag ${pour}">${pour === state.profil ? 'Pour moi' : 'Pour ' + PRENOM[pour]}</span>` : '';
   return `<div class="carte-produit tache${t.fait ? ' achete-carte' : ''}" data-id="${escapeHtml(id)}" style="--c-liste:${couleur}">`
     + `<button type="button" class="case case-liste${t.fait ? ' checked' : ''}" data-cocher aria-pressed="${!!t.fait}" aria-label="${t.fait ? 'Décocher' : 'Cocher'} « ${escapeHtml(t.texte)} »">${SVG_COCHE}</button>`
     + `<button type="button" class="infos-produit" data-modifier>`
     + `<span class="nom-produit${t.fait ? ' achete' : ''}">${escapeHtml(t.texte)}${nouvelle ? '<span class="nouvelle-pastille">Nouveau</span>' : ''}</span>`
     + (urgenceDe(t) && !t.fait ? `<span class="urgence u${urgenceDe(t)}">${URGENCE_PASTILLE[urgenceDe(t)]}</span>` : '')
-    + `<span class="rayon-produit"><span class="auteur ${t.fait ? (t.faitPar === 'lisa' ? 'lisa' : 'corentin') : auteur}" aria-hidden="true"></span>${escapeHtml(detail)}</span>`
+    + etiquettePour
+    + `<span class="rayon-produit"><span class="auteur ${t.fait ? (t.faitPar === 'lisa' ? 'lisa' : 'corentin') : auteur}" aria-hidden="true"></span>${nomListe ? `<span class="nom-liste-ligne">${escapeHtml(nomListe)}</span> · ` : ''}${escapeHtml(detail)}</span>`
     + `</button>`
     + `<button type="button" class="btn-crayon" data-modifier aria-label="Modifier « ${escapeHtml(t.texte)} »"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div>`;
 }
@@ -190,24 +207,27 @@ function urgenceDe(t){ const u = Number(t && t.urgence); return u === 1 || u ===
 function renderTaches(){
   const conteneur = document.getElementById('liste-taches');
   if(!tachesChargees){ conteneur.innerHTML = lignesAttente(5); return; }
-  const id = idListeAffichee(), couleur = couleurListe(id);
-  const taches = Object.entries(state.taches).filter(([,t])=> listeDe(t) === id);
+  const id = idListeAffichee();
+  const taches = tachesVisibles();
+  const couleurDe = (t)=> couleurListe(listeDe(t));   /* lot 3 : en « Tout », chaque ligne à la couleur de sa liste */
   const aFaire = taches.filter(([,t])=> !t.fait).sort((a,b)=> urgenceDe(b[1]) - urgenceDe(a[1]) || (a[1].ordre||0) - (b[1].ordre||0));
   const faites = taches.filter(([,t])=> t.fait).sort((a,b)=> (b[1].faitLe||0) - (a[1].faitLe||0));
-  let html = '';
+  /* Lot 3 : filtre « Mes tâches » (pour moi ou pour les deux), mémorisé sur le téléphone */
+  let html = `<div class="filtre-mes-taches"><button type="button" class="filtre-chip${state.mesTaches ? ' actif' : ''}" data-mes-taches aria-pressed="${state.mesTaches}">Mes tâches</button>`
+    + `<span class="astuce-balayer">Glisse une tâche : → fait, ← supprimer</span></div>`;
   if(aFaire.length){
     html += `<div class="section-rayon"><p class="titre-rayon">À faire · ${aFaire.length}</p>`
-      + aFaire.map(([tid,t])=> ligneTache(tid, t, couleur)).join('') + '</div>';
+      + aFaire.map(([tid,t])=> ligneTache(tid, t, couleurDe(t))).join('') + '</div>';
   } else {
     html += faites.length
       ? `<div class="vide"><h2>Tout est fait 🎉</h2><p>Touche + pour ajouter une tâche.</p></div>`
-      : `<div class="vide"><h2>Rien à faire</h2><p>Touche + pour ajouter ta première tâche.</p></div>`;
+      : `<div class="vide"><h2>Rien à faire</h2><p>${state.mesTaches ? 'Rien pour toi : touche « Mes tâches » pour tout voir.' : 'Touche + pour ajouter ta première tâche.'}</p></div>`;
   }
   if(faites.length){
     html += `<div class="entete-termine">`
       + `<button type="button" class="btn-replier" data-replier aria-expanded="${state.termineOuvert}"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>Terminé · ${faites.length}</button>`
       + `<button type="button" class="btn-effacer-terminees" data-effacer>Effacer</button></div>`;
-    if(state.termineOuvert) html += faites.map(([tid,t])=> ligneTache(tid, t, couleur)).join('');
+    if(state.termineOuvert) html += faites.map(([tid,t])=> ligneTache(tid, t, couleurDe(t))).join('');
   }
   conteneur.innerHTML = html;
 }
@@ -219,8 +239,11 @@ function chipListe(id, l, actif){
 }
 function renderSelecteurListes(){
   const active = idListeAffichee();
+  const nTout = Object.values(state.taches).filter(t=> !t.fait && infoListe(listeDe(t))).length;
   document.getElementById('selecteur-listes').innerHTML =
-    listesTriees().map(([id,l])=> chipListe(id, l, id === active)).join('')
+    `<button type="button" class="liste-chip liste-chip-tout ${active === TOUT ? 'actif' : ''}" data-liste="${TOUT}" aria-pressed="${active === TOUT}">Tout`
+    + (nTout ? `<span class="liste-badge" aria-label="${nTout} à faire">${nTout}</span>` : '') + `</button>`
+    + listesTriees().map(([id,l])=> chipListe(id, l, id === active)).join('')
     + `<button type="button" class="liste-chip liste-chip-ajout" data-liste-ajout aria-label="Nouvelle liste">+</button>`;
 }
 function renderReglagesListes(){
@@ -268,20 +291,109 @@ document.getElementById('liste-taches').addEventListener('click', async (e)=>{
     return renderTaches();
   }
   if(b.hasAttribute('data-effacer')) return effacerTerminees();
+  if(b.hasAttribute('data-mes-taches')){
+    state.mesTaches = !state.mesTaches;
+    try { localStorage.setItem('todo_mes_taches', state.mesTaches ? '1' : '0'); } catch (err) {}
+    return renderTaches();
+  }
   const ligne = b.closest('.tache'); if(!ligne) return;
   const id = ligne.dataset.id, t = state.taches[id]; if(!t) return;
   if(b.hasAttribute('data-cocher')){
-    const fait = !t.fait;
-    const maj = fait ? { fait:true, faitPar: state.profil, faitLe: Date.now() } : { fait:false, faitPar:null, faitLe:null };
-    Object.assign(t, maj); render();
-    ecrire(()=> docRef(COL_TACHES, id).update(maj));
+    basculerFait(id);
   } else if(b.hasAttribute('data-modifier')){
     ouvrirModaleTache(id);
   }
 });
+/* Lot 3 (20/10/2026) : cocher / supprimer avec « Annuler » 4 s (case, balayage). */
+function basculerFait(id){
+  const t = state.taches[id]; if(!t) return;
+  const avant = { fait: !!t.fait, faitPar: t.faitPar || null, faitLe: t.faitLe || null };
+  const fait = !t.fait;
+  const maj = fait ? { fait:true, faitPar: state.profil, faitLe: Date.now() } : { fait:false, faitPar:null, faitLe:null };
+  Object.assign(t, maj); render();
+  ecrire(()=> docRef(COL_TACHES, id).update(maj));
+  toastAnnuler(fait ? 'Tâche faite' : 'Tâche remise à faire', ()=>{
+    const t2 = state.taches[id]; if(!t2) return;
+    Object.assign(t2, avant); render();
+    ecrire(()=> docRef(COL_TACHES, id).update(avant));
+  });
+}
+function supprimerTache(id){
+  const t = state.taches[id]; if(!t) return;
+  const copie = Object.assign({}, t);
+  delete state.taches[id]; render();
+  ecrire(()=> docRef(COL_TACHES, id).delete(), 'Suppression');
+  toastAnnuler('Tâche supprimée', ()=>{
+    state.taches[id] = copie; render();
+    ecrire(()=> docRef(COL_TACHES, id).set(copie), 'Restauration');
+  });
+}
+let minuteurToastAnnuler = null, actionAnnuler = null;
+function toastAnnuler(texte, annuler){
+  let el = document.getElementById('toast-annuler');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'toast-annuler'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.innerHTML = '<span class="toast-annuler-txt"></span><button type="button" class="toast-annuler-btn">Annuler</button>';
+    el.querySelector('button').addEventListener('click', ()=>{
+      const f = actionAnnuler; actionAnnuler = null;
+      clearTimeout(minuteurToastAnnuler); el.classList.remove('visible');
+      if(f) f();
+    });
+    document.body.appendChild(el);
+  }
+  el.querySelector('.toast-annuler-txt').textContent = texte;
+  actionAnnuler = annuler;
+  el.classList.add('visible');
+  clearTimeout(minuteurToastAnnuler);
+  minuteurToastAnnuler = setTimeout(()=>{ el.classList.remove('visible'); actionAnnuler = null; }, 4000);
+}
+
+/* Lot 3 : BALAYER une tâche — vers la droite = faite (ou remise à faire), vers la gauche = supprimée.
+   Le geste ne démarre que s'il est nettement horizontal (le défilement vertical reste libre,
+   touch-action: pan-y) ; seuil 80 px ; le toucher qui suit un balayage n'ouvre rien. */
+(function balayage(){
+  const zone = document.getElementById('liste-taches');
+  let g = null, aBalaye = false;
+  const SEUIL = 80;
+  zone.addEventListener('pointerdown', (e)=>{
+    const ligne = e.target.closest('.tache'); if(!ligne || g) return;
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    g = { id: e.pointerId, ligne, x: e.clientX, y: e.clientY, actif: false, dx: 0 };
+    aBalaye = false;
+  });
+  zone.addEventListener('pointermove', (e)=>{
+    if(!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    if(!g.actif){
+      if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)){ g = null; return; }   /* défilement vertical */
+      if(Math.abs(dx) < 12) return;
+      g.actif = true; aBalaye = true;
+      g.ligne.classList.add('balaye');
+      try { g.ligne.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    g.dx = dx;
+    g.ligne.style.transform = 'translateX(' + dx + 'px)';
+    g.ligne.classList.toggle('pret-droite', dx > SEUIL);
+    g.ligne.classList.toggle('pret-gauche', dx < -SEUIL);
+  });
+  const finir = (e)=>{
+    if(!g || e.pointerId !== g.id) return;
+    const { ligne, dx, actif } = g; g = null;
+    if(!actif) return;
+    ligne.classList.remove('balaye', 'pret-droite', 'pret-gauche');
+    ligne.style.transform = '';
+    const id = ligne.dataset.id;
+    if(dx > SEUIL) basculerFait(id);
+    else if(dx < -SEUIL) supprimerTache(id);
+  };
+  zone.addEventListener('pointerup', finir);
+  zone.addEventListener('pointercancel', finir);
+  zone.addEventListener('click', (e)=>{ if(aBalaye){ e.preventDefault(); e.stopPropagation(); aBalaye = false; } }, true);
+})();
+
 async function effacerTerminees(){
-  const id = idListeAffichee();
-  const faites = Object.entries(state.taches).filter(([,t])=> t.fait && listeDe(t) === id).map(([tid])=> tid);
+  const faites = tachesVisibles().filter(([,t])=> t.fait).map(([tid])=> tid);   /* lot 3 : ce qui est affiché (liste ou Tout, filtre) */
   if(!faites.length) return;
   const oui = await dialogue({ titre: faites.length > 1 ? `Effacer les ${faites.length} tâches terminées ?` : 'Effacer la tâche terminée ?', texte:'Elles disparaissent pour vous deux.', ok:'Effacer' });
   if(!oui) return;
@@ -325,7 +437,18 @@ const modalTache = document.getElementById('modal-tache');
 const champTexte = document.getElementById('modal-tache-texte');
 const selectListe = document.getElementById('modal-tache-liste');
 const choixUrgence = document.getElementById('modal-tache-urgence');
-let tacheEditionId = null, urgenceEdition = 0;
+let tacheEditionId = null, urgenceEdition = 0, pourEdition = 'tous';
+const choixPour = document.getElementById('modal-tache-pour');
+function dessinerPourEdition(){
+  choixPour.querySelectorAll('button').forEach(b=>{
+    const actif = b.dataset.pour === pourEdition;
+    b.classList.toggle('actif', actif); b.setAttribute('aria-checked', String(actif));
+  });
+}
+choixPour.addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-pour]'); if(!b) return;
+  pourEdition = b.dataset.pour; dessinerPourEdition();
+});
 function dessinerUrgenceEdition(){
   choixUrgence.querySelectorAll('button').forEach(b=>{
     const actif = Number(b.dataset.urgence) === urgenceEdition;
@@ -338,12 +461,13 @@ choixUrgence.addEventListener('click', (e)=>{
 });
 function ouvrirModaleTache(id){
   const creation = !id;
-  const t = creation ? { listeId: idListeAffichee(), texte:'' } : state.taches[id]; if(!t) return;
+  const t = creation ? { listeId: listeCible(), texte:'' } : state.taches[id]; if(!t) return;
   tacheEditionId = id || null;
   document.getElementById('modal-tache-titre').textContent = creation ? 'Nouvelle tâche' : 'Modifier la tâche';
   document.getElementById('btn-tache-supprimer').style.display = creation ? 'none' : '';
   document.getElementById('btn-tache-enregistrer').textContent = creation ? 'Ajouter' : 'Enregistrer';
   urgenceEdition = urgenceDe(t); dessinerUrgenceEdition();
+  pourEdition = creation ? 'tous' : pourDe(t); dessinerPourEdition();
   champTexte.value = t.texte || '';
   selectListe.innerHTML = listesTriees().map(([lid,l])=>
     `<option value="${escapeHtml(lid)}" ${lid === listeDe(t) ? 'selected' : ''}>${escapeHtml(l.nom || '')}</option>`).join('');
@@ -357,9 +481,10 @@ function ouvrirModaleTache(id){
 }
 function creerTache(texte){
   const nid = nouvelId(), maintenant = Date.now();
-  const lid = infoListe(selectListe.value) ? selectListe.value : idListeAffichee();
+  const lid = infoListe(selectListe.value) ? selectListe.value : listeCible();
   const nt = { listeId: lid, texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
   if(urgenceEdition) nt.urgence = urgenceEdition;
+  if(pourEdition !== 'tous') nt.pour = pourEdition;   /* lot 3 */
   state.taches[nid] = nt; render();
   ecrire(()=> docRef(COL_TACHES, nid).set(nt));
 }
@@ -389,6 +514,7 @@ document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
   const maj = {};
   if(texte !== t.texte) maj.texte = texte;
   if(urgenceEdition !== urgenceDe(t)) maj.urgence = urgenceEdition;
+  if(pourEdition !== pourDe(t)) maj.pour = pourEdition;
   if(selectListe.value !== listeDe(t) && infoListe(selectListe.value)){ maj.listeId = selectListe.value; maj.ordre = Date.now(); }
   fermerModaleTache();
   if(!Object.keys(maj).length) return;

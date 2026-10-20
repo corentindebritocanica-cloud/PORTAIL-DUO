@@ -295,3 +295,31 @@
 .choix-urgence button[data-urgence="1"].actif{ background:rgba(255,138,43,.16); border-color:#ff8a2b; color:#ff8a2b; }
 .choix-urgence button[data-urgence="2"].actif{ background:#ef4444; border-color:#ef4444; color:#fff; }
 .btn-effacer-terminees::after{content:''; position:absolute; inset:-4px -2px;}   /* zone tactile 44px (20/10/2026) */
+
+/* ---------- Lot 3 (20/10/2026) : Pour qui, Mes tâches, Tout, balayer, toast Annuler ---------- */
+.pour-tag{ display:inline-block; align-self:flex-start; width:max-content; margin:4px 6px 0 0; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; background:var(--corentin, #1f8fff); }
+.pour-tag.lisa{ background:var(--lisa, #ff3d7e); }
+.nom-liste-ligne{ color:var(--c-liste); font-weight:700; }
+.filtre-mes-taches{ display:flex; align-items:center; gap:10px; margin:2px 0 6px; }
+.filtre-chip{ min-height:36px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card-2); color:var(--text-dim); font-size:14px; font-weight:700; position:relative; }
+.filtre-chip::after{ content:''; position:absolute; inset:-4px 0; }
+.filtre-chip.actif{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.astuce-balayer{ font-size:12px; color:var(--text-dim); }
+.liste-chip-tout{ font-weight:800; }
+.tache{ touch-action:pan-y; transition:transform .2s var(--ease-out, ease), background-color .15s ease; }
+.tache.balaye{ transition:background-color .15s ease; }
+.tache.pret-droite{ background:rgba(18,185,129,.28) !important; }
+.tache.pret-gauche{ background:rgba(239,68,68,.28) !important; }
+#toast-annuler{
+  position:fixed; left:50%; z-index:9990; display:flex; align-items:center; gap:14px;
+  bottom:calc(var(--tabbar-height, 64px) + var(--add-gap, 12px) + var(--add-size, 56px) + 12px);
+  max-width:calc(100% - 32px); padding:8px 8px 8px 18px; border-radius:999px;
+  background:var(--card, #1c1c1e); color:var(--text, #fff); border:1px solid var(--border, rgba(255,255,255,.12));
+  box-shadow:0 8px 24px rgba(0,0,0,.4); font-size:14px; font-weight:600;
+  transform:translate(-50%, 140%); opacity:0; pointer-events:none;
+  transition:transform .28s var(--ease-drawer, ease), opacity .2s ease;
+}
+#toast-annuler.visible{ transform:translate(-50%, 0); opacity:1; pointer-events:auto; }
+.toast-annuler-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.toast-annuler-btn{ flex:0 0 auto; min-height:40px; padding:0 16px; border-radius:999px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; }
+@media (prefers-reduced-motion: reduce){ .tache{ transition:none; } #toast-annuler{ transition:opacity .2s ease; transform:translate(-50%, 0); } }
