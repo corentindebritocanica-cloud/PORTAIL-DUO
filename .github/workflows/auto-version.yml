@@ -32,6 +32,9 @@ on:
       - 'Todo/index.html'
       - 'Todo/style.css'
       - 'Todo/app.js'
+      - 'Danse/index.html'
+      - 'Danse/style.css'
+      - 'Danse/app.js'
       - 'verre.css'
       - 'commun.js'
   workflow_dispatch:
@@ -64,7 +67,7 @@ jobs:
           set -euo pipefail
           NOW=$(TZ=Europe/Paris date +%Y-%m-%dT%H:%M:%S%:z)
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html'
+            CHANGED=$'index.html\nBudget/index.html\nCourse/index.html\nMuscu/index.html\nTodo/index.html\nDanse/index.html'
           else
             # Audit 19-01 : diff depuis le dernier commit du robot (un run en attente annulé, ou un push de
             # plusieurs commits, ne fait plus perdre de changements) ; repli sur event.before puis HEAD~1.
@@ -80,7 +83,7 @@ jobs:
           VERRE=0; COMMUN=0
           if printf '%s\n' "$CHANGED" | grep -qxF 'verre.css'; then VERRE=1; fi
           if printf '%s\n' "$CHANGED" | grep -qxF 'commun.js'; then COMMUN=1; fi
-          for DIR in "" Budget Course Muscu Todo; do
+          for DIR in "" Budget Course Muscu Todo Danse; do
             P="${DIR:+$DIR/}"
             if ! printf '%s\n' "$CHANGED" | grep -qxF -e "${P}index.html" -e "${P}style.css" -e "${P}app.js"; then
               if [ "$VERRE" = "1" ] && grep -q 'verre\.css?v=' "${P}index.html"; then :

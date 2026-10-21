@@ -34,6 +34,9 @@ service cloud.firestore {
     match /todoListes/{id}     { allow read, write: if compteDuo(); }
     match /todoTaches/{id}     { allow read, write: if compteDuo(); }
 
+    // ---- AGENDA DANSE ---- (21/10/2026) entraînements partagés
+    match /danseEvents/{id}    { allow read, write: if compteDuo(); }
+
     // ---- BUDGET ----
     match /mois/{document=**}   { allow read, write: if compteDuo(); }
     match /config/{document=**} { allow read, write: if compteDuo(); }

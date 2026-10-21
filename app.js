@@ -297,6 +297,42 @@
       pied('to-maj', d);
     }
 
+    /* Agenda Danse (21/10/2026) : portail/danse = { maj, aVenir, prochains:[{ titre, date:'AAAA-MM-JJ', debut, fin }] }. */
+    function isoDuJour(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function afficherDanse(d){
+      const n = entier(d && d.aVenir, 0, 9999);
+      const liste = (d && Array.isArray(d.prochains) ? d.prochains : [])
+        .filter((x) => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && x.date >= isoDuJour()).slice(0, 3);   /* un entraînement passé depuis la dernière publication n'est plus montré */
+      const hh = (h) => (typeof h === 'string' && /^\d{2}:\d{2}$/.test(h)) ? Number(h.slice(0, 2)) + 'h' + (h.slice(3) === '00' ? '' : h.slice(3)) : '';
+      const quand = (x) => {
+        const [a, m, j] = x.date.split('-').map(Number);
+        const dt = new Date(a, m - 1, j), auj = new Date(); auj.setHours(0, 0, 0, 0);
+        const ecart = Math.round((dt - auj) / 864e5);
+        const jour = ecart === 0 ? "Aujourd'hui" : ecart === 1 ? 'Demain' : dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        const h = hh(x.debut) && hh(x.fin) ? hh(x.debut) + ' – ' + hh(x.fin) : hh(x.debut);
+        return jour + (h ? ' · ' + h : '');
+      };
+      const box = el('da-suivants');
+      box.textContent = '';
+      if (n === null || !liste.length) {
+        el('da-next').textContent = n === 0 ? 'Rien de prévu' : '—';
+        el('da-next-sub').textContent = '';
+        el('da-peek').textContent = n === 0 ? 'rien de prévu' : '';
+      } else {
+        el('da-next').textContent = texte(liste[0].titre, 40) || 'Entraînement';
+        el('da-next-sub').textContent = quand(liste[0]);
+        el('da-peek').textContent = quand(liste[0]).split(' · ')[0];
+        liste.slice(1).forEach((x) => {
+          const ligne = document.createElement('span'); ligne.className = 'dash-ligne';
+          const g = document.createElement('span'); g.textContent = texte(x.titre, 30) || 'Entraînement';
+          const dr = document.createElement('span'); dr.className = 'dash-ligne-m'; dr.textContent = quand(x);
+          ligne.appendChild(g); ligne.appendChild(dr); box.appendChild(ligne);
+        });
+      }
+      box.hidden = box.children.length === 0;
+      pied('da-maj', d);
+    }
+
     function afficher(){
       const j = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
       el('dash-date').textContent = j.charAt(0).toUpperCase() + j.slice(1);
@@ -304,6 +340,7 @@
       afficherBudget(resume.budget);
       afficherCourses(resume.courses);
       afficherTodo(resume.todo);
+      afficherDanse(resume.danse);
       document.querySelector('.dash').classList.toggle('chargement', !charge);   /* lot 3 : chiffres en blocs gris */
     }
 
@@ -636,9 +673,9 @@
      ============================================================ */
   (function(){
     const root = document.documentElement;
-    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses', todo: 'carte-todo' };
-    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)', todo: 'var(--v-todo)' };
-    const ordre = ['muscu', 'budget', 'courses', 'todo'];
+    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses', todo: 'carte-todo', danse: 'carte-danse' };
+    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)', todo: 'var(--v-todo)', danse: 'var(--v-danse)' };
+    const ordre = ['muscu', 'budget', 'courses', 'todo', 'danse'];   /* 5e vitre : Agenda Danse, 21/10/2026 */
     const carte = (k) => document.getElementById(cartes[k]);
     /* Ordre de la pile, de devant (0) au fond. Mémorisé (portail-verre-pile) ; repli sur
        l'ancienne clé portail-verre-devant (1re version du 28/09). 11/10/2026 : un ordre mémorisé

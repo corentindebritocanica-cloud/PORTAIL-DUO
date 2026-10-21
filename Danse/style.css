@@ -1,0 +1,358 @@
+/* style.css — Agenda Danse (21/10/2026). Copie de Todo/style.css (elle-même reprise de Course) :
+   mêmes jetons et mêmes classes, ../verre.css habille Danse comme Course et Todo. Ajouts propres
+   à l'agenda en fin de fichier (« AGENDA DANSE »). */
+  :root{
+    --corentin:#1f8fff; --corentin-rgb:31,143,255; --corentin-dark:#1a5fc4;
+    --lisa:#ff3d7e; --lisa-rgb:255,61,126; --lisa-dark:#c4225f;
+    --accent: var(--corentin); --accent-rgb: var(--corentin-rgb); --accent-dark: var(--corentin-dark);
+    --accent-soft: rgba(var(--accent-rgb), 0.14);
+
+    --bg:#0d1014; --card:#161b22; --card-2:#1e2530;
+    --text:#e9eff6; --text-dim:#8a97a8;
+    --border:rgba(255,255,255,0.09); --border-strong:rgba(255,255,255,0.17);
+    --danger:#ef4444; --done:#12b981;
+
+    --r-xs:4px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px; --r-pill:999px;
+    --shadow-sm: 0 6px 16px rgba(0,0,0,0.30);
+    --shadow: 0 14px 32px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.28);
+    --shadow-lg: 0 -8px 40px rgba(0,0,0,0.5);
+    --t-fast:.15s; --t-mid:.22s;
+    --glass-bar: rgba(19,24,31,0.86);
+    --glass-modal: rgba(22,27,34,0.95);
+
+    --safe-top:calc(env(safe-area-inset-top) + 16px);
+    --safe-bottom:env(safe-area-inset-bottom);
+    /* Barre flottante : même distance au bord que Course et Budget (~22 pt, hors zone Siri). */
+    --nav-offset:max(20px, calc(env(safe-area-inset-bottom) - 12px));
+    --add-size:56px; --add-gap:12px;
+    --tabbar-height:calc(62px + var(--nav-offset));
+  }
+  :root[data-profil="Lisa"]{
+    --accent: var(--lisa); --accent-rgb: var(--lisa-rgb); --accent-dark: var(--lisa-dark);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; min-height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Roboto","Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none;}
+  button{font-family:inherit; cursor:pointer;}
+  /* Page qui DÉFILE elle-même (leçon Course du 28/09/2026, « bande noire du bas ») : jamais de
+     #app en position:fixed avec <main> qui défile à l'intérieur. Barres en position:fixed. */
+  body{min-height:100vh;}
+  #app{position:relative; min-height:100vh; display:flex; flex-direction:column;}
+  header.topbar{
+    padding: calc(14px + var(--safe-top)) 18px 14px;
+    background:var(--card); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:flex-start; flex-shrink:0;
+  }
+  header.topbar h1{margin:0; font-size:24px; color:var(--accent);}
+  main{flex:1 0 auto; padding-bottom:24px; position:relative;}
+  section.vue{display:none;}
+  section.vue.actif{display:block;}
+
+  /* Pastilles de listes (repris de Course) : zone tactile 44 px via ::after */
+  .selecteur-listes{
+    display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; flex-shrink:0;
+    padding:2px 18px 14px; scrollbar-width:none; overscroll-behavior-x:contain;
+  }
+  .selecteur-listes::-webkit-scrollbar{display:none;}
+  #app[data-onglet="parametres"] .selecteur-listes{display:none;}
+  .liste-chip{
+    position:relative; flex-shrink:0; display:inline-flex; align-items:center; gap:7px;
+    min-height:44px; padding:0 16px; border-radius:var(--r-pill);
+    border:1px solid var(--border); background:var(--card); color:var(--text-dim);
+    font-family:inherit; font-size:14px; font-weight:600; white-space:nowrap;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) var(--ease-out);
+  }
+  .liste-chip:active{transform:scale(0.97);}
+  .liste-chip.actif{background:var(--accent-soft); border-color:var(--c-liste, var(--accent)); color:var(--text);}
+  .liste-pastille{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c-liste, var(--accent));}
+  .liste-pastille-grande{width:14px; height:14px;}
+  .liste-chip-ajout{width:40px; padding:0; justify-content:center; font-size:22px; font-weight:400; line-height:1;}
+  .liste-badge{
+    min-width:20px; height:20px; padding:0 6px; border-radius:var(--r-pill);
+    background:var(--c-liste, var(--accent)); color:#fff; font-size:11.5px; font-weight:700;
+    text-shadow:0 1px 1px rgba(0,0,0,.25);
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .ligne-liste{
+    width:100%; display:flex; align-items:center; gap:12px; min-height:56px; padding:8px 0;
+    background:none; border:none; border-bottom:1px solid var(--border); color:var(--text);
+    font-family:inherit; text-align:left;
+  }
+  .ligne-liste .nom-produit, .ligne-liste .rayon-produit{display:block;}
+  .ligne-liste:active{opacity:.7;}
+  .btn-nouvelle-liste{margin-top:14px;}
+  .couleurs-liste{display:flex; flex-wrap:wrap; gap:10px;}
+  .couleur-choix{
+    width:44px; height:44px; padding:0; border-radius:50%; border:none; background:var(--c-liste);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
+    transition:transform var(--t-fast) var(--ease-out);
+  }
+  .couleur-choix:active{transform:scale(0.94);}
+  .couleur-choix.choisie{outline:2.5px solid var(--text); outline-offset:3px;}
+  .modal-erreur{min-height:18px; margin:-6px 0 0; font-size:13px; color:var(--danger);}
+
+  /* Champ d'ajout rapide : même composant que la barre de recherche de Course (.searchbar) */
+  .searchbar{
+    margin:14px 18px 4px; display:flex; align-items:center; gap:8px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm);
+    min-height:44px; padding:4px 6px 4px 14px;
+  }
+  .searchbar input{flex:1; min-width:0; border:none; background:none; color:var(--text); font-size:16px; outline:none; padding:8px 0;}
+  .searchbar input::placeholder{color:var(--text-dim);}
+  .ajout-plus{font-size:22px; line-height:1; color:var(--c-liste, var(--accent)); font-weight:400;}
+  /* Bouton d'envoi : 34 px visuels, zone tactile 44 px (::after). Visible seulement si du texte est saisi. */
+  .btn-ajouter{
+    position:relative; flex-shrink:0; width:34px; height:34px; padding:0; border:none; border-radius:50%;
+    background:var(--c-liste, var(--accent)); color:#fff;
+    display:none; align-items:center; justify-content:center;
+    transition:transform var(--t-fast) var(--ease-out);
+  }
+  .btn-ajouter::after{content:''; position:absolute; inset:-5px;}
+  .btn-ajouter:active{transform:scale(0.92);}
+  .btn-ajouter svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;}
+  #form-ajout.rempli .btn-ajouter{display:flex;}
+
+  .liste{padding: 6px 18px calc(var(--tabbar-height) + var(--add-gap) + var(--add-size) + 16px);}
+  .section-rayon{margin-top:22px;}
+  .titre-rayon{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim); margin:0 0 8px 4px;}
+  /* Une tâche = une ligne (classes de Course : .carte-produit, .case, .nom-produit) */
+  .carte-produit{
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg);
+    padding:10px 12px 10px 14px; margin-bottom:10px;
+    box-shadow: var(--shadow-sm);
+  }
+  /* Case : 30 px visuels, zone tactile 44 px. Action la plus répétée (charte §11.2) : retour :active immédiat. */
+  .case{
+    position:relative; padding:0;
+    flex-shrink:0; width:30px; height:30px; border-radius:var(--r-sm); border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center; background:var(--card-2);
+  }
+  .case::after{content:''; position:absolute; inset:-8px;}   /* 28 px (verre) + 2×8 = 44 px de zone tactile */
+  .case.checked{ background:var(--c-liste, var(--accent)); border-color:var(--c-liste, var(--accent)); }
+  .case.case-liste:not(.checked){ border-color:var(--c-liste, var(--border)); }
+  .case:active{ transform:scale(0.94); }
+  .case svg{width:16px; height:16px; stroke:white; fill:none; stroke-width:3; display:none;}
+  .case.checked svg{display:block;}
+  /* Zone texte : bouton pleine hauteur (touche = modifier), au moins 44 px */
+  .infos-produit{flex:1; min-width:0;}
+  button.infos-produit{
+    min-height:44px; padding:4px 0; border:none; background:none; color:inherit; text-align:left;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  button.infos-produit:active{opacity:.6;}
+  .nom-produit{font-size:16px; font-weight:600; margin:0; overflow-wrap:anywhere; white-space:pre-wrap;}
+  .nom-produit.achete{ text-decoration:line-through; color:var(--text-dim); }
+  .rayon-produit{font-size:12px; color:var(--text-dim); margin:2px 0 0;}
+  .carte-produit.achete-carte{opacity:0.55;}
+  /* Auteur de la tâche : petit point bleu (Corentin) ou rose (Lisa) devant la date */
+  .auteur{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; vertical-align:1px;}
+  .auteur.corentin{background:var(--corentin);} .auteur.lisa{background:var(--lisa);}
+  /* Tâche ajoutée par l'autre depuis ta dernière visite : point « nouveau » (couleur de la liste) */
+  .nouvelle-pastille{display:inline-block; margin-left:8px; padding:1px 7px; border-radius:var(--r-pill); font-size:10.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; vertical-align:2px; color:#fff; background:var(--c-liste, var(--accent));}
+
+  /* Section Terminé : en-tête repliable + bouton Effacer */
+  .entete-termine{display:flex; align-items:center; gap:8px; margin:26px 0 8px;}
+  .btn-replier{
+    flex:1; min-height:44px; display:flex; align-items:center; gap:8px; padding:0 4px; border:none; background:none;
+    color:var(--text-dim); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.9px; text-align:left;
+  }
+  .btn-replier svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2.6; transition:transform var(--t-mid) var(--ease-out);}
+  .btn-replier[aria-expanded="true"] svg{transform:rotate(90deg);}
+  .btn-effacer-terminees{
+    min-height:36px; padding:0 14px; border-radius:var(--r-pill); border:1px solid var(--border);
+    background:var(--card-2); color:var(--danger); font-size:13px; font-weight:700; position:relative;
+  }
+  .btn-effacer-terminees::after{content:''; position:absolute; inset:-4px 0;}
+  .btn-effacer-terminees:active{transform:scale(0.97);}
+
+  .vide{ text-align:center; padding:48px 30px 20px; color:var(--text-dim); }
+  .vide h2{color:var(--text); font-size:20px; margin-bottom:8px;}
+  .vide p{margin:0; line-height:1.45;}
+
+  /* Réglages */
+  .params{padding:20px 18px calc(var(--tabbar-height) + 24px);}
+  .bloc-param{background:var(--card); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; margin-bottom:18px; box-shadow: var(--shadow-sm);}
+  .bloc-param h3{margin:0 0 12px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.9px; color:var(--text-dim);}
+  .param-desc{margin:-4px 0 12px; font-size:13px; line-height:1.4; color:var(--text-dim);}
+  .profile-switch{display:flex; gap:8px; padding:5px; margin-top:2px; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md);}
+  .profile-switch-btn{flex:1; min-height:44px; padding:11px 8px; border-radius:var(--r-sm); border:1px solid transparent; background:transparent; color:var(--text-dim); font-size:14.5px; font-weight:700; font-family:inherit;}
+  .profile-switch-btn.corentin.selected{background:rgba(31,143,255,0.14); border-color:var(--corentin); color:var(--corentin);}
+  .profile-switch-btn.lisa.selected{background:rgba(255,61,126,0.14); border-color:var(--lisa); color:var(--lisa);}
+  .btn-large{
+    width:100%; min-height:48px; padding:14px; border-radius:var(--r-md); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:15px; font-weight:700;
+    transition:transform var(--t-fast) var(--ease-out);
+  }
+  .btn-large:active{transform:scale(0.97);}
+  .derniere-maj{margin:14px 0 0; font-size:12px; color:var(--text-dim); text-align:center;}
+
+  /* Barre d'onglets flottante « pilule » + bouton rond (charte §5.5b), comme Course */
+  .tabbar-flottante{
+    position:fixed; left:14px; right:14px; z-index:30;
+    bottom:var(--nav-offset);
+    display:flex; align-items:center; gap:10px;
+    pointer-events:none;
+  }
+  nav.tabbar, .nav-add{
+    pointer-events:auto;
+    background:var(--glass-bar);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border:1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  nav.tabbar{
+    flex:1; min-width:0; display:flex; gap:4px; height:62px; padding:5px;
+    border-radius:var(--r-pill);
+  }
+  nav.tabbar button{
+    flex:1; min-width:0; padding:0; border:none; background:transparent; color:var(--text-dim);
+    border-radius:var(--r-pill);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:inherit; font-size:11px; font-weight:600;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform var(--t-fast) var(--ease-out);
+  }
+  nav.tabbar button:active{transform:scale(0.97);}
+  nav.tabbar button.actif{color:var(--accent); background:var(--accent-soft);}
+  nav.tabbar button svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .nav-add{
+    position:absolute; right:0; bottom:calc(100% + var(--add-gap));
+    width:var(--add-size); height:var(--add-size); padding:0; border-radius:50%;
+    color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform var(--t-fast) var(--ease-out);
+  }
+  .nav-add:active{transform:scale(0.94);}
+  .nav-add svg{width:26px; height:26px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
+  #app:not([data-onglet="agenda"]) .nav-add{display:none;}
+
+  /* Fenêtres (bottom-sheet, charte §5.9) */
+  .modal-fond{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100;
+    display:flex; align-items:flex-end; justify-content:center;
+    animation:fondIn .22s var(--ease-out);
+  }
+  .modal-carte{
+    width:100%; max-width:520px; background:var(--glass-modal);
+    -webkit-backdrop-filter:blur(20px) saturate(160%); backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid var(--border); border-bottom:none; border-radius:var(--r-xl) var(--r-xl) 0 0;
+    padding:22px 20px calc(22px + var(--safe-bottom)); max-height:80vh; overflow-y:auto;
+    box-shadow: var(--shadow-lg);
+    animation:feuilleIn .28s var(--ease-drawer);
+  }
+  @keyframes fondIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes feuilleIn{ from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+  #dialogue{z-index:110;}
+  .dialogue-texte{margin:-8px 0 4px; font-size:14px; line-height:1.45; color:var(--text-dim);}
+  .modal-carte h2{margin:0 0 18px; font-size:19px;}
+  .champ{margin-bottom:16px;}
+  .champ label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
+  .champ input, .champ select, .champ textarea{
+    width:100%; min-height:48px; padding:12px 14px; border-radius:var(--r-sm); border:1px solid var(--border);
+    background:var(--card-2); color:var(--text); font-size:16px; font-family:inherit;
+  }
+  .champ textarea{resize:none; line-height:1.4;}
+  .modal-info{margin:-4px 0 0; font-size:12.5px; color:var(--text-dim);}
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+  .modal-actions button{flex:1; min-height:48px; padding:14px; border-radius:var(--r-md); border:none; font-size:15px; font-weight:700; transition:transform var(--t-fast) var(--ease-out);}
+  .modal-actions button:active{transform:scale(0.97);}
+  .btn-annuler{background:var(--card-2); color:var(--text); border:1px solid var(--border) !important;}
+  .btn-danger{background:var(--danger); color:#fff;}
+  .btn-enregistrer{background:var(--accent); color:white;}
+  .btn-supprimer{background:none; color:var(--danger); border:none; width:100%; min-height:44px; text-align:center; margin-top:6px; padding:10px; font-size:14px; font-weight:600;}
+
+  /* Accessibilité — mouvement réduit (charte §11.9) */
+  @media (prefers-reduced-motion: reduce){
+    /* « Réduit ≠ zéro » (12/10/2026, skills Emil Kowalski) : plus aucun déplacement ni agrandissement
+       animé, mais les fondus et changements de couleur restent (ils aident à comprendre). Avant :
+       toutes les durées à 0 s. Les halos et la transition « vitre » sont gérés par verre.css. */
+    *, *::before, *::after{ transition-property:opacity, color, background-color, border-color, box-shadow !important; }
+    .modal-carte{ animation-name:fondIn !important; }
+  }
+  /* Champ actif : bordure à l'accent du profil au lieu de l'anneau de focus du navigateur */
+  .champ input:focus, .champ select:focus, .champ textarea:focus{outline:none; border-color:var(--accent);}
+
+/* Crayon de modification d'une tâche (12/10/2026) */
+:is(.tache, .evt) .btn-crayon{ flex:none; width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:none; border:0; color:var(--muted,#8a8f98); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+:is(.tache, .evt) .btn-crayon svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Urgence (12/10/2026) : drapeau dans la barre d'ajout, pastille sur la ligne, choix dans la fenêtre de modification */
+.btn-flag{ position:relative; flex:none; width:34px; height:34px; padding:0; border:0; border-radius:50%; background:none; color:var(--text-dim); display:flex; align-items:center; justify-content:center; transition:color var(--t-fast) ease, transform var(--t-fast) var(--ease-out); }
+.btn-flag::after{ content:''; position:absolute; inset:-5px; }
+.btn-flag:active{ transform:scale(.92); }
+.btn-flag svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.btn-flag[data-urgence="1"]{ color:#ff8a2b; }
+.btn-flag[data-urgence="2"]{ color:#ef4444; }
+.btn-flag:not([data-urgence="0"]) svg{ fill:currentColor; }
+.urgence{ display:inline-block; align-self:flex-start; margin-top:4px; padding:1px 9px; border-radius:var(--r-pill); font-size:11px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; }
+.urgence.u1{ color:#ff8a2b; background:rgba(255,138,43,.16); }
+.urgence.u2{ color:#fff; background:#ef4444; box-shadow:0 0 10px rgba(239,68,68,.45); }
+.choix-urgence{ display:flex; gap:6px; padding:4px; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md); }
+.choix-urgence button{ flex:1; min-width:0; min-height:44px; padding:0 4px; border:1px solid transparent; border-radius:var(--r-sm); background:transparent; color:var(--text-dim); font-size:14px; font-weight:700; }
+.choix-urgence button.actif{ background:var(--accent-soft); border-color:var(--accent); color:var(--text); }
+.choix-urgence button[data-urgence="1"].actif{ background:rgba(255,138,43,.16); border-color:#ff8a2b; color:#ff8a2b; }
+.choix-urgence button[data-urgence="2"].actif{ background:#ef4444; border-color:#ef4444; color:#fff; }
+.btn-effacer-terminees::after{content:''; position:absolute; inset:-4px -2px;}   /* zone tactile 44px (20/10/2026) */
+
+/* ---------- Lot 3 (20/10/2026) : Pour qui, Mes tâches, Tout, balayer, toast Annuler ---------- */
+.pour-tag{ display:inline-block; align-self:flex-start; width:max-content; margin:4px 6px 0 0; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; background:var(--corentin, #1f8fff); }
+.pour-tag.lisa{ background:var(--lisa, #ff3d7e); }
+.nom-liste-ligne{ color:var(--c-liste); font-weight:700; }
+.filtre-mes-taches{ display:flex; align-items:center; gap:10px; margin:2px 0 6px; }
+.filtre-chip{ min-height:36px; padding:0 14px; border-radius:999px; border:1px solid var(--border); background:var(--card-2); color:var(--text-dim); font-size:14px; font-weight:700; position:relative; }
+.filtre-chip::after{ content:''; position:absolute; inset:-4px 0; }
+.filtre-chip.actif{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.astuce-balayer{ font-size:12px; color:var(--text-dim); }
+.liste-chip-tout{ font-weight:800; }
+.tache{ touch-action:pan-y; transition:transform .2s var(--ease-out, ease), background-color .15s ease; }
+.tache.balaye{ transition:background-color .15s ease; }
+.tache.pret-droite{ background:rgba(18,185,129,.28) !important; }
+.tache.pret-gauche{ background:rgba(239,68,68,.28) !important; }
+#toast-annuler{
+  position:fixed; left:50%; z-index:9990; display:flex; align-items:center; gap:14px;
+  bottom:calc(var(--tabbar-height, 64px) + var(--add-gap, 12px) + var(--add-size, 56px) + 12px);
+  max-width:calc(100% - 32px); padding:8px 8px 8px 18px; border-radius:999px;
+  background:var(--card, #1c1c1e); color:var(--text, #fff); border:1px solid var(--border, rgba(255,255,255,.12));
+  box-shadow:0 8px 24px rgba(0,0,0,.4); font-size:14px; font-weight:600;
+  transform:translate(-50%, 140%); opacity:0; pointer-events:none;
+  transition:transform .28s var(--ease-drawer, ease), opacity .2s ease;
+}
+#toast-annuler.visible{ transform:translate(-50%, 0); opacity:1; pointer-events:auto; }
+.toast-annuler-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.toast-annuler-btn{ flex:0 0 auto; min-height:40px; padding:0 16px; border-radius:999px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; }
+@media (prefers-reduced-motion: reduce){ .tache{ transition:none; } #toast-annuler{ transition:opacity .2s ease; transform:translate(-50%, 0); } }
+
+/* ==========================================================================
+   AGENDA DANSE (21/10/2026) — ajouts propres à l'app (le reste vient de Todo / Course)
+   ========================================================================== */
+:root{ --danse:#f43f5e; }
+/* Une ligne = un entraînement : bloc date à gauche (jour + numéro), texte, crayon. */
+.evt{ --c-liste:var(--danse); }
+.evt-date{
+  flex-shrink:0; width:46px; min-height:46px; border-radius:var(--r-md);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--danse) 16%, transparent); border:1px solid color-mix(in srgb, var(--danse) 45%, transparent);
+}
+.evt-jour{ font-size:10.5px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; color:var(--danse); line-height:1.1; }
+.evt-num{ font-size:19px; font-weight:700; line-height:1.15; color:var(--text); }
+.evt-note{ font-size:12.5px; color:var(--text-dim); margin-top:3px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.evt-auj .evt-date{ background:var(--danse); border-color:var(--danse); }
+.evt-auj .evt-jour, .evt-auj .evt-num{ color:#fff; }
+.evt-auj-tag{ display:inline-block; margin-left:8px; padding:1px 7px; border-radius:var(--r-pill); font-size:10.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; vertical-align:2px; color:#fff; background:var(--danse); }
+.evt-passe{ opacity:.55; }
+.evt-passe .evt-date{ background:var(--card-2); border-color:var(--border); }
+.evt-passe .evt-jour{ color:var(--text-dim); }
+/* Heures de début et de fin côte à côte. */
+.champs-heures{ display:flex; gap:10px; }
+.champs-heures .champ{ flex:1; min-width:0; }
+/* Champs date / heure iOS : valeur alignée à gauche, même hauteur que les autres champs. */
+.champ input[type="date"], .champ input[type="time"]{ -webkit-appearance:none; appearance:none; text-align:left; display:block; }
+.champ input::-webkit-date-and-time-value{ text-align:left; }
+/* Bouton « Agenda Apple » (21/10/2026) : sur chaque ligne (à côté du crayon) et dans la fenêtre. */
+.btn-ical{ flex-shrink:0; width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--card-2); color:var(--danse); display:flex; align-items:center; justify-content:center; padding:0; }
+.btn-ical svg{ width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.btn-ical:active{ transform:scale(.94); }
+.btn-ical-large{ display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; margin-top:12px; border-radius:var(--r-pill); border:1px solid color-mix(in srgb, var(--danse) 55%, transparent); background:color-mix(in srgb, var(--danse) 14%, transparent); color:var(--text); font-size:15px; font-weight:700; }
+.btn-ical-large svg{ width:18px; height:18px; stroke:var(--danse); fill:none; stroke-width:2.2; stroke-linecap:round; }

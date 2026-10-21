@@ -35,6 +35,8 @@
     --green-dark:#0d8f64;
     --violet:#a855f7;    /* Todo (11/10/2026) */
     --violet-dark:#7e3bc4;
+    --rouge:#f43f5e;     /* Agenda Danse (21/10/2026) */
+    --rouge-dark:#be123c;
     --danger:#ef4444;    /* reste à vivre négatif */
 
     --r-xs:4px;
@@ -180,6 +182,7 @@
   .dash-card.gold .choice-icon{ background:linear-gradient(150deg, var(--gold), var(--gold-dark)); }
   .dash-card.green .choice-icon{ background:linear-gradient(150deg, var(--green), var(--green-dark)); }
   .dash-card.violet .choice-icon{ background:linear-gradient(150deg, var(--violet), var(--violet-dark)); }
+  .dash-card.rouge .choice-icon{ background:linear-gradient(150deg, var(--rouge), var(--rouge-dark)); }
   #to-chips .chip-n{ background:var(--c-liste, var(--violet)); color:#fff; }
 
   .choice-icon{

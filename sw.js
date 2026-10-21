@@ -178,9 +178,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   // On ne gère que les requêtes de même origine, à la racine du portail
-  // (jamais /Muscu/, /Budget/, /Course/, /Todo/, ni les requêtes cross-origin type Firebase)
-  // ⚠️ Toute nouvelle app = son dossier ajouté ici (Todo, 11/10/2026), sinon CE service worker intercepte ses fichiers.
-  const isSubApp = /\/(Muscu|Budget|Course|Todo)\//.test(url.pathname);
+  // (jamais /Muscu/, /Budget/, /Course/, /Todo/, /Danse/, ni les requêtes cross-origin type Firebase)
+  // ⚠️ Toute nouvelle app = son dossier ajouté ici (Todo, 11/10/2026 ; Danse, 21/10/2026), sinon CE service worker intercepte ses fichiers.
+  const isSubApp = /\/(Muscu|Budget|Course|Todo|Danse)\//.test(url.pathname);
   if (url.origin !== self.location.origin || isSubApp) {
     return;
   }

@@ -292,13 +292,15 @@
       viderFileNotif(keepalive);
     });
   }
+  /* 21/10/2026 (Agenda Danse) : msg.tous = true → profil vide envoyé au relais, qui sert alors TOUS les
+     téléphones abonnés (les deux profils, y compris celui qui fait la modification). */
   window.notifierDuo = function(msg){
     try {
       if (!msg || !msg.titre || !RELAIS_NOTIF) return;   /* relais pas encore déployé : rien à faire */
       var f = lireFileNotif();
       f.push({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), cree: Date.now(),
-        profil: profilNotif(), titre: String(msg.titre).slice(0, 60), corps: String(msg.corps || '').slice(0, 180),
+        profil: msg.tous ? '' : profilNotif(), titre: String(msg.titre).slice(0, 60), corps: String(msg.corps || '').slice(0, 180),
         url: msg.url || './', tag: msg.tag || ''
       });
       ecrireFileNotif(f.slice(-FILE_NOTIF_MAX));

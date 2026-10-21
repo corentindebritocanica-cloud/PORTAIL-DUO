@@ -54,7 +54,8 @@ PORTAIL-DUO/
 ├── Muscu/   ← Duo Training : index.html, style.css, app.js, sw.js, README.md, apple-touch-icon.png
 ├── Budget/  ← Budget L&C : index.html, style.css, app.js, sw.js, manifest.json, icone.PNG, README.md
 ├── Course/  ← Courses L&C : index.html, style.css, app.js, sw.js, manifest.json, README.md
-└── Todo/    ← Todo (11/10/2026) : index.html, style.css, app.js, sw.js, manifest.json, icônes, README.md
+├── Todo/    ← Todo (11/10/2026) : index.html, style.css, app.js, sw.js, manifest.json, icônes, README.md
+└── Danse/   ← Agenda Danse (21/10/2026) : index.html, style.css, app.js, sw.js, manifest.json, icônes, README.md
 ```
 
 Les 3 sous-dossiers répondent bien en HTTP 200 et contiennent les bonnes apps
@@ -1051,3 +1052,15 @@ Audit à 20 relecteurs + 5 vérificateurs (détail par app dans chaque README). 
 - **19-01 / 19-03** (`.github/workflows/auto-version.yml`) : diff calculé depuis le dernier commit du robot (un run en attente annulé est rattrapé) ; workflow limité à `main`.
 - **Non fait** : 20-02 (versions du SDK Firebase différentes : Budget 10.8.1, Course / Todo / Portail 10.12.2, Muscu 12.18.0, même cache IndexedDB) — à tester sur iPhone avant d'aligner ; 18-02 (relais Apps Script : compteur global avant vérification du jeton) — compromis déjà documenté.
 - **Non vérifié sur iPhone.**
+
+## Agenda Danse — 5e app (21/10/2026)
+
+**Demande de Corentin** : un agenda des entraînements de danse partagé, tout en base, avec une notification à **tous** les téléphones à chaque changement, et un bouton pour l'ajouter à l'agenda Apple. Détails : `Danse/README.md`.
+
+- **Portail** : 5e vitre `#carte-danse` (classe `rouge`, lumière `--v-danse` #f43f5e, lien `./Danse/`, « + » → `./Danse/?saisie=evt`) — « Prochain entraînement » + date/heures + les 2 suivants. Lit `portail/danse` (même écoute `portail`, aucune lecture en plus). Les entraînements dont la date est passée sont masqués côté Portail même si l'app n'a pas republié.
+- **Pile à 5 vitres** (`verre.css`) : marche de 66 px conservée, `--dy` de devant 264 px, `padding-bottom` 264 px, rang 4 ajouté (opacité / luminosité en Sombre et Clair). `app.js` : `danse` dans `cartes`, `teintes`, `ordre` (un ordre mémorisé à 4 vitres est complété, Danse au fond).
+- **`verre.css`** : Danse habillé par les règles de Course et Todo (`:is(course, todo, danse)`, 72 sélecteurs) + `.champ textarea`.
+- **`commun.js` › `notifierDuo({ …, tous:true })`** : profil vide envoyé au relais → **tous** les téléphones abonnés (avant : seulement l'autre profil). Aucun changement pour les autres apps.
+- **`outils/Notifications.gs`** : `Danse` ajouté à la liste des liens autorisés. ⚠️ À recoller dans Apps Script puis **Déployer › Gérer les déploiements › Nouvelle version** ; tant que ce n'est pas fait, toucher la notification ouvre le Portail au lieu de Danse (l'envoi, lui, fonctionne déjà).
+- **`sw.js` (racine)** : `/Danse/` dans `isSubApp`. **Workflow auto-version** : `Danse/…` surveillé, dans la boucle et le lancement manuel.
+- **`firestore.rules`** : `danseEvents` en `compteDuo()` — **publiées le 21/10/2026** par l'API Firebase Rules (ruleset 7a883582…). Vérifié en direct : sans session → 403 ; l'API de test des règles (projects:test) refuse le compte de service (403), test complet à l'émulateur non fait.

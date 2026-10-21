@@ -136,6 +136,27 @@
           <span class="chips" id="to-chips"></span>
         </span>
       </a>
+
+      <!-- Agenda Danse (21/10/2026) : 5e vitre de la pile. Chiffres de portail/danse (écrit par l'app Danse). -->
+      <a class="dash-card rouge" href="./Danse/" id="carte-danse">
+        <span class="dash-top">
+          <span class="choice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></span>
+          <span class="choice-text">
+            <span class="choice-label">Danse</span>
+            <span class="choice-desc dash-maj" id="da-maj"></span>
+          </span>
+          <span class="verre-peek verre-seul" id="da-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Danse/?saisie=evt" aria-label="Ajouter un entraînement">+</span>
+          <span class="choice-chev">›</span>
+        </span>
+        <span class="dash-body">
+          <span class="dash-label">Prochain entraînement</span>
+          <span class="dash-value" id="da-next">—</span>
+          <span class="dash-sub" id="da-next-sub"></span>
+          <span class="dash-sep"></span>
+          <span class="dash-lignes" id="da-suivants" hidden></span>
+        </span>
+      </a>
     </div>
 
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->

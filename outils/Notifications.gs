@@ -168,7 +168,7 @@ function notifNettoyer_(q) {
   var texte = function (x, max) { return (typeof x === 'string' ? x : '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max); };
   var titre = texte(q.titre, 60);
   if (!titre) throw new Error('titre absent');
-  var url = /^\.\/((Budget|Course|Muscu|Todo)\/)?$/.test(q.url) ? q.url : './';
+  var url = /^\.\/((Budget|Course|Muscu|Todo|Danse)\/)?$/.test(q.url) ? q.url : './';   // Danse : 21/10/2026
   var tag = /^[a-z0-9-]{1,40}$/.test(q.tag || '') ? q.tag : '';
   var profil = NOTIF_CFG.profils.indexOf(q.profil) >= 0 ? q.profil : '';
   return { titre: titre, corps: texte(q.corps, 180), url: url, tag: tag, profil: profil };
