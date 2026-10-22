@@ -105,13 +105,20 @@
       <label for="evt-titre">Titre</label>
       <input type="text" id="evt-titre" placeholder="Ex : Entraînement Angelina" maxlength="80" enterkeyhint="done" autocapitalize="sentences">
     </div>
-    <div class="champ">
-      <label for="evt-date">Date</label>
-      <input type="date" id="evt-date">
+    <!-- Plusieurs jours (22/10/2026) : « Jusqu'au » facultatif (stage du vendredi au dimanche…). -->
+    <div class="champs-heures">
+      <div class="champ">
+        <label for="evt-date">Date</label>
+        <input type="date" id="evt-date">
+      </div>
+      <div class="champ">
+        <label for="evt-datefin">Jusqu'au (facult.)</label>
+        <input type="date" id="evt-datefin">
+      </div>
     </div>
     <div class="champs-heures">
       <div class="champ">
-        <label for="evt-debut">Début</label>
+        <label for="evt-debut">Début (chaque jour)</label>
         <input type="time" id="evt-debut" step="300">
       </div>
       <div class="champ">

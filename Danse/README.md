@@ -31,8 +31,8 @@ URL : `…/PORTAIL-DUO/Danse/`
 
 | Collection | Document |
 |---|---|
-| `danseEvents/{id}` | `{ titre, date:'AAAA-MM-JJ', debut:'HH:MM', fin:'HH:MM', lieu, note, creePar, creeLe, majPar, majLe }` — heures murales, sans fuseau ; `creePar`/`majPar` = `'corentin'` \| `'lisa'`, dates en ms |
-| `portail/danse` | `{ maj, aVenir, prochains:[{ titre, date, debut, fin }] }` (3 max) |
+| `danseEvents/{id}` | `{ titre, date:'AAAA-MM-JJ', dateFin?:'AAAA-MM-JJ', debut:'HH:MM', fin:'HH:MM', lieu, note, creePar, creeLe, majPar, majLe }` — heures murales, sans fuseau ; `creePar`/`majPar` = `'corentin'` \| `'lisa'`, dates en ms |
+| `portail/danse` | `{ maj, aVenir, prochains:[{ titre, date, dateFin, debut, fin }] }` (3 max) |
 
 - **1 seule écoute `onSnapshot`** (`danseEvents`). Aperçu local `danse_apercu_v1` (affichage seulement, jamais réécrit en base), écritures différées au 1er instantané, ids créés sur le téléphone : fonctionne hors ligne.
 - Textes toujours échappés (`escapeHtml`). Règles : `danseEvents` en `compteDuo()`, publiées le 21/10/2026.
@@ -44,3 +44,12 @@ URL : `…/PORTAIL-DUO/Danse/`
 Demande de Corentin : agenda Danse dans le Portail, tout en base, notification à tous les téléphones à chaque mise à jour, puis bouton « agenda Apple » avec le titre « Corentin à <nom> ».
 Architecture de Todo (copie de `sw.js` et `style.css`). Notifications : infrastructure existante (relais Apps Script + FCM), pas de Cloud Function ni de plan Blaze ; seule nouveauté `tous:true` dans `commun.js`.
 **Vérifié** (Chromium 393×852, Firebase simulé) : affichage des 2 entraînements, ajout → document écrit, `portail/danse` publié, demande de notification avec profil vide (= tous), contenu du `.ics`, 5e vitre du Portail. **Non vérifié sur iPhone** : réception réelle des notifications, aperçu « Ajouter au calendrier » d'iOS depuis l'app écran d'accueil.
+
+### Plusieurs jours (22/10/2026)
+Demande de Corentin : prévoir un entraînement du vendredi au dimanche.
+- Champ facultatif **« Jusqu'au »** (`dateFin`, absent ou vide = un seul jour ; refusé s'il est avant la date de début). Les horaires valent pour **chaque jour** (libellé « Début (chaque jour) »).
+- Ligne : bloc date « VEN 13 → 15 », détail « ven. 13 → dim. 15 nov. (3 j) · 10h – 17h chaque jour ». « Aujourd'hui » pendant tout le stage ; passe dans « Passés » après la fin du dernier jour (`dernierJour`, `finMs`).
+- Notification : « … · ven. 13 → dim. 15 nov., 10h – 17h ».
+- Agenda Apple : avec horaires → même créneau répété chaque jour (`RRULE:FREQ=DAILY;COUNT=n`) ; sans horaires → un événement « toute la journée » du premier au dernier jour.
+- Portail : « En cours → dim. 15 nov. » / « ven. 13 nov. → dim. 15 nov. · 10h – 17h » ; la vitre garde le stage jusqu'à son dernier jour.
+- **Vérifié** (Chromium, Firebase simulé) : affichage, fenêtre de modification, `.ics` (RRULE COUNT=3), `portail/danse`. **Non vérifié sur iPhone.**

@@ -103,9 +103,22 @@ function plageHoraire(e){
 }
 function dateLongue(d){ return versDate(d).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }); }
 function dateMoyenne(d){ return versDate(d).toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' }); }
+/* PLUSIEURS JOURS (22/10/2026) : champ facultatif `dateFin` (AAAA-MM-JJ, après `date`). Les horaires
+   valent pour CHAQUE jour (ex. stage du vendredi au dimanche, 15h – 18h). */
+function dernierJour(e){ return dateValide(e.dateFin) && e.dateFin > e.date ? e.dateFin : e.date; }
+function surPlusieursJours(e){ return dernierJour(e) !== e.date; }
+function nbJours(e){ return Math.round((versDate(dernierJour(e)) - versDate(e.date)) / 864e5) + 1; }
+/* « ven. 13 → dim. 15 nov. » (mois répété seulement s'il change) ; un seul jour : date moyenne. */
+function periode(e){
+  if(!surPlusieursJours(e)) return dateMoyenne(e.date);
+  const a = versDate(e.date), b = versDate(dernierJour(e));
+  const memeMois = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  return a.toLocaleDateString('fr-FR', memeMois ? { weekday:'short', day:'numeric' } : { weekday:'short', day:'numeric', month:'short' })
+    + ' → ' + b.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+}
 /* Fin de l'entraînement (ms) : sert à savoir s'il est passé. Sans heure de fin : fin de journée. */
 function finMs(e){
-  const d = versDate(e.date);
+  const d = versDate(dernierJour(e));
   if(heureValide(e.fin)){ const [h,m] = e.fin.split(':').map(Number); d.setHours(h, m); }
   else d.setHours(23, 59);
   return d.getTime();
@@ -124,10 +137,12 @@ function ligneEvt(id, e, passe){
   const jour = d.toLocaleDateString('fr-FR', { weekday:'short' }).replace('.', '');
   const auteur = (e.majPar || e.creePar) === 'lisa' ? 'lisa' : 'corentin';
   const nouveau = !passe && (e.majPar || e.creePar) && (e.majPar || e.creePar) !== state.profil && (e.majLe || e.creeLe || 0) > vuLe;
-  const auj = e.date === aujourdhuiIso();
-  const detail = [plageHoraire(e), e.lieu].filter(Boolean).map(escapeHtml).join(' · ');
+  const iso = aujourdhuiIso();
+  const auj = e.date <= iso && iso <= dernierJour(e);   /* plusieurs jours : « Aujourd'hui » pendant tout le stage */
+  const multi = surPlusieursJours(e);
+  const detail = [multi ? periode(e) + ' (' + nbJours(e) + ' j)' : '', plageHoraire(e) + (multi && plageHoraire(e) ? ' chaque jour' : ''), e.lieu].filter(Boolean).map(escapeHtml).join(' · ');
   return `<div class="carte-produit evt${passe ? ' evt-passe' : ''}${auj ? ' evt-auj' : ''}" data-id="${escapeHtml(id)}">`
-    + `<span class="evt-date" aria-hidden="true"><span class="evt-jour">${escapeHtml(jour)}</span><span class="evt-num">${d.getDate()}</span></span>`
+    + `<span class="evt-date" aria-hidden="true"><span class="evt-jour">${escapeHtml(jour)}</span><span class="evt-num">${d.getDate()}</span>${multi ? `<span class="evt-jusqua">→ ${versDate(dernierJour(e)).getDate()}</span>` : ''}</span>`
     + `<button type="button" class="infos-produit" data-modifier>`
     + `<span class="nom-produit">${escapeHtml(e.titre || 'Entraînement')}${auj ? '<span class="evt-auj-tag">Aujourd\'hui</span>' : ''}${nouveau ? '<span class="nouvelle-pastille">Nouveau</span>' : ''}</span>`
     + `<span class="rayon-produit"><span class="auteur ${auteur}" aria-hidden="true"></span>${detail || escapeHtml(dateLongue(e.date))}</span>`
@@ -198,7 +213,7 @@ document.getElementById('liste-evenements').addEventListener('click', (e)=>{
    ============================================================ */
 function notifier(verbe, e, id){
   if(typeof window.notifierDuo !== 'function') return;
-  const quand = dateMoyenne(e.date) + (plageHoraire(e) ? ', ' + plageHoraire(e) : '');
+  const quand = periode(e) + (plageHoraire(e) ? ', ' + plageHoraire(e) : '');
   window.notifierDuo({
     titre: 'Agenda Danse',
     corps: PRENOM[state.profil] + ' ' + verbe + ' : ' + (e.titre || 'Entraînement') + ' · ' + quand,
@@ -245,6 +260,7 @@ function ouvrirModale(id){
   document.getElementById('btn-evt-supprimer').style.display = creation ? 'none' : 'block';
   document.getElementById('btn-evt-ical').style.display = creation ? 'none' : 'flex';
   ['titre','date','debut','fin','lieu','note'].forEach(k=> champ(k).value = e[k] || '');
+  champ('datefin').value = surPlusieursJours(e) ? e.dateFin : '';
   erreur.textContent = '';
   const qui = e.majPar || e.creePar;
   document.getElementById('modal-evt-info').textContent = creation || !qui ? '' :
@@ -258,12 +274,13 @@ function fermerModale(){ fermerAnime(modal, ()=>{ modal.style.display = 'none'; 
 document.getElementById('btn-evt-annuler').addEventListener('click', fermerModale);
 modal.addEventListener('click', (e)=>{ if(e.target === modal) fermerModale(); });
 ['titre','lieu'].forEach(k=> champ(k).addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.isComposing){ e.preventDefault(); champ(k).blur(); } }));
-['titre','date','debut','fin'].forEach(k=> champ(k).addEventListener('input', ()=>{ erreur.textContent = ''; }));
+['titre','date','datefin','debut','fin'].forEach(k=> champ(k).addEventListener('input', ()=>{ erreur.textContent = ''; }));
 const nettoyer = (v, max)=> String(v || '').trim().replace(/\s+/g, ' ').slice(0, max);
 document.getElementById('btn-evt-enregistrer').addEventListener('click', ()=>{
   const val = {
     titre: nettoyer(champ('titre').value, 80),
     date: champ('date').value,
+    dateFin: dateValide(champ('datefin').value) && champ('datefin').value !== champ('date').value ? champ('datefin').value : '',
     debut: heureValide(champ('debut').value) ? champ('debut').value : '',
     fin: heureValide(champ('fin').value) ? champ('fin').value : '',
     lieu: nettoyer(champ('lieu').value, 60),
@@ -271,6 +288,7 @@ document.getElementById('btn-evt-enregistrer').addEventListener('click', ()=>{
   };
   if(!val.titre){ erreur.textContent = 'Donne un titre (ex : Entraînement Angelina).'; champ('titre').focus(); return; }
   if(!dateValide(val.date)){ erreur.textContent = 'Choisis une date.'; return; }
+  if(val.dateFin && val.dateFin < val.date){ erreur.textContent = 'Le dernier jour doit être après le premier.'; return; }
   if(val.debut && val.fin && val.fin <= val.debut){ erreur.textContent = 'L\'heure de fin doit être après le début.'; return; }
   const maintenant = Date.now();
   if(!editionId){
@@ -316,11 +334,15 @@ function fabriquerIcs(id, e){
   const resume = PRENOM[state.profil] + ' à ' + (e.titre || 'Entraînement');
   const tampon = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const debut = heureValide(e.debut) ? 'DTSTART:' + icsDate(e.date, e.debut) : 'DTSTART;VALUE=DATE:' + icsDate(e.date);
+  /* Plusieurs jours (22/10/2026) : avec horaires → même créneau répété chaque jour (RRULE) ; sans
+     horaires → un seul événement « toute la journée » du premier au dernier jour. */
   const fin = heureValide(e.debut)
     ? (heureValide(e.fin) ? 'DTEND:' + icsDate(e.date, e.fin) : 'DURATION:PT1H')
-    : 'DTEND;VALUE=DATE:' + lendemain(e.date);
+    : 'DTEND;VALUE=DATE:' + lendemain(dernierJour(e));
+  const repetition = heureValide(e.debut) && surPlusieursJours(e) ? 'RRULE:FREQ=DAILY;COUNT=' + nbJours(e) : '';
   const l = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PORTAIL-DUO//Agenda Danse//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VEVENT', 'UID:' + id + '@portail-duo-danse', 'DTSTAMP:' + tampon, debut, fin, 'SUMMARY:' + icsEchapper(resume)];
+  if(repetition) l.push(repetition);
   if(e.lieu) l.push('LOCATION:' + icsEchapper(e.lieu));
   if(e.note) l.push('DESCRIPTION:' + icsEchapper(e.note));
   l.push('END:VEVENT', 'END:VCALENDAR');
@@ -361,7 +383,7 @@ let portailRecu = false, portailMinuteur = null;
 function calculerResumePortail(){
   const maintenant = Date.now();
   const aVenir = evtsValides().map(([,e])=> e).filter(e=> finMs(e) >= maintenant).sort((a,b)=> cleTri(a).localeCompare(cleTri(b)));
-  return { aVenir: aVenir.length, prochains: aVenir.slice(0, 3).map(e=> ({ titre: (e.titre || '').slice(0, 40), date: e.date, debut: e.debut || '', fin: e.fin || '' })) };
+  return { aVenir: aVenir.length, prochains: aVenir.slice(0, 3).map(e=> ({ titre: (e.titre || '').slice(0, 40), date: e.date, dateFin: surPlusieursJours(e) ? e.dateFin : '', debut: e.debut || '', fin: e.fin || '' })) };
 }
 function planifierPublicationPortail(){
   if(!portailRecu) return;

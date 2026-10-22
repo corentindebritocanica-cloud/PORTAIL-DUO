@@ -302,13 +302,17 @@
     function afficherDanse(d){
       const n = entier(d && d.aVenir, 0, 9999);
       const liste = (d && Array.isArray(d.prochains) ? d.prochains : [])
-        .filter((x) => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && x.date >= isoDuJour()).slice(0, 3);   /* un entraînement passé depuis la dernière publication n'est plus montré */
+        .filter((x) => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && ((/^\d{4}-\d{2}-\d{2}$/.test(x.dateFin) && x.dateFin > x.date) ? x.dateFin : x.date) >= isoDuJour()).slice(0, 3);   /* 22/10 : un stage sur plusieurs jours reste affiché jusqu'à son dernier jour */   /* un entraînement passé depuis la dernière publication n'est plus montré */
       const hh = (h) => (typeof h === 'string' && /^\d{2}:\d{2}$/.test(h)) ? Number(h.slice(0, 2)) + 'h' + (h.slice(3) === '00' ? '' : h.slice(3)) : '';
       const quand = (x) => {
         const [a, m, j] = x.date.split('-').map(Number);
         const dt = new Date(a, m - 1, j), auj = new Date(); auj.setHours(0, 0, 0, 0);
         const ecart = Math.round((dt - auj) / 864e5);
-        const jour = ecart === 0 ? "Aujourd'hui" : ecart === 1 ? 'Demain' : dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        let jour = ecart <= 0 ? "Aujourd'hui" : ecart === 1 ? 'Demain' : dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        if (/^\d{4}-\d{2}-\d{2}$/.test(x.dateFin) && x.dateFin > x.date) {   /* plusieurs jours (22/10/2026) */
+          const [a2, m2, j2] = x.dateFin.split('-').map(Number);
+          jour = (ecart <= 0 ? "En cours" : jour) + ' → ' + new Date(a2, m2 - 1, j2).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
         const h = hh(x.debut) && hh(x.fin) ? hh(x.debut) + ' – ' + hh(x.fin) : hh(x.debut);
         return jour + (h ? ' · ' + h : '');
       };

@@ -1064,3 +1064,4 @@ Audit à 20 relecteurs + 5 vérificateurs (détail par app dans chaque README). 
 - **`outils/Notifications.gs`** : `Danse` ajouté à la liste des liens autorisés. ⚠️ À recoller dans Apps Script puis **Déployer › Gérer les déploiements › Nouvelle version** ; tant que ce n'est pas fait, toucher la notification ouvre le Portail au lieu de Danse (l'envoi, lui, fonctionne déjà).
 - **`sw.js` (racine)** : `/Danse/` dans `isSubApp`. **Workflow auto-version** : `Danse/…` surveillé, dans la boucle et le lancement manuel.
 - **`firestore.rules`** : `danseEvents` en `compteDuo()` — **publiées le 21/10/2026** par l'API Firebase Rules (ruleset 7a883582…). Vérifié en direct : sans session → 403 ; l'API de test des règles (projects:test) refuse le compte de service (403), test complet à l'émulateur non fait.
+- **22/10/2026** : Danse — entraînements sur **plusieurs jours** (`dateFin`), carte du Portail adaptée (`afficherDanse`). Détail : `Danse/README.md`.
