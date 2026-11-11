@@ -103,6 +103,15 @@
       <div id="cuissons"></div>
       <button type="button" class="btn-sec" id="btn-cuisson">+ Ajouter une cuisson</button>
     </div>
+    <div class="bloc-cuissons">
+      <div class="champ">Valeurs par portion <small>(estimées)</small></div>
+      <div class="ligne nutri">
+        <label class="champ">kcal<input type="number" id="f-kcal" inputmode="decimal" min="0" step="any"></label>
+        <label class="champ">Prot. (g)<input type="number" id="f-prot" inputmode="decimal" min="0" step="any"></label>
+        <label class="champ">Gluc. (g)<input type="number" id="f-gluc" inputmode="decimal" min="0" step="any"></label>
+        <label class="champ">Lip. (g)<input type="number" id="f-lip" inputmode="decimal" min="0" step="any"></label>
+      </div>
+    </div>
     <label class="champ">Ingrédients <small>(un par ligne)</small>
       <textarea id="f-ingredients" rows="7" placeholder="200 g de farine&#10;4 œufs&#10;2 pincées de sel"></textarea>
     </label>

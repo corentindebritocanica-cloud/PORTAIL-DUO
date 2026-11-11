@@ -16,6 +16,9 @@ Collection déclarée dans `/firestore.rules`, **publiée le 11/11/2026** par l'
 ## Cuissons (12/11/2026)
 Une recette a une LISTE de cuissons (ex. poêle puis four). Modes : four classique, chaleur tournante, Cookeo, poêle, casserole, air fryer, gaufrier, micro-ondes, sans cuisson, autre ; durée, température et détail (« sous pression », « feu moyen ») facultatifs. Les anciens champs `cuisson`/`temp`/`four` sont convertis à la lecture (`cuissonsDe()`) et supprimés au prochain enregistrement. La recherche trouve aussi par mode (« cookeo »).
 
+## Nutrition (12/11/2026)
+`nutrition { kcal, prot, gluc, lip }` PAR PORTION, estimée (par Claude depuis les ingrédients quand Corentin envoie une recette, modifiable à la main). Affichée sur la carte (kcal + protéines) et dans la fiche.
+
 ## Choix
 - Style autonome (`style.css`, jetons de la charte, sombre uniquement) : `verre.css` n'est pas branché (ses règles visent Course/Todo). À faire si on veut le même habillage.
 - Portail : 6e vitre (orange, `verre.css` : pile à 6 rangs, `--dy` de devant 330 px). Bouton « + » → `?saisie=recette`.

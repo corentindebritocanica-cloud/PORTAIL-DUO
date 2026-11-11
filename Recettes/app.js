@@ -6,7 +6,7 @@
    - Une recette = un document.
    DONNÉES (projet course-app-36e9d, déclarées dans /firestore.rules) :
      recettes/{id} = { titre, categorie, portions, prepa (min),
-                       cuissons [{ mode, duree, temp, detail }] (anciens champs cuisson/temp/four convertis à la lecture), ingredients [string], etapes [string],
+                       nutrition { kcal, prot, gluc, lip } PAR PORTION (estimation), cuissons [{ mode, duree, temp, detail }] (anciens champs cuisson/temp/four convertis à la lecture), ingredients [string], etapes [string],
                        notes, favori, creePar, creeLe, maj }
    ============================================================ */
 const firebaseConfig = {
@@ -47,6 +47,7 @@ function nouvelId(){
 }
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const lignes = (txt) => String(txt || '').split('\n').map((l) => l.trim()).filter(Boolean);
+const decimal = (v) => { const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null; };
 const entier = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : null; };
 function profil(){ try { return localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin'; } catch (e) { return 'corentin'; } }
 document.documentElement.setAttribute('data-profil', profil() === 'lisa' ? 'Lisa' : 'Corentin');
@@ -82,6 +83,8 @@ function metasHtml(r, detail){
   const m = [];
   if (r.prepa != null) m.push(`<span class="meta">🥣 ${r.prepa} min</span>`);
   cuissonsDe(r).forEach((c) => m.push(`<span class="meta four">${(MODES[c.mode] || MODES.autre)[0]} ${esc(texteCuisson(c))}</span>`));
+  const n = r.nutrition;
+  if (n && (n.kcal != null || n.prot != null)) m.push(`<span class="meta nutri">⚡ ${[n.kcal != null ? n.kcal + ' kcal' : '', n.prot != null ? n.prot + ' g prot' : ''].filter(Boolean).join(' · ')}</span>`);
   if (detail && r.portions) m.push(`<span class="meta">🍽 ${r.portions} portion${r.portions > 1 ? 's' : ''}</span>`);
   return m.join('');
 }
@@ -139,6 +142,7 @@ function ouvrirFiche(id){
   $('fiche-corps').innerHTML =
     (ing ? `<div class="bloc"><h4>Ingrédients</h4><ul>${ing}</ul></div>` : '') +
     (eta ? `<div class="bloc"><h4>Préparation</h4><ol>${eta}</ol></div>` : '') +
+    (r.nutrition ? `<div class="bloc"><h4>Par portion (estimé)</h4><p>${[['kcal', 'kcal'], ['prot', 'g de protéines'], ['gluc', 'g de glucides'], ['lip', 'g de lipides']].filter(([k]) => r.nutrition[k] != null).map(([k, l]) => r.nutrition[k] + ' ' + l).join(' · ')}</p></div>` : '') +
     (r.notes ? `<div class="bloc"><h4>Notes</h4><p>${esc(r.notes)}</p></div>` : '');
   const fav = $('fiche-fav'); fav.textContent = r.favori ? '★' : '☆'; fav.classList.toggle('actif', !!r.favori);
   $('fiche').hidden = false;
@@ -178,6 +182,8 @@ function ouvrirEdition(id){
   $('f-prepa').value = r && r.prepa != null ? r.prepa : '';
   $('cuissons').innerHTML = '';
   (r ? cuissonsDe(r) : []).forEach(ajouterLigneCuisson);
+  const nu = (r && r.nutrition) || {};
+  ['kcal', 'prot', 'gluc', 'lip'].forEach((k) => $('f-' + k).value = nu[k] != null ? nu[k] : '');
   $('f-ingredients').value = r ? (r.ingredients || []).join('\n') : '';
   $('f-etapes').value = r ? (r.etapes || []).join('\n') : '';
   $('f-notes').value = r ? r.notes || '' : '';
@@ -222,6 +228,7 @@ $('form-recette').addEventListener('submit', (e) => {
     portions: entier($('f-portions').value),
     prepa: entier($('f-prepa').value),
     cuissons: lireCuissons(),
+    nutrition: { kcal: decimal($('f-kcal').value), prot: decimal($('f-prot').value), gluc: decimal($('f-gluc').value), lip: decimal($('f-lip').value) },
     ingredients: lignes($('f-ingredients').value),
     etapes: lignes($('f-etapes').value),
     notes: $('f-notes').value.trim(),

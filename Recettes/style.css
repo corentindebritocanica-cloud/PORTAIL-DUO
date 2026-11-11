@@ -126,3 +126,6 @@ main{ flex:1 0 auto; padding:0 16px calc(110px + var(--safe-bottom)); }
 .connexion-duo button:disabled{ opacity:.5; }
 
 @media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+.meta.nutri{ color:#12b981; }
+.ligne.nutri{ gap:8px; } .ligne.nutri .champ{ font-size:12px; } .ligne.nutri input{ padding:11px 8px; }
