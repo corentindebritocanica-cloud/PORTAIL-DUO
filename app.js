@@ -337,6 +337,32 @@
       pied('da-maj', d);
     }
 
+    /* Recettes (11/11/2026) : portail/recettes = { maj, total, favoris, categories:[{ nom, n }] }. */
+    function afficherRecettes(d){
+      const n = entier(d && d.total, 0, 99999);
+      const chips = el('re-chips');
+      chips.textContent = '';
+      el('re-chips-label').hidden = true;
+      if (n === null) {
+        el('re-int').textContent = '—'; el('re-label').textContent = ''; el('re-peek').textContent = '';
+      } else {
+        const fav = entier(d.favoris, 0, 99999) || 0;
+        el('re-int').textContent = String(n);
+        el('re-peek').textContent = n + (n > 1 ? ' recettes' : ' recette');
+        el('re-label').textContent = (n > 1 ? 'recettes' : 'recette') + (fav ? ' · ' + fav + (fav > 1 ? ' favorites' : ' favorite') : '');
+        (Array.isArray(d.categories) ? d.categories.slice(0, 3) : []).forEach((c) => {
+          const nom = texte(c && c.nom, 26), k = entier(c && c.n, 0, 99999);
+          if (!nom || k === null) return;
+          const chip = document.createElement('span'); chip.className = 'chip';
+          const t = document.createElement('span'); t.textContent = nom;
+          const cn = document.createElement('span'); cn.className = 'chip-n'; cn.textContent = String(k);
+          chip.appendChild(t); chip.appendChild(cn); chips.appendChild(chip);
+        });
+        el('re-chips-label').hidden = chips.children.length === 0;
+      }
+      pied('re-maj', d);
+    }
+
     function afficher(){
       const j = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
       el('dash-date').textContent = j.charAt(0).toUpperCase() + j.slice(1);
@@ -345,6 +371,7 @@
       afficherCourses(resume.courses);
       afficherTodo(resume.todo);
       afficherDanse(resume.danse);
+      afficherRecettes(resume.recettes);
       document.querySelector('.dash').classList.toggle('chargement', !charge);   /* lot 3 : chiffres en blocs gris */
     }
 
@@ -677,9 +704,9 @@
      ============================================================ */
   (function(){
     const root = document.documentElement;
-    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses', todo: 'carte-todo', danse: 'carte-danse' };
-    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)', todo: 'var(--v-todo)', danse: 'var(--v-danse)' };
-    const ordre = ['muscu', 'budget', 'courses', 'todo', 'danse'];   /* 5e vitre : Agenda Danse, 21/10/2026 */
+    const cartes = { muscu: 'carte-muscu', budget: 'carte-budget', courses: 'carte-courses', todo: 'carte-todo', danse: 'carte-danse', recettes: 'carte-recettes' };
+    const teintes = { muscu: 'var(--v-corps)', budget: 'var(--v-argent)', courses: 'var(--v-frigo)', todo: 'var(--v-todo)', danse: 'var(--v-danse)', recettes: 'var(--v-recettes)' };
+    const ordre = ['muscu', 'budget', 'courses', 'todo', 'danse', 'recettes'];   /* 5e vitre : Agenda Danse, 21/10/2026 ; 6e : Recettes, 11/11/2026 */
     const carte = (k) => document.getElementById(cartes[k]);
     /* Ordre de la pile, de devant (0) au fond. Mémorisé (portail-verre-pile) ; repli sur
        l'ancienne clé portail-verre-devant (1re version du 28/09). 11/10/2026 : un ordre mémorisé

@@ -1065,3 +1065,6 @@ Audit à 20 relecteurs + 5 vérificateurs (détail par app dans chaque README). 
 - **`sw.js` (racine)** : `/Danse/` dans `isSubApp`. **Workflow auto-version** : `Danse/…` surveillé, dans la boucle et le lancement manuel.
 - **`firestore.rules`** : `danseEvents` en `compteDuo()` — **publiées le 21/10/2026** par l'API Firebase Rules (ruleset 7a883582…). Vérifié en direct : sans session → 403 ; l'API de test des règles (projects:test) refuse le compte de service (403), test complet à l'émulateur non fait.
 - **22/10/2026** : Danse — entraînements sur **plusieurs jours** (`dateFin`), carte du Portail adaptée (`afficherDanse`). Détail : `Danse/README.md`.
+
+## Recettes (11/11/2026)
+App de recettes partagées dans `/Recettes/` (voir `Recettes/README.md`). Collection `recettes` + résumé `portail/recettes`, règles Firestore publiées par l'API le 11/11/2026. Portail : 6e vitre de la pile (`verre.css` passe à 6 rangs, `padding-bottom` 330 px). Workflow auto-version étendu à `Recettes/`.

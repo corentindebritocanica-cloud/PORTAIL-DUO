@@ -255,6 +255,30 @@ $('liste').addEventListener('click', (e) => {
   const c = e.target.closest('.carte'); if (c) ouvrirFiche(c.dataset.id);
 });
 
+/* ---------- Résumé pour le Portail : portail/recettes (écrit seulement s'il change) ---------- */
+function publierPortail(){
+  const toutes = Object.values(state.recettes), cats = {};
+  toutes.forEach((r) => { if (r.categorie) cats[r.categorie] = (cats[r.categorie] || 0) + 1; });
+  const resume = {
+    total: toutes.length,
+    favoris: toutes.filter((r) => r.favori).length,
+    categories: Object.keys(cats).map((nom) => ({ nom, n: cats[nom] })).sort((a, b) => b.n - a.n).slice(0, 3)
+  };
+  const sig = JSON.stringify(resume);
+  let avant = null; try { avant = localStorage.getItem('recettes-portail-sig'); } catch (e) {}
+  if (avant === sig) return;
+  ecrire(() => db.collection('portail').doc('recettes').set(Object.assign({ maj: Date.now() }, resume)).then(() => {
+    try { localStorage.setItem('recettes-portail-sig', sig); } catch (e) {}
+  }), 'Résumé du Portail');
+}
+
+/* Bouton « + » de la vitre du Portail : ?saisie=recette ouvre d'office la fenêtre « Nouvelle recette » */
+(function saisieDepuisPortail(){
+  if (new URLSearchParams(location.search).get('saisie') !== 'recette') return;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  ouvrirEdition(null);
+})();
+
 /* ---------- Connexion Firestore ---------- */
 function statut(cache, hors){
   const s = $('statut');
@@ -276,6 +300,7 @@ function demarrer(){
         const obj = {};
         snap.forEach((d) => obj[d.id] = d.data());
         state.recettes = obj; state.charge = true; memoriserApercu(); render();
+        if (!snap.metadata.fromCache) publierPortail();
       }, (err) => console.warn('onSnapshot', COL, err));
     } else if (arret){ arret(); arret = null; }
   });

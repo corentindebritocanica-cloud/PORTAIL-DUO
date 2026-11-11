@@ -157,6 +157,25 @@
           <span class="dash-lignes" id="da-suivants" hidden></span>
         </span>
       </a>
+      <!-- Recettes (11/11/2026) : 6e vitre de la pile. Chiffres de portail/recettes (écrit par l'app Recettes). -->
+      <a class="dash-card orange" href="./Recettes/" id="carte-recettes">
+        <span class="dash-top">
+          <span class="choice-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M9 4v4M12 3v5M15 4v4"/></svg></span>
+          <span class="choice-text">
+            <span class="choice-label">Recettes</span>
+            <span class="choice-desc dash-maj" id="re-maj"></span>
+          </span>
+          <span class="verre-peek verre-seul" id="re-peek"></span>
+          <span class="dash-plus" role="button" tabindex="0" data-saisie="./Recettes/?saisie=recette" aria-label="Ajouter une recette">+</span>
+          <span class="choice-chev">›</span>
+        </span>
+        <span class="dash-body">
+          <span class="dash-label">Dans le carnet</span>
+          <span class="dash-big"><span class="dash-int" id="re-int">—</span><span class="dash-unit dash-unit-txt" id="re-label"></span></span>
+          <span class="dash-label dash-label-2" id="re-chips-label" hidden>Catégories</span>
+          <span class="chips" id="re-chips"></span>
+        </span>
+      </a>
     </div>
 
     <!-- Mode Verre : la pile. Toucher une vitre du fond la ramène devant (voir « PILE » dans app.js). -->
