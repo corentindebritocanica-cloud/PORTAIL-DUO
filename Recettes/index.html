@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr" data-app="recettes">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recettes">
+<meta name="theme-color" content="#0d1014">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
+<title>Recettes</title>
+<link rel="stylesheet" href="style.css?v=1">
+<!-- Noyau commun ../commun.js : date de MAJ, service worker, vérification de version, connexion du duo. -->
+<script src="../commun.js?v=1"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div id="maj-toast" style="display:none; position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 90px); transform:translateX(-50%); z-index:99999; background:#161b22; color:#e9eff6; padding:10px 10px 10px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.4); align-items:center; gap:12px; white-space:nowrap; border:1px solid rgba(255,255,255,.12);">
+  <span>🔄 Nouvelle version disponible</span>
+  <button id="maj-btn" type="button" style="background:#1f8fff; color:#fff; border:none; border-radius:999px; padding:7px 14px; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer;">Actualiser</button>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <h1>Recettes</h1>
+    <span class="statut" id="statut" title="Connexion"></span>
+  </header>
+
+  <div class="barre-recherche">
+    <input type="search" id="recherche" placeholder="Rechercher une recette ou un ingrédient" autocomplete="off" autocapitalize="none" enterkeyhint="search">
+  </div>
+  <div class="chips" id="chips" aria-label="Catégories"></div>
+
+  <main>
+    <div class="liste" id="liste"></div>
+    <p class="vide" id="vide" hidden></p>
+    <p class="derniere-maj" id="derniere-maj"></p>
+  </main>
+
+  <button type="button" class="fab" id="btn-ajouter" aria-label="Nouvelle recette">+</button>
+</div>
+
+<!-- Connexion du duo : même compte et même session que les autres apps (connexionDuo() de commun.js). -->
+<div class="connexion-duo" id="connexion" role="dialog" aria-modal="true" aria-labelledby="connexion-titre">
+  <form id="connexion-form" novalidate>
+    <h2 id="connexion-titre">Connexion</h2>
+    <p>Le compte du duo, le même que dans les autres apps.</p>
+    <input type="email" id="connexion-email" placeholder="Adresse e-mail" autocomplete="username" autocapitalize="none">
+    <input type="password" id="connexion-mdp" placeholder="Mot de passe" autocomplete="current-password">
+    <p class="connexion-erreur" id="connexion-erreur" aria-live="polite"></p>
+    <button type="submit" id="connexion-btn">Se connecter</button>
+  </form>
+</div>
+
+<!-- Fiche d'une recette -->
+<div class="feuille-fond" id="fiche" hidden role="dialog" aria-modal="true" aria-labelledby="fiche-titre">
+  <div class="feuille">
+    <div class="feuille-tete">
+      <button type="button" class="btn-icone" id="fiche-fermer" aria-label="Fermer">✕</button>
+      <button type="button" class="btn-icone" id="fiche-fav" aria-label="Favori">☆</button>
+    </div>
+    <h2 id="fiche-titre"></h2>
+    <div class="metas" id="fiche-metas"></div>
+    <div id="fiche-corps"></div>
+    <div class="feuille-actions">
+      <button type="button" class="btn-sec" id="fiche-modifier">Modifier</button>
+      <button type="button" class="btn-danger" id="fiche-supprimer">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Création / modification -->
+<div class="feuille-fond" id="edition" hidden role="dialog" aria-modal="true" aria-labelledby="edition-titre">
+  <form class="feuille" id="form-recette" novalidate>
+    <div class="feuille-tete">
+      <button type="button" class="btn-icone" id="edition-fermer" aria-label="Annuler">✕</button>
+      <button type="button" class="btn-sec petit" id="btn-coller">Coller un texte</button>
+    </div>
+    <h2 id="edition-titre">Nouvelle recette</h2>
+
+    <label class="champ">Titre
+      <input type="text" id="f-titre" placeholder="Gaufres version beurre" autocomplete="off" maxlength="120">
+    </label>
+    <div class="ligne">
+      <label class="champ">Catégorie
+        <input type="text" id="f-categorie" list="categories" placeholder="Petit-déj, Dessert…" autocomplete="off" maxlength="30">
+        <datalist id="categories"></datalist>
+      </label>
+      <label class="champ">Portions
+        <input type="number" id="f-portions" inputmode="numeric" min="1" max="99" placeholder="10">
+      </label>
+    </div>
+    <div class="ligne">
+      <label class="champ">Préparation (min)
+        <input type="number" id="f-prepa" inputmode="numeric" min="0" max="9999" placeholder="10">
+      </label>
+      <label class="champ">Cuisson (min)
+        <input type="number" id="f-cuisson" inputmode="numeric" min="0" max="9999" placeholder="5">
+      </label>
+    </div>
+    <div class="ligne">
+      <label class="champ">Température (°C)
+        <input type="number" id="f-temp" inputmode="numeric" min="0" max="500" placeholder="180">
+      </label>
+      <label class="champ">Four
+        <select id="f-four">
+          <option value="">— Aucun —</option>
+          <option value="classique">Four classique</option>
+          <option value="tournante">Chaleur tournante</option>
+        </select>
+      </label>
+    </div>
+    <label class="champ">Ingrédients <small>(un par ligne)</small>
+      <textarea id="f-ingredients" rows="7" placeholder="200 g de farine&#10;4 œufs&#10;2 pincées de sel"></textarea>
+    </label>
+    <label class="champ">Préparation <small>(une étape par ligne)</small>
+      <textarea id="f-etapes" rows="7" placeholder="Mélanger les ingrédients secs.&#10;Ajouter les œufs…"></textarea>
+    </label>
+    <label class="champ">Notes
+      <textarea id="f-notes" rows="3" placeholder="Astuces, variantes…"></textarea>
+    </label>
+    <div class="feuille-actions">
+      <button type="submit" class="btn-prim" id="btn-enregistrer">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<!-- Coller un texte (import depuis une IA, un site…) -->
+<div class="feuille-fond" id="coller" hidden role="dialog" aria-modal="true" aria-labelledby="coller-titre">
+  <div class="feuille">
+    <h2 id="coller-titre">Coller une recette</h2>
+    <p class="aide">Colle le texte avec ses rubriques « Ingrédients » et « Préparation » : les champs se remplissent tout seuls.</p>
+    <textarea id="coller-texte" rows="10" placeholder="Recette pour 10 gaufres&#10;Ingrédients&#10;200 g de farine…"></textarea>
+    <div class="feuille-actions">
+      <button type="button" class="btn-sec" id="coller-annuler">Annuler</button>
+      <button type="button" class="btn-prim" id="coller-ok">Remplir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation de suppression -->
+<div class="feuille-fond" id="dialogue" hidden role="alertdialog" aria-modal="true" aria-labelledby="dialogue-titre">
+  <div class="feuille centre">
+    <h2 id="dialogue-titre">Supprimer la recette ?</h2>
+    <p class="aide" id="dialogue-texte"></p>
+    <div class="feuille-actions">
+      <button type="button" class="btn-sec" id="dialogue-annuler">Annuler</button>
+      <button type="button" class="btn-danger" id="dialogue-ok">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Horodatage du dernier déploiement du code (pas des données), mis à jour
+   automatiquement par .github/workflows/auto-version.yml. Ne pas supprimer :
+   il sert aussi à détecter les nouvelles versions au retour dans l'app. */
+const DERNIERE_MAJ = '2026-11-11T17:00:00+01:00';
+</script>
+<script defer src="app.js?v=1"></script>
+</body>
+</html>
