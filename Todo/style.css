@@ -333,6 +333,7 @@
 /* Sous-tâches (11/11/2026) : puces cochables sous le texte de la tâche. */
 .sous-liste{ display:flex; flex-direction:column; margin-top:4px; }
 .sous-item{ display:flex; align-items:center; gap:10px; min-height:44px; font-size:15px; color:var(--text); text-align:left; }
-.sous-puce{ width:20px; text-align:center; color:var(--text-dim); font-weight:800; flex:none; }
+.sous-puce{ width:24px; height:24px; flex:none; display:flex; align-items:center; justify-content:center; border:2px solid var(--border-strong); border-radius:7px; color:#fff; }
+.sous-puce svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
 .sous-item.fait{ color:var(--text-dim); text-decoration:line-through; }
-.sous-item.fait .sous-puce{ color:var(--done); }
+.sous-item.fait .sous-puce{ background:var(--done); border-color:var(--done); }

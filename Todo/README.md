@@ -109,6 +109,6 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - **Vérifié** (Chromium, Firebase simulé, 393×852) : 3 articles ajoutés (Entrée et bouton), total 748,90 €, rendu sombre. **Non vérifié sur iPhone ni avec la vraie base** ; thème clair et modification / suppression / coche non testés.
 
 ## Sous-tâches (11/11/2026)
-- Fenêtre tâche : champ **« Sous-tâches (une par ligne) »** (max 30, 80 caractères chacune ; un `-` ou `•` en début de ligne est ignoré). Sur la ligne, les puces s'affichent sous le texte et se **cochent d'un toucher** (sans ouvrir la fenêtre) ; compteur « 1/3 » à côté de l'auteur. Cocher la tâche elle-même reste séparé (les puces ne la terminent pas) ; terminée, ses puces sont masquées.
+- Fenêtre tâche : champ **« Sous-tâches (une par ligne) »** (max 30, 80 caractères chacune ; un `-` ou `•` en début de ligne est ignoré). Sur la ligne, les sous-tâches s'affichent sous le texte avec une **case à cocher chacune** (un toucher pour valider) (sans ouvrir la fenêtre) ; compteur « 1/3 » à côté de l'auteur. Cocher la tâche elle-même reste séparé (les puces ne la terminent pas) ; terminée, ses puces sont masquées.
 - Donnée : `todoTaches/{id}.sous = [{ t, f }]` (absent = aucune). Modifier le texte d'une ligne la remet à « non fait » ; un texte identique garde son état (`lireSous`).
 - **Vérifié** (Chromium, Firebase simulé) : création avec 3 puces, coche de la 2e → 1/3. **Non vérifié sur iPhone** (zone tactile des puces 44 px de haut).

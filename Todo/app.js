@@ -189,7 +189,7 @@ const SVG_COCHE = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/><
 function sousDe(t){ return Array.isArray(t && t.sous) ? t.sous.filter(x=> x && typeof x.t === 'string' && x.t).slice(0, 30) : []; }
 function sousHtml(t){
   const sous = sousDe(t); if(!sous.length || t.fait) return '';
-  return '<span class="sous-liste">' + sous.map((x,i)=> `<span class="sous-item${x.f ? ' fait' : ''}" data-sous="${i}" role="checkbox" aria-checked="${!!x.f}"><span class="sous-puce" aria-hidden="true">${x.f ? '✓' : '•'}</span>${escapeHtml(x.t)}</span>`).join('') + '</span>';
+  return '<span class="sous-liste">' + sous.map((x,i)=> `<span class="sous-item${x.f ? ' fait' : ''}" data-sous="${i}" role="checkbox" aria-checked="${!!x.f}"><span class="sous-puce" aria-hidden="true">${x.f ? SVG_COCHE : ''}</span>${escapeHtml(x.t)}</span>`).join('') + '</span>';
 }
 function ligneTache(id, t, couleur){
   const auteur = t.creePar === 'lisa' ? 'lisa' : 'corentin';
