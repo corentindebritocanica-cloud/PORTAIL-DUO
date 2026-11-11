@@ -55,7 +55,7 @@
     padding:2px 18px 14px; scrollbar-width:none; overscroll-behavior-x:contain;
   }
   .selecteur-listes::-webkit-scrollbar{display:none;}
-  #app[data-onglet="parametres"] .selecteur-listes{display:none;}
+  #app[data-onglet="parametres"] .selecteur-listes, #app[data-onglet="bf"] .selecteur-listes{display:none;}
   .liste-chip{
     position:relative; flex-shrink:0; display:inline-flex; align-items:center; gap:7px;
     min-height:44px; padding:0 16px; border-radius:var(--r-pill);
@@ -226,7 +226,7 @@
   }
   .nav-add:active{transform:scale(0.94);}
   .nav-add svg{width:26px; height:26px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round;}
-  #app:not([data-onglet="taches"]) .nav-add{display:none;}
+  #app:not([data-onglet="taches"]):not([data-onglet="bf"]) .nav-add{display:none;}
 
   /* Fenêtres (bottom-sheet, charte §5.9) */
   .modal-fond{
@@ -323,3 +323,9 @@
 .toast-annuler-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .toast-annuler-btn{ flex:0 0 auto; min-height:40px; padding:0 16px; border-radius:999px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; }
 @media (prefers-reduced-motion: reduce){ .tache{ transition:none; } #toast-annuler{ transition:opacity .2s ease; transform:translate(-50%, 0); } }
+
+/* Black Friday (11/11/2026) : résumé en tête + prix sur les lignes (jetons seulement, thèmes Sombre/Clair automatiques). */
+.bf-resume{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:2px 0 10px; padding:12px 14px; border-radius:var(--r-md); background:var(--card); border:1px solid var(--border); }
+.bf-resume strong{ font-size:22px; color:var(--text); }
+.bf-resume span{ font-size:13px; color:var(--text-dim); }
+.bf-prix{ font-weight:800; color:var(--text); }

@@ -95,6 +95,7 @@ const state = {
   profil: lireProfil(),
   listes: {},
   taches: {},
+  bf: {},   /* Black Friday (11/11/2026) : docs todoTaches avec bf:true, séparés de `taches` à la réception */
   listeActive: (()=>{ try { return localStorage.getItem(CLE_LISTE_ACTIVE) || LISTE_DEFAUT; } catch (e) { return LISTE_DEFAUT; } })(),
   termineOuvert: (()=>{ try { return localStorage.getItem(CLE_TERMINE_OUVERT) === '1'; } catch (e) { return false; } })(),
   onglet: 'taches',
@@ -263,12 +264,13 @@ function render(){
   renderSelecteurListes();
   renderTaches();
   renderReglagesListes();
+  renderBf();
 }
 
 /* ============================================================
    NAVIGATION ENTRE ONGLETS
    ============================================================ */
-const titres = { taches:'Tâches', parametres:'Réglages' };
+const titres = { taches:'Tâches', bf:'Black Friday', parametres:'Réglages' };
 document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.onglet = btn.dataset.tab;
@@ -282,7 +284,7 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
 
 /* Ajout : uniquement par le bouton + (la barre d'ajout rapide du haut a été retirée le 12/10/2026). */
 /* Bouton + : fenêtre « Nouvelle tâche » (texte, liste, urgence) ; focus synchrone dans le geste. 12/10/2026 : avant, il ne faisait que focaliser le champ du haut, caché derrière le clavier. */
-document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{ ouvrirModaleTache(null); });
+document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{ if(state.onglet === 'bf') ouvrirModaleBf(null); else ouvrirModaleTache(null); });
 
 /* ============================================================
    COCHER / MODIFIER / TERMINÉ
@@ -633,6 +635,128 @@ document.getElementById('btn-liste-supprimer').addEventListener('click', async (
 });
 
 /* ============================================================
+   BLACK FRIDAY (11/11/2026) — onglet dédié : achats électroménager à lister, autant qu'on veut.
+   Doc todoTaches/{id} = { bf:true, texte, prix?, note?, fait (acheté), ordre, creePar, creeLe, faitPar, faitLe }
+   (même collection que les tâches → aucune règle Firestore à publier ; séparé de `taches` à la réception).
+   ============================================================ */
+const fmtEuro = (n)=> n.toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:2 });
+const prixDe = (t)=>{ const n = Number(t && t.prix); return isFinite(n) && n > 0 ? n : 0; };
+function ligneBf(id, t){
+  const prix = prixDe(t);
+  const detail = [t.note ? escapeHtml(t.note) : '', prix ? `<span class="bf-prix">${escapeHtml(fmtEuro(prix))}</span>` : ''].filter(Boolean).join(' · ')
+    || `${PRENOM[t.creePar === 'lisa' ? 'lisa' : 'corentin']} · ${dateCourte(t.creeLe)}`;
+  return `<div class="carte-produit tache${t.fait ? ' achete-carte' : ''}" data-id="${escapeHtml(id)}" style="--c-liste:${PALETTE_LISTES[3]}">`
+    + `<button type="button" class="case case-liste${t.fait ? ' checked' : ''}" data-cocher aria-pressed="${!!t.fait}" aria-label="${t.fait ? 'Marquer non acheté' : 'Marquer acheté'} : ${escapeHtml(t.texte)}">${SVG_COCHE}</button>`
+    + `<button type="button" class="infos-produit" data-modifier><span class="nom-produit${t.fait ? ' achete' : ''}">${escapeHtml(t.texte)}</span>`
+    + `<span class="rayon-produit"><span class="auteur ${t.creePar === 'lisa' ? 'lisa' : 'corentin'}" aria-hidden="true"></span>${detail}</span></button>`
+    + `<button type="button" class="btn-crayon" data-modifier aria-label="Modifier ${escapeHtml(t.texte)}"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div>`;
+}
+function renderBf(){
+  const conteneur = document.getElementById('liste-bf');
+  if(!tachesChargees){ conteneur.innerHTML = lignesAttente(4); return; }
+  const tous = Object.entries(state.bf);
+  const aAcheter = tous.filter(([,t])=> !t.fait).sort((a,b)=> (a[1].ordre||0) - (b[1].ordre||0));
+  const achetes = tous.filter(([,t])=> t.fait).sort((a,b)=> (b[1].faitLe||0) - (a[1].faitLe||0));
+  if(!tous.length){
+    conteneur.innerHTML = `<div class="vide"><h2>Black Friday 🛒</h2><p>Touche + pour noter un achat d'électroménager prévu.</p></div>`;
+    return;
+  }
+  const total = aAcheter.reduce((s,[,t])=> s + prixDe(t), 0);
+  let html = `<div class="bf-resume"><strong>${total ? escapeHtml(fmtEuro(total)) : '—'}</strong><span>${aAcheter.length} à acheter${achetes.length ? ' · ' + achetes.length + ' acheté' + (achetes.length > 1 ? 's' : '') : ''}</span></div>`;
+  if(aAcheter.length) html += `<div class="section-rayon"><p class="titre-rayon">À acheter · ${aAcheter.length}</p>` + aAcheter.map(([id,t])=> ligneBf(id, t)).join('') + '</div>';
+  if(achetes.length) html += `<div class="section-rayon"><p class="titre-rayon">Acheté · ${achetes.length}</p>` + achetes.map(([id,t])=> ligneBf(id, t)).join('') + '</div>';
+  conteneur.innerHTML = html;
+}
+const modalBf = document.getElementById('modal-bf');
+const champBfNom = document.getElementById('modal-bf-nom'), champBfPrix = document.getElementById('modal-bf-prix'), champBfNote = document.getElementById('modal-bf-note');
+let bfEditionId = null;
+function ouvrirModaleBf(id){
+  const t = id ? state.bf[id] : null; if(id && !t) return;
+  bfEditionId = id || null;
+  document.getElementById('modal-bf-titre').textContent = id ? "Modifier l'article" : 'Nouvel article';
+  document.getElementById('btn-bf-enregistrer').textContent = id ? 'Enregistrer' : 'Ajouter';
+  document.getElementById('btn-bf-annuler').textContent = 'Annuler';
+  document.getElementById('btn-bf-supprimer').style.display = id ? '' : 'none';
+  document.getElementById('modal-bf-info').textContent = '';
+  champBfNom.value = t ? (t.texte || '') : ''; champBfNote.value = t ? (t.note || '') : '';
+  champBfPrix.value = t && prixDe(t) ? String(prixDe(t)).replace('.', ',') : '';
+  annulerFermeture(modalBf); modalBf.style.display = 'flex';
+  if(!id) champBfNom.focus();   /* synchrone dans le geste : iOS ouvre le clavier */
+}
+function fermerModaleBf(){ fermerAnime(modalBf, ()=>{ modalBf.style.display = 'none'; }); bfEditionId = null; }
+function lireChampsBf(){
+  const texte = champBfNom.value.trim().replace(/\s+/g, ' ').slice(0, 80);
+  const note = champBfNote.value.trim().replace(/\s+/g, ' ').slice(0, 80);
+  const n = parseFloat(champBfPrix.value.replace(/\s/g, '').replace(',', '.'));
+  const prix = isFinite(n) && n > 0 && n < 1e7 ? Math.round(n * 100) / 100 : 0;
+  return { texte, note, prix };
+}
+function creerBf({ texte, note, prix }){
+  const nid = nouvelId(), maintenant = Date.now();
+  const nt = { bf:true, texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
+  if(prix) nt.prix = prix;
+  if(note) nt.note = note;
+  state.bf[nid] = nt; render();
+  if(!premierInstantane) creeesAvantInstantane[nid] = nt;
+  ecrire(()=> docRef(COL_TACHES, nid).set(nt));
+}
+function validerModaleBf(enchainer){
+  const v = lireChampsBf();
+  if(!v.texte){ champBfNom.focus(); return; }
+  if(!bfEditionId){
+    creerBf(v);
+    if(enchainer){   /* Entrée : champs vidés, fenêtre ouverte pour l'article suivant */
+      champBfNom.value = ''; champBfPrix.value = ''; champBfNote.value = ''; champBfNom.focus();
+      document.getElementById('modal-bf-info').textContent = '✓ « ' + v.texte + ' » ajouté. Entrée pour le suivant.';
+      document.getElementById('btn-bf-annuler').textContent = 'Fermer';
+    } else fermerModaleBf();
+    return;
+  }
+  const id = bfEditionId, t = state.bf[id]; if(!t) return fermerModaleBf();
+  const maj = {}, local = {};
+  const DEL = firebase.firestore.FieldValue.delete();
+  if(v.texte !== t.texte){ maj.texte = v.texte; local.texte = v.texte; }
+  if(v.prix !== prixDe(t)){ maj.prix = v.prix || DEL; local.prix = v.prix; }
+  if(v.note !== (t.note || '')){ maj.note = v.note || DEL; local.note = v.note; }
+  fermerModaleBf();
+  if(!Object.keys(maj).length) return;
+  Object.assign(t, local); render();
+  ecrire(()=> docRef(COL_TACHES, id).update(maj));
+}
+[champBfNom, champBfPrix, champBfNote].forEach(c=> c.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter' || e.isComposing) return;
+  e.preventDefault(); validerModaleBf(true);
+}));
+document.getElementById('btn-bf-enregistrer').addEventListener('click', ()=> validerModaleBf(false));
+document.getElementById('btn-bf-annuler').addEventListener('click', fermerModaleBf);
+modalBf.addEventListener('click', (e)=>{ if(e.target === modalBf) fermerModaleBf(); });
+document.getElementById('btn-bf-supprimer').addEventListener('click', async ()=>{
+  const id = bfEditionId, t = state.bf[id]; if(!t) return;
+  const oui = await dialogue({ titre:'Supprimer « ' + (t.texte || 'cet article') + ' » ?', texte:'Il disparaît pour vous deux.', ok:'Supprimer' });
+  if(!oui) return;
+  fermerModaleBf();
+  delete state.bf[id]; render();
+  ecrire(()=> docRef(COL_TACHES, id).delete(), 'Suppression');
+});
+document.getElementById('liste-bf').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const ligne = b.closest('.tache'); if(!ligne) return;
+  const id = ligne.dataset.id, t = state.bf[id]; if(!t) return;
+  if(b.hasAttribute('data-modifier')) return ouvrirModaleBf(id);
+  if(!b.hasAttribute('data-cocher')) return;
+  const avant = { fait: !!t.fait, faitPar: t.faitPar || null, faitLe: t.faitLe || null };
+  const fait = !t.fait;
+  const maj = fait ? { fait:true, faitPar: state.profil, faitLe: Date.now() } : { fait:false, faitPar:null, faitLe:null };
+  Object.assign(t, maj); render();
+  ecrire(()=> docRef(COL_TACHES, id).update(maj));
+  toastAnnuler(fait ? 'Article acheté' : 'Remis à acheter', ()=>{
+    const t2 = state.bf[id]; if(!t2) return;
+    Object.assign(t2, avant); render();
+    ecrire(()=> docRef(COL_TACHES, id).update(avant));
+  });
+});
+
+/* ============================================================
    RÉGLAGES › Recharger l'application : désinscrit le service worker de Todo, vide SES caches
    (préfixes todo-*, jamais ceux des autres apps), puis recharge depuis le réseau.
    ============================================================ */
@@ -720,14 +844,14 @@ const firestoreRecu = { listes:false, taches:false };
   try {
     const a = JSON.parse(localStorage.getItem(CLE_APERCU) || 'null');
     if(a && a.taches && typeof a.taches === 'object' && a.listes && typeof a.listes === 'object'){
-      state.taches = a.taches; state.listes = a.listes; tachesChargees = true;
+      state.taches = a.taches; state.listes = a.listes; state.bf = (a.bf && typeof a.bf === 'object') ? a.bf : {}; tachesChargees = true;
     }
   } catch (e) {}
   render();
 })();
 function memoriserApercu(){
   if(!firestoreRecu.listes || !firestoreRecu.taches) return;   /* jamais un état à moitié chargé */
-  try { localStorage.setItem(CLE_APERCU, JSON.stringify({ listes: state.listes, taches: state.taches })); } catch (e) {}
+  try { localStorage.setItem(CLE_APERCU, JSON.stringify({ listes: state.listes, taches: state.taches, bf: state.bf })); } catch (e) {}
 }
 function recuDeFirestore(nom){
   firestoreRecu[nom] = true;
@@ -750,7 +874,9 @@ function demarrer(){
         dbOnCollection(COL_LISTES, (obj, cache)=>{ state.listes = obj; if(!cache) portailRecu.listes = true; render(); recuDeFirestore('listes'); planifierPublicationPortail(); }),
         dbOnCollection(COL_TACHES, (obj, cache)=>{
           if(!premierInstantane){ premierInstantane = true; Object.keys(creeesAvantInstantane).forEach(k=>{ if(!obj[k]) obj[k] = creeesAvantInstantane[k]; delete creeesAvantInstantane[k]; }); }
-          state.taches = obj; tachesChargees = true; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
+          /* Black Friday : les docs bf:true vont dans state.bf, jamais dans les tâches (listes, compteurs, Portail) */
+          const bf = {}; Object.keys(obj).forEach(k=>{ if(obj[k] && obj[k].bf === true){ bf[k] = obj[k]; delete obj[k]; } });
+          state.bf = bf; state.taches = obj; tachesChargees = true; if(!cache) portailRecu.taches = true; render(); recuDeFirestore('taches'); planifierPublicationPortail(); })
       ];
     } else if(ecoutes){
       ecoutes.forEach(arret=> arret()); ecoutes = null;

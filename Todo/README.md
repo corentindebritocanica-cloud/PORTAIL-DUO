@@ -100,3 +100,10 @@ Testé dans Chromium (iPhone 393×852, faux SDK Firebase en mémoire) : ajout en
 - `sw.js` : même logique réseau d'abord que les autres apps (minuteur pour la navigation seulement, HTML et JS de la même version, `?verif=` en réseau seul) ; feuille Google Fonts non bloquante (`index.html`).
 - **Rejeté** : 17-04 (jeton expiré du secours REST : renouvelé à chaque publication).
 - **Non vérifié sur iPhone.**
+
+## Black Friday (11/11/2026)
+- 3e onglet **Black Friday** (barre du bas) : liste des achats d'électroménager prévus, **autant d'articles qu'on veut**. Bouton `+` = fenêtre « Nouvel article » (article, prix visé facultatif en €, magasin / note facultatif) ; **Entrée** ajoute et garde la fenêtre ouverte pour enchaîner.
+- Case = **acheté** (passe dans « Acheté », avec « Annuler » 4 s) ; crayon / toucher = modifier ou supprimer. En-tête : total des prix visés des articles **encore à acheter** + compteurs.
+- **Données** : mêmes documents que les tâches, `todoTaches/{id}` avec `bf: true` + `{ texte, prix?, note?, fait, ordre, creePar, creeLe, faitPar, faitLe }` → **aucune règle Firestore à publier**. À la réception (`dbOnCollection`), les docs `bf:true` sont **séparés** dans `state.bf` : ils n'entrent jamais dans les listes, compteurs, « Tout » ni le résumé `portail/todo`. Aperçu local : clé `bf` ajoutée à `todo_apercu_v1`.
+- Une ancienne version de l'app encore en cache afficherait ces articles dans « Général » jusqu'à sa mise à jour (la mise à jour est automatique).
+- **Vérifié** (Chromium, Firebase simulé, 393×852) : 3 articles ajoutés (Entrée et bouton), total 748,90 €, rendu sombre. **Non vérifié sur iPhone ni avec la vraie base** ; thème clair et modification / suppression / coche non testés.

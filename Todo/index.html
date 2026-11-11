@@ -47,6 +47,11 @@
       <div class="liste" id="liste-taches"></div>
     </section>
 
+    <!-- Black Friday : achats électroménager à lister (docs todoTaches avec bf:true) — voir « BLACK FRIDAY » dans app.js -->
+    <section class="vue" id="vue-bf">
+      <div class="liste" id="liste-bf"></div>
+    </section>
+
     <section class="vue" id="vue-parametres">
       <div class="params">
         <div class="bloc-param">
@@ -77,6 +82,10 @@
     <button type="button" class="actif" data-tab="taches">
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 8 9 4"/><polyline points="3 13 5 15 9 11"/><line x1="13" y1="6" x2="21" y2="6"/><line x1="13" y1="13" x2="21" y2="13"/><line x1="13" y1="20" x2="21" y2="20"/><circle cx="6" cy="20" r="2"/></svg>
       Tâches
+    </button>
+    <button type="button" data-tab="bf">
+      <svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+      Black Friday
     </button>
     <button type="button" data-tab="parametres">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -137,6 +146,31 @@
       <button type="button" class="btn-enregistrer" id="btn-tache-enregistrer">Enregistrer</button>
     </div>
     <button type="button" class="btn-supprimer" id="btn-tache-supprimer">Supprimer cette tâche</button>
+  </div>
+</div>
+
+<!-- Article Black Friday — voir « BLACK FRIDAY » dans app.js -->
+<div class="modal-fond" id="modal-bf" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-bf-titre">
+  <div class="modal-carte">
+    <h2 id="modal-bf-titre">Nouvel article</h2>
+    <div class="champ">
+      <label for="modal-bf-nom">Article</label>
+      <input type="text" id="modal-bf-nom" placeholder="Ex : Aspirateur robot" maxlength="80" enterkeyhint="send" autocomplete="off">
+    </div>
+    <div class="champ">
+      <label for="modal-bf-prix">Prix visé (€, facultatif)</label>
+      <input type="text" id="modal-bf-prix" inputmode="decimal" placeholder="Ex : 299" maxlength="9" autocomplete="off">
+    </div>
+    <div class="champ">
+      <label for="modal-bf-note">Magasin / note (facultatif)</label>
+      <input type="text" id="modal-bf-note" placeholder="Ex : Boulanger, modèle X200" maxlength="80" enterkeyhint="done" autocomplete="off">
+    </div>
+    <p class="modal-info" id="modal-bf-info"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="btn-bf-annuler">Annuler</button>
+      <button type="button" class="btn-enregistrer" id="btn-bf-enregistrer">Ajouter</button>
+    </div>
+    <button type="button" class="btn-supprimer" id="btn-bf-supprimer" style="display:none;">Supprimer cet article</button>
   </div>
 </div>
 
