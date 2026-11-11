@@ -329,3 +329,10 @@
 .bf-resume strong{ font-size:22px; color:var(--text); }
 .bf-resume span{ font-size:13px; color:var(--text-dim); }
 .bf-prix{ font-weight:800; color:var(--text); }
+
+/* Sous-tâches (11/11/2026) : puces cochables sous le texte de la tâche. */
+.sous-liste{ display:flex; flex-direction:column; margin-top:4px; }
+.sous-item{ display:flex; align-items:center; gap:10px; min-height:44px; font-size:15px; color:var(--text); text-align:left; }
+.sous-puce{ width:20px; text-align:center; color:var(--text-dim); font-weight:800; flex:none; }
+.sous-item.fait{ color:var(--text-dim); text-decoration:line-through; }
+.sous-item.fait .sous-puce{ color:var(--done); }

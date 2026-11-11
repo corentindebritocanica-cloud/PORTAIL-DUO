@@ -8,7 +8,7 @@
    - Une tâche = un document : cocher à deux en même temps n'écrase jamais rien.
    DONNÉES (projet course-app-36e9d, déclarées dans /firestore.rules) :
      todoListes/{id} = { nom, couleur, ordre }      — liste par défaut : id fixe `general`
-     todoTaches/{id} = { listeId, texte, fait, ordre, creePar, creeLe, faitPar, faitLe }
+     todoTaches/{id} = { listeId, texte, fait, ordre, creePar, creeLe, faitPar, faitLe, sous? [{t,f}] }
      portail/todo    = résumé pour le Portail (voir « RÉSUMÉ POUR LE PORTAIL »)
    ============================================================ */
 const firebaseConfig = {
@@ -185,12 +185,18 @@ function dateCourte(ms){
   return d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
 }
 const SVG_COCHE = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+/* SOUS-TÂCHES (11/11/2026) : champ `sous` = [{ t:texte, f:fait }] (puces dans la tâche, cochables sur la ligne). */
+function sousDe(t){ return Array.isArray(t && t.sous) ? t.sous.filter(x=> x && typeof x.t === 'string' && x.t).slice(0, 30) : []; }
+function sousHtml(t){
+  const sous = sousDe(t); if(!sous.length || t.fait) return '';
+  return '<span class="sous-liste">' + sous.map((x,i)=> `<span class="sous-item${x.f ? ' fait' : ''}" data-sous="${i}" role="checkbox" aria-checked="${!!x.f}"><span class="sous-puce" aria-hidden="true">${x.f ? '✓' : '•'}</span>${escapeHtml(x.t)}</span>`).join('') + '</span>';
+}
 function ligneTache(id, t, couleur){
   const auteur = t.creePar === 'lisa' ? 'lisa' : 'corentin';
   const nouvelle = !t.fait && t.creePar && t.creePar !== state.profil && (t.creeLe || 0) > vuLe;
   const detail = t.fait
     ? `Fait${t.faitPar ? ' par ' + PRENOM[t.faitPar === 'lisa' ? 'lisa' : 'corentin'] : ''}${t.faitLe ? ' · ' + dateCourte(t.faitLe) : ''}`
-    : `${PRENOM[auteur]} · ${dateCourte(t.creeLe)}`;
+    : `${PRENOM[auteur]} · ${dateCourte(t.creeLe)}${sousDe(t).length ? ' · ' + sousDe(t).filter(x=> x.f).length + '/' + sousDe(t).length : ''}`;
   const nomListe = idListeAffichee() === TOUT ? (infoListe(listeDe(t)) || {}).nom || '' : '';
   const pour = pourDe(t);
   const etiquettePour = (pour !== 'tous' && !t.fait) ? `<span class="pour-tag ${pour}">${pour === state.profil ? 'Pour moi' : 'Pour ' + PRENOM[pour]}</span>` : '';
@@ -201,6 +207,7 @@ function ligneTache(id, t, couleur){
     + (urgenceDe(t) && !t.fait ? `<span class="urgence u${urgenceDe(t)}">${URGENCE_PASTILLE[urgenceDe(t)]}</span>` : '')
     + etiquettePour
     + `<span class="rayon-produit"><span class="auteur ${t.fait ? (t.faitPar === 'lisa' ? 'lisa' : 'corentin') : auteur}" aria-hidden="true"></span>${nomListe ? `<span class="nom-liste-ligne">${escapeHtml(nomListe)}</span> · ` : ''}${escapeHtml(detail)}</span>`
+    + (sousHtml(t))
     + `</button>`
     + `<button type="button" class="btn-crayon" data-modifier aria-label="Modifier « ${escapeHtml(t.texte)} »"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div>`;
 }
@@ -290,6 +297,15 @@ document.getElementById('btn-ouvrir-ajout').addEventListener('click', ()=>{ if(s
    COCHER / MODIFIER / TERMINÉ
    ============================================================ */
 document.getElementById('liste-taches').addEventListener('click', async (e)=>{
+  const so = e.target.closest('[data-sous]');
+  if(so){   /* puce d'une sous-tâche : cocher / décocher sans ouvrir la fenêtre */
+    const lg = so.closest('.tache'), tt = lg && state.taches[lg.dataset.id], i = Number(so.dataset.sous);
+    if(!tt || !sousDe(tt)[i]) return;
+    const sous = sousDe(tt).map((x,k)=> k === i ? { t:x.t, f:!x.f } : x);
+    tt.sous = sous; render();
+    ecrire(()=> docRef(COL_TACHES, lg.dataset.id).update({ sous }));
+    return;
+  }
   const b = e.target.closest('button'); if(!b) return;
   if(b.hasAttribute('data-replier')){
     state.termineOuvert = !state.termineOuvert;
@@ -445,6 +461,16 @@ function dialogue({ titre = '', texte = '', ok = 'OK', annuler = 'Annuler', dang
    ============================================================ */
 const modalTache = document.getElementById('modal-tache');
 const champTexte = document.getElementById('modal-tache-texte');
+const champSous = document.getElementById('modal-tache-sous');
+/* lignes du champ → sous-tâches ; l'état « fait » est conservé pour un texte identique */
+function lireSous(anciennes){
+  const restes = (anciennes || []).slice();
+  return champSous.value.split('\n').map(l=> l.trim().replace(/\s+/g, ' ').replace(/^[-•*]\s*/, '').slice(0, 80)).filter(Boolean).slice(0, 30).map(t=>{
+    const k = restes.findIndex(x=> x.t === t); let f = false;
+    if(k >= 0){ f = !!restes[k].f; restes.splice(k, 1); }
+    return { t, f };
+  });
+}
 const selectListe = document.getElementById('modal-tache-liste');
 const choixUrgence = document.getElementById('modal-tache-urgence');
 let tacheEditionId = null, urgenceEdition = 0, pourEdition = 'tous';
@@ -479,6 +505,7 @@ function ouvrirModaleTache(id){
   urgenceEdition = urgenceDe(t); dessinerUrgenceEdition();
   pourEdition = creation ? 'tous' : pourDe(t); dessinerPourEdition();
   champTexte.value = t.texte || '';
+  champSous.value = sousDe(t).map(x=> x.t).join('\n');
   selectListe.innerHTML = listesTriees().map(([lid,l])=>
     `<option value="${escapeHtml(lid)}" ${lid === listeDe(t) ? 'selected' : ''}>${escapeHtml(l.nom || '')}</option>`).join('');
   document.getElementById('modal-tache-info').textContent = creation ? '' :
@@ -495,6 +522,7 @@ function creerTache(texte){
   const nt = { listeId: lid, texte, fait:false, ordre: maintenant, creePar: state.profil, creeLe: maintenant, faitPar: null, faitLe: null };
   if(urgenceEdition) nt.urgence = urgenceEdition;
   if(pourEdition !== 'tous') nt.pour = pourEdition;   /* lot 3 */
+  const sous = lireSous(); if(sous.length) nt.sous = sous;
   state.taches[nid] = nt; render();
   if(!premierInstantane) creeesAvantInstantane[nid] = nt;
   ecrire(()=> docRef(COL_TACHES, nid).set(nt));
@@ -509,7 +537,7 @@ champTexte.addEventListener('keydown', (e)=>{
   const texte = champTexte.value.trim().replace(/\s+/g, ' ').slice(0, 200);
   if(!texte) return;
   creerTache(texte);
-  champTexte.value = '';
+  champTexte.value = ''; champSous.value = '';
   urgenceEdition = 0; dessinerUrgenceEdition();
   document.getElementById('modal-tache-info').textContent = '✓ « ' + texte + ' » ajoutée. Entrée pour la suivante.';
   document.getElementById('btn-tache-annuler').textContent = 'Fermer';   /* rien à annuler : les tâches sont ajoutées */
@@ -526,6 +554,8 @@ document.getElementById('btn-tache-enregistrer').addEventListener('click', ()=>{
   if(texte !== t.texte) maj.texte = texte;
   if(urgenceEdition !== urgenceDe(t)) maj.urgence = urgenceEdition;
   if(pourEdition !== pourDe(t)) maj.pour = pourEdition;
+  const sous = lireSous(sousDe(t));
+  if(JSON.stringify(sous) !== JSON.stringify(sousDe(t))) maj.sous = sous;
   if(selectListe.value !== listeDe(t) && infoListe(selectListe.value)){ maj.listeId = selectListe.value; maj.ordre = Date.now(); }
   fermerModaleTache();
   if(!Object.keys(maj).length) return;
