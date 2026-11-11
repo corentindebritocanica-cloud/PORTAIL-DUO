@@ -5,8 +5,8 @@
    - Affichage immédiat depuis un aperçu local (localStorage), remplacé par le 1er instantané Firestore.
    - Une recette = un document.
    DONNÉES (projet course-app-36e9d, déclarées dans /firestore.rules) :
-     recettes/{id} = { titre, categorie, portions, prepa (min), cuisson (min), temp (°C),
-                       four ('' | 'classique' | 'tournante'), ingredients [string], etapes [string],
+     recettes/{id} = { titre, categorie, portions, prepa (min),
+                       cuissons [{ mode, duree, temp, detail }] (anciens champs cuisson/temp/four convertis à la lecture), ingredients [string], etapes [string],
                        notes, favori, creePar, creeLe, maj }
    ============================================================ */
 const firebaseConfig = {
@@ -20,7 +20,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const COL = 'recettes';
 const CATEGORIES_DEFAUT = ['Petit-déj', 'Plat', 'Dessert', 'Snack', 'Boisson'];
-const FOURS = { classique: 'Four classique', tournante: 'Chaleur tournante' };
+/* Modes de cuisson (12/11/2026) : une recette a une LISTE de cuissons [{ mode, duree (min), temp (°C), detail }]. */
+const MODES = {
+  classique: ['🔥', 'Four classique'], tournante: ['🌀', 'Chaleur tournante'], cookeo: ['🍲', 'Cookeo'],
+  poele: ['🍳', 'Poêle'], casserole: ['🥘', 'Casserole'], airfryer: ['💨', 'Air fryer'],
+  gaufrier: ['🧇', 'Gaufrier'], micro: ['📡', 'Micro-ondes'], cru: ['🥗', 'Sans cuisson'], autre: ['♨️', 'Autre']
+};
 const CLE_APERCU = 'recettes-apercu';
 
 let auth, db;
@@ -63,15 +68,20 @@ function ecrire(action, quoi){
 }
 
 /* ---------- Affichage de la liste ---------- */
-function tempsTotal(r){ return (r.prepa || 0) + (r.cuisson || 0); }
+/* Cuissons d'une recette ; les recettes d'avant (cuisson / temp / four) sont converties à la volée. */
+function cuissonsDe(r){
+  if (Array.isArray(r.cuissons)) return r.cuissons;
+  if (r.cuisson != null || r.temp != null || r.four) return [{ mode: r.four || 'autre', duree: r.cuisson != null ? r.cuisson : null, temp: r.temp != null ? r.temp : null, detail: '' }];
+  return [];
+}
+function texteCuisson(c){
+  const m = MODES[c.mode] || MODES.autre;
+  return [m[1], c.temp != null ? c.temp + ' °C' : '', c.duree != null ? c.duree + ' min' : '', c.detail || ''].filter(Boolean).join(' · ');
+}
 function metasHtml(r, detail){
   const m = [];
   if (r.prepa != null) m.push(`<span class="meta">🥣 ${r.prepa} min</span>`);
-  if (r.cuisson != null) m.push(`<span class="meta">⏱ ${r.cuisson} min cuisson</span>`);
-  if (r.temp != null || r.four){
-    const t = [r.temp != null ? r.temp + ' °C' : '', r.four ? FOURS[r.four] : ''].filter(Boolean).join(' · ');
-    m.push(`<span class="meta four">🔥 ${esc(t)}</span>`);
-  }
+  cuissonsDe(r).forEach((c) => m.push(`<span class="meta four">${(MODES[c.mode] || MODES.autre)[0]} ${esc(texteCuisson(c))}</span>`));
   if (detail && r.portions) m.push(`<span class="meta">🍽 ${r.portions} portion${r.portions > 1 ? 's' : ''}</span>`);
   return m.join('');
 }
@@ -82,7 +92,7 @@ function listeFiltree(){
       if (state.filtre === 'favoris' && !r.favori) return false;
       if (state.filtre !== 'toutes' && state.filtre !== 'favoris' && r.categorie !== state.filtre) return false;
       if (!q) return true;
-      return norm([r.titre, r.categorie, (r.ingredients || []).join(' ')].join(' ')).includes(q);
+      return norm([r.titre, r.categorie, (r.ingredients || []).join(' '), cuissonsDe(r).map(texteCuisson).join(' ')].join(' ')).includes(q);
     })
     .sort((a, b) => norm(a.titre).localeCompare(norm(b.titre), 'fr'));
 }
@@ -166,13 +176,38 @@ function ouvrirEdition(id){
   $('f-categorie').value = r ? r.categorie || '' : '';
   $('f-portions').value = r && r.portions != null ? r.portions : '';
   $('f-prepa').value = r && r.prepa != null ? r.prepa : '';
-  $('f-cuisson').value = r && r.cuisson != null ? r.cuisson : '';
-  $('f-temp').value = r && r.temp != null ? r.temp : '';
-  $('f-four').value = r ? r.four || '' : '';
+  $('cuissons').innerHTML = '';
+  (r ? cuissonsDe(r) : []).forEach(ajouterLigneCuisson);
   $('f-ingredients').value = r ? (r.ingredients || []).join('\n') : '';
   $('f-etapes').value = r ? (r.etapes || []).join('\n') : '';
   $('f-notes').value = r ? r.notes || '' : '';
   $('edition').hidden = false;
+}
+/* Lignes de cuisson du formulaire (mode, durée, température, détail) */
+function ajouterLigneCuisson(c){
+  c = c || { mode: 'classique' };
+  const d = document.createElement('div'); d.className = 'cuisson';
+  d.innerHTML = `
+    <div class="ligne">
+      <label class="champ">Mode<select class="c-mode">${Object.keys(MODES).map((k) => `<option value="${k}"${k === c.mode ? ' selected' : ''}>${MODES[k][0]} ${MODES[k][1]}</option>`).join('')}</select></label>
+      <button type="button" class="btn-icone c-suppr" aria-label="Retirer cette cuisson">✕</button>
+    </div>
+    <div class="ligne">
+      <label class="champ">Durée (min)<input type="number" class="c-duree" inputmode="numeric" min="0" max="9999" value="${c.duree != null ? c.duree : ''}"></label>
+      <label class="champ">Température (°C)<input type="number" class="c-temp" inputmode="numeric" min="0" max="500" value="${c.temp != null ? c.temp : ''}"></label>
+    </div>
+    <label class="champ">Détail<input type="text" class="c-detail" maxlength="60" autocomplete="off" placeholder="Sous pression, feu moyen, th. 6…" value="${esc(c.detail || '')}"></label>`;
+  $('cuissons').appendChild(d);
+}
+$('btn-cuisson').addEventListener('click', () => ajouterLigneCuisson(null));
+$('cuissons').addEventListener('click', (e) => { const b = e.target.closest('.c-suppr'); if (b) b.closest('.cuisson').remove(); });
+function lireCuissons(){
+  return [...document.querySelectorAll('#cuissons .cuisson')].map((d) => ({
+    mode: d.querySelector('.c-mode').value,
+    duree: entier(d.querySelector('.c-duree').value),
+    temp: entier(d.querySelector('.c-temp').value),
+    detail: d.querySelector('.c-detail').value.trim()
+  }));
 }
 function fermerEdition(){ $('edition').hidden = true; state.edition = null; }
 $('btn-ajouter').addEventListener('click', () => ouvrirEdition(null));
@@ -186,9 +221,7 @@ $('form-recette').addEventListener('submit', (e) => {
     categorie: $('f-categorie').value.trim(),
     portions: entier($('f-portions').value),
     prepa: entier($('f-prepa').value),
-    cuisson: entier($('f-cuisson').value),
-    temp: entier($('f-temp').value),
-    four: $('f-four').value,
+    cuissons: lireCuissons(),
     ingredients: lignes($('f-ingredients').value),
     etapes: lignes($('f-etapes').value),
     notes: $('f-notes').value.trim(),
@@ -197,6 +230,7 @@ $('form-recette').addEventListener('submit', (e) => {
   const id = state.edition || nouvelId();
   const ancien = state.recettes[id];
   const complet = Object.assign({}, ancien || { favori: false, creePar: profil(), creeLe: Date.now() }, data);
+  delete complet.cuisson; delete complet.temp; delete complet.four;   /* anciens champs, remplacés par cuissons */
   state.recettes[id] = complet; state.charge = true; memoriserApercu();
   fermerEdition(); render();
   ecrire(() => db.collection(COL).doc(id).set(complet), 'Enregistrement');
@@ -238,10 +272,18 @@ $('coller-ok').addEventListener('click', () => {
   if (r.ingredients.length) $('f-ingredients').value = r.ingredients.join('\n');
   if (r.etapes.length) $('f-etapes').value = r.etapes.join('\n');
   if (r.notes.length) $('f-notes').value = r.notes.join('\n');
-  /* Durée de cuisson et température repérées dans les étapes (ex. « 3 à 5 minutes », « 180 °C »), proposées seulement si les champs sont vides */
+  /* Cuisson repérée dans les étapes (mode, température, durée), ajoutée seulement s'il n'y a encore aucune cuisson */
   const tout = r.etapes.join(' ');
-  const t = tout.match(/(\d{2,3})\s*°\s*C?/i); if (t && !$('f-temp').value) $('f-temp').value = t[1];
-  if (/chaleur tournante|ventil/i.test(tout) && !$('f-four').value) $('f-four').value = 'tournante';
+  if (!document.querySelector('#cuissons .cuisson')){
+    const nt = norm(tout);
+    const mode = /cookeo/.test(nt) ? 'cookeo' : /gaufrier/.test(nt) ? 'gaufrier' : /air ?fryer|friteuse/.test(nt) ? 'airfryer'
+      : /chaleur tournante|ventil/.test(nt) ? 'tournante' : /poele/.test(nt) ? 'poele' : /casserole/.test(nt) ? 'casserole'
+      : /\bfour\b|enfourn/.test(nt) ? 'classique' : /micro-?onde/.test(nt) ? 'micro' : null;
+    if (mode){
+      const t = tout.match(/(\d{2,3})\s*°/), dm = [...tout.matchAll(/(\d+)(?:\s*(?:à|a|-)\s*(\d+))?\s*min/gi)].pop();
+      ajouterLigneCuisson({ mode, temp: t ? parseInt(t[1], 10) : null, duree: dm ? parseInt(dm[2] || dm[1], 10) : null });
+    }
+  }
   $('coller').hidden = true;
 });
 

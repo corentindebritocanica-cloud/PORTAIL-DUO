@@ -109,6 +109,11 @@ main{ flex:1 0 auto; padding:0 16px calc(110px + var(--safe-bottom)); }
 .champ input:focus,.champ select:focus,.champ textarea:focus,#coller-texte:focus{ border-color:var(--accent); }
 .ligne{ display:flex; gap:12px; } .ligne .champ{ flex:1; min-width:0; }
 
+.bloc-cuissons{ margin-top:14px; } .bloc-cuissons .btn-sec{ width:100%; margin-top:10px; }
+.cuisson{ margin-top:10px; padding:4px 12px 12px; background:var(--card-2); border:1px solid var(--border); border-radius:var(--r-md); }
+.cuisson .ligne{ align-items:flex-end; } .cuisson .btn-icone{ flex:0 0 44px; margin-bottom:0; background:var(--card); }
+.cuisson .champ input,.cuisson .champ select{ background:var(--bg); }
+
 /* Écran de connexion (même rôle que html.verre .connexion-duo de verre.css) */
 .connexion-duo{ position:fixed; inset:0; z-index:9000; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(13,16,20,.96); }
 .connexion-duo.open{ display:flex; }

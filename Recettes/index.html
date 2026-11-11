@@ -95,25 +95,13 @@
         <input type="number" id="f-portions" inputmode="numeric" min="1" max="99" placeholder="10">
       </label>
     </div>
-    <div class="ligne">
-      <label class="champ">Préparation (min)
-        <input type="number" id="f-prepa" inputmode="numeric" min="0" max="9999" placeholder="10">
-      </label>
-      <label class="champ">Cuisson (min)
-        <input type="number" id="f-cuisson" inputmode="numeric" min="0" max="9999" placeholder="5">
-      </label>
-    </div>
-    <div class="ligne">
-      <label class="champ">Température (°C)
-        <input type="number" id="f-temp" inputmode="numeric" min="0" max="500" placeholder="180">
-      </label>
-      <label class="champ">Four
-        <select id="f-four">
-          <option value="">— Aucun —</option>
-          <option value="classique">Four classique</option>
-          <option value="tournante">Chaleur tournante</option>
-        </select>
-      </label>
+    <label class="champ">Préparation (min)
+      <input type="number" id="f-prepa" inputmode="numeric" min="0" max="9999" placeholder="10">
+    </label>
+    <div class="bloc-cuissons">
+      <div class="champ">Cuissons <small>(four, Cookeo, poêle, casserole…)</small></div>
+      <div id="cuissons"></div>
+      <button type="button" class="btn-sec" id="btn-cuisson">+ Ajouter une cuisson</button>
     </div>
     <label class="champ">Ingrédients <small>(un par ligne)</small>
       <textarea id="f-ingredients" rows="7" placeholder="200 g de farine&#10;4 œufs&#10;2 pincées de sel"></textarea>
