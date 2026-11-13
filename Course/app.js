@@ -1557,6 +1557,9 @@ function renderCout(){
   if(!produitsCharges){ b.style.display = 'none'; pan.style.display = 'none'; return; }
   const r = coutListe();
   b.style.display = '';
+  const cg = document.getElementById('cout-groupes');
+  const tops = Object.entries(r.groupes).sort((a, b2)=> b2[1] - a[1]);
+  cg.innerHTML = r.total > 0 ? tops.slice(0, 4).map(([g, v])=> `<span><b>${Math.round(v / r.total * 100)}%</b> ${escapeHtml(g)}</span>`).join('') : '';
   b.textContent = r.total >= 0.5 ? Math.round(r.total) + '€' : '0€';
   const lignes = Object.entries(r.groupes).sort((a, b2)=> b2[1] - a[1]).map(([g, v])=>{
     const pc = r.total > 0 ? v / r.total * 100 : 0;

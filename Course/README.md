@@ -621,3 +621,4 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - `GROUPES_RAYONS` (app.js) : Sucré / Salé / Fruits & légumes / Boissons / Maison & hygiène, par NOM de rayon (autre = « Autre »). Pas de champ Firestore.
 - Rond en haut à droite (onglets Liste et Course) : coût estimé = Σ prix × quantité des produits cochés (Qté/info vide = 1 ; nombre seul = quantité ; kg : « 500g »/« 1kg » lu, sinon 0,5 kg × qté ; œufs : « 12 » = 12 œufs, sinon 20 œufs). Tap = répartition en % par groupe, produits sans prix signalés.
 - Dépenses : métrique « par an » + carte « Par groupe » (€/mois et €/an) ; chaque ticket de `listes/maison.tickets` porte `g: { groupe: € }` (calculé à l'import ; les 30 tickets existants ont été renseignés par script, « Hors liste » = articles ignorés).
+- Les pourcentages par groupe (4 premiers) sont aussi affichés en petit à gauche du rond (`#cout-groupes`) ; le tap sur le rond garde le détail en euros.

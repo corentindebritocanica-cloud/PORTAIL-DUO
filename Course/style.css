@@ -444,7 +444,7 @@
 
 
 /* Coût estimé de la liste (13/11/2026) : rond en haut à droite + panneau de répartition par groupe. */
-.badge-cout{margin-left:auto; min-width:46px; height:46px; border-radius:50%; padding:0 6px; border:2px solid var(--accent); background:var(--card); color:var(--accent); font-weight:700; font-size:14px; cursor:pointer;}
+.badge-cout{margin-left:8px; min-width:46px; height:46px; border-radius:50%; padding:0 6px; border:2px solid var(--accent); background:var(--card); color:var(--accent); font-weight:700; font-size:14px; cursor:pointer;}
 #app:not([data-onglet="liste"]):not([data-onglet="course"]) .badge-cout, #app:not([data-onglet="liste"]):not([data-onglet="course"]) .panneau-cout{display:none !important;}
 .panneau-cout{margin:8px 16px 0; padding:12px 14px; background:var(--card); border:1px solid var(--border); border-radius:14px;}
 .cout-titre{margin:0 0 8px; font-weight:600; font-size:14px;}
@@ -455,3 +455,6 @@
 .cout-note{margin:6px 0 0; font-size:12px; opacity:.7;}
 .dep-groupe small{display:block; opacity:.7; font-weight:400; font-size:12px;}
 .dep-groupe b{text-align:right;}
+.cout-groupes{margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; font-size:10px; line-height:1.15; color:var(--text-dim); max-height:46px; overflow:hidden;}
+.cout-groupes b{color:var(--text); font-weight:600;}
+#app:not([data-onglet="liste"]):not([data-onglet="course"]) .cout-groupes{display:none;}
