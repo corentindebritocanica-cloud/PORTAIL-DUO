@@ -619,6 +619,13 @@ function lireLignesTicket(lignes){
 const modalTicket = document.getElementById('modal-ticket');
 let ticketEnCours = null;   /* { date, parLibelle: { libelle: dernier article } } */
 function libellesIgnores(){ const m = state.listes && state.listes[LISTE_DEFAUT]; return (m && Array.isArray(m.libellesIgnores)) ? m.libellesIgnores : []; }
+/* Lot vendu sous un seul libellé (ex. « JAMBONNEAU 1 ACH=2 m » = 2 jambonneaux, 2e à -50 %) :
+   produit.diviseursTicket = [{ l: libellé, n: nombre d'articles }] → prix enregistré = prix du ticket / n. */
+function prixUnitaireTicket(id, a){
+  const p = id && state.produits[id];
+  const r = p && Array.isArray(p.diviseursTicket) ? p.diviseursTicket.find(x=> x && x.l === a.libelle && x.n > 1) : null;
+  return r ? Math.round(a.prix / r.n * 100) / 100 : a.prix;
+}
 function produitDuLibelle(lib){
   return Object.keys(state.produits).find(id=> (state.produits[id].libellesTicket || []).includes(lib)) || null;
 }
@@ -671,9 +678,10 @@ function ouvrirTicket(){
     .map(([a, id])=>{
       const p = state.produits[id], avant = historiquePrix(p).filter(e=> jourDe(e.d) !== jourDe(t.date)).pop();
       let ecart = '';
-      if(avant && (avant.u || '') === (a.unite || '') && avant.p !== a.prix)
-        ecart = ` <span class="${a.prix > avant.p ? 'prix-hausse' : 'prix-baisse'}">${a.prix > avant.p ? '↑' : '↓'} ${formatPrix(avant.p, avant.u)}</span>`;
-      return `<li class="ticket-ligne ticket-connu"><span>${escapeHtml(p.nom || '')}</span><span class="ticket-prix">${formatPrix(a.prix, a.unite)}${ecart}</span></li>`;
+      const pu = prixUnitaireTicket(id, a);
+      if(avant && (avant.u || '') === (a.unite || '') && avant.p !== pu)
+        ecart = ` <span class="${pu > avant.p ? 'prix-hausse' : 'prix-baisse'}">${pu > avant.p ? '↑' : '↓'} ${formatPrix(avant.p, avant.u)}</span>`;
+      return `<li class="ticket-ligne ticket-connu"><span>${escapeHtml(p.nom || '')}</span><span class="ticket-prix">${formatPrix(prixUnitaireTicket(id, a), a.unite)}${ecart}</span></li>`;
     }).join('');
   document.getElementById('ticket-connus-titre').style.display = connus.length ? 'block' : 'none';
   annulerFermeture(modalTicket);
@@ -698,7 +706,7 @@ document.getElementById('btn-ticket-enregistrer').addEventListener('click', ()=>
   let n = 0;
   Object.entries(parProduit).forEach(([id, a])=>{
     const p = state.produits[id]; if(!p) return;
-    const champs = champsReleve(p, a.prix, t.date, a.unite || '');
+    const champs = champsReleve(p, prixUnitaireTicket(id, a), t.date, a.unite || '');
     if(ajoutsLibelles[id]) champs.libellesTicket = firebase.firestore.FieldValue.arrayUnion(...ajoutsLibelles[id]);
     dbUpdateDoc('produits', id, champs); n++;
   });

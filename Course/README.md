@@ -595,3 +595,8 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - **Onglet Prix** (4e onglet, entre Course et Réglages ; bloc « ONGLET PRIX » d'`app.js`, `renderPrix()` appelé par `render()`) : résumé = variation moyenne (premier → dernier relevé) des produits suivis ; une ligne par produit avec prix : nom, nb de relevés, mini-courbe SVG, dernier prix, variation % (rouge = hausse, vert = baisse) ; tri Hausses / Baisses / A–Z ; recherche sans accents ; appui = courbe datée (abscisse proportionnelle au temps, grille min/milieu/max) + liste des relevés avec écart. **Unités** : seule la dernière unité est tracée (ex. bananes à la pièce puis au kg, `relevesComparables`).
 - **Vérifié** (Chrome headless, Firebase simulé avec les vraies données) : 88 cartes, +4 % moyen depuis le 2 octobre (51 produits suivis), courbe Carottes, tri Baisses, recherche « nocil », aucune erreur JS. **Non vérifié sur iPhone.**
 
+### Lots vendus sous un seul libellé — prix divisé (13/11/2026, soir)
+**Retour de Corentin** : « JAMBONNEAU 1 ACH=2 m » (7,85 €) = **2 jambonneaux** (offre 2e à -50 %) ; à l'unité, « JAMBONNEAU EXTRA 1/3 » (4,64 €).
+- Nouveau champ produit **`diviseursTicket`** = `[{ l: libellé, n: nombre d'articles }]` : à l'import, prix enregistré = prix du ticket / n (`prixUnitaireTicket`, bloc « IMPORT D'UN TICKET »), aussi dans la fenêtre d'import (prix reconnus et flèches).
+- Jambonneau : règle `n: 2` posée, relevés du 30/10 et du 13/11 corrigés à 3,92 € (au lieu de 7,85 €). Pas encore d'écran pour poser une règle : à faire côté serveur sur demande.
+
