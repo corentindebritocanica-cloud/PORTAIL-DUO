@@ -204,7 +204,7 @@ document.getElementById('btn-profil-lisa').addEventListener('click', ()=>{
 /* ============================================================
    NAVIGATION ENTRE ONGLETS
    ============================================================ */
-const titres = { liste:'Liste', course:'Course', parametres:'Réglages' };
+const titres = { liste:'Liste', course:'Course', prix:'Prix', parametres:'Réglages' };
 document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.ongletActif = btn.dataset.tab;
@@ -579,11 +579,11 @@ async function lignesDuPdf(fichier){
 function lireLignesTicket(lignes){
   const num = (s)=> parseFloat(String(s).replace(',', '.'));
   const articles = [];
-  let date = null, enAttente = null, fini = false;
+  let date = null, enAttente = null, fini = false, remises = 0;
   for(const brute of lignes){
     const l = brute.replace(/\s+/g, ' ').replace(/\/ /g, '/').trim();   /* pdf.js ajoute un espace après « / » */
     if(!l) continue;
-    const md = l.match(/(\d{1,2}):(\d{2}):(\d{2}) (\d{2})\/(\d{2})\/(\d{4})/) || l.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    const md = l.match(/(\d{1,2}):(\d{2}):(\d{2}) (\d{1,2})\/(\d{1,2})\/(\d{4})/) || l.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/);
     if(md && !date){
       date = md.length === 7 ? new Date(+md[6], +md[5] - 1, +md[4], +md[1], +md[2]).getTime()
                              : new Date(+md[3], +md[2] - 1, +md[1], 12, 0).getTime();
@@ -601,6 +601,8 @@ function lireLignesTicket(lignes){
       articles.push({ libelle: enAttente, prix: num(m[2]), quantite: +m[1], total: num(m[3]) });
       enAttente = null; continue;
     }
+    /* Remise immédiate « 2EME A -50% NUTEL.PA -3,23 » : comptée à part (le prix noté reste le prix en rayon). */
+    if((m = l.match(/^(.*[A-Za-z].*?) (-\d+,\d{2})$/))){ remises += num(m[2]); enAttente = null; continue; }
     /* « LIBELLE 4,79 EUR B » */
     if((m = l.match(/^(.*[A-Za-z].*?) (-?\d+,\d{2}) ?EUR( [A-Z0-9])?$/))){
       enAttente = null;
@@ -611,7 +613,7 @@ function lireLignesTicket(lignes){
     /* Libellé seul : la ligne suivante porte la quantité et le prix. */
     enAttente = (/[A-Za-z]{2}/.test(l) && !/EUR/i.test(l)) ? l : null;
   }
-  return { date, articles };
+  return { date, articles, remises: Math.round(remises * 100) / 100 };
 }
 
 const modalTicket = document.getElementById('modal-ticket');
@@ -1327,6 +1329,88 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
 /* ============================================================
    RENDU GLOBAL + DÉMARRAGE
    ============================================================ */
+/* ============================================================
+   ONGLET PRIX (13/11/2026) — évolution du prix de chaque produit relevé (tickets ou saisie).
+   Variation = dernier relevé / premier relevé de la même unité (pièce ou kg).
+   ============================================================ */
+const etatPrix = { tri: 'hausse', recherche: '', ouvert: null };
+function relevesComparables(p){
+  const h = historiquePrix(p); if(!h.length) return [];
+  const u = h[h.length - 1].u || '';
+  return h.filter(e=> (e.u || '') === u);   /* bananes à la pièce puis au kg : seule la dernière unité est tracée */
+}
+function variationPrix(h){ return h.length > 1 && h[0].p > 0 ? (h[h.length - 1].p - h[0].p) / h[0].p * 100 : 0; }
+function texteVariation(v){
+  if(Math.abs(v) < 0.5) return '<span class="var-stable">=</span>';
+  return `<span class="${v > 0 ? 'prix-hausse' : 'prix-baisse'}">${v > 0 ? '+' : ''}${Math.round(v)} %</span>`;
+}
+const dateCourte = (ms)=> new Date(ms).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+/* Courbe SVG : abscisse proportionnelle au temps, ordonnée au prix. mini = petite courbe de la ligne. */
+function courbePrix(h, mini){
+  const W = mini ? 76 : 340, Hh = mini ? 28 : 170;
+  const m = mini ? { g:2, d:2, h:3, b:3 } : { g:62, d:14, h:14, b:26 };
+  const t0 = h[0].d, t1 = h[h.length - 1].d, ps = h.map(e=> e.p);
+  let pMin = Math.min(...ps), pMax = Math.max(...ps);
+  if(pMax - pMin < 0.01){ pMin -= 0.5; pMax += 0.5; }
+  const x = (d)=> m.g + (t1 > t0 ? (d - t0) / (t1 - t0) : 0.5) * (W - m.g - m.d);
+  const y = (p)=> m.h + (1 - (p - pMin) / (pMax - pMin)) * (Hh - m.h - m.b);
+  const pts = h.map(e=> x(e.d).toFixed(1) + ',' + y(e.p).toFixed(1)).join(' ');
+  const coul = variationPrix(h) > 0.5 ? 'var(--danger)' : variationPrix(h) < -0.5 ? 'var(--done)' : 'var(--accent)';
+  if(mini) return `<svg class="courbe-mini" viewBox="0 0 ${W} ${Hh}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${coul}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  const u = h[0].u, lab = (p)=> p.toFixed(2).replace('.', ',') + (u === 'kg' ? '/kg' : '');
+  const grille = [pMax, (pMin + pMax) / 2, pMin].map(p=> `<line x1="${m.g}" x2="${W - m.d}" y1="${y(p)}" y2="${y(p)}" class="cg"/><text x="${m.g - 6}" y="${y(p) + 4}" text-anchor="end" class="ct">${lab(p)}</text>`).join('');
+  const points = h.map(e=> `<circle cx="${x(e.d)}" cy="${y(e.p)}" r="4" fill="${coul}"/>`).join('');
+  const dates = (h.length > 1 ? [h[0], h[h.length - 1]] : [h[0]]).map((e, i)=> `<text x="${x(e.d)}" y="${Hh - 6}" text-anchor="${h.length > 1 ? (i ? 'end' : 'start') : 'middle'}" class="ct">${dateCourte(e.d)}</text>`).join('');
+  return `<svg class="courbe-grande" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Évolution du prix">${grille}<polyline points="${pts}" fill="none" stroke="${coul}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${points}${dates}</svg>`;
+}
+function renderPrix(){
+  const conteneur = document.getElementById('liste-prix');
+  if(!conteneur) return;
+  if(!produitsCharges){ conteneur.innerHTML = lignesAttente(5); return; }
+  const q = sansAccents(etatPrix.recherche);
+  let items = Object.entries(state.produits).map(([id, p])=> [id, p, relevesComparables(p)])
+    .filter(([id, p, h])=> h.length && (!q || sansAccents(p.nom).includes(q)));
+  if(!items.length){
+    conteneur.innerHTML = `<div class="vide"><h2>${q ? 'Rien trouvé' : 'Aucun prix'}</h2><p>Importe un ticket de caisse (onglet Course) ou note un prix en magasin.</p></div>`;
+    return;
+  }
+  /* Résumé : moyenne des variations des produits relevés au moins 2 fois. */
+  const suivis = items.filter(([, , h])=> h.length > 1);
+  const moy = suivis.length ? suivis.reduce((s, [, , h])=> s + variationPrix(h), 0) / suivis.length : 0;
+  const premier = Math.min(...items.map(([, , h])=> h[0].d));
+  const tri = { hausse:(a, b)=> variationPrix(b[2]) - variationPrix(a[2]), baisse:(a, b)=> variationPrix(a[2]) - variationPrix(b[2]), nom:(a, b)=> (a[1].nom || '').localeCompare(b[1].nom || '') }[etatPrix.tri];
+  items.sort((a, b)=> tri(a, b) || (a[1].nom || '').localeCompare(b[1].nom || ''));
+  let html = q ? '' : `<div class="prix-resume"><p class="prix-resume-val">${texteVariation(moy)}</p><p>Variation moyenne depuis le ${new Date(premier).toLocaleDateString('fr-FR', { day:'numeric', month:'long' })} · ${suivis.length} produits suivis, ${items.length} avec un prix</p></div>`;
+  items.forEach(([id, p, h])=>{
+    const der = h[h.length - 1], ouvert = etatPrix.ouvert === id;
+    html += `<div class="carte-prix ${ouvert ? 'ouvert' : ''}" data-prix="${id}">
+      <button type="button" class="carte-prix-tete" aria-expanded="${ouvert}">
+        <span class="carte-prix-nom">${escapeHtml(p.nom || '')}<small>${h.length} relevé${h.length > 1 ? 's' : ''} · ${dateCourte(der.d)}</small></span>
+        ${h.length > 1 ? courbePrix(h, true) : '<span class="courbe-mini"></span>'}
+        <span class="carte-prix-val">${formatPrix(der.p, der.u)}<small>${h.length > 1 ? texteVariation(variationPrix(h)) : ''}</small></span>
+      </button>
+      ${ouvert ? `<div class="carte-prix-detail">${courbePrix(h, false)}
+        <ul class="hp-liste">${h.slice().reverse().map((e, i, t)=>{
+          const av = t[i + 1];
+          return `<li><span class="hp-date">${new Date(e.d).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' })}</span><span class="hp-prix">${formatPrix(e.p, e.u)}</span>${av && av.p !== e.p ? texteVariation((e.p - av.p) / av.p * 100) : ''}</li>`;
+        }).join('')}</ul></div>` : ''}
+    </div>`;
+  });
+  conteneur.innerHTML = html;
+}
+document.getElementById('liste-prix').addEventListener('click', (e)=>{
+  const b = e.target.closest('.carte-prix-tete'); if(!b) return;
+  const id = b.closest('.carte-prix').dataset.prix;
+  etatPrix.ouvert = etatPrix.ouvert === id ? null : id;
+  renderPrix();
+});
+document.getElementById('prix-recherche').addEventListener('input', (e)=>{ etatPrix.recherche = e.target.value; renderPrix(); });
+document.querySelectorAll('.prix-tri').forEach(b=> b.addEventListener('click', ()=>{
+  etatPrix.tri = b.dataset.tri;
+  document.querySelectorAll('.prix-tri').forEach(x=> x.classList.toggle('actif', x === b));
+  renderPrix();
+}));
+
 /* Audit 11-03 : pas de re-rendu pendant la saisie d'une Qté/info (innerHTML détruisait le champ et la frappe) ;
    il est rejoué à la sortie du champ. Règle déjà notée dans PROBLEMES_RESOLUS.md (incident Budget). */
 let renduEnAttente = false;
@@ -1342,6 +1426,7 @@ function render(){
   renderSelecteurListes();
   renderListe();
   renderCourse();
+  renderPrix();
   renderReglagesListes();
   renderReglagesRayons();
 }

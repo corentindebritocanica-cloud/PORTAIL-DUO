@@ -1150,7 +1150,8 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 - pdf.js **ajoute un espace après « / »** (`S/ B 30OEUFS`, `3,30EURO/ kg`) alors que `pdftotext` ne le fait pas : 2 libellés sur 51 ratés et le prix au kg non reconnu. Normaliser (`replace(/\/ /g, '/')`) **avant** de comparer ou de mémoriser un libellé, sinon les associations enregistrées ne correspondent plus.
 - La date du ticket est **après** « MONTANT DU » : ne pas arrêter la lecture au total, seulement la collecte des articles.
 - Articles sur 2 lignes (`4 X 1,47 EUR` ; `0,815 kg X 3,30EURO/kg`) : garder le libellé en attente de la ligne suivante.
-**Contrôle** : somme des lignes = total du ticket (187,66 €) et nombre d'articles = « Nombre d'articles vendus » (77).
+- Formats vus sur d'autres tickets du même magasin : **jour sur 1 chiffre** (`2/10/2026`) et **remises immédiates** sans « EUR » (`LOT DE 4 KIWIS -0,57`), à compter à part.
+**Contrôle** : somme des lignes + remises = total du ticket (187,66 €) et nombre d'articles = « Nombre d'articles vendus » (77).
 **pdf.js** : version 3 UMD (`pdf.min.js`, script classique) chargée à la demande depuis cdnjs, jamais au démarrage ; pas d'`import()` dynamique cross-origin (voir les problèmes de cache du SDK Firebase plus haut).
 
 ---
