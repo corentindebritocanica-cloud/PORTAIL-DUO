@@ -600,3 +600,10 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - Nouveau champ produit **`diviseursTicket`** = `[{ l: libellé, n: nombre d'articles }]` : à l'import, prix enregistré = prix du ticket / n (`prixUnitaireTicket`, bloc « IMPORT D'UN TICKET »), aussi dans la fenêtre d'import (prix reconnus et flèches).
 - Jambonneau : règle `n: 2` posée, relevés du 30/10 et du 13/11 corrigés à 3,92 € (au lieu de 7,85 €). Pas encore d'écran pour poser une règle : à faire côté serveur sur demande.
 
+### Onglet Dépenses (13/11/2026, soir)
+**Demande de Corentin** : moyenne de dépense par semaine et par mois (maquette A/B/C présentée, choix **C : nouvel onglet**).
+- **Données** : total de chaque ticket importé = `listes/maison.tickets` : `[{ d: date ms, total: montant payé, n: nb d'articles, r: remises (négatif) }]` (champ sur le document Maison, **aucune règle Firestore à publier** ; une entrée par date, réimporter le même ticket la remplace). Montant lu sur la ligne « MONTANT DU » du ticket (`montant` dans `lireLignesTicket`), repli sur articles + remises. Les 6 tickets du 02/10 au 13/11 ont été posés côté serveur.
+- **Onglet Dépenses** (5e onglet, entre Prix et Réglages ; bloc « ONGLET DÉPENSES » d'`app.js`, `renderDepenses()` appelé par `render()`) : par semaine = total / nombre de semaines (**lundi→dimanche**, du 1er au dernier ticket, **semaines sans ticket comptées à 0**) ; par mois = par semaine × 52 / 12 ; ticket moyen ; histogramme des 12 dernières semaines (semaine sans ticket en pointillés, pointillés horizontaux = moyenne) ; total par mois civil ; liste des tickets.
+- Au 13/11/2026 : **176 € / semaine, 764 € / mois**, 6 tickets sur 7 semaines (aucun ticket la semaine du 20/10), 1 233,83 € au total, ticket moyen 206 €. Les totaux incluent tout ce qui est sur le ticket (ménage, hygiène…).
+- **Vérifié** (Chrome headless, Firebase simulé avec les vraies données) : chiffres ci-dessus, barres, mois, tickets, aucune erreur JS. **Non vérifié sur iPhone** (barre de 5 onglets).
+

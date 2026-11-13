@@ -204,7 +204,7 @@ document.getElementById('btn-profil-lisa').addEventListener('click', ()=>{
 /* ============================================================
    NAVIGATION ENTRE ONGLETS
    ============================================================ */
-const titres = { liste:'Liste', course:'Course', prix:'Prix', parametres:'Réglages' };
+const titres = { liste:'Liste', course:'Course', prix:'Prix', depenses:'Dépenses', parametres:'Réglages' };
 document.querySelectorAll('nav.tabbar button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.ongletActif = btn.dataset.tab;
@@ -579,7 +579,7 @@ async function lignesDuPdf(fichier){
 function lireLignesTicket(lignes){
   const num = (s)=> parseFloat(String(s).replace(',', '.'));
   const articles = [];
-  let date = null, enAttente = null, fini = false, remises = 0;
+  let date = null, enAttente = null, fini = false, remises = 0, montant = null;
   for(const brute of lignes){
     const l = brute.replace(/\s+/g, ' ').replace(/\/ /g, '/').trim();   /* pdf.js ajoute un espace après « / » */
     if(!l) continue;
@@ -589,7 +589,7 @@ function lireLignesTicket(lignes){
                              : new Date(+md[3], +md[2] - 1, +md[1], 12, 0).getTime();
     }
     if(fini) continue;   /* après le total : on ne cherche plus que la date */
-    if(/^(MONTANT DU|TOTAL\b|SOUS[ -]TOTAL)/i.test(l)){ enAttente = null; if(/^MONTANT DU/i.test(l)) fini = true; continue; }
+    if(/^(MONTANT DU|TOTAL\b|SOUS[ -]TOTAL)/i.test(l)){ enAttente = null; if(/^MONTANT DU/i.test(l)){ fini = true; const mt = l.match(/(\d+,\d{2}) ?EUR/); if(mt) montant = num(mt[1]); } continue; }
     let m;
     /* « 0,815 kg X 3,30EURO/kg 2,69 EUR A » → prix au kg */
     if(enAttente && (m = l.match(/^(\d+,\d+) ?kg X (\d+,\d{2}) ?EURO?\/ ?kg (\d+,\d{2}) ?EUR\b/i))){
@@ -613,7 +613,7 @@ function lireLignesTicket(lignes){
     /* Libellé seul : la ligne suivante porte la quantité et le prix. */
     enAttente = (/[A-Za-z]{2}/.test(l) && !/EUR/i.test(l)) ? l : null;
   }
-  return { date, articles, remises: Math.round(remises * 100) / 100 };
+  return { date, articles, remises: Math.round(remises * 100) / 100, montant };
 }
 
 const modalTicket = document.getElementById('modal-ticket');
@@ -637,11 +637,13 @@ document.getElementById('fichier-ticket').addEventListener('change', async (e)=>
   const btn = document.getElementById('btn-importer-ticket');
   btn.disabled = true; btn.textContent = 'Lecture du ticket…';
   try{
-    const { date, articles } = lireLignesTicket(await lignesDuPdf(fichier));
+    const { date, articles, remises, montant } = lireLignesTicket(await lignesDuPdf(fichier));
+    const somme = Math.round((articles.reduce((s, a)=> s + a.total, 0) + remises) * 100) / 100;
+    const resumeTicket = { total: montant !== null ? montant : somme, n: articles.reduce((s, a)=> s + (a.unite ? 1 : a.quantite), 0), r: remises };
     if(!articles.length) throw new Error('Aucun article trouvé dans ce PDF.');
     const parLibelle = {};
     articles.forEach(a=> parLibelle[a.libelle] = a);   /* même libellé plusieurs fois : la dernière ligne gagne */
-    ticketEnCours = { date: date || Date.now(), dateLue: !!date, parLibelle };
+    ticketEnCours = { date: date || Date.now(), dateLue: !!date, parLibelle, resume: resumeTicket };
     ouvrirTicket();
   }catch(err){
     dialogue({ titre:'Ticket illisible', texte: err.message || String(err), ok:'OK', annuler:'', danger:false });
@@ -713,6 +715,12 @@ document.getElementById('btn-ticket-enregistrer').addEventListener('click', ()=>
   if(nouveauxIgnores.length)
     firestorePret.then(()=> docRef('listes', LISTE_DEFAUT).set({ libellesIgnores: firebase.firestore.FieldValue.arrayUnion(...nouveauxIgnores) }, { merge:true }))
       .catch(signalerEchec('Modification')).catch(()=>{});
+  /* Dépenses : le total du ticket est gardé dans listes/maison.tickets (une entrée par date, réimport = remplace). */
+  if(t.resume && t.resume.total > 0){
+    const autres = ticketsDepenses().filter(x=> x.d !== t.date);
+    const tickets = autres.concat([{ d: t.date, total: t.resume.total, n: t.resume.n, r: t.resume.r }]).sort((a, b)=> a.d - b.d);
+    firestorePret.then(()=> docRef('listes', LISTE_DEFAUT).set({ tickets }, { merge:true })).catch(signalerEchec('Modification')).catch(()=>{});
+  }
   fermerTicket();
   toastAnnuler(n + ' prix enregistrés', null);
 });
@@ -1419,6 +1427,61 @@ document.querySelectorAll('.prix-tri').forEach(b=> b.addEventListener('click', (
   renderPrix();
 }));
 
+/* ============================================================
+   ONGLET DÉPENSES (13/11/2026) — total de chaque ticket importé (listes/maison.tickets : [{d, total, n, r}]).
+   Moyenne par semaine = total / nombre de semaines (lundi→dimanche) du 1er au dernier ticket, semaines sans
+   ticket comptées à 0 ; par mois = par semaine × 52 / 12.
+   ============================================================ */
+function ticketsDepenses(){
+  const m = state.listes && state.listes[LISTE_DEFAUT];
+  return (m && Array.isArray(m.tickets) ? m.tickets : []).filter(x=> x && typeof x.d === 'number' && typeof x.total === 'number').slice().sort((a, b)=> a.d - b.d);
+}
+function lundiDe(ms){ const d = new Date(ms); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
+const euro = (n)=> Math.round(n).toLocaleString('fr-FR') + ' €';
+const euroCent = (n)=> n.toFixed(2).replace('.', ',') + ' €';
+function renderDepenses(){
+  const conteneur = document.getElementById('liste-depenses');
+  if(!conteneur) return;
+  if(!produitsCharges){ conteneur.innerHTML = lignesAttente(4); return; }
+  const tk = ticketsDepenses();
+  if(!tk.length){
+    conteneur.innerHTML = `<div class="vide"><h2>Aucune dépense</h2><p>Importe un ticket de caisse (onglet Course) pour suivre tes dépenses.</p></div>`;
+    return;
+  }
+  const JOUR = 7 * 86400000, premier = lundiDe(tk[0].d), dernier = lundiDe(tk[tk.length - 1].d);
+  const nbSem = Math.round((dernier - premier) / JOUR) + 1;
+  const total = tk.reduce((s, x)=> s + x.total, 0), parSem = total / nbSem, parMois = parSem * 52 / 12;
+  /* Barres : les 12 dernières semaines. */
+  const debut = Math.max(premier, dernier - 11 * JOUR), sem = [];
+  for(let w = debut; w <= dernier; w += JOUR) sem.push({ w, total: 0, n: 0 });
+  tk.forEach(x=>{ const s = sem.find(y=> Math.abs(y.w - lundiDe(x.d)) < 3600000 * 3); if(s){ s.total += x.total; s.n++; } });
+  const max = Math.max(...sem.map(s=> s.total), parSem), H = 120;
+  const pas = Math.ceil(sem.length / 6);
+  const barres = sem.map(s=> s.n
+    ? `<div class="barre" style="height:${Math.max(4, Math.round(s.total / max * H))}px"><span class="barre-val">${Math.round(s.total)}</span></div>`
+    : `<div class="barre barre-vide" style="height:36px"></div>`).join('');
+  const labels = sem.map((s, i)=> `<span>${i % pas === 0 ? dateCourte(s.w) : ''}</span>`).join('');
+  const parMoisCivil = {};
+  tk.forEach(x=>{ const d = new Date(x.d), k = d.getFullYear() * 100 + d.getMonth(); (parMoisCivil[k] ||= { d: x.d, total: 0, n: 0 }); parMoisCivil[k].total += x.total; parMoisCivil[k].n++; });
+  const lignesMois = Object.keys(parMoisCivil).sort().reverse().map(k=>{
+    const m = parMoisCivil[k], nom = new Date(m.d).toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
+    return `<li><span>${escapeHtml(nom.charAt(0).toUpperCase() + nom.slice(1))} · ${m.n} ticket${m.n > 1 ? 's' : ''}</span><b>${euro(m.total)}</b></li>`;
+  }).join('');
+  const lignesTickets = tk.slice().reverse().map(x=>
+    `<li><span>${new Date(x.d).toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' })}<small>${x.n} article${x.n > 1 ? 's' : ''}${x.r < 0 ? ' · remises ' + euroCent(-x.r) : ''}</small></span><b>${euroCent(x.total)}</b></li>`).join('');
+  conteneur.innerHTML = `
+    <div class="dep-metriques">
+      <div><p class="dep-val">${euro(parSem)}</p><p>par semaine</p></div>
+      <div><p class="dep-val">${euro(parMois)}</p><p>par mois</p></div>
+    </div>
+    <p class="dep-note">${tk.length} ticket${tk.length > 1 ? 's' : ''} sur ${nbSem} semaine${nbSem > 1 ? 's' : ''} · ${euro(total)} au total · ticket moyen ${euro(total / tk.length)}. Les semaines sans ticket comptent pour 0 €.</p>
+    <div class="dep-carte"><p class="dep-titre">Dépense par semaine <span class="dep-moy-lib">· pointillés = moyenne ${Math.round(parSem)} €</span></p>
+      <div class="dep-barres" style="height:${H + 18}px"><div class="dep-moy" style="bottom:${Math.round(parSem / max * H)}px"></div>${barres}</div>
+      <div class="dep-labels">${labels}</div></div>
+    <div class="dep-carte"><p class="dep-titre">Par mois</p><ul class="dep-liste">${lignesMois}</ul></div>
+    <div class="dep-carte"><p class="dep-titre">Tickets</p><ul class="dep-liste">${lignesTickets}</ul></div>`;
+}
+
 /* Audit 11-03 : pas de re-rendu pendant la saisie d'une Qté/info (innerHTML détruisait le champ et la frappe) ;
    il est rejoué à la sortie du champ. Règle déjà notée dans PROBLEMES_RESOLUS.md (incident Budget). */
 let renduEnAttente = false;
@@ -1435,6 +1498,7 @@ function render(){
   renderListe();
   renderCourse();
   renderPrix();
+  renderDepenses();
   renderReglagesListes();
   renderReglagesRayons();
 }

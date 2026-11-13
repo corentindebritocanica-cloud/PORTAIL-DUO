@@ -86,7 +86,7 @@
     padding:2px 18px 14px; scrollbar-width:none; overscroll-behavior-x:contain;
   }
   .selecteur-listes::-webkit-scrollbar{display:none;}
-  #app[data-onglet="parametres"] .selecteur-listes, #app[data-onglet="prix"] .selecteur-listes{display:none;}
+  #app[data-onglet="parametres"] .selecteur-listes, #app[data-onglet="prix"] .selecteur-listes, #app[data-onglet="depenses"] .selecteur-listes{display:none;}
   .liste-chip{
     position:relative; flex-shrink:0; display:inline-flex; align-items:center; gap:7px;
     min-height:40px; padding:0 16px; border-radius:var(--r-pill);
@@ -418,4 +418,27 @@
 .courbe-grande{ width:100%; height:auto; display:block; }
 .courbe-grande .cg{ stroke:var(--border); stroke-width:1; }
 .courbe-grande .ct{ fill:var(--text-dim); font-size:11px; font-variant-numeric:tabular-nums; }
+
+/* Onglet Dépenses (13/11/2026) */
+#liste-depenses{ padding-top:12px; padding-bottom:calc(var(--tabbar-height) + 40px); }
+.dep-metriques{ display:flex; gap:12px; margin-bottom:8px; }
+.dep-metriques>div{ flex:1; padding:14px 16px; border-radius:var(--r-lg); background:var(--card); border:1px solid var(--border); }
+.dep-metriques p{ margin:0; font-size:13px; color:var(--text-dim); }
+.dep-metriques .dep-val{ font-size:26px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
+.dep-note{ margin:0 2px 12px; font-size:12px; color:var(--text-dim); }
+.dep-carte{ margin-bottom:12px; padding:14px 16px; border-radius:var(--r-lg); background:var(--card); border:1px solid var(--border); }
+.dep-titre{ margin:0 0 10px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+.dep-barres{ position:relative; display:flex; align-items:flex-end; gap:6px; padding-top:18px; }
+.barre{ flex:1; position:relative; border-radius:4px 4px 0 0; background:var(--accent); min-width:0; }
+.barre-val{ position:absolute; top:-16px; left:0; right:0; text-align:center; font-size:10px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+.barre-vide{ background:none; border:1px dashed var(--border-strong); border-bottom:0; }
+.dep-moy{ position:absolute; left:0; right:0; border-top:1px dashed var(--text-dim); pointer-events:none; }
+.dep-moy-lib{ text-transform:none; letter-spacing:0; font-weight:500; }
+.dep-labels{ display:flex; gap:6px; margin-top:4px; }
+.dep-labels span{ flex:1; text-align:center; font-size:10px; color:var(--text-dim); white-space:nowrap; }
+.dep-liste{ list-style:none; margin:0; padding:0; }
+.dep-liste li{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:15px; }
+.dep-liste li:last-child{ border-bottom:0; }
+.dep-liste small{ display:block; font-size:12px; color:var(--text-dim); }
+.dep-liste b{ font-variant-numeric:tabular-nums; }
 
