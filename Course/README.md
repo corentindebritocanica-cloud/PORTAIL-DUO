@@ -612,3 +612,7 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - 17 tickets rapprochés (page de validation Oui/Non/Autre) : prix relevés aux dates des tickets, totaux ajoutés à `listes/maison.tickets` (23 tickets, moyenne Dépenses recalculée).
 - Œufs : prix stocké **à l'œuf** (`diviseursTicket` : 12/18/20/30 œufs) ; les prix < 1 € s'affichent avec 3 décimales et sont arrondis à 4 décimales (`formatPrix`, `lirePrix`, `prixUnitaireTicket`).
 - Nouveaux produits : Palet breton ; Blanco rattaché à « *TIPP EX RUBANS CORR ».
+
+### 7 tickets de plus (09/04 facture Drive, 18/05, 21/05, 22/05, 29/05, 19/06, 10/07) — 13/11/2026
+- 30 tickets au total dans `listes/maison.tickets` (moyenne ≈ 160 €) ; 989 relevés de prix sur 116 produits.
+- Facture Drive : produits rapprochés par nom (aucun libellé stocké dans `libellesTicket`).
