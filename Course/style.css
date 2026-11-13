@@ -207,7 +207,7 @@
     transition:transform var(--t-fast) var(--ease-out);
   }
   .btn-course-terminee:active{transform:scale(0.97);}
-  #liste-course{padding-top:16px; padding-bottom:calc(var(--tabbar-height) + 90px);}
+  #liste-course{padding-top:16px;}   /* espace du bas : porté par .zone-ticket (13/11/2026) */
   .btn-course-terminee.visible{display:block;}
 
   /* Onglet Réglages */
@@ -373,3 +373,26 @@
   .toast-annuler-txt{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .toast-annuler-btn{ flex:0 0 auto; min-height:40px; padding:0 16px; border-radius:999px; border:none; background:var(--accent); color:#fff; font-size:14px; font-weight:700; }
   @media (prefers-reduced-motion: reduce){ #toast-annuler{ transition:opacity .2s ease; transform:translate(-50%, 0); } }
+
+/* Prix en magasin + import de ticket (13/11/2026) */
+.prix-produit{ width:72px; min-width:72px; font-variant-numeric:tabular-nums; }
+.prix-produit::placeholder{ color:var(--text-dim); font-size:13px; }
+.prix-liste{ color:var(--text); font-variant-numeric:tabular-nums; }
+.prix-hausse{ color:var(--danger); font-weight:700; }
+.prix-baisse{ color:var(--done); font-weight:700; }
+.zone-ticket{ display:flex; justify-content:center; padding:18px 0 calc(var(--tabbar-height) + 90px); }
+.btn-importer-ticket{ min-height:48px; padding:0 20px; border-radius:999px; border:1px solid var(--border); background:var(--card-2); color:var(--text); font-size:15px; font-weight:600; }
+.btn-importer-ticket:active{ transform:scale(0.97); }
+.btn-importer-ticket:disabled{ opacity:.6; }
+.historique-prix .hp-liste, .ticket-liste{ list-style:none; margin:6px 0 0; padding:0; max-height:38vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.hp-liste li{ display:flex; gap:12px; align-items:baseline; padding:7px 0; border-bottom:1px solid var(--border); font-size:15px; }
+.hp-date{ color:var(--text-dim); min-width:70px; font-variant-numeric:tabular-nums; }
+.hp-prix{ font-weight:700; font-variant-numeric:tabular-nums; }
+.hp-resume, .hp-libelles{ margin:4px 0 0; font-size:13px; color:var(--text-dim); }
+.ticket-section{ margin:14px 0 0; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+.ticket-ligne{ padding:9px 0; border-bottom:1px solid var(--border); }
+.ticket-lib, .ticket-connu{ display:flex; justify-content:space-between; gap:10px; font-size:14px; }
+.ticket-lib span:first-child{ font-family:ui-monospace, Menlo, monospace; font-size:13px; }
+.ticket-prix{ font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.ticket-choix{ width:100%; min-height:44px; margin-top:6px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--card-2); color:var(--text); font-size:16px; padding:0 10px; }
+

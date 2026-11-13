@@ -62,6 +62,10 @@
 
     <section class="vue" id="vue-course">
       <div class="liste" id="liste-course"><div class="duo-attente" aria-busy="true"><div class="duo-attente-ligne"><span></span><span></span></div><div class="duo-attente-ligne"><span></span><span></span></div><div class="duo-attente-ligne"><span></span><span></span></div><div class="duo-attente-ligne"><span></span><span></span></div><div class="duo-attente-ligne"><span></span><span></span></div></div></div>
+      <div class="zone-ticket">
+        <button type="button" class="btn-importer-ticket" id="btn-importer-ticket">🧾 Importer un ticket de caisse</button>
+        <input type="file" id="fichier-ticket" accept="application/pdf,.pdf" hidden>
+      </div>
       <button class="btn-course-terminee" id="btn-course-terminee">Course terminée</button>
     </section>
 
@@ -146,6 +150,7 @@
       <label for="modal-nouveau-rayon">Nom du nouveau rayon</label>
       <input type="text" id="modal-nouveau-rayon" placeholder="Ex: Surgelés">
     </div>
+    <div class="champ historique-prix" id="modal-historique-prix" style="display:none;"></div>
     <div class="modal-actions">
       <button class="btn-annuler" id="btn-modal-annuler">Annuler</button>
       <button class="btn-enregistrer" id="btn-modal-enregistrer">Enregistrer</button>
@@ -194,6 +199,21 @@
     <ul class="nouveautes-liste" id="nouveautes-liste"></ul>
     <div class="modal-actions">
       <button type="button" class="btn-enregistrer" id="nouveautes-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fond" id="modal-ticket" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ticket-titre">
+  <div class="modal-carte">
+    <h2 id="ticket-titre">🧾 Ticket de caisse</h2>
+    <p class="dialogue-texte" id="ticket-texte"></p>
+    <p class="ticket-section" id="ticket-inconnus-titre">À associer (une seule fois, retenu ensuite)</p>
+    <ul class="ticket-liste" id="ticket-inconnus"></ul>
+    <p class="ticket-section" id="ticket-connus-titre">Prix reconnus</p>
+    <ul class="ticket-liste" id="ticket-connus"></ul>
+    <div class="modal-actions">
+      <button type="button" class="btn-annuler" id="btn-ticket-annuler">Annuler</button>
+      <button type="button" class="btn-enregistrer" id="btn-ticket-enregistrer">Enregistrer les prix</button>
     </div>
   </div>
 </div>

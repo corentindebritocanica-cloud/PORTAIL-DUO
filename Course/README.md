@@ -577,3 +577,15 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - **Non fait** : 20-04 (`apple-touch-icon` en data-URI dans `index.html`) — à tester sur iPhone avant de changer.
 - **Non vérifié sur iPhone.**
 - **Ajouts (même audit)** : feuille Google Fonts non bloquante (13-01) ; `?verif=` (contrôle de version de `commun.js`) en réseau seul dans `sw.js`.
+
+## Prix en magasin et import de ticket de caisse (13/11/2026)
+
+**Demande de Corentin** : noter le prix de chaque produit pour comparer dans le temps (un seul magasin, Intermarché), en important le ticket de caisse PDF.
+- **Données** (`produits/{id}`) : `historiquePrix` = `[{p, d, u?}]` (prix, date ms, `u:'kg'` pour le vrac ; trié, 40 relevés max, **un seul par jour** : ressaisir ou réimporter le même jour remplace) ; `prix`/`prixLe`/`prixUnite` = copie du dernier relevé ; `libellesTicket` = libellés de ticket associés au produit. `listes/maison.libellesIgnores` = libellés à ne plus proposer (achats hors liste), commun aux deux téléphones — Maison n'est jamais supprimable. Aucune règle Firestore à changer.
+- **Onglet Liste** : dernier prix sous le produit (« Rayon · 3,30 €/kg ↓ »), flèche = comparé au relevé précédent.
+- **Onglet Course** : champ prix (72 px, classe `qte-produit` pour le style et l'absence de re-rendu pendant la saisie) ; indice = dernier prix ; même unité que le dernier relevé.
+- **Fiche produit (✎)** : historique daté, écart en % entre relevés, min/max, libellés de ticket associés.
+- **Import** : bouton « 🧾 Importer un ticket de caisse » en bas de l'onglet Course → PDF lu dans le navigateur (pdf.js 3.11.174 chargé à la demande depuis cdnjs, **en ligne uniquement**) → `lireLignesTicket()` (bloc « IMPORT D'UN TICKET » d'`app.js`) → fenêtre : libellés **à associer** (menu : produit / « Ignorer toujours » / « Plus tard ») puis **prix reconnus** (avec ↑/↓ et l'ancien prix). « Enregistrer les prix » écrit les relevés à la **date du ticket**, mémorise les associations (`arrayUnion`). Même libellé plusieurs fois : la dernière ligne gagne ; plusieurs libellés pour un produit : le dernier du ticket gagne.
+- **1er ticket (13/11/2026)** associé côté serveur (compte de service, sauvegarde JSON avant) avec Corentin : 44 libellés → 42 produits, produit « Chaussée aux moines » créé (rayon des Coulommiers), 4 libellés ignorés (Red Bull, recharge de scotch, Skyr 850 g, M&M's Peanut). Reste à associer au prochain import : `PAT PRINTENDRE AFH 1`.
+- **Vérifié** (Chrome headless, Firebase simulé avec les vraies données, vrai PDF) : 63 lignes, total 187,66 € = ticket, date 13/11 16h26, vrac au kg ; fenêtre (43 reconnus, 1 à associer, 4 ignorés) ; « Ignorer toujours » écrit dans `listes/maison` ; réimport du même jour sans doublon ; historique dans la fiche ; aucune erreur JS. **Non vérifié sur iPhone** (choix du PDF depuis Fichiers / Mail).
+

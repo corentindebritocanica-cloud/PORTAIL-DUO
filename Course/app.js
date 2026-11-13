@@ -302,7 +302,7 @@ function carteProduitListe(id, p){
       </button>
       <div class="infos-produit">
         <p class="nom-produit">${escapeHtml(p.nom||'')}</p>
-        <p class="rayon-produit">${escapeHtml(rayon ? rayon.nom : 'Sans rayon')}${autre ? ` · <span class="nom-liste" style="--c-liste:${couleur}">${nomListe}</span>` : ''}</p>
+        <p class="rayon-produit">${escapeHtml(rayon ? rayon.nom : 'Sans rayon')}${autre ? ` · <span class="nom-liste" style="--c-liste:${couleur}">${nomListe}</span>` : ''}${typeof p.prix === 'number' ? ` · <span class="prix-liste">${textePrix(p)}</span>` : ''}</p>
       </div>
       <input class="qte-produit" value="${escapeHtml(p.quantite||'')}" placeholder="Qté/info"
         onchange="updateQuantite('${id}', this.value)">
@@ -467,6 +467,247 @@ function updateQuantite(id, val){
 }
 
 /* ============================================================
+   PRIX EN MAGASIN (13/11/2026) — un seul magasin, historique daté par produit.
+   Champs produit : historiquePrix [{p, d, u?}] (ancien → récent, 40 max ; u = 'kg' pour le vrac),
+   prix / prixLe / prixUnite (copie du dernier relevé, pour l'affichage), libellesTicket (libellés de
+   ticket de caisse associés au produit). Une seule entrée par jour : ressaisir le même jour corrige.
+   ============================================================ */
+const MAX_HISTORIQUE_PRIX = 40;
+function jourDe(ms){ const d = new Date(ms); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+function formatPrix(n, u){ return (typeof n === 'number' && isFinite(n)) ? n.toFixed(2).replace('.', ',') + (u === 'kg' ? ' €/kg' : ' €') : ''; }
+function lirePrix(txt){
+  const n = parseFloat(String(txt || '').replace(/[€\s]|\/kg/gi, '').replace(',', '.'));
+  return (isFinite(n) && n >= 0 && n < 100000) ? Math.round(n * 100) / 100 : null;
+}
+function historiquePrix(p){ return Array.isArray(p && p.historiquePrix) ? p.historiquePrix.filter(e=> e && typeof e.p === 'number' && typeof e.d === 'number') : []; }
+/* Ajoute (ou remplace, même jour) un relevé et renvoie les champs à écrire. prix = null → retire le relevé de ce jour. */
+function champsReleve(p, prix, d, u){
+  let h = historiquePrix(p).filter(e=> jourDe(e.d) !== jourDe(d));
+  if(prix !== null){ const e = { p: prix, d }; if(u) e.u = u; h.push(e); }
+  h.sort((x, y)=> x.d - y.d);
+  h = h.slice(-MAX_HISTORIQUE_PRIX);
+  const der = h[h.length - 1], del = firebase.firestore.FieldValue.delete();
+  return { historiquePrix: h, prix: der ? der.p : del, prixLe: der ? der.d : del, prixUnite: der ? (der.u || '') : del };
+}
+function prixDuJour(p){
+  const e = historiquePrix(p).find(e=> jourDe(e.d) === jourDe(Date.now()));
+  return e ? e.p : null;
+}
+/* Tendance : dernier relevé comparé au précédent (↑ plus cher, ↓ moins cher). */
+function tendancePrix(p){
+  const h = historiquePrix(p);
+  if(h.length < 2) return '';
+  const a = h[h.length - 2].p, b = h[h.length - 1].p;
+  return b > a ? ' <span class="prix-hausse">↑</span>' : b < a ? ' <span class="prix-baisse">↓</span>' : '';
+}
+function textePrix(p){ return typeof p.prix === 'number' ? formatPrix(p.prix, p.prixUnite) + tendancePrix(p) : ''; }
+/* Saisie à la main (onglet Course) : même unité que le dernier relevé (prix au kg pour le vrac). */
+function enregistrerPrix(id, txt, champ){
+  const p = state.produits[id]; if(!p) return;
+  const vide = String(txt).trim() === '';
+  const n = vide ? null : lirePrix(txt);
+  if(!vide && n === null){ champ.value = ''; return; }
+  if(n !== null) champ.value = n.toFixed(2).replace('.', ',');
+  dbUpdateDoc('produits', id, champsReleve(p, n, Date.now(), p.prixUnite || ''));
+}
+function champPrix(id, p){
+  const duJour = prixDuJour(p);
+  const indice = typeof p.prix === 'number' ? formatPrix(p.prix, p.prixUnite) : 'Prix €';
+  return `<input class="qte-produit prix-produit" inputmode="decimal" enterkeyhint="done" aria-label="Prix en magasin"
+    value="${duJour !== null ? duJour.toFixed(2).replace('.', ',') : ''}" placeholder="${escapeHtml(indice)}"
+    onchange="enregistrerPrix('${id}', this.value, this)">`;
+}
+function dessinerHistoriquePrix(p){
+  const bloc = document.getElementById('modal-historique-prix');
+  const h = historiquePrix(p).slice().reverse();
+  if(!h.length){ bloc.style.display = 'none'; bloc.innerHTML = ''; return; }
+  const lignes = h.map((e, i)=>{
+    const avant = h[i + 1];
+    let ecart = '';
+    if(avant && avant.p > 0 && e.p !== avant.p && (avant.u || '') === (e.u || '')){
+      const pc = Math.round((e.p - avant.p) / avant.p * 100);
+      ecart = `<span class="${e.p > avant.p ? 'prix-hausse' : 'prix-baisse'}">${pc > 0 ? '+' : ''}${pc} %</span>`;
+    }
+    const date = new Date(e.d).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+    return `<li><span class="hp-date">${date}</span><span class="hp-prix">${formatPrix(e.p, e.u)}</span>${ecart}</li>`;
+  }).join('');
+  const prixs = h.map(e=> e.p);
+  const resume = h.length > 1 ? `<p class="hp-resume">Min ${formatPrix(Math.min(...prixs), h[0].u)} · Max ${formatPrix(Math.max(...prixs), h[0].u)} · ${h.length} relevés</p>` : '';
+  const libs = (p.libellesTicket || []).length ? `<p class="hp-libelles">Ticket : ${p.libellesTicket.map(escapeHtml).join(' · ')}</p>` : '';
+  bloc.innerHTML = `<label>Historique des prix</label>${resume}<ul class="hp-liste">${lignes}</ul>${libs}`;
+  bloc.style.display = 'block';
+}
+
+/* ============================================================
+   IMPORT D'UN TICKET DE CAISSE (13/11/2026) — PDF (testé sur un ticket Intermarché).
+   pdf.js chargé à la demande (jamais au démarrage, pas de cache hors ligne : l'import se fait en ligne).
+   Libellé connu (libellesTicket d'un produit) → prix enregistré directement ; libellé ignoré
+   (listes/maison.libellesIgnores, commun aux deux téléphones) → passé ; sinon on demande une fois.
+   ============================================================ */
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let promessePdfjs = null;
+function chargerPdfjs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return promessePdfjs ||= new Promise((ok, ko)=>{
+    const s = document.createElement('script');
+    s.src = PDFJS_URL;
+    s.onload = ()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; ok(window.pdfjsLib); };
+    s.onerror = ()=>{ promessePdfjs = null; ko(new Error('Lecteur PDF injoignable (connexion ?)')); };
+    document.head.appendChild(s);
+  });
+}
+/* Texte du PDF reconstruit ligne par ligne (morceaux regroupés par hauteur, puis de gauche à droite). */
+async function lignesDuPdf(fichier){
+  const pdfjsLib = await chargerPdfjs();
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await fichier.arrayBuffer()) }).promise;
+  const lignes = [];
+  for(let i = 1; i <= doc.numPages; i++){
+    const tc = await (await doc.getPage(i)).getTextContent();
+    const parY = [];
+    tc.items.forEach(it=>{
+      if(!it.str || !it.str.trim()) return;
+      const y = it.transform[5];
+      let l = parY.find(l=> Math.abs(l.y - y) < 2);
+      if(!l){ l = { y, it: [] }; parY.push(l); }
+      l.it.push(it);
+    });
+    parY.sort((a, b)=> b.y - a.y).forEach(l=> lignes.push(l.it.sort((a, b)=> a.transform[4] - b.transform[4]).map(x=> x.str).join(' ')));
+  }
+  return lignes;
+}
+function lireLignesTicket(lignes){
+  const num = (s)=> parseFloat(String(s).replace(',', '.'));
+  const articles = [];
+  let date = null, enAttente = null, fini = false;
+  for(const brute of lignes){
+    const l = brute.replace(/\s+/g, ' ').replace(/\/ /g, '/').trim();   /* pdf.js ajoute un espace après « / » */
+    if(!l) continue;
+    const md = l.match(/(\d{1,2}):(\d{2}):(\d{2}) (\d{2})\/(\d{2})\/(\d{4})/) || l.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if(md && !date){
+      date = md.length === 7 ? new Date(+md[6], +md[5] - 1, +md[4], +md[1], +md[2]).getTime()
+                             : new Date(+md[3], +md[2] - 1, +md[1], 12, 0).getTime();
+    }
+    if(fini) continue;   /* après le total : on ne cherche plus que la date */
+    if(/^(MONTANT DU|TOTAL\b|SOUS[ -]TOTAL)/i.test(l)){ enAttente = null; if(/^MONTANT DU/i.test(l)) fini = true; continue; }
+    let m;
+    /* « 0,815 kg X 3,30EURO/kg 2,69 EUR A » → prix au kg */
+    if(enAttente && (m = l.match(/^(\d+,\d+) ?kg X (\d+,\d{2}) ?EURO?\/ ?kg (\d+,\d{2}) ?EUR\b/i))){
+      articles.push({ libelle: enAttente, prix: num(m[2]), unite: 'kg', quantite: num(m[1]), total: num(m[3]) });
+      enAttente = null; continue;
+    }
+    /* « 4 X 1,47 EUR 5,88 EUR A » → prix unitaire */
+    if(enAttente && (m = l.match(/^(\d+) X (\d+,\d{2}) ?EUR (\d+,\d{2}) ?EUR\b/i))){
+      articles.push({ libelle: enAttente, prix: num(m[2]), quantite: +m[1], total: num(m[3]) });
+      enAttente = null; continue;
+    }
+    /* « LIBELLE 4,79 EUR B » */
+    if((m = l.match(/^(.*[A-Za-z].*?) (-?\d+,\d{2}) ?EUR( [A-Z0-9])?$/))){
+      enAttente = null;
+      const prix = num(m[2]);
+      if(prix > 0) articles.push({ libelle: m[1].trim(), prix, quantite: 1, total: prix });
+      continue;
+    }
+    /* Libellé seul : la ligne suivante porte la quantité et le prix. */
+    enAttente = (/[A-Za-z]{2}/.test(l) && !/EUR/i.test(l)) ? l : null;
+  }
+  return { date, articles };
+}
+
+const modalTicket = document.getElementById('modal-ticket');
+let ticketEnCours = null;   /* { date, parLibelle: { libelle: dernier article } } */
+function libellesIgnores(){ const m = state.listes && state.listes[LISTE_DEFAUT]; return (m && Array.isArray(m.libellesIgnores)) ? m.libellesIgnores : []; }
+function produitDuLibelle(lib){
+  return Object.keys(state.produits).find(id=> (state.produits[id].libellesTicket || []).includes(lib)) || null;
+}
+document.getElementById('btn-importer-ticket').addEventListener('click', ()=> document.getElementById('fichier-ticket').click());
+document.getElementById('fichier-ticket').addEventListener('change', async (e)=>{
+  const fichier = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!fichier) return;
+  const btn = document.getElementById('btn-importer-ticket');
+  btn.disabled = true; btn.textContent = 'Lecture du ticket…';
+  try{
+    const { date, articles } = lireLignesTicket(await lignesDuPdf(fichier));
+    if(!articles.length) throw new Error('Aucun article trouvé dans ce PDF.');
+    const parLibelle = {};
+    articles.forEach(a=> parLibelle[a.libelle] = a);   /* même libellé plusieurs fois : la dernière ligne gagne */
+    ticketEnCours = { date: date || Date.now(), dateLue: !!date, parLibelle };
+    ouvrirTicket();
+  }catch(err){
+    dialogue({ titre:'Ticket illisible', texte: err.message || String(err), ok:'OK', annuler:'', danger:false });
+  }finally{
+    btn.disabled = false; btn.textContent = '🧾 Importer un ticket de caisse';
+  }
+});
+function ouvrirTicket(){
+  const t = ticketEnCours, ignores = libellesIgnores();
+  const connus = [], inconnus = [];
+  let nbIgnores = 0;
+  Object.values(t.parLibelle).forEach(a=>{
+    const id = produitDuLibelle(a.libelle);
+    if(id) connus.push([a, id]);
+    else if(ignores.includes(a.libelle)) nbIgnores++;
+    else inconnus.push(a);
+  });
+  const date = new Date(t.date).toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('ticket-texte').textContent =
+    `Ticket du ${date}${t.dateLue ? '' : ' (date non trouvée : aujourd’hui)'} — ${connus.length} prix reconnus`
+    + (inconnus.length ? `, ${inconnus.length} à associer` : '') + (nbIgnores ? `, ${nbIgnores} ignorés` : '') + '.';
+  const options = Object.entries(state.produits).sort((a, b)=> (a[1].nom || '').localeCompare(b[1].nom || ''))
+    .map(([id, p])=> `<option value="${id}">${escapeHtml(p.nom || '')}</option>`).join('');
+  document.getElementById('ticket-inconnus').innerHTML = inconnus.map(a=> `
+    <li class="ticket-ligne">
+      <div class="ticket-lib"><span>${escapeHtml(a.libelle)}</span><span class="ticket-prix">${formatPrix(a.prix, a.unite)}</span></div>
+      <select class="ticket-choix" data-lib="${escapeHtml(a.libelle)}" aria-label="Produit pour ${escapeHtml(a.libelle)}">
+        <option value="">Plus tard (redemander)</option><option value="__ignorer__">Ignorer toujours</option>${options}
+      </select>
+    </li>`).join('');
+  document.getElementById('ticket-inconnus-titre').style.display = inconnus.length ? 'block' : 'none';
+  document.getElementById('ticket-connus').innerHTML = connus
+    .sort((x, y)=> (state.produits[x[1]].nom || '').localeCompare(state.produits[y[1]].nom || ''))
+    .map(([a, id])=>{
+      const p = state.produits[id], avant = historiquePrix(p).filter(e=> jourDe(e.d) !== jourDe(t.date)).pop();
+      let ecart = '';
+      if(avant && (avant.u || '') === (a.unite || '') && avant.p !== a.prix)
+        ecart = ` <span class="${a.prix > avant.p ? 'prix-hausse' : 'prix-baisse'}">${a.prix > avant.p ? '↑' : '↓'} ${formatPrix(avant.p, avant.u)}</span>`;
+      return `<li class="ticket-ligne ticket-connu"><span>${escapeHtml(p.nom || '')}</span><span class="ticket-prix">${formatPrix(a.prix, a.unite)}${ecart}</span></li>`;
+    }).join('');
+  document.getElementById('ticket-connus-titre').style.display = connus.length ? 'block' : 'none';
+  annulerFermeture(modalTicket);
+  modalTicket.style.display = 'flex';
+}
+function fermerTicket(){ fermerAnime(modalTicket, ()=>{ modalTicket.style.display = 'none'; }); ticketEnCours = null; }
+document.getElementById('btn-ticket-annuler').addEventListener('click', fermerTicket);
+modalTicket.addEventListener('click', (e)=>{ if(e.target === modalTicket) fermerTicket(); });
+document.getElementById('btn-ticket-enregistrer').addEventListener('click', ()=>{
+  const t = ticketEnCours; if(!t) return;
+  const nouveauxIgnores = [], ajoutsLibelles = {};
+  document.querySelectorAll('#ticket-inconnus .ticket-choix').forEach(sel=>{
+    if(sel.value === '__ignorer__') nouveauxIgnores.push(sel.dataset.lib);
+    else if(sel.value) (ajoutsLibelles[sel.value] ||= []).push(sel.dataset.lib);
+  });
+  /* Prix par produit : libellés déjà associés + nouvelles associations (dernier article du ticket gagne). */
+  const parProduit = {};
+  Object.values(t.parLibelle).forEach(a=>{
+    const id = produitDuLibelle(a.libelle) || Object.keys(ajoutsLibelles).find(k=> ajoutsLibelles[k].includes(a.libelle));
+    if(id) parProduit[id] = a;
+  });
+  let n = 0;
+  Object.entries(parProduit).forEach(([id, a])=>{
+    const p = state.produits[id]; if(!p) return;
+    const champs = champsReleve(p, a.prix, t.date, a.unite || '');
+    if(ajoutsLibelles[id]) champs.libellesTicket = firebase.firestore.FieldValue.arrayUnion(...ajoutsLibelles[id]);
+    dbUpdateDoc('produits', id, champs); n++;
+  });
+  if(nouveauxIgnores.length)
+    firestorePret.then(()=> docRef('listes', LISTE_DEFAUT).set({ libellesIgnores: firebase.firestore.FieldValue.arrayUnion(...nouveauxIgnores) }, { merge:true }))
+      .catch(signalerEchec('Modification')).catch(()=>{});
+  fermerTicket();
+  toastAnnuler(n + ' prix enregistrés', null);
+});
+
+/* ============================================================
    RENDU — Course
    ============================================================ */
 function renderCourse(){
@@ -550,6 +791,7 @@ function carteProduitCourse(id, p){
         <p class="nom-produit ${p.achete?'achete':''}">${escapeHtml(p.nom||'')}</p>
         ${details.length ? `<p class="rayon-produit">${details.join(' · ')}</p>` : ''}
       </div>
+      ${champPrix(id, p)}
       ${p.achete ? '' : `<button type="button" class="btn-pas-trouve ${p.pasTrouve ? 'actif' : ''}" onclick="togglePasTrouve('${id}')">${p.pasTrouve ? 'Trouvé' : 'Pas trouvé'}</button>`}
     </div>`;
 }
@@ -598,6 +840,7 @@ function toastAnnuler(texte, annuler){
     document.body.appendChild(t);
   }
   t.querySelector('.toast-annuler-txt').textContent = texte;
+  t.querySelector('.toast-annuler-btn').style.display = annuler ? '' : 'none';   /* simple message (import de ticket) */
   actionAnnuler = annuler;
   t.classList.add('visible');
   clearTimeout(minuteurToastAnnuler);
@@ -734,6 +977,7 @@ function ouvrirModale(id, nomPropose){
   champNouveauRayon.style.display = 'none';
   document.getElementById('modal-nouveau-rayon').value = '';
   document.getElementById('btn-modal-supprimer').style.display = id ? 'block' : 'none';
+  dessinerHistoriquePrix(p || {});
   annulerFermeture(modal);
   modal.style.display = 'flex';
   setTimeout(()=> document.getElementById('modal-nom').focus(), 50);

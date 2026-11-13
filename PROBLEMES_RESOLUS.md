@@ -1143,6 +1143,16 @@ Ajout complémentaire : `<meta name="mobile-web-app-capable" content="yes">` à 
 ### Budget — onglet "Admin" renommé "Réglages"
 Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et la fonction `rendreAdmin()` sont restés inchangés volontairement, pour ne prendre aucun risque sur la logique existante pour un simple renommage cosmétique.
 
+### 13/11/2026 — Course — lire un ticket de caisse PDF dans le navigateur (pdf.js)
+**Contexte** : import des prix depuis le ticket PDF d'Intermarché (texte, pas une image).
+**Pièges rencontrés** :
+- pdf.js renvoie des **morceaux de texte positionnés**, pas des lignes : regrouper par hauteur (`transform[5]`, tolérance 2), puis trier de gauche à droite (`transform[4]`).
+- pdf.js **ajoute un espace après « / »** (`S/ B 30OEUFS`, `3,30EURO/ kg`) alors que `pdftotext` ne le fait pas : 2 libellés sur 51 ratés et le prix au kg non reconnu. Normaliser (`replace(/\/ /g, '/')`) **avant** de comparer ou de mémoriser un libellé, sinon les associations enregistrées ne correspondent plus.
+- La date du ticket est **après** « MONTANT DU » : ne pas arrêter la lecture au total, seulement la collecte des articles.
+- Articles sur 2 lignes (`4 X 1,47 EUR` ; `0,815 kg X 3,30EURO/kg`) : garder le libellé en attente de la ligne suivante.
+**Contrôle** : somme des lignes = total du ticket (187,66 €) et nombre d'articles = « Nombre d'articles vendus » (77).
+**pdf.js** : version 3 UMD (`pdf.min.js`, script classique) chargée à la demande depuis cdnjs, jamais au démarrage ; pas d'`import()` dynamique cross-origin (voir les problèmes de cache du SDK Firebase plus haut).
+
 ---
 
 ## 📚 Documents de référence créés ce jour-là
@@ -1154,4 +1164,4 @@ Changement du libellé visible uniquement. `data-view="admin"`, `#vue-admin`, et
 
 ---
 
-**Dernière mise à jour de ce fichier** : 20 octobre 2026
+**Dernière mise à jour de ce fichier** : 13 novembre 2026
