@@ -213,6 +213,7 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     document.querySelectorAll('section.vue').forEach(s=> s.classList.toggle('actif', s.id==='vue-'+btn.dataset.tab));
     document.getElementById('titre-onglet').textContent = titres[btn.dataset.tab];
     renderSelecteurListes();   /* pastilles différentes selon l'onglet (« Toutes » dans Course) */
+    document.getElementById('panneau-cout').style.display = 'none'; renderCout();
     window.scrollTo(0, 0);   /* 28/09/2026 : la page défile désormais (plus <main>) — chaque onglet s'ouvre en haut */
   });
 });
@@ -718,7 +719,13 @@ document.getElementById('btn-ticket-enregistrer').addEventListener('click', ()=>
   /* Dépenses : le total du ticket est gardé dans listes/maison.tickets (une entrée par date, réimport = remplace). */
   if(t.resume && t.resume.total > 0){
     const autres = ticketsDepenses().filter(x=> x.d !== t.date);
-    const tickets = autres.concat([{ d: t.date, total: t.resume.total, n: t.resume.n, r: t.resume.r }]).sort((a, b)=> a.d - b.d);
+    const g = {};
+    Object.values(t.parLibelle).forEach(a=>{
+      const id = produitDuLibelle(a.libelle) || Object.keys(ajoutsLibelles).find(k=> ajoutsLibelles[k].includes(a.libelle));
+      const nom = id && state.produits[id] ? groupeDuProduit(state.produits[id]) : 'Hors liste';
+      g[nom] = Math.round(((g[nom] || 0) + a.total) * 100) / 100;
+    });
+    const tickets = autres.concat([{ d: t.date, total: t.resume.total, n: t.resume.n, r: t.resume.r, g }]).sort((a, b)=> a.d - b.d);
     firestorePret.then(()=> docRef('listes', LISTE_DEFAUT).set({ tickets }, { merge:true })).catch(signalerEchec('Modification')).catch(()=>{});
   }
   fermerTicket();
@@ -1439,6 +1446,17 @@ function ticketsDepenses(){
 function lundiDe(ms){ const d = new Date(ms); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
 const euro = (n)=> Math.round(n).toLocaleString('fr-FR') + ' €';
 const euroCent = (n)=> n.toFixed(2).replace('.', ',') + ' €';
+/* Dépenses par groupe : chaque ticket porte g = { groupe: € } (calculé à l'import) ; €/mois = total / nbSem × 52/12, €/an = × 52. */
+function carteGroupesDepenses(tk, nbSem){
+  const g = {}; let tot = 0, nbOk = 0;
+  tk.forEach(x=>{ if(x.g){ nbOk++; Object.entries(x.g).forEach(([k, v])=>{ g[k] = (g[k] || 0) + v; tot += v; }); } });
+  if(!nbOk) return '';
+  const lignes = Object.entries(g).sort((a, b)=> b[1] - a[1]).map(([k, v])=>{
+    const pc = tot > 0 ? v / tot * 100 : 0, mois = v / nbSem * 52 / 12;
+    return `<li class="dep-groupe"><span>${escapeHtml(k)}<small>${Math.round(pc)} %</small></span><b>${euro(mois)}<small>/mois · ${euro(mois * 12)}/an</small></b><i style="width:${Math.max(2, Math.round(pc))}%"></i></li>`;
+  }).join('');
+  return `<div class="dep-carte"><p class="dep-titre">Par groupe <span class="dep-moy-lib">· moyenne par mois et par an</span></p><ul class="dep-liste dep-groupes">${lignes}</ul></div>`;
+}
 function renderDepenses(){
   const conteneur = document.getElementById('liste-depenses');
   if(!conteneur) return;
@@ -1473,14 +1491,85 @@ function renderDepenses(){
     <div class="dep-metriques">
       <div><p class="dep-val">${euro(parSem)}</p><p>par semaine</p></div>
       <div><p class="dep-val">${euro(parMois)}</p><p>par mois</p></div>
+      <div><p class="dep-val">${euro(parMois * 12)}</p><p>par an</p></div>
     </div>
     <p class="dep-note">${tk.length} ticket${tk.length > 1 ? 's' : ''} sur ${nbSem} semaine${nbSem > 1 ? 's' : ''} · ${euro(total)} au total · ticket moyen ${euro(total / tk.length)}. Les semaines sans ticket comptent pour 0 €.</p>
+    ${carteGroupesDepenses(tk, nbSem)}
     <div class="dep-carte"><p class="dep-titre">Dépense par semaine <span class="dep-moy-lib">· pointillés = moyenne ${Math.round(parSem)} €</span></p>
       <div class="dep-barres" style="height:${H + 18}px"><div class="dep-moy" style="bottom:${Math.round(parSem / max * H)}px"></div>${barres}</div>
       <div class="dep-labels">${labels}</div></div>
     <div class="dep-carte"><p class="dep-titre">Par mois</p><ul class="dep-liste">${lignesMois}</ul></div>
     <div class="dep-carte"><p class="dep-titre">Tickets</p><ul class="dep-liste">${lignesTickets}</ul></div>`;
 }
+
+/* ============================================================
+   GROUPES DE RAYONS + COÛT ESTIMÉ DE LA LISTE (13/11/2026)
+   Groupes (Sucré, Salé…) = regroupement par NOM de rayon (constante ci-dessous, pas de champ Firestore).
+   Coût estimé = somme prix (dernier relevé) × quantité des produits cochés ; Qté/info vide = 1 ; un nombre seul
+   ("2", "x2") = la quantité ; produits au kg : poids lu dans "500g"/"1kg", sinon 0,5 kg × quantité ;
+   produits vendus à l'unité mais relevés à l'œuf (diviseursTicket ≥ 6) : "12" = 12 œufs, sinon 20 œufs par boîte.
+   ============================================================ */
+const GROUPES_RAYONS = {
+  'Sucré': ['Sucreries', 'Gâteaux', 'Épicerie sucrée'],
+  'Salé': ['Épicerie salée', 'Charcuterie', 'Fromage', 'Crèmerie', 'Viandes & poissons', 'Conserve', 'Surgelés', 'Boulangerie'],
+  'Fruits & légumes': ['Fruits & légumes'],
+  'Boissons': ['Boissons & alcools', 'Café'],
+  'Maison & hygiène': ['Divers maison', 'Entretien maison', 'Hygiène & beauté', 'Bébé']
+};
+const GROUPE_AUTRE = 'Autre';
+function groupeDuRayon(nom){
+  const n = sansAccents(nom);
+  return Object.keys(GROUPES_RAYONS).find(g=> GROUPES_RAYONS[g].some(r=> sansAccents(r) === n)) || GROUPE_AUTRE;
+}
+function groupeDuProduit(p){
+  const r = p && state.rayons && state.rayons[p.rayonId];
+  return groupeDuRayon(r ? r.nom : '');
+}
+function coutProduit(p){
+  if(!p || typeof p.prix !== 'number' || !(p.prix > 0)) return null;
+  const q = String(p.quantite || '').toLowerCase().replace(',', '.').trim();
+  const m = q.match(/^x?\s*(\d+(?:\.\d+)?)\s*x?$/);
+  const nb = m ? parseFloat(m[1]) : 1;
+  if(p.prixUnite === 'kg'){
+    const w = q.match(/(\d+(?:\.\d+)?)\s*(kg|g)\b/);
+    return p.prix * (w ? parseFloat(w[1]) / (w[2] === 'g' ? 1000 : 1) : 0.5 * nb);
+  }
+  if(Array.isArray(p.diviseursTicket) && p.diviseursTicket.some(x=> x && x.n >= 6)) return p.prix * (nb >= 6 ? nb : nb * 20);
+  return p.prix * nb;
+}
+function coutListe(){
+  const onglet = document.getElementById('app').dataset.onglet;
+  const filtre = onglet === 'course' ? filtreCourse() : idListeAffichee();
+  const res = { total: 0, groupes: {}, sansPrix: 0, nb: 0 };
+  Object.values(state.produits).forEach(p=>{
+    if(!p.aAcheter || (filtre !== TOUTES && listeDe(p) !== filtre)) return;
+    res.nb++;
+    const c = coutProduit(p);
+    if(c === null){ res.sansPrix++; return; }
+    const g = groupeDuProduit(p);
+    res.groupes[g] = (res.groupes[g] || 0) + c; res.total += c;
+  });
+  return res;
+}
+function renderCout(){
+  const b = document.getElementById('badge-cout'), pan = document.getElementById('panneau-cout');
+  if(!b || !pan) return;
+  if(!produitsCharges){ b.style.display = 'none'; pan.style.display = 'none'; return; }
+  const r = coutListe();
+  b.style.display = '';
+  b.textContent = r.total >= 0.5 ? Math.round(r.total) + '€' : '0€';
+  const lignes = Object.entries(r.groupes).sort((a, b2)=> b2[1] - a[1]).map(([g, v])=>{
+    const pc = r.total > 0 ? v / r.total * 100 : 0;
+    return `<li><span>${escapeHtml(g)}</span><b>${Math.round(pc)} %</b><i style="width:${Math.max(2, Math.round(pc))}%"></i><small>${euro(v)}</small></li>`;
+  }).join('');
+  pan.innerHTML = `<p class="cout-titre">Coût estimé · ${r.nb} produit${r.nb > 1 ? 's' : ''}</p>`
+    + (lignes ? `<ul class="cout-liste">${lignes}</ul>` : '<p class="cout-note">Aucun produit avec un prix.</p>')
+    + (r.sansPrix ? `<p class="cout-note">${r.sansPrix} produit${r.sansPrix > 1 ? 's' : ''} sans prix non compté${r.sansPrix > 1 ? 's' : ''}.</p>` : '');
+}
+document.getElementById('badge-cout').addEventListener('click', ()=>{
+  const pan = document.getElementById('panneau-cout');
+  pan.style.display = pan.style.display === 'block' ? 'none' : 'block';
+});
 
 /* Audit 11-03 : pas de re-rendu pendant la saisie d'une Qté/info (innerHTML détruisait le champ et la frappe) ;
    il est rejoué à la sortie du champ. Règle déjà notée dans PROBLEMES_RESOLUS.md (incident Budget). */
@@ -1499,6 +1588,7 @@ function render(){
   renderCourse();
   renderPrix();
   renderDepenses();
+  renderCout();
   renderReglagesListes();
   renderReglagesRayons();
 }

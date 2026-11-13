@@ -616,3 +616,8 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 ### 7 tickets de plus (09/04 facture Drive, 18/05, 21/05, 22/05, 29/05, 19/06, 10/07) — 13/11/2026
 - 30 tickets au total dans `listes/maison.tickets` (moyenne ≈ 160 €) ; 989 relevés de prix sur 116 produits.
 - Facture Drive : produits rapprochés par nom (aucun libellé stocké dans `libellesTicket`).
+
+### Groupes, coût estimé de la liste, dépenses par groupe — 13/11/2026
+- `GROUPES_RAYONS` (app.js) : Sucré / Salé / Fruits & légumes / Boissons / Maison & hygiène, par NOM de rayon (autre = « Autre »). Pas de champ Firestore.
+- Rond en haut à droite (onglets Liste et Course) : coût estimé = Σ prix × quantité des produits cochés (Qté/info vide = 1 ; nombre seul = quantité ; kg : « 500g »/« 1kg » lu, sinon 0,5 kg × qté ; œufs : « 12 » = 12 œufs, sinon 20 œufs). Tap = répartition en % par groupe, produits sans prix signalés.
+- Dépenses : métrique « par an » + carte « Par groupe » (€/mois et €/an) ; chaque ticket de `listes/maison.tickets` porte `g: { groupe: € }` (calculé à l'import ; les 30 tickets existants ont été renseignés par script, « Hors liste » = articles ignorés).
