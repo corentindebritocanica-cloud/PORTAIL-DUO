@@ -474,10 +474,10 @@ function updateQuantite(id, val){
    ============================================================ */
 const MAX_HISTORIQUE_PRIX = 40;
 function jourDe(ms){ const d = new Date(ms); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
-function formatPrix(n, u){ return (typeof n === 'number' && isFinite(n)) ? n.toFixed(2).replace('.', ',') + (u === 'kg' ? ' €/kg' : ' €') : ''; }
+function formatPrix(n, u){ return (typeof n === 'number' && isFinite(n)) ? n.toFixed(n < 1 ? 3 : 2).replace('.', ',') + (u === 'kg' ? ' €/kg' : ' €') : ''; }
 function lirePrix(txt){
   const n = parseFloat(String(txt || '').replace(/[€\s]|\/kg/gi, '').replace(',', '.'));
-  return (isFinite(n) && n >= 0 && n < 100000) ? Math.round(n * 100) / 100 : null;
+  return (isFinite(n) && n >= 0 && n < 100000) ? Math.round(n * 10000) / 10000 : null;
 }
 function historiquePrix(p){ return Array.isArray(p && p.historiquePrix) ? p.historiquePrix.filter(e=> e && typeof e.p === 'number' && typeof e.d === 'number') : []; }
 /* Ajoute (ou remplace, même jour) un relevé et renvoie les champs à écrire. prix = null → retire le relevé de ce jour. */
@@ -624,7 +624,7 @@ function libellesIgnores(){ const m = state.listes && state.listes[LISTE_DEFAUT]
 function prixUnitaireTicket(id, a){
   const p = id && state.produits[id];
   const r = p && Array.isArray(p.diviseursTicket) ? p.diviseursTicket.find(x=> x && x.l === a.libelle && x.n > 1) : null;
-  return r ? Math.round(a.prix / r.n * 100) / 100 : a.prix;
+  return r ? Math.round(a.prix / r.n * 10000) / 10000 : a.prix;
 }
 function produitDuLibelle(lib){
   return Object.keys(state.produits).find(id=> (state.produits[id].libellesTicket || []).includes(lib)) || null;

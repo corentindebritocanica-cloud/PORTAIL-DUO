@@ -607,3 +607,8 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - Au 13/11/2026 : **176 € / semaine, 764 € / mois**, 6 tickets sur 7 semaines (aucun ticket la semaine du 20/10), 1 233,83 € au total, ticket moyen 206 €. Les totaux incluent tout ce qui est sur le ticket (ménage, hygiène…).
 - **Vérifié** (Chrome headless, Firebase simulé avec les vraies données) : chiffres ci-dessus, barres, mois, tickets, aucune erreur JS. **Non vérifié sur iPhone** (barre de 5 onglets).
 
+
+### Import de 17 anciens tickets (18/04 → 25/09/2026) — 13/11/2026
+- 17 tickets rapprochés (page de validation Oui/Non/Autre) : prix relevés aux dates des tickets, totaux ajoutés à `listes/maison.tickets` (23 tickets, moyenne Dépenses recalculée).
+- Œufs : prix stocké **à l'œuf** (`diviseursTicket` : 12/18/20/30 œufs) ; les prix < 1 € s'affichent avec 3 décimales et sont arrondis à 4 décimales (`formatPrix`, `lirePrix`, `prixUnitaireTicket`).
+- Nouveaux produits : Palet breton ; Blanco rattaché à « *TIPP EX RUBANS CORR ».
