@@ -624,4 +624,4 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 - Les pourcentages par groupe (4 premiers) sont aussi affichés en petit à gauche du rond (`#cout-groupes`) ; le tap sur le rond garde le détail en euros.
 
 ### Ticket du 20/11/2026
-- 182,85 € (74 articles) ajouté ; 31 tickets au total. Nouveau produit « Ail et fines herbes » (rayon Fromage) ; « POMM.MAXI CARRES BEB » → Coton démaquillant bébé. PDF et lecture JSON dans `Course/tickets/`.
+- 182,85 € (74 articles) ajouté ; 31 tickets au total. « TARTARE AFH POT 90G » rattaché à « Crème ail et fines herbes » (existant) ; « POMM.MAXI CARRES BEB » → Coton démaquillant bébé. PDF et lecture JSON dans `Course/tickets/`.
