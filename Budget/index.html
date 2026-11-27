@@ -323,6 +323,53 @@
             </div>
         </div>
 
+        <!-- Fenêtre de la dépense (27/11/2026) : création et modification, s'empile sur la liste — voir ouvrirEditeur() -->
+        <div class="v2-sheet-wrap" id="sheet-depense" aria-hidden="true">
+            <div class="v2-sheet-fond" data-close></div>
+            <div class="v2-sheet dep-sheet" role="dialog" aria-modal="true" aria-labelledby="dep-titre">
+                <div class="v2-grab" data-close></div>
+                <div class="v2-sheet-head dep-head">
+                    <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
+                    <h3 id="dep-titre">Nouvelle dépense</h3>
+                    <button type="button" class="dep-ok" id="dep-ok">Ajouter</button>
+                </div>
+                <div class="dep-montant-box">
+                    <button type="button" class="btn-signe" id="dep-signe" aria-label="Dépense ou remboursement">±</button>
+                    <input type="text" id="dep-montant" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0" aria-label="Montant">
+                    <span class="dep-euro">€</span>
+                </div>
+                <input type="text" id="dep-libelle" class="dep-champ" placeholder="Libellé (ex. Intermarché)" enterkeyhint="done" autocomplete="off">
+                <div class="cat-rapides" id="dep-cats"></div>
+                <div class="dep-2col">
+                    <select id="dep-cat" class="dep-champ" aria-label="Catégorie"></select>
+                    <input type="date" id="dep-date" class="dep-champ" aria-label="Date">
+                </div>
+                <div class="dep-label">Paiement</div>
+                <div class="v2-seg dep-pay" id="dep-pay">
+                    <button type="button" data-pay-meth="CB"><b>💳</b>Carte</button>
+                    <button type="button" data-pay-meth="ESPECES"><b>💵</b>Espèces</button>
+                    <button type="button" data-pay-meth="CADEAU"><b>🎁</b>Cadeau</button>
+                    <button type="button" data-pay-meth="TICKET"><b>🎫</b>Tickets</button>
+                    <button type="button" data-pay-meth="MIXTE"><b>🔀</b>Mixte</button>
+                </div>
+                <div class="dep-mixte hidden" id="dep-mixte">
+                    <div class="dep-m-row">
+                        <span>💵 Espèces</span>
+                        <div class="dep-m-pas">
+                            <button type="button" class="mixte-btn" data-esp-pas="-5" aria-label="Retirer 5 € d'espèces">−</button>
+                            <div class="mixte-scrub" id="dep-esp-scrub"><div class="mixte-value" id="dep-esp">0 €</div></div>
+                            <button type="button" class="mixte-btn" data-esp-pas="5" aria-label="Ajouter 5 € d'espèces">+</button>
+                        </div>
+                    </div>
+                    <div class="dep-m-row"><span>🎁 Carte cadeau</span><input type="text" id="dep-cadeau" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part carte cadeau"></div>
+                    <div class="dep-m-row"><span>🎫 Tickets resto</span><input type="text" id="dep-ticket" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part tickets resto"></div>
+                    <div class="dep-m-row dep-m-cb"><span>💳 Carte (reste automatique)</span><strong id="dep-cb">0,00 €</strong></div>
+                    <div class="dep-alerte" id="dep-alerte"></div>
+                </div>
+                <button type="button" class="btn-action bg-danger dep-suppr hidden" id="dep-suppr">🗑️ Supprimer la dépense</button>
+            </div>
+        </div>
+
         <div class="v2-sheet-wrap" id="sheet-revenus" aria-hidden="true">
             <div class="v2-sheet-fond" data-close></div>
             <div class="v2-sheet" role="dialog" aria-modal="true">

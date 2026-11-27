@@ -77,7 +77,7 @@
 
         // Suivi du glisser tactile sur le chiffre "espèces" (mode Mixte, voir setupTableListeners) —
         // volontairement hors de `state` : purement transitoire, jamais persisté ni comparé aux Nouveautés.
-        let mixteDragId = null, mixteDragStartY = 0, mixteDragStartVal = 0, mixteDragLive = null;
+        let mixteDragStartY = 0, mixteDragStartVal = 0, mixteDragLive = null; // fenêtre de la dépense (27/11/2026)
 
         // --- Utilitaires ---
         const arr2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100 + 0; // audit 08-02 : pas de « -0,00 € » par dérive flottante
@@ -86,25 +86,40 @@
         const sansAccents = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         
         const somme = (arr) => (arr || []).reduce((s, i) => s + (parseFloat(i.montant) || 0), 0);
-        // Part Revolut (carte) d'une liste de dépenses : CB = tout, MIXTE = montant - part espèces, ESPECES/TR = rien.
+        // 27/11/2026 : une dépense Mixte peut être payée par les 4 moyens à la fois. Parts bornées dans cet ordre :
+        // espèces, puis carte cadeau, puis tickets resto (jamais plus que le montant) ; la carte (Revolut) prend le reste.
+        // Les anciennes dépenses Mixte (seulement montantEspeces) donnent exactement le même résultat qu'avant.
+        const partsMixte = (i) => {
+            const m = Math.max(parseFloat(i.montant) || 0, 0);
+            const esp = Math.min(Math.max(parseFloat(i.montantEspeces) || 0, 0), m);
+            const cad = Math.min(Math.max(parseFloat(i.montantCadeau) || 0, 0), m - esp);
+            const tk = Math.min(Math.max(parseFloat(i.montantTicket) || 0, 0), m - esp - cad);
+            return { esp, cad, tk, cb: m - esp - cad - tk };
+        };
+        const estMixte = (i) => i.moyenPaiement === 'MIXTE';
+        // Part Revolut (carte) : CB = tout, MIXTE = reste après les autres parts, ESPECES/CADEAU/TICKET/TR = rien.
         const sommeCB = (arr) => (arr || []).reduce((s, i) => {
             const meth = i.moyenPaiement || 'CB';
             if (meth === 'CB') return s + (parseFloat(i.montant) || 0);
-            if (meth === 'MIXTE') return s + Math.max((parseFloat(i.montant) || 0) - (parseFloat(i.montantEspeces) || 0), 0);
+            if (meth === 'MIXTE') return s + partsMixte(i).cb;
             return s; // ESPECES, CADEAU, TICKET, TR (legacy, laissée à part comme avant)
         }, 0);
-        // Part Espèces d'une liste de dépenses : ESPECES = tout, MIXTE = part espèces saisie, CB/TR = rien.
+        // Part Espèces : ESPECES = tout, MIXTE = part espèces, le reste = rien.
         const sommeEspeces = (arr) => (arr || []).reduce((s, i) => {
-            const meth = i.moyenPaiement || 'CB';
-            if (meth === 'ESPECES') return s + (parseFloat(i.montant) || 0);
-            if (meth === 'MIXTE') return s + Math.min(Math.max(parseFloat(i.montantEspeces) || 0, 0), Math.max(parseFloat(i.montant) || 0, 0)); // audit 09-02 : bornée au montant
-            return s; // CB, TR (legacy, laissée à part comme avant)
+            if (i.moyenPaiement === 'ESPECES') return s + (parseFloat(i.montant) || 0);
+            return s + (estMixte(i) ? partsMixte(i).esp : 0);
         }, 0);
-        // Part Cartes cadeaux (27/11/2026) : CADEAU = tout (réserve séparée, comme les espèces).
-        // Part Tickets restaurant (27/11/2026) : TICKET = simple trace (« payé en tickets »), SANS réserve ni effet sur le
-        // reste à vivre — comme l'ancien 'TR' (legacy), qui reste ignoré partout. Sert seulement à l'info de la vignette Dépenses.
-        const sommeTickets = (arr) => (arr || []).reduce((s, i) => s + (i.moyenPaiement === 'TICKET' ? (parseFloat(i.montant) || 0) : 0), 0);
-        const sommeCadeaux = (arr) => (arr || []).reduce((s, i) => s + (i.moyenPaiement === 'CADEAU' ? (parseFloat(i.montant) || 0) : 0), 0);
+        // Part Tickets restaurant : TICKET = tout, MIXTE = part tickets. Simple trace (« payé en tickets »), SANS réserve
+        // ni effet sur le reste à vivre — comme l'ancien 'TR' (legacy), qui reste ignoré partout. Sert seulement aux infos.
+        const sommeTickets = (arr) => (arr || []).reduce((s, i) => s + (i.moyenPaiement === 'TICKET' ? (parseFloat(i.montant) || 0) : (estMixte(i) ? partsMixte(i).tk : 0)), 0);
+        // Part Cartes cadeaux : CADEAU = tout, MIXTE = part cadeau (réserve séparée, comme les espèces).
+        const sommeCadeaux = (arr) => (arr || []).reduce((s, i) => s + (i.moyenPaiement === 'CADEAU' ? (parseFloat(i.montant) || 0) : (estMixte(i) ? partsMixte(i).cad : 0)), 0);
+        // Icônes du moyen de paiement (liste, dernières opérations, calendrier)
+        const iconesPaiement = (i) => {
+            const meth = i.moyenPaiement || 'CB';
+            if (meth === 'MIXTE') { const p = partsMixte(i); return [p.cb && '💳', p.esp && '💵', p.cad && '🎁', p.tk && '🎫'].filter(Boolean).join('+') || '🔀'; }
+            return { CB: '💳', ESPECES: '💵', CADEAU: '🎁', TICKET: '🎫', TR: '🎟️' }[meth] || '💳';
+        };
 
         const normaliserMois = (m) => ({
             ...(({ epargne, ...reste }) => reste)(m), // le champ « epargne » (carte Projets / Épargne) n'existe plus : on l'écarte, même s'il vient d'une ancienne sauvegarde .json
@@ -155,7 +170,7 @@
                             if (it[k] !== undefined && it[k] !== null && (typeof it[k] !== 'string' || it[k].length > 500)) throw new Error('ligne invalide (' + k + ')');
                         });
                         const ligne = { ...it, montant: nombre(it.montant, 'montant') };
-                        if (it.montantEspeces !== undefined) ligne.montantEspeces = nombre(it.montantEspeces, 'montantEspeces');
+                        ['montantEspeces', 'montantCadeau', 'montantTicket'].forEach((k) => { if (it[k] !== undefined) ligne[k] = nombre(it[k], k); });
                         return ligne;
                     });
                 });
@@ -609,8 +624,6 @@
             ['🛒 Courses', '🍽️ Restaurant', '🎬 Loisirs', '🏥 Santé'].forEach(c => { if (!vues.includes(c) && state.categories.includes(c)) vues.push(c); });
             return vues.slice(0, 4);
         };
-        const pastillesCategories = (item) => `<div class="cat-rapides"><button type="button" class="btn-signe" data-signe="${esc(item.id)}" aria-label="Dépense ou remboursement">±</button>${categoriesRecentes().map(c =>
-            `<button type="button" class="cat-rapide${item.categorie === c ? ' on' : ''}" data-cat-rapide="${esc(c)}" data-id="${esc(item.id)}">${esc(c)}</button>`).join('')}</div>`;
 
         // --- Rendu des tableaux ---
         const rendreLignes = (containerId, tableau, type) => {
@@ -634,8 +647,23 @@
                 const mntFinal = Number(item.montant) || 0;
                 const options = state.categories.map(c => `<option value="${esc(c)}" ${item.categorie === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
 
+                // 27/11/2026 : DÉPENSES = ligne compacte ; un toucher ouvre la fenêtre de la dépense (ouvrirEditeur)
+                if (type === 'depenses') {
+                    const cat = decoupeCat(item.categorie);
+                    row.classList.add('dep-row');
+                    row.innerHTML = `
+                        <div class="drag-handle">☰</div>
+                        <button type="button" class="dep-ligne" data-edit-dep="${esc(item.id)}">
+                            <span class="v2-op-ico ${isNeg ? 'k-rev' : 'k-dep'}">${esc(cat.ico)}</span>
+                            <span class="v2-op-txt"><span class="v2-op-nom">${esc(item.libelle || cat.nom)}</span><span class="v2-op-meta">${esc((item.date ? dateCourte(item.date) + ' · ' : '') + cat.nom + ' · ' + iconesPaiement(item))}</span></span>
+                            ${item.par === 'lisa' ? '<i class="v2-pt l"></i>' : item.par === 'corentin' ? '<i class="v2-pt c"></i>' : ''}
+                            <span class="v2-op-mnt ${isNeg ? 'pos' : ''}">${isNeg ? '+ ' : '− '}${esc(fmtEur(Math.abs(mntFinal)))}</span>
+                        </button>
+                        <button class="btn-delete" data-del-type="${type}" data-del-id="${esc(item.id)}" aria-label="Supprimer">✕</button>
+                    `;
+                }
                 // CONDITION SPECIALE: ONGLET FIXES MINIMALISTE
-                if (type === 'fixes') {
+                else if (type === 'fixes') {
                     row.innerHTML = `
                         <div class="drag-handle">☰</div>
                         <div class="item-content fix-content">
@@ -651,34 +679,6 @@
                 } 
                 // AFFICHAGE CLASSIQUE POUR LES AUTRES ONGLETS
                 else {
-                    let payIcon = '';
-                    let mixteRow = '';
-                    if (type === 'depenses') {
-                        const meth = item.moyenPaiement || 'CB';
-                        const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : meth === 'CADEAU' ? '🎁' : meth === 'TICKET' ? '🎫' : '💳';
-                        payIcon = `<button class="btn-pay-method" data-pay="${esc(item.id)}" title="Mode de paiement">${icon}</button>`;
-                        if (meth === 'MIXTE') {
-                            const especes = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
-                            const carte = Math.max((parseFloat(item.montant) || 0) - especes, 0);
-                            mixteRow = `
-                            <div class="item-mixte">
-                                <div class="mixte-label">💵 Espèces — par paliers de 5 €</div>
-                                <div class="mixte-row">
-                                    <button class="mixte-btn" data-mixte-decr="${esc(item.id)}" aria-label="Retirer 5 € d'espèces">−</button>
-                                    <div class="mixte-scrub" data-mixte-scrub="${esc(item.id)}">
-                                        <div class="mixte-value">${especes.toFixed(0)} €</div>
-                                    </div>
-                                    <button class="mixte-btn" data-mixte-incr="${esc(item.id)}" aria-label="Ajouter 5 € d'espèces">+</button>
-                                </div>
-                                <div class="mixte-hint">↕ glisser pour ajuster</div>
-                                <div class="mixte-recap">
-                                    <div class="mixte-recap-row"><span>💳 Carte (reste automatique)</span><span>${carte.toFixed(2)} €</span></div>
-                                    <div class="mixte-recap-row"><span>💵 Espèces</span><span>${especes.toFixed(2)} €</span></div>
-                                </div>
-                            </div>`;
-                        }
-                    }
-
                     row.innerHTML = `
                         <div class="drag-handle">☰</div>
                         <div class="item-content">
@@ -686,7 +686,6 @@
                                 <textarea data-id="${esc(item.id)}" data-type="${type}" data-field="libelle" placeholder="Note...">${esc(item.libelle || '')}</textarea>
                                 <div class="item-montant">
                                     <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" value="${mntFinal ? mntFinal : ''}" class="${negCls}" data-id="${esc(item.id)}" data-type="${type}" data-field="montant" aria-label="Montant">
-                                    ${payIcon}
                                 </div>
                             </div>
                             <div class="item-bottom">
@@ -695,15 +694,13 @@
                                     ${options}
                                 </select>
                             </div>
-                            ${type === 'depenses' && state.ligneNeuve === item.id ? pastillesCategories(item) : ''}
-                            ${mixteRow}
                         </div>
                         <button class="btn-delete" data-del-type="${type}" data-del-id="${esc(item.id)}">✕</button>
                     `;
                 }
                 
                 container.appendChild(row);
-                if(type !== 'fixes') autoResize(row.querySelector('textarea'));
+                if (type !== 'fixes' && type !== 'depenses') autoResize(row.querySelector('textarea'));
             });
 
             // Drag and Drop
@@ -807,10 +804,10 @@
             const cat = decoupeCat(it.categorie);
             const mnt = Number(it.montant) || 0;
             const credit = mnt < 0;
-            const meth = type === 'depenses' ? ({ ESPECES: ' · 💵', MIXTE: ' · 💳+💵', CADEAU: ' · 🎁', TICKET: ' · 🎫', TR: ' · 🎟️' }[it.moyenPaiement] || '') : '';
+            const meth = type === 'depenses' && (it.moyenPaiement || 'CB') !== 'CB' ? ' · ' + iconesPaiement(it) : '';
             const genre = type === 'charges' ? 'Charge' : type === 'provisions' ? 'Provision' : cat.nom;
             const pt = it.par === 'lisa' ? 'l' : it.par === 'corentin' ? 'c' : '';
-            return `<button type="button" class="v2-op" data-sheet="${esc(type)}">
+            return `<button type="button" class="v2-op" ${type === 'depenses' && it.id ? `data-edit-dep="${esc(it.id)}"` : `data-sheet="${esc(type)}"`}>
                 <span class="v2-op-ico ${type === 'depenses' ? (credit ? 'k-rev' : 'k-dep') : 'k-' + esc(type)}">${esc(cat.ico)}</span>
                 <span class="v2-op-txt"><span class="v2-op-nom">${esc(it.libelle || cat.nom)}</span><span class="v2-op-meta">${esc(genre + (it.date ? ' · ' + dateCourte(it.date) : '') + meth)}</span></span>
                 ${pt ? `<i class="v2-pt ${pt}"></i>` : ''}
@@ -946,7 +943,7 @@
         const ouvrirFeuille = (nom) => {
             const w = document.getElementById('sheet-' + nom);
             if (!w) return;
-            document.querySelectorAll('.v2-sheet-wrap.open').forEach(x => { if (x !== w) fermerFeuille(x); });
+            if (nom !== 'depense') document.querySelectorAll('.v2-sheet-wrap.open').forEach(x => { if (x !== w) fermerFeuille(x); }); // la fenêtre de la dépense s'empile sur la liste
             w.classList.add('open');
             w.setAttribute('aria-hidden', 'false');
             document.body.classList.add('v2-feuille');
@@ -970,14 +967,15 @@
             if (mode) { state.vueMois = mode.dataset.mode; rafraichirTouteLInterface(); return; }
             const jour = e.target.closest('[data-jour]');
             if (jour) { state.jourSel = parseInt(jour.dataset.jour); rafraichirTouteLInterface(); return; }
+            const editDep = e.target.closest('[data-edit-dep]');
+            if (editDep) { ouvrirEditeur(editDep.dataset.editDep); return; }
             const feuille = e.target.closest('[data-sheet]');
             if (feuille) { ouvrirFeuille(feuille.dataset.sheet); return; }
             const act = e.target.closest('[data-action]');
             if (!act) return;
             // Focus pendant le geste (sinon iOS n'ouvre pas le clavier)
             if (act.dataset.action === 'depense') {
-                ouvrirFeuille('depenses');
-                document.querySelector('#sheet-depenses [data-add="depenses"]').click(); // met le curseur dans le montant
+                ouvrirEditeur(null); // fenêtre dédiée (27/11/2026), curseur dans le montant
             } else if (act.dataset.action === 'revenu') { ouvrirFeuille('revenus'); document.getElementById('revenus_add').focus(); }
             else if (act.dataset.action === 'especes') { ouvrirFeuille('revenus'); document.getElementById('especes_add').focus(); }
             else if (act.dataset.action === 'cadeaux') { ouvrirFeuille('revenus'); document.getElementById('cadeaux_add').focus(); }
@@ -1235,6 +1233,193 @@
         window.addEventListener('pagehide', verserEnCorbeille);
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') verserEnCorbeille(); });
 
+        // Suppression d'une ligne avec toast « Annuler » (liste ou fenêtre de la dépense)
+        const supprimerLigne = (delType, delId) => {
+            const mois = getMoisActif();
+            if (!mois || !Array.isArray(mois[delType])) return;
+            const idx = mois[delType].findIndex(x => x.id === delId);
+            if (idx < 0) return; // audit 09-08 : splice(-1) retirait la dernière ligne
+            const item = mois[delType].splice(idx, 1)[0];
+            // Toast Annuler — audit 09-01 : la suppression précédente part d'abord en corbeille (sinon perdue)
+            verserEnCorbeille();
+            state.suppressionEnAttente = { type: delType, item, moisId: state.moisActifId, index: idx };
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            clearTimeout(state.toastTimeout);
+            state.toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+                verserEnCorbeille();
+            }, 4000);
+            sauvegarderDonnees();
+            rafraichirTouteLInterface();
+        };
+
+        // ===================== Fenêtre de la dépense (27/11/2026) =====================
+        // Création ET modification d'une dépense dans une feuille dédiée (#sheet-depense), empilée sur la liste.
+        // On travaille sur un BROUILLON (ed.b) : rien n'est écrit dans Firestore avant « Ajouter / Enregistrer »,
+        // et les instantanés reçus pendant la saisie ne touchent pas la fenêtre (elle n'est pas re-rendue).
+        // Paiement : 💳 Carte, 💵 Espèces, 🎁 Carte cadeau, 🎫 Tickets resto, ou 🔀 Mixte (les 4 à la fois, voir partsMixte).
+        const ed = { moisId: null, id: null, b: null };
+        const $ed = (id) => document.getElementById(id);
+        const lireMontant = (v) => parseFloat(String(v).replace(',', '.').replace(/\s/g, '')) || 0;
+        const versChamp = (n) => (Number(n) || 0) === 0 ? '' : String(arr2(n)).replace('.', ',');
+        // Audit 09-06 : dans un autre mois que le mois civil, la ligne est datée du même jour dans ce mois (borné)
+        const dateParDefaut = (mois) => {
+            const maint = new Date();
+            const iM = NOMS_MOIS.indexOf(String(mois.nom || '').split(' ')[0]);
+            if (iM >= 0 && mois.annee && (iM !== maint.getMonth() || mois.annee !== maint.getFullYear()))
+                return dateLocale(new Date(mois.annee, iM, Math.min(maint.getDate(), new Date(mois.annee, iM + 1, 0).getDate())));
+            return dateLocale(maint);
+        };
+        const ouvrirEditeur = (id) => {
+            const mois = getMoisActif();
+            if (!mois) return; // audit 09-07 : aucun mois
+            const exist = id ? (mois.depenses || []).find(x => x.id === id) : null;
+            if (id && !exist) return;
+            ed.moisId = mois.id; ed.id = exist ? exist.id : null;
+            ed.b = exist ? { ...exist } : {
+                libelle: '', montant: 0, date: dateParDefaut(mois), moyenPaiement: 'CB',
+                categorie: state.categories.includes('🛒 Courses') ? '🛒 Courses' : state.categories[0] // 20/10/2026 : Courses par défaut
+            };
+            const b = ed.b;
+            $ed('dep-titre').textContent = exist ? 'Modifier la dépense' : 'Nouvelle dépense';
+            $ed('dep-ok').textContent = exist ? 'Enregistrer' : 'Ajouter';
+            $ed('dep-suppr').classList.toggle('hidden', !exist);
+            $ed('dep-montant').value = versChamp(b.montant);
+            $ed('dep-libelle').value = b.libelle || '';
+            $ed('dep-date').value = b.date || '';
+            $ed('dep-cat').innerHTML = state.categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
+                + (b.categorie && !state.categories.includes(b.categorie) ? `<option value="${esc(b.categorie)}">${esc(b.categorie)}</option>` : '');
+            $ed('dep-cat').value = b.categorie || '';
+            $ed('dep-cadeau').value = versChamp(b.montantCadeau);
+            $ed('dep-ticket').value = versChamp(b.montantTicket);
+            ouvrirFeuille('depense');
+            $ed('sheet-depense').querySelector('.v2-sheet').scrollTop = 0;
+            if (!exist) $ed('dep-montant').focus(); // pendant le geste : iOS ouvre le clavier
+            majEditeur();
+        };
+        // Parties qui bougent (pastilles, paiement, répartition Mixte, bouton) — jamais les champs en cours de saisie
+        const majEditeur = () => {
+            const b = ed.b; if (!b) return;
+            const mnt = Number(b.montant) || 0;
+            $ed('dep-montant').classList.toggle('montant-neg', mnt < 0);
+            const recentes = categoriesRecentes();
+            $ed('dep-cats').innerHTML = recentes.map(c => `<button type="button" class="cat-rapide${b.categorie === c ? ' on' : ''}" data-dep-cat="${esc(c)}">${esc(c)}</button>`).join('');
+            document.querySelectorAll('#dep-pay [data-pay-meth]').forEach(x => x.classList.toggle('on', x.dataset.payMeth === (b.moyenPaiement || 'CB')));
+            const mixte = b.moyenPaiement === 'MIXTE';
+            $ed('dep-mixte').classList.toggle('hidden', !mixte);
+            let depasse = 0;
+            if (mixte) {
+                const max = Math.max(mnt, 0);
+                const esp = Math.min(Math.max(parseFloat(b.montantEspeces) || 0, 0), max);
+                const brut = esp + Math.max(parseFloat(b.montantCadeau) || 0, 0) + Math.max(parseFloat(b.montantTicket) || 0, 0);
+                depasse = arr2(brut - max);
+                $ed('dep-esp').textContent = esp.toFixed(0) + ' €';
+                $ed('dep-cb').textContent = fmtEur(Math.max(max - brut, 0));
+                $ed('dep-alerte').textContent = depasse > 0 ? `La répartition dépasse le montant de ${fmtEur(depasse)}` : '';
+            }
+            $ed('dep-ok').disabled = mnt === 0 || depasse > 0;
+        };
+        const enregistrerEditeur = () => {
+            const b = ed.b; if (!b) return;
+            b.montant = arr2(lireMontant($ed('dep-montant').value));
+            if (!b.montant) return;
+            const mois = state.donnees.find(m => m.id === ed.moisId);
+            if (!mois) { fermerFeuille($ed('sheet-depense')); return; }
+            const ligne = { ...b, libelle: String(b.libelle || '').trim() };
+            ['montantEspeces', 'montantCadeau', 'montantTicket'].forEach(k => delete ligne[k]);
+            if (ligne.moyenPaiement === 'MIXTE') {
+                const p = partsMixte(b);
+                ligne.montantEspeces = arr2(p.esp); ligne.montantCadeau = arr2(p.cad); ligne.montantTicket = arr2(p.tk);
+            }
+            const idx = ed.id ? mois.depenses.findIndex(x => x.id === ed.id) : -1;
+            if (idx >= 0) mois.depenses[idx] = ligne;
+            else {
+                ligne.id = ed.id || genId();
+                // V2 : qui a saisi la dépense (point bleu/rose)
+                if (!ligne.par) ligne.par = localStorage.getItem('duo_profile') === 'lisa' ? 'lisa' : 'corentin';
+                mois.depenses.unshift(ligne);
+            }
+            ed.b = null;
+            if (document.activeElement) document.activeElement.blur();
+            fermerFeuille($ed('sheet-depense'));
+            sauvegarderMois(mois);
+            rafraichirTouteLInterface();
+            planifierNotifDepense(mois.id, ligne.id); // NOTIFICATIONS (30/09/2026)
+        };
+        (() => {
+            const w = $ed('sheet-depense');
+            w.addEventListener('input', (e) => {
+                const b = ed.b; if (!b) return;
+                const t = e.target;
+                if (t.id === 'dep-montant') b.montant = lireMontant(t.value);
+                else if (t.id === 'dep-libelle') b.libelle = t.value;
+                else if (t.id === 'dep-cadeau') b.montantCadeau = lireMontant(t.value);
+                else if (t.id === 'dep-ticket') b.montantTicket = lireMontant(t.value);
+                else return;
+                majEditeur();
+            });
+            w.addEventListener('change', (e) => {
+                const b = ed.b; if (!b) return;
+                if (e.target.id === 'dep-date') b.date = e.target.value;
+                else if (e.target.id === 'dep-cat') { b.categorie = e.target.value; majEditeur(); }
+            });
+            w.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                if (e.target.id === 'dep-montant') { e.preventDefault(); $ed('dep-libelle').focus(); }
+                else if (e.target.tagName === 'INPUT') { e.preventDefault(); e.target.blur(); }
+            });
+            w.addEventListener('click', (e) => {
+                const b = ed.b; if (!b) return;
+                if (e.target.closest('#dep-ok')) { enregistrerEditeur(); return; }
+                if (e.target.closest('#dep-suppr')) {
+                    const id = ed.id; ed.b = null;
+                    fermerFeuille(w);
+                    supprimerLigne('depenses', id);
+                    return;
+                }
+                if (e.target.closest('#dep-signe')) {
+                    // Lot 2 : ± bascule dépense / remboursement (le clavier décimal n'a pas de signe moins)
+                    const champ = $ed('dep-montant');
+                    if (!b.montant) { champ.value = '-'; champ.focus(); return; }
+                    b.montant = -b.montant; champ.value = versChamp(b.montant);
+                    majEditeur(); return;
+                }
+                const cat = e.target.closest('[data-dep-cat]');
+                if (cat) { b.categorie = cat.dataset.depCat; $ed('dep-cat').value = b.categorie; majEditeur(); return; }
+                const pay = e.target.closest('[data-pay-meth]');
+                if (pay) { b.moyenPaiement = pay.dataset.payMeth; majEditeur(); return; }
+                const pas = e.target.closest('[data-esp-pas]');
+                if (pas) {
+                    // Espèces par paliers de 5 € (décision du 22/09/2026), bornées au montant
+                    const max = Math.max(Number(b.montant) || 0, 0);
+                    b.montantEspeces = Math.min(Math.max((parseFloat(b.montantEspeces) || 0) + Number(pas.dataset.espPas), 0), max);
+                    majEditeur();
+                }
+            });
+            // Glisser verticalement sur le chiffre espèces, par paliers de 5 € (comme l'ancien panneau Mixte)
+            const scrub = $ed('dep-esp-scrub');
+            scrub.addEventListener('pointerdown', (e) => {
+                if (!ed.b) return;
+                e.preventDefault();
+                mixteDragStartY = e.clientY;
+                mixteDragStartVal = Math.min(Math.max(parseFloat(ed.b.montantEspeces) || 0, 0), Math.max(Number(ed.b.montant) || 0, 0));
+                mixteDragLive = mixteDragStartVal;
+                scrub.setPointerCapture(e.pointerId);
+            }, { passive: false });
+            scrub.addEventListener('pointermove', (e) => {
+                if (mixteDragLive === null || !ed.b) return;
+                e.preventDefault();
+                const steps = Math.round((mixteDragStartY - e.clientY) / 18);
+                mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), Math.max(Number(ed.b.montant) || 0, 0));
+                ed.b.montantEspeces = mixteDragLive;
+                majEditeur();
+            }, { passive: false });
+            const fin = () => { mixteDragLive = null; };
+            scrub.addEventListener('pointerup', fin);
+            scrub.addEventListener('pointercancel', fin);
+        })();
+
         // 5. Manipulation des lignes (Délégation d'événements)
         const setupTableListeners = (containerId) => {
             // Lot 2 : aussi rejouée au « change » — un instantané Firestore reçu pendant la saisie remplace
@@ -1266,6 +1451,7 @@
             document.getElementById(containerId).addEventListener('input', majChamp);
 
             document.getElementById(containerId).addEventListener('change', (e) => {
+                if (e.target.closest('#sheet-depense')) return; // fenêtre de la dépense : brouillon, enregistré par son bouton
                 majChamp(e);
                 sauvegarderDonnees();
                 planifierRendu(); // Lot 2 : différé — un re-rendu immédiat (au blur) avalait le toucher sur la pastille / le bouton voisin
@@ -1275,129 +1461,13 @@
             });
 
             document.getElementById(containerId).addEventListener('click', (e) => {
+                const editDep = e.target.closest('[data-edit-dep]');
+                if (editDep) { ouvrirEditeur(editDep.dataset.editDep); return; }
                 const delBtn = e.target.closest('[data-del-id]');
-                if (delBtn) {
-                    const { delType, delId } = delBtn.dataset;
-                    const mois = getMoisActif();
-                    const idx = mois[delType].findIndex(x => x.id === delId);
-                    if (idx < 0) return; // audit 09-08 : splice(-1) retirait la dernière ligne
-                    const item = mois[delType].splice(idx, 1)[0];
-                    
-                    // Toast Annuler — audit 09-01 : la suppression précédente part d'abord en corbeille (sinon perdue)
-                    verserEnCorbeille();
-                    state.suppressionEnAttente = { type: delType, item, moisId: state.moisActifId, index: idx };
-                    const toast = document.getElementById('toast');
-                    toast.classList.add('show');
-                    clearTimeout(state.toastTimeout);
-                    state.toastTimeout = setTimeout(() => {
-                        toast.classList.remove('show');
-                        verserEnCorbeille();
-                    }, 4000);
-                    
-                    sauvegarderDonnees();
-                    rafraichirTouteLInterface();
-                    return;
-                }
+                if (delBtn) supprimerLigne(delBtn.dataset.delType, delBtn.dataset.delId);
 
-                // Lot 2 : ± bascule dépense / remboursement (le clavier décimal n'a pas de signe moins)
-                const signe = e.target.closest('[data-signe]');
-                if (signe) {
-                    const item = getMoisActif().depenses.find(x => x.id === signe.dataset.signe);
-                    const champ = signe.closest('.item-row').querySelector('[data-field="montant"]');
-                    if (!item || !champ) return;
-                    if (!item.montant) { champ.value = '-'; champ.focus(); return; } // pendant le geste : le clavier s'ouvre
-                    item.montant = -item.montant;
-                    if (item.moyenPaiement === 'MIXTE') item.montantEspeces = Math.min(parseFloat(item.montantEspeces) || 0, Math.max(item.montant, 0));
-                    champ.value = item.montant;
-                    champ.classList.toggle('montant-neg', item.montant < 0);
-                    sauvegarderDonnees();
-                    return;
-                }
-                const catR = e.target.closest('[data-cat-rapide]');
-                if (catR) {
-                    const item = getMoisActif().depenses.find(x => x.id === catR.dataset.id);
-                    if (!item) return;
-                    item.categorie = catR.dataset.catRapide;
-                    const row = catR.closest('.item-row');
-                    const sel = row.querySelector('select[data-field="categorie"]');
-                    if (sel) sel.value = item.categorie;
-                    row.querySelectorAll('.cat-rapide').forEach(b => b.classList.toggle('on', b === catR));
-                    sauvegarderDonnees();
-                    planifierNotifDepense(state.moisActifId, item.id);
-                    return;
-                }
-
-                const payBtn = e.target.closest('[data-pay]');
-                if (payBtn) {
-                    const item = getMoisActif().depenses.find(x => x.id === payBtn.dataset.pay);
-                    const meths = ['CB', 'ESPECES', 'MIXTE', 'CADEAU', 'TICKET']; // 'TR' (legacy) n'est plus proposé ; CADEAU = carte cadeau, TICKET = carte tickets restaurant (27/11/2026)
-                    if (item.moyenPaiement === 'TR') {
-                        // Une ancienne ligne Ticket Resto qu'on touche rejoint le nouveau cycle, en repartant de Carte
-                        item.moyenPaiement = 'CB';
-                    } else {
-                        item.moyenPaiement = meths[(meths.indexOf(item.moyenPaiement || 'CB') + 1) % meths.length];
-                    }
-                    if (item.moyenPaiement === 'MIXTE' && item.montantEspeces === undefined) item.montantEspeces = 0;
-                    sauvegarderDonnees();
-                    rafraichirTouteLInterface();
-                    return;
-                }
-
-                // Boutons ±5€ du mode Mixte : la part espèces avance par paliers de 5, jamais de saisie libre.
-                const mixteBtn = e.target.closest('[data-mixte-decr], [data-mixte-incr]');
-                if (mixteBtn) {
-                    const id = mixteBtn.dataset.mixteDecr || mixteBtn.dataset.mixteIncr;
-                    const item = getMoisActif().depenses.find(x => x.id === id);
-                    if (item) {
-                        const max = Math.max(parseFloat(item.montant) || 0, 0);
-                        const cur = parseFloat(item.montantEspeces) || 0;
-                        const delta = mixteBtn.dataset.mixteIncr !== undefined ? 5 : -5;
-                        item.montantEspeces = Math.min(Math.max(cur + delta, 0), max);
-                        sauvegarderDonnees();
-                        rafraichirTouteLInterface();
-                    }
-                }
             });
 
-            // Glisser verticalement sur le chiffre pour ajuster la part espèces (mode Mixte), par paliers de 5€.
-            // Mise à jour visuelle immédiate pendant le geste (sans re-render, pour ne pas casser la capture du
-            // pointeur), sauvegarde uniquement au relâchement.
-            document.getElementById(containerId).addEventListener('pointerdown', (e) => {
-                const scrub = e.target.closest('[data-mixte-scrub]');
-                if (!scrub) return;
-                const item = getMoisActif().depenses.find(x => x.id === scrub.dataset.mixteScrub);
-                if (!item) return;
-                e.preventDefault(); // priorité au drag : empêche tout défilement de la page dès que le doigt se pose sur la zone
-                mixteDragId = item.id;
-                mixteDragStartY = e.clientY;
-                mixteDragStartVal = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
-                mixteDragLive = mixteDragStartVal;
-                scrub.setPointerCapture(e.pointerId);
-            }, { passive: false });
-            document.getElementById(containerId).addEventListener('pointermove', (e) => {
-                if (!mixteDragId) return;
-                e.preventDefault(); // idem : le geste en cours ne doit jamais faire défiler la page en dessous
-                const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
-                if (!item) return;
-                const max = Math.max(parseFloat(item.montant) || 0, 0);
-                const deltaY = mixteDragStartY - e.clientY;
-                const steps = Math.round(deltaY / 18);
-                mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), max);
-                const valueEl = document.querySelector(`[data-mixte-scrub="${CSS.escape(String(mixteDragId))}"] .mixte-value`);
-                if (valueEl) valueEl.textContent = mixteDragLive.toFixed(0) + ' €';
-            }, { passive: false });
-            const finirGlisserMixte = () => {
-                if (!mixteDragId) return;
-                const item = getMoisActif().depenses.find(x => x.id === mixteDragId);
-                if (item && mixteDragLive !== null) {
-                    item.montantEspeces = mixteDragLive;
-                    sauvegarderDonnees();
-                    rafraichirTouteLInterface();
-                }
-                mixteDragId = null; mixteDragLive = null;
-            };
-            document.getElementById(containerId).addEventListener('pointerup', finirGlisserMixte);
-            document.getElementById(containerId).addEventListener('pointercancel', finirGlisserMixte);
         };
 
         // NOTIFICATIONS DU DUO (30/09/2026) — voir README, « Notifications »
@@ -1456,6 +1526,7 @@
         // 6. Ajout de lignes
         document.body.addEventListener('click', (e) => {
             const type = e.target.dataset.add;
+            if (type === 'depenses') { ouvrirEditeur(null); return; } // 27/11/2026 : fenêtre dédiée
             if (type) {
                 const mois = getMoisActif();
                 if (!mois || !Array.isArray(mois[type])) return; // audit 09-07 : aucun mois

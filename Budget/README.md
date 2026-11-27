@@ -9,6 +9,16 @@
 
 ## Changelog
 
+## v5.1.0 — Fenêtre « Nouvelle dépense » + paiement sur 4 moyens (27/11/2026)
+
+- **Fenêtre dédiée** `#sheet-depense` (création ET modification), empilée sur la liste (`ouvrirFeuille('depense')` ne ferme pas les autres feuilles). En-tête : ✕ · titre · **Ajouter / Enregistrer** (en haut pour rester visible au-dessus du clavier). Corps : montant en grand (± remboursement, Entrée → libellé), libellé, pastilles des 4 catégories récentes + liste complète, date, paiement 💳 / 💵 / 🎁 / 🎫 / 🔀, bouton Supprimer (modification).
+- **Brouillon** (`ed.b`) : rien n'est écrit avant le bouton (plus de dépense vide laissée en base) ; la fenêtre n'est jamais re-rendue par les instantanés Firestore. Enregistrement → `sauvegarderMois` du mois d'origine, puis `planifierNotifDepense` (notification inchangée).
+- **Ouvrent la fenêtre** : − Dépense, « + Nouvelle dépense », un toucher sur une ligne de la liste, sur une Dernière opération ou une opération du Calendrier (`data-edit-dep`).
+- **Liste des dépenses compacte** : poignée ☰ (glisser-déposer conservé), emoji, libellé, date · catégorie · icônes de paiement, point Corentin/Lisa, montant, ✕ (suppression + Annuler, via `supprimerLigne`). Saisie en ligne, panneau Mixte en ligne, bouton de cycle de paiement et pastilles sous la ligne : **retirés**.
+- **Mixte = 4 moyens** : `montantEspeces` (±5 € ou glisser), `montantCadeau`, `montantTicket` (saisie libre), carte = reste automatique. `partsMixte()` borne dans l'ordre espèces → cadeau → tickets ; les anciennes dépenses Mixte donnent le même résultat qu'avant. Si la répartition dépasse le montant : message rouge, bouton désactivé. Les tickets (seuls ou en Mixte) restent une simple trace, sans réserve.
+- `iconesPaiement()` : icônes affichées partout (ex. « 💳+💵+🎁+🎫 »). Import .json : `montantCadeau` / `montantTicket` contrôlés comme `montantEspeces`.
+- **Vérifié** (Chromium 390 px, Firebase simulé avec les vraies données, sans écriture réelle) : création Mixte 4 moyens (enregistrement correct), alerte de dépassement, réouverture en modification, aucune erreur JS. **Non vérifié sur iPhone** (clavier dans la fenêtre).
+
 ## Tickets resto sans réserve + zéro en masque (27/11/2026, 14h20)
 
 - **🎫 Tickets resto = simple trace** (demande de Corentin) : on note « payé en tickets », **sans réserve** et **sans effet sur le reste à vivre** (comme l'ancien `TR`). Retirés : `tickets_add`, `calculerSoldeReporteTickets`, 🎫 dans la ligne sous le total et dans la feuille Revenus. Restent : le mode 🎫 dans le cycle de paiement, « · X € en 🎫 » sur la vignette Dépenses, « · 🎫 » dans Dernières opérations. Vignette redevenue « Espèces · Cadeaux », feuille « Revenus & réserves ».

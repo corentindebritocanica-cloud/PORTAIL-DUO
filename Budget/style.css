@@ -522,3 +522,33 @@ body.duo-chargement #reste-a-vivre { display: inline-block; min-width: 160px; }
 @keyframes moisDroite { from { opacity: .4; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @keyframes moisGauche { from { opacity: .4; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #vue-mensuelle, #vue-mensuelle.arrive-droite, #vue-mensuelle.arrive-gauche { transition: none; animation: none; } }
+
+/* ===== Fenêtre de la dépense (27/11/2026) + liste compacte des dépenses ===== */
+.dep-row { padding: 6px 0; }
+.dep-ligne { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--text); background: none; border: 0; padding: 4px 0; cursor: pointer; min-height: 48px; }
+.dep-ligne:active { opacity: .7; }
+.dep-head h3 { text-align: center; font-size: 17px; }
+.dep-ok { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--accent); color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.dep-ok:disabled { opacity: .35; cursor: default; }
+.dep-montant-box { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; padding: 6px 14px 6px 8px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--border); }
+#dep-montant { flex: 1; min-width: 0; min-height: 64px; border: 0; background: none; color: var(--text); font: inherit; font-size: 40px !important; /* au-dessus du 16px !important global */ font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+#dep-montant::placeholder { color: var(--text-dim); opacity: .5; }
+.dep-euro { font-size: 24px; font-weight: 700; color: var(--text-dim); }
+.dep-champ { width: 100%; min-height: 48px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 16px; /* 16px : pas de zoom Safari au focus */ }
+.dep-2col { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; margin: 10px 0 16px; }
+#dep-cats { padding-top: 10px; }
+#dep-cats:empty { display: none; }
+.dep-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--text-dim); margin: 0 0 6px 2px; }
+.dep-pay button { flex-direction: column; gap: 2px; min-height: 56px; font-size: 11px; }
+.dep-pay button b { font-size: 20px; font-weight: 400; line-height: 1; }
+.dep-mixte { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; margin-bottom: 14px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--border); }
+.dep-m-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; font-size: 14px; font-weight: 600; }
+.dep-m-row + .dep-m-row { border-top: 1px solid var(--border); }
+.dep-m-pas { display: flex; align-items: center; gap: 8px; touch-action: none; }
+.dep-m-pas .mixte-scrub { min-width: 64px; }
+.dep-m-row input { width: 110px; min-height: 44px; padding: 0 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-size: 18px !important; font-weight: 700; text-align: right; }
+.dep-m-cb strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.dep-alerte { color: var(--danger); font-size: 13px; font-weight: 700; text-align: center; }
+.dep-alerte:empty { display: none; }
+.dep-suppr { width: 100%; margin-top: 6px; }
+html[data-style="clair"] .dep-m-row input { background: var(--card); }
