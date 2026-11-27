@@ -10246,5 +10246,333 @@
    }
   ],
   "remises": -9.72
+ },
+ "27-11-2026": {
+  "date": 1795791120000,
+  "articles": [
+   {
+    "libelle": "CONTREX E.MINERALE B",
+    "prix": 3.03,
+    "quantite": 1,
+    "total": 3.03
+   },
+   {
+    "libelle": "REGAIN BOIS.AU SOJA",
+    "prix": 1.47,
+    "quantite": 6,
+    "total": 8.82
+   },
+   {
+    "libelle": "LE GAUL.CORDON BLEU",
+    "prix": 2.08,
+    "quantite": 1,
+    "total": 2.08
+   },
+   {
+    "libelle": "LOR BAR.EXT.LONG.XXL",
+    "prix": 5.27,
+    "quantite": 1,
+    "total": 5.27
+   },
+   {
+    "libelle": "LOR ESPRESSO NOISETT",
+    "prix": 3.78,
+    "quantite": 1,
+    "total": 3.78
+   },
+   {
+    "libelle": "LOR ESPRESSO NOISETT",
+    "prix": 3.78,
+    "quantite": 1,
+    "total": 3.78
+   },
+   {
+    "libelle": "APTA FILM ETIRABLE 5",
+    "prix": 1.83,
+    "quantite": 1,
+    "total": 1.83
+   },
+   {
+    "libelle": "ST MICHEL ROUDOR 2X1",
+    "prix": 2.66,
+    "quantite": 1,
+    "total": 2.66
+   },
+   {
+    "libelle": "DELACRE CIGARETTES R",
+    "prix": 1.92,
+    "quantite": 1,
+    "total": 1.92
+   },
+   {
+    "libelle": "DELACRE CIGARETTES R",
+    "prix": 1.92,
+    "quantite": 1,
+    "total": 1.92
+   },
+   {
+    "libelle": "DELACRE CIGARETTES R",
+    "prix": 1.92,
+    "quantite": 1,
+    "total": 1.92
+   },
+   {
+    "libelle": "IVORIA CHOC.BLC NOIS",
+    "prix": 2.55,
+    "quantite": 1,
+    "total": 2.55
+   },
+   {
+    "libelle": "IVORIA CHOC.BLC NOIS",
+    "prix": 2.55,
+    "quantite": 1,
+    "total": 2.55
+   },
+   {
+    "libelle": "IVORIA CHOC.BLC NOIS",
+    "prix": 2.55,
+    "quantite": 1,
+    "total": 2.55
+   },
+   {
+    "libelle": "JAMBONNEAU EXTRA 1/3",
+    "prix": 4.64,
+    "quantite": 1,
+    "total": 4.64
+   },
+   {
+    "libelle": "RED BULL ENERGISANTE",
+    "prix": 1.16,
+    "quantite": 1,
+    "total": 1.16
+   },
+   {
+    "libelle": "PAT SKYR NATURE 450G",
+    "prix": 1.89,
+    "quantite": 1,
+    "total": 1.89
+   },
+   {
+    "libelle": "S/B 30OEUFS FRAIS TS",
+    "prix": 5.02,
+    "quantite": 1,
+    "total": 5.02
+   },
+   {
+    "libelle": "PAT SKYR NATURE 450G",
+    "prix": 1.89,
+    "quantite": 1,
+    "total": 1.89
+   },
+   {
+    "libelle": "J.BIO PUR JUS CITRON",
+    "prix": 2.62,
+    "quantite": 1,
+    "total": 2.62
+   },
+   {
+    "libelle": "J.BIO PUR JUS CITRON",
+    "prix": 2.62,
+    "quantite": 1,
+    "total": 2.62
+   },
+   {
+    "libelle": "ST ELOI HARICOT ROUG",
+    "prix": 1.39,
+    "quantite": 1,
+    "total": 1.39
+   },
+   {
+    "libelle": "ST ELOI HARICOT ROUG",
+    "prix": 1.39,
+    "quantite": 1,
+    "total": 1.39
+   },
+   {
+    "libelle": "M&M'S PEANUT POCHON",
+    "prix": 3.4,
+    "quantite": 1,
+    "total": 3.4
+   },
+   {
+    "libelle": "M&M'S PEANUT POCHON",
+    "prix": 3.4,
+    "quantite": 1,
+    "total": 3.4
+   },
+   {
+    "libelle": "KIWI BARQUETTE 1KG P",
+    "prix": 3.89,
+    "quantite": 1,
+    "total": 3.89
+   },
+   {
+    "libelle": "NUTELLA PATE A TARTI",
+    "prix": 7.37,
+    "quantite": 1,
+    "total": 7.37
+   },
+   {
+    "libelle": "NUTELLA PATE A TARTI",
+    "prix": 7.37,
+    "quantite": 1,
+    "total": 7.37
+   },
+   {
+    "libelle": "FUET CATALAN NATURE",
+    "prix": 2.75,
+    "quantite": 1,
+    "total": 2.75
+   },
+   {
+    "libelle": "SANEX DEO STICK 48H",
+    "prix": 3.43,
+    "quantite": 1,
+    "total": 3.43
+   },
+   {
+    "libelle": "CHAMPIGNON BLOND GEA",
+    "prix": 6.49,
+    "quantite": 0.23,
+    "total": 1.49,
+    "unite": "kg"
+   },
+   {
+    "libelle": "TARTARE AFH POT 90G",
+    "prix": 1.49,
+    "quantite": 1,
+    "total": 1.49
+   },
+   {
+    "libelle": "DANONE COTT CHEESE 4",
+    "prix": 4.01,
+    "quantite": 1,
+    "total": 4.01
+   },
+   {
+    "libelle": "RANOU 1/4 JAMBON SEC",
+    "prix": 3.1,
+    "quantite": 1,
+    "total": 3.1
+   },
+   {
+    "libelle": "RANOU 1/4 JAMBON SEC",
+    "prix": 3.1,
+    "quantite": 1,
+    "total": 3.1
+   },
+   {
+    "libelle": "RANOU 1/4 JAMBON SEC",
+    "prix": 3.1,
+    "quantite": 1,
+    "total": 3.1
+   },
+   {
+    "libelle": "GINGEMBRE VRAC",
+    "prix": 6.99,
+    "quantite": 0.31,
+    "total": 2.17,
+    "unite": "kg"
+   },
+   {
+    "libelle": "OIGNON JAUNE VRAC",
+    "prix": 3.49,
+    "quantite": 0.42,
+    "total": 1.47,
+    "unite": "kg"
+   },
+   {
+    "libelle": "SAINT MORET L&P NATU",
+    "prix": 3.8,
+    "quantite": 1,
+    "total": 3.8
+   },
+   {
+    "libelle": "CHAUSSEE AUX MOINES",
+    "prix": 4.22,
+    "quantite": 1,
+    "total": 4.22
+   },
+   {
+    "libelle": "PAT EMMENTAL RAPE ZI",
+    "prix": 4.03,
+    "quantite": 1,
+    "total": 4.03
+   },
+   {
+    "libelle": "POIVRON ROUGE VRAC S",
+    "prix": 5.49,
+    "quantite": 0.665,
+    "total": 3.65,
+    "unite": "kg"
+   },
+   {
+    "libelle": "CONCOMBRE PIECE",
+    "prix": 1.49,
+    "quantite": 2,
+    "total": 2.98
+   },
+   {
+    "libelle": "CAROTTE VRAC",
+    "prix": 1.79,
+    "quantite": 0.78,
+    "total": 1.4,
+    "unite": "kg"
+   },
+   {
+    "libelle": "OLD EL PA WRAP DE BL",
+    "prix": 2.82,
+    "quantite": 1,
+    "total": 2.82
+   },
+   {
+    "libelle": "RANOU MON PARIS DD T",
+    "prix": 1.68,
+    "quantite": 1,
+    "total": 1.68
+   },
+   {
+    "libelle": "RANOU MON PARIS DD T",
+    "prix": 1.68,
+    "quantite": 1,
+    "total": 1.68
+   },
+   {
+    "libelle": "RANOU MON PARIS DD T",
+    "prix": 1.68,
+    "quantite": 1,
+    "total": 1.68
+   },
+   {
+    "libelle": "RANOU 4 GALET BLE NO",
+    "prix": 1.83,
+    "quantite": 1,
+    "total": 1.83
+   },
+   {
+    "libelle": "TOMATE CERISE 250G P",
+    "prix": 0.99,
+    "quantite": 6,
+    "total": 5.94
+   }
+  ],
+  "remises": [
+   {
+    "libelle": "2EME A -60% DELACRE",
+    "montant": -1.16
+   },
+   {
+    "libelle": "2EME A -50% J.BIO PU",
+    "montant": -1.31
+   },
+   {
+    "libelle": "2EME A -50% NUTELLA",
+    "montant": -3.69
+   },
+   {
+    "libelle": "2EME A -30% REGAIN B",
+    "montant": -1.35
+   }
+  ]
  }
 }

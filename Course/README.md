@@ -625,3 +625,8 @@ Audit à 20 relecteurs + 5 vérificateurs. Corrigé :
 
 ### Ticket du 20/11/2026
 - 182,85 € (74 articles) ajouté ; 31 tickets au total. « TARTARE AFH POT 90G » rattaché à « Crème ail et fines herbes » (existant) ; « POMM.MAXI CARRES BEB » → Coton démaquillant bébé. PDF et lecture JSON dans `Course/tickets/`.
+
+### Ticket du 27/11/2026
+- 147,02 € (61 articles, remises −7,51 €) ajouté ; 32 tickets au total ; 33 produits mis à jour. Payé : 25,00 € TRD Sodexo + 122,02 € carte prépayée.
+- « LE GAUL.CORDON BLEU » rattaché à « Cordon bleu » ; « CHAMPIGNON BLOND GEA » → « Champignons » (kg). « KIWI BARQUETTE 1KG P » enregistré au kg (3,89 €/kg) pour ne pas le mélanger avec le prix à la pièce.
+- Repéré : à l'import dans l'app, `g` (dépenses par groupe) ne compte qu'une ligne par libellé (`parLibelle`, dernière ligne gagne) → sous-estimé si un libellé apparaît plusieurs fois. Non corrigé (ticket posé côté serveur avec toutes les lignes).
