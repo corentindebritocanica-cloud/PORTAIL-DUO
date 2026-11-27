@@ -9,6 +9,11 @@
 
 ## Changelog
 
+## Tickets resto sans réserve + zéro en masque (27/11/2026, 14h20)
+
+- **🎫 Tickets resto = simple trace** (demande de Corentin) : on note « payé en tickets », **sans réserve** et **sans effet sur le reste à vivre** (comme l'ancien `TR`). Retirés : `tickets_add`, `calculerSoldeReporteTickets`, 🎫 dans la ligne sous le total et dans la feuille Revenus. Restent : le mode 🎫 dans le cycle de paiement, « · X € en 🎫 » sur la vignette Dépenses, « · 🎫 » dans Dernières opérations. Vignette redevenue « Espèces · Cadeaux », feuille « Revenus & réserves ».
+- **Zéro en masque partout** : tout champ de montant nul est vide avec un `placeholder="0"` (revenus, ajouts, espèces, cartes cadeaux, montants des fixes, objectif de provision) — plus besoin d'effacer le 0. Les dépenses/charges/provisions l'avaient déjà. Champ vide enregistré = 0. Soldes reportés (lecture seule) inchangés.
+
 ## Carte Tickets restaurant 🎫 (27/11/2026)
 
 - Nouveau mode de paiement **🎫 Tickets resto** (`moyenPaiement: 'TICKET'`), à la fin du cycle 💳 → 💵 → 🔀 → 🎁 → 🎫.

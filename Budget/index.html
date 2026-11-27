@@ -109,7 +109,7 @@
                 <div class="v2-label">Reste à vivre</div>
                 <div class="v2-big" id="reste-a-vivre">0 €</div>
                 <div class="v2-sub" id="jours-restants">--</div>
-                <div class="v2-sub v2-dim" id="detail-reste">💳 0,00 € · 💵 0,00 € · 🎁 0,00 € · 🎫 0,00 €</div>
+                <div class="v2-sub v2-dim" id="detail-reste">💳 0,00 € · 💵 0,00 € · 🎁 0,00 €</div>
                 <div class="v2-prog"><div id="v2-prog"></div></div>
             </section>
 
@@ -141,7 +141,7 @@
                     </button>
                     <button type="button" class="v2-tile t-revenus" data-sheet="revenus">
                         <span class="v2-tile-ico">💵</span>
-                        <span class="v2-tile-nom">Réserves</span>
+                        <span class="v2-tile-nom">Espèces · Cadeaux</span>
                         <span class="v2-tile-mnt" id="v2-t-especes">0 €</span>
                         <span class="v2-tile-info" id="v2-i-especes"></span>
                     </button>
@@ -219,7 +219,7 @@
                 <div id="admin-objectifs"></div>
                 <div class="obj-form">
                     <input type="text" id="new-obj-nom" placeholder="Mot-clé">
-                    <input type="number" id="new-obj-mnt" placeholder="€">
+                    <input type="number" id="new-obj-mnt" inputmode="decimal" placeholder="0 €">
                     <button class="btn-small bg-primary" id="btn-add-obj">Ajouter</button>
                 </div>
             </div>
@@ -336,12 +336,10 @@
                     <div class="revenus-row"><strong>Solde reporté (Revolut)</strong><input type="number" id="solde_reporte" readonly></div>
                     <div class="revenus-row"><strong>Espèces reportées</strong><input type="number" id="solde_reporte_especes" readonly></div>
                     <div class="revenus-row"><strong>🎁 Cartes cadeaux reportées</strong><input type="number" id="solde_reporte_cadeaux" readonly></div>
-                    <div class="revenus-row"><strong>🎫 Tickets resto reportés</strong><input type="number" id="solde_reporte_tickets" readonly></div>
-                    <div class="revenus-row revenus-group-start"><strong>Revenus initiaux</strong><input type="number" id="revenus" data-field="revenus" inputmode="decimal"></div>
-                    <div class="revenus-row"><strong>Espèces ajoutées</strong><input type="number" id="especes_add" data-field="especes_add" inputmode="decimal"></div>
-                    <div class="revenus-row"><strong>🎁 Cartes cadeaux ajoutées</strong><input type="number" id="cadeaux_add" data-field="cadeaux_add" inputmode="decimal"></div>
-                    <div class="revenus-row"><strong>🎫 Tickets resto ajoutés</strong><input type="number" id="tickets_add" data-field="tickets_add" inputmode="decimal"></div>
-                    <div class="revenus-row revenus-group-start"><strong>Ajouts en cours</strong><input type="number" id="revenus_add" data-field="revenus_add" inputmode="decimal"></div>
+                    <div class="revenus-row revenus-group-start"><strong>Revenus initiaux</strong><input type="number" id="revenus" data-field="revenus" inputmode="decimal" placeholder="0"></div>
+                    <div class="revenus-row"><strong>Espèces ajoutées</strong><input type="number" id="especes_add" data-field="especes_add" inputmode="decimal" placeholder="0"></div>
+                    <div class="revenus-row"><strong>🎁 Cartes cadeaux ajoutées</strong><input type="number" id="cadeaux_add" data-field="cadeaux_add" inputmode="decimal" placeholder="0"></div>
+                    <div class="revenus-row revenus-group-start"><strong>Ajouts en cours</strong><input type="number" id="revenus_add" data-field="revenus_add" inputmode="decimal" placeholder="0"></div>
                 </div>
                 <button class="btn-action bg-danger v2-suppr-mois" id="btn-del-month">🗑️ Supprimer ce mois</button>
             </div>
