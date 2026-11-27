@@ -9,6 +9,13 @@
 
 ## Changelog
 
+## Carte Tickets restaurant 🎫 (27/11/2026)
+
+- Nouveau mode de paiement **🎫 Tickets resto** (`moyenPaiement: 'TICKET'`), à la fin du cycle 💳 → 💵 → 🔀 → 🎁 → 🎫.
+- **Code distinct de l'ancien `TR`** (Ticket Resto legacy, 1 dépense en base) : `TR` reste exclu de TOUS les calculs, comme avant, pour ne pas fausser les chiffres passés.
+- Réserve propre : champ `tickets_add` par mois (« 🎫 Tickets resto ajoutés ») + report cumulatif `calculerSoldeReporteTickets`. Comptée dans le reste à vivre et dans le résumé du Portail.
+- Ligne sous le total : `💳 · 💵 · 🎁 · 🎫`. Vignette renommée « Réserves » (espèces + cadeaux + tickets), feuille « Revenus & réserves ».
+
 ## Cartes cadeaux 🎁 (27/11/2026)
 
 - **Nouveau mode de paiement « Carte cadeau » (🎁)** sur les Dépenses : le bouton de paiement tourne maintenant 💳 → 💵 → 🔀 → 🎁. Valeur stockée : `moyenPaiement: 'CADEAU'`.
