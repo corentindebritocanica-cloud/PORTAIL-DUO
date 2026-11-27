@@ -9,6 +9,13 @@
 
 ## Changelog
 
+## v5.1.2 — Fenêtre de la dépense : plus de sauts (27/11/2026, 14h50)
+
+- Vidéo iPhone de Corentin : l'écran « sautait » à chaque toucher (la fenêtre changeait de taille et faisait défiler son contenu à chaque ouverture/fermeture du clavier, le fond apparaissait dessous).
+- **Ordre** : Montant → Paiement → parts Mixte → Libellé → catégories → catégorie/date. Les champs tapés au clavier dans le Mixte sont juste sous le montant, au-dessus du clavier : plus de défilement interne.
+- **Hauteur fixe** = zone visible (`height` au lieu de `max-height`, calée sur `visualViewport`) : le haut de la fenêtre ne bouge plus et le tableau de bord n'apparaît plus dessous.
+- Entrée dans le montant → part Espèces en Mixte, sinon le libellé.
+
 ## v5.1.1 — Fenêtre de la dépense en haut + parts libres (27/11/2026, 14h40)
 
 - Retour iPhone : la fenêtre (ancrée en bas) passait sous le clavier. Elle est maintenant **collée en haut** (`.v2-sheet.dep-sheet`), hauteur calée sur `visualViewport` (`--vv-h`), en-tête (✕ · titre · Ajouter) collé en haut du contenu. Voir `PROBLEMES_RESOLUS.md`.

@@ -1367,7 +1367,7 @@
             });
             w.addEventListener('keydown', (e) => {
                 if (e.key !== 'Enter') return;
-                if (e.target.id === 'dep-montant') { e.preventDefault(); $ed('dep-libelle').focus(); }
+                if (e.target.id === 'dep-montant') { e.preventDefault(); $ed(ed.b && ed.b.moyenPaiement === 'MIXTE' ? 'dep-especes' : 'dep-libelle').focus(); }
                 else if (e.target.tagName === 'INPUT') { e.preventDefault(); e.target.blur(); }
             });
             w.addEventListener('click', (e) => {

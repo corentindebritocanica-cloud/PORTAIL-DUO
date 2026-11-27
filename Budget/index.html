@@ -337,12 +337,6 @@
                     <input type="text" id="dep-montant" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0" aria-label="Montant">
                     <span class="dep-euro">€</span>
                 </div>
-                <input type="text" id="dep-libelle" class="dep-champ" placeholder="Libellé (ex. Intermarché)" enterkeyhint="done" autocomplete="off">
-                <div class="cat-rapides" id="dep-cats"></div>
-                <div class="dep-2col">
-                    <select id="dep-cat" class="dep-champ" aria-label="Catégorie"></select>
-                    <input type="date" id="dep-date" class="dep-champ" aria-label="Date">
-                </div>
                 <div class="dep-label">Paiement</div>
                 <div class="v2-seg dep-pay" id="dep-pay">
                     <button type="button" data-pay-meth="CB"><b>💳</b>Carte</button>
@@ -357,6 +351,12 @@
                     <div class="dep-m-row"><span>🎫 Tickets resto</span><input type="text" id="dep-ticket" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part tickets resto"></div>
                     <div class="dep-m-row dep-m-cb"><span>💳 Carte <small>(le reste)</small></span><strong id="dep-cb">0,00 €</strong></div>
                     <div class="dep-alerte" id="dep-alerte"></div>
+                </div>
+                <input type="text" id="dep-libelle" class="dep-champ" placeholder="Libellé (ex. Intermarché)" enterkeyhint="done" autocomplete="off">
+                <div class="cat-rapides" id="dep-cats"></div>
+                <div class="dep-2col">
+                    <select id="dep-cat" class="dep-champ" aria-label="Catégorie"></select>
+                    <input type="date" id="dep-date" class="dep-champ" aria-label="Date">
                 </div>
                 <button type="button" class="btn-action bg-danger dep-suppr hidden" id="dep-suppr">🗑️ Supprimer la dépense</button>
             </div>
