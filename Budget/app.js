@@ -91,7 +91,7 @@
             const meth = i.moyenPaiement || 'CB';
             if (meth === 'CB') return s + (parseFloat(i.montant) || 0);
             if (meth === 'MIXTE') return s + Math.max((parseFloat(i.montant) || 0) - (parseFloat(i.montantEspeces) || 0), 0);
-            return s; // ESPECES, TR (legacy, laissée à part comme avant)
+            return s; // ESPECES, CADEAU, TR (legacy, laissée à part comme avant)
         }, 0);
         // Part Espèces d'une liste de dépenses : ESPECES = tout, MIXTE = part espèces saisie, CB/TR = rien.
         const sommeEspeces = (arr) => (arr || []).reduce((s, i) => {
@@ -100,6 +100,8 @@
             if (meth === 'MIXTE') return s + Math.min(Math.max(parseFloat(i.montantEspeces) || 0, 0), Math.max(parseFloat(i.montant) || 0, 0)); // audit 09-02 : bornée au montant
             return s; // CB, TR (legacy, laissée à part comme avant)
         }, 0);
+        // Part Cartes cadeaux (27/11/2026) : CADEAU = tout (réserve séparée, comme les espèces).
+        const sommeCadeaux = (arr) => (arr || []).reduce((s, i) => s + (i.moyenPaiement === 'CADEAU' ? (parseFloat(i.montant) || 0) : 0), 0);
 
         const normaliserMois = (m) => ({
             ...(({ epargne, ...reste }) => reste)(m), // le champ « epargne » (carte Projets / Épargne) n'existe plus : on l'écarte, même s'il vient d'une ancienne sauvegarde .json
@@ -108,6 +110,7 @@
             provisions: Array.isArray(m.provisions) ? m.provisions : (m.provisions ? Object.values(m.provisions) : []),
             fixes: Array.isArray(m.fixes) ? m.fixes : (m.fixes ? Object.values(m.fixes) : []), 
             revenus_add: m.revenus_add || 0,
+            cadeaux_add: m.cadeaux_add || 0, // cartes cadeaux ajoutées dans le mois (report cumulatif, voir calculerSoldeReporteCadeaux)
             especes_add: m.especes_add || 0, // apport d'espèces du mois (report cumulatif séparé, voir calculerSoldeReporteEspeces)
             annee: m.annee || parseInt(m.nom.split(' ')[1])
         });
@@ -137,7 +140,7 @@
                     if (!Number.isFinite(n) || Math.abs(n) > 1e7) throw new Error(champ + ' invalide');
                     return n;
                 };
-                const propre = { ...m, id, annee, revenus: nombre(m.revenus, 'revenus'), revenus_add: nombre(m.revenus_add, 'revenus_add'), especes_add: nombre(m.especes_add, 'especes_add') };
+                const propre = { ...m, id, annee, revenus: nombre(m.revenus, 'revenus'), revenus_add: nombre(m.revenus_add, 'revenus_add'), especes_add: nombre(m.especes_add, 'especes_add'), cadeaux_add: nombre(m.cadeaux_add, 'cadeaux_add') };
                 LISTES_MOIS.forEach((cle) => {
                     const brut = m[cle];
                     if (brut === undefined || brut === null) return;
@@ -334,8 +337,9 @@
             const idx = state.donnees.indexOf(m);
             const budgetRevolut = calculerSoldeReporte(idx) + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
             const budgetEspeces = calculerSoldeReporteEspeces(idx) + (parseFloat(m.especes_add) || 0);
-            const budget = budgetRevolut + budgetEspeces; // Revolut + Espèces, formule identique à calculerTotauxMensuels
-            const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions) + sommeEspeces(m.depenses);
+            const budgetCadeaux = calculerSoldeReporteCadeaux(idx) + (parseFloat(m.cadeaux_add) || 0);
+            const budget = budgetRevolut + budgetEspeces + budgetCadeaux; // Revolut + Espèces + Cartes cadeaux, formule identique à calculerTotauxMensuels
+            const depense = somme(m.charges) + sommeCB(m.depenses) + somme(m.provisions) + sommeEspeces(m.depenses) + sommeCadeaux(m.depenses);
             const r2 = (n) => Math.round(n * 100) / 100;
             const dernierJour = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             // Lot 3 (20/10/2026) : 3 dernières dépenses du mois pour la vitre du Portail (libellé ou catégorie, montant, emoji)
@@ -582,6 +586,15 @@
             }
             return arr2(solde);
         };
+        // Même principe pour la réserve Cartes cadeaux (27/11/2026) : ajouts du mois − dépenses payées 🎁.
+        const calculerSoldeReporteCadeaux = (cibleIdx) => {
+            let solde = 0;
+            for (let i = 0; i < cibleIdx; i++) {
+                const m = state.donnees[i];
+                solde += (parseFloat(m.cadeaux_add) || 0) - sommeCadeaux(m.depenses);
+            }
+            return arr2(solde);
+        };
 
         // Lot 2 (20/10/2026) : 4 dernières catégories utilisées, en pastilles sous une dépense qu'on vient de créer
         const categoriesRecentes = () => {
@@ -639,7 +652,7 @@
                     let mixteRow = '';
                     if (type === 'depenses') {
                         const meth = item.moyenPaiement || 'CB';
-                        const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : '💳';
+                        const icon = meth === 'TR' ? '🎟️' : meth === 'ESPECES' ? '💵' : meth === 'MIXTE' ? '🔀' : meth === 'CADEAU' ? '🎁' : '💳';
                         payIcon = `<button class="btn-pay-method" data-pay="${esc(item.id)}" title="Mode de paiement">${icon}</button>`;
                         if (meth === 'MIXTE') {
                             const especes = Math.min(Math.max(parseFloat(item.montantEspeces) || 0, 0), Math.max(parseFloat(item.montant) || 0, 0));
@@ -728,16 +741,19 @@
             document.getElementById('revenus').value = mois.revenus || 0;
             document.getElementById('revenus_add').value = mois.revenus_add || 0;
             document.getElementById('especes_add').value = mois.especes_add || 0;
+            const reportCadeaux = calculerSoldeReporteCadeaux(idx);
+            document.getElementById('solde_reporte_cadeaux').value = reportCadeaux.toFixed(2);
+            document.getElementById('cadeaux_add').value = mois.cadeaux_add || 0;
 
             rendreLignes('conteneur-charges', mois.charges, 'charges');
             rendreLignes('conteneur-depenses', mois.depenses, 'depenses');
             rendreLignes('conteneur-provisions', mois.provisions, 'provisions');
 
-            calculerTotauxMensuels(mois, report, reportEspeces);
-            rendreV2(mois, report, reportEspeces);
+            calculerTotauxMensuels(mois, report, reportEspeces, reportCadeaux);
+            rendreV2(mois, report, reportEspeces, reportCadeaux);
         };
 
-        const calculerTotauxMensuels = (m, report, reportEspeces) => {
+        const calculerTotauxMensuels = (m, report, reportEspeces, reportCadeaux = 0) => {
             const tc = somme(m.charges);
             const tdTotal = somme(m.depenses);
             const tdCB = sommeCB(m.depenses);
@@ -748,11 +764,12 @@
 
             const resteRevolut = totalRev - tc - tdCB - tprov;
             const resteEspeces = totalEspeces - tdEspeces;
-            const reste = arr2(resteRevolut + resteEspeces);
+            const resteCadeaux = reportCadeaux + (parseFloat(m.cadeaux_add) || 0) - sommeCadeaux(m.depenses);
+            const reste = arr2(resteRevolut + resteEspeces + resteCadeaux);
 
             document.getElementById('total-charges').innerText = tc.toFixed(0);
             document.getElementById('total-provisions').innerText = tprov.toFixed(0);
-            document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)}`;
+            document.getElementById('detail-reste').innerText = `💳 ${eur(resteRevolut)} · 💵 ${eur(resteEspeces)} · 🎁 ${eur(resteCadeaux)}`;
             // V2 : chiffre héros, barre empilée, vignettes et jours restants → rendreV2()
         };
 
@@ -785,7 +802,7 @@
             const cat = decoupeCat(it.categorie);
             const mnt = Number(it.montant) || 0;
             const credit = mnt < 0;
-            const meth = type === 'depenses' ? ({ ESPECES: ' · 💵', MIXTE: ' · 💳+💵', TR: ' · 🎟️' }[it.moyenPaiement] || '') : '';
+            const meth = type === 'depenses' ? ({ ESPECES: ' · 💵', MIXTE: ' · 💳+💵', CADEAU: ' · 🎁', TR: ' · 🎟️' }[it.moyenPaiement] || '') : '';
             const genre = type === 'charges' ? 'Charge' : type === 'provisions' ? 'Provision' : cat.nom;
             const pt = it.par === 'lisa' ? 'l' : it.par === 'corentin' ? 'c' : '';
             return `<button type="button" class="v2-op" data-sheet="${esc(type)}">
@@ -804,13 +821,15 @@
             return parts.map(p => `<div class="v2-leg-i ${p.cls}"><span>${esc(p.nom)}</span><strong>${esc(fmtEur0(p.v))}</strong><em>${tot > 0 ? Math.round(Math.max(p.v, 0) / tot * 100) : 0} %</em></div>`).join('');
         };
 
-        const rendreV2 = (m, report, reportEspeces) => {
+        const rendreV2 = (m, report, reportEspeces, reportCadeaux = 0) => {
             const info = infosMois(m);
             const tc = somme(m.charges), tdTotal = somme(m.depenses), tdEsp = sommeEspeces(m.depenses), tprov = somme(m.provisions);
             const totalRev = report + (parseFloat(m.revenus) || 0) + (parseFloat(m.revenus_add) || 0);
             const resteRevolut = totalRev - tc - sommeCB(m.depenses) - tprov;
             const resteEspeces = reportEspeces + (parseFloat(m.especes_add) || 0) - tdEsp;
-            const reste = arr2(resteRevolut + resteEspeces);
+            const tdCad = sommeCadeaux(m.depenses);
+            const resteCadeaux = reportCadeaux + (parseFloat(m.cadeaux_add) || 0) - tdCad;
+            const reste = arr2(resteRevolut + resteEspeces + resteCadeaux);
 
             // Héros
             const big = document.getElementById('reste-a-vivre');
@@ -820,7 +839,8 @@
             document.getElementById('jours-restants').textContent = info.courant
                 ? `${jr} jour${jr > 1 ? 's' : ''} restant${jr > 1 ? 's' : ''} · ≈ ${fmtEur(reste / Math.max(jr + 1, 1))} par jour`
                 : (info.passe ? 'Mois clôturé' : 'Mois à venir');
-            document.getElementById('detail-reste').textContent = `💳 ${fmtEur(resteRevolut)} · 💵 ${fmtEur(resteEspeces)}`;
+            // 27/11/2026 : réserves sous le total — compte (💳), espèces (💵), cartes cadeaux (🎁)
+            document.getElementById('detail-reste').textContent = `💳 ${fmtEur(resteRevolut)} · 💵 ${fmtEur(resteEspeces)} · 🎁 ${fmtEur(resteCadeaux)}`;
             document.getElementById('v2-prog').style.transform = `scaleX(${info.courant ? info.auj / info.nbJ : (info.passe ? 1 : 0)})`;
 
             // Résumé : barre empilée + vignettes
@@ -835,11 +855,11 @@
             document.getElementById('v2-t-charges').innerHTML = montantHTML(tc);
             document.getElementById('v2-i-charges').textContent = pl(m.charges.length, 'ligne');
             document.getElementById('v2-t-depenses').innerHTML = montantHTML(tdTotal);
-            document.getElementById('v2-i-depenses').textContent = pl(m.depenses.length, 'achat') + (tdEsp > 0 ? ` · ${fmtEur0(tdEsp)} en espèces` : '');
+            document.getElementById('v2-i-depenses').textContent = pl(m.depenses.length, 'achat') + (tdEsp > 0 ? ` · ${fmtEur0(tdEsp)} en espèces` : '') + (tdCad > 0 ? ` · ${fmtEur0(tdCad)} en 🎁` : '');
             document.getElementById('v2-t-provisions').innerHTML = montantHTML(tprov);
             document.getElementById('v2-i-provisions').textContent = pl(m.provisions.length, 'ligne');
-            document.getElementById('v2-t-especes').innerHTML = montantHTML(resteEspeces);
-            document.getElementById('v2-i-especes').textContent = `dont ${fmtEur0(reportEspeces)} reportés`;
+            document.getElementById('v2-t-especes').innerHTML = montantHTML(arr2(resteEspeces + resteCadeaux));
+            document.getElementById('v2-i-especes').textContent = `💵 ${fmtEur0(resteEspeces)} · 🎁 ${fmtEur0(resteCadeaux)}`;
             document.getElementById('titre-depenses').innerHTML = `Dépenses <small>(${esc(fmtEur0(tdTotal))})</small>`;
 
             // Dernières opérations (dépenses, les plus récentes d'abord)
@@ -954,6 +974,7 @@
                 document.querySelector('#sheet-depenses [data-add="depenses"]').click(); // met le curseur dans le montant
             } else if (act.dataset.action === 'revenu') { ouvrirFeuille('revenus'); document.getElementById('revenus_add').focus(); }
             else if (act.dataset.action === 'especes') { ouvrirFeuille('revenus'); document.getElementById('especes_add').focus(); }
+            else if (act.dataset.action === 'cadeaux') { ouvrirFeuille('revenus'); document.getElementById('cadeaux_add').focus(); }
             else if (act.dataset.action === 'chercher') { ouvrirFeuille('depenses'); document.getElementById('search-bar').focus(); }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.v2-sheet-wrap.open').forEach(fermerFeuille); });
@@ -1175,6 +1196,7 @@
                 revenus: last.revenus,
                 revenus_add: 0,
                 especes_add: 0,
+                cadeaux_add: 0,
                 charges: (last.charges || []).map(c => recaler({ ...c, id: genId(), montant: 0 })),
                 depenses: [],
                 provisions: (last.provisions || []).map(p => recaler({ ...p, id: genId(), montant: 0 })),
@@ -1302,7 +1324,7 @@
                 const payBtn = e.target.closest('[data-pay]');
                 if (payBtn) {
                     const item = getMoisActif().depenses.find(x => x.id === payBtn.dataset.pay);
-                    const meths = ['CB', 'ESPECES', 'MIXTE']; // Ticket Resto (legacy) n'est plus proposé
+                    const meths = ['CB', 'ESPECES', 'MIXTE', 'CADEAU']; // Ticket Resto (legacy) n'est plus proposé ; CADEAU = carte cadeau (27/11/2026)
                     if (item.moyenPaiement === 'TR') {
                         // Une ancienne ligne Ticket Resto qu'on touche rejoint le nouveau cycle, en repartant de Carte
                         item.moyenPaiement = 'CB';

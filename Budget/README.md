@@ -9,6 +9,15 @@
 
 ## Changelog
 
+## Cartes cadeaux 🎁 (27/11/2026)
+
+- **Nouveau mode de paiement « Carte cadeau » (🎁)** sur les Dépenses : le bouton de paiement tourne maintenant 💳 → 💵 → 🔀 → 🎁. Valeur stockée : `moyenPaiement: 'CADEAU'`.
+- **Réserve Cartes cadeaux** : même principe que les espèces — champ `cadeaux_add` par mois (« 🎁 Cartes cadeaux ajoutées », feuille Revenus) et report cumulatif `calculerSoldeReporteCadeaux` (« 🎁 Cartes cadeaux reportées », lecture seule). Une seule réserve pour toutes les cartes (Intermarché, etc.).
+- **Reste à vivre** = compte + espèces + cartes cadeaux. Ligne sous le total : `💳 compte · 💵 espèces · 🎁 cartes cadeaux`. Même formule dans le résumé du Portail (`calculerResumePortail`).
+- Vignette « Espèces · Cadeaux » : total des deux réserves, détail 💵 / 🎁 en dessous. Dernières opérations : « · 🎁 ».
+- Aucune donnée existante modifiée ; les anciens mois sans `cadeaux_add` valent 0. `firestore.rules` inchangé.
+
+
 ## Thème Sombre · Clair (18/10/2026, soir)
 
 - Budget suit le thème choisi dans le Portail (`data-style="simple|clair"`, posé par `../commun.js`) : le script qui imposait le Sombre est retiré de `index.html`.
