@@ -552,3 +552,10 @@ body.duo-chargement #reste-a-vivre { display: inline-block; min-width: 160px; }
 .dep-alerte:empty { display: none; }
 .dep-suppr { width: 100%; margin-top: 6px; }
 html[data-style="clair"] .dep-m-row input { background: var(--card); }
+/* Fenêtre de la dépense collée en haut (27/11/2026, demande de Corentin) : visible clavier ouvert ou fermé.
+   --vv-h = hauteur de la zone visible (visualViewport), posée par app.js. */
+.v2-sheet.dep-sheet { top: calc(env(safe-area-inset-top) + 8px); bottom: auto; left: 8px; right: 8px; border-radius: 22px; border: 1px solid var(--border-strong);
+    max-height: calc(var(--vv-h, 100dvh) - env(safe-area-inset-top) - 16px); padding: 14px 16px 18px; transform: translateY(calc(-100% - 40px)); box-shadow: 0 12px 40px rgba(0,0,0,.6); }
+.dep-sheet .dep-head { position: sticky; top: -14px; z-index: 2; margin: -14px -16px 12px; padding: 14px 16px 8px; background: var(--t-modale, #161b22); }
+.dep-m-row input { width: 120px; }
+.dep-m-cb small { color: var(--text-dim); font-weight: 500; }

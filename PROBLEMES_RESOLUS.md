@@ -19,6 +19,16 @@
 
 ---
 
+## 📱 Feuille de saisie cachée par le clavier iPhone (27/11/2026)
+
+### 27/11/2026 — Budget — la fenêtre « Nouvelle dépense » (feuille qui monte du bas) passait sous le clavier
+**Symptôme** : capture de Corentin sur iPhone : feuille ancrée en bas (`bottom: 0`), clavier décimal ouvert → seul l'en-tête restait visible, le champ montant était recouvert par la barre d'outils du clavier, le reste de la feuille invisible.
+**Fausses pistes explorées** : aucune (Chromium ne simule pas le clavier iOS : invisible au test sur ordinateur).
+**Cause racine** : sur iPhone, le clavier recouvre le bas de l'écran sans réduire la zone de mise en page ; un élément `position: fixed` ancré en bas reste dessous.
+**Solution** : feuille de saisie **ancrée en haut** (`top: safe-area + 8px`), hauteur max = `--vv-h` (hauteur de `visualViewport`, mise à jour sur `resize`/`scroll`), contenu défilant ; page ramenée en haut (`scrollTo(0,0)`) dans les 1,5 s qui suivent l'entrée dans un champ si iOS l'a fait défiler.
+**Leçon généralisable** : toute fenêtre où l'on **tape** sur iPhone → ancrée en haut, hauteur calée sur `visualViewport`. Les feuilles du bas restent bien pour les listes et choix sans clavier.
+**Fichiers touchés** : `Budget/index.html`, `Budget/style.css`, `Budget/app.js`, `Budget/README.md`
+
 ## 🔍 Audit de code des 5 apps — leçons transversales (20/10/2026)
 
 ### 20/10/2026 — Budget (leçon valable partout) — glisser-déposer sur une liste filtrée = lignes masquées supprimées

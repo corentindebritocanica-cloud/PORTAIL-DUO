@@ -9,6 +9,12 @@
 
 ## Changelog
 
+## v5.1.1 — Fenêtre de la dépense en haut + parts libres (27/11/2026, 14h40)
+
+- Retour iPhone : la fenêtre (ancrée en bas) passait sous le clavier. Elle est maintenant **collée en haut** (`.v2-sheet.dep-sheet`), hauteur calée sur `visualViewport` (`--vv-h`), en-tête (✕ · titre · Ajouter) collé en haut du contenu. Voir `PROBLEMES_RESOLUS.md`.
+- **Mixte** : montant total en haut, puis **une part par moyen** — 💵 Espèces, 🎁 Carte cadeau, 🎫 Tickets resto en saisie libre (`#dep-especes` remplace les ±5 € et le glisser, demande de Corentin), 💳 Carte = le reste, calculé.
+- Vérifié (Chromium 390 px, Firebase simulé) : saisie Mixte 42,50 = 10 + 20 + 8,50 + 4 carte, enregistrement correct. **Clavier à confirmer sur iPhone.**
+
 ## v5.1.0 — Fenêtre « Nouvelle dépense » + paiement sur 4 moyens (27/11/2026)
 
 - **Fenêtre dédiée** `#sheet-depense` (création ET modification), empilée sur la liste (`ouvrirFeuille('depense')` ne ferme pas les autres feuilles). En-tête : ✕ · titre · **Ajouter / Enregistrer** (en haut pour rester visible au-dessus du clavier). Corps : montant en grand (± remboursement, Entrée → libellé), libellé, pastilles des 4 catégories récentes + liste complète, date, paiement 💳 / 💵 / 🎁 / 🎫 / 🔀, bouton Supprimer (modification).

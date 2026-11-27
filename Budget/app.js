@@ -77,7 +77,6 @@
 
         // Suivi du glisser tactile sur le chiffre "espèces" (mode Mixte, voir setupTableListeners) —
         // volontairement hors de `state` : purement transitoire, jamais persisté ni comparé aux Nouveautés.
-        let mixteDragStartY = 0, mixteDragStartVal = 0, mixteDragLive = null; // fenêtre de la dépense (27/11/2026)
 
         // --- Utilitaires ---
         const arr2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100 + 0; // audit 08-02 : pas de « -0,00 € » par dérive flottante
@@ -1291,10 +1290,12 @@
             $ed('dep-cat').innerHTML = state.categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
                 + (b.categorie && !state.categories.includes(b.categorie) ? `<option value="${esc(b.categorie)}">${esc(b.categorie)}</option>` : '');
             $ed('dep-cat').value = b.categorie || '';
+            $ed('dep-especes').value = versChamp(b.montantEspeces);
             $ed('dep-cadeau').value = versChamp(b.montantCadeau);
             $ed('dep-ticket').value = versChamp(b.montantTicket);
             ouvrirFeuille('depense');
             $ed('sheet-depense').querySelector('.v2-sheet').scrollTop = 0;
+            $ed('sheet-depense')._ajuster();
             if (!exist) $ed('dep-montant').focus(); // pendant le geste : iOS ouvre le clavier
             majEditeur();
         };
@@ -1314,7 +1315,6 @@
                 const esp = Math.min(Math.max(parseFloat(b.montantEspeces) || 0, 0), max);
                 const brut = esp + Math.max(parseFloat(b.montantCadeau) || 0, 0) + Math.max(parseFloat(b.montantTicket) || 0, 0);
                 depasse = arr2(brut - max);
-                $ed('dep-esp').textContent = esp.toFixed(0) + ' €';
                 $ed('dep-cb').textContent = fmtEur(Math.max(max - brut, 0));
                 $ed('dep-alerte').textContent = depasse > 0 ? `La répartition dépasse le montant de ${fmtEur(depasse)}` : '';
             }
@@ -1354,6 +1354,7 @@
                 const t = e.target;
                 if (t.id === 'dep-montant') b.montant = lireMontant(t.value);
                 else if (t.id === 'dep-libelle') b.libelle = t.value;
+                else if (t.id === 'dep-especes') b.montantEspeces = lireMontant(t.value);
                 else if (t.id === 'dep-cadeau') b.montantCadeau = lireMontant(t.value);
                 else if (t.id === 'dep-ticket') b.montantTicket = lireMontant(t.value);
                 else return;
@@ -1389,35 +1390,21 @@
                 if (cat) { b.categorie = cat.dataset.depCat; $ed('dep-cat').value = b.categorie; majEditeur(); return; }
                 const pay = e.target.closest('[data-pay-meth]');
                 if (pay) { b.moyenPaiement = pay.dataset.payMeth; majEditeur(); return; }
-                const pas = e.target.closest('[data-esp-pas]');
-                if (pas) {
-                    // Espèces par paliers de 5 € (décision du 22/09/2026), bornées au montant
-                    const max = Math.max(Number(b.montant) || 0, 0);
-                    b.montantEspeces = Math.min(Math.max((parseFloat(b.montantEspeces) || 0) + Number(pas.dataset.espPas), 0), max);
-                    majEditeur();
-                }
             });
-            // Glisser verticalement sur le chiffre espèces, par paliers de 5 € (comme l'ancien panneau Mixte)
-            const scrub = $ed('dep-esp-scrub');
-            scrub.addEventListener('pointerdown', (e) => {
-                if (!ed.b) return;
-                e.preventDefault();
-                mixteDragStartY = e.clientY;
-                mixteDragStartVal = Math.min(Math.max(parseFloat(ed.b.montantEspeces) || 0, 0), Math.max(Number(ed.b.montant) || 0, 0));
-                mixteDragLive = mixteDragStartVal;
-                scrub.setPointerCapture(e.pointerId);
-            }, { passive: false });
-            scrub.addEventListener('pointermove', (e) => {
-                if (mixteDragLive === null || !ed.b) return;
-                e.preventDefault();
-                const steps = Math.round((mixteDragStartY - e.clientY) / 18);
-                mixteDragLive = Math.min(Math.max(mixteDragStartVal + steps * 5, 0), Math.max(Number(ed.b.montant) || 0, 0));
-                ed.b.montantEspeces = mixteDragLive;
-                majEditeur();
-            }, { passive: false });
-            const fin = () => { mixteDragLive = null; };
-            scrub.addEventListener('pointerup', fin);
-            scrub.addEventListener('pointercancel', fin);
+            // Fenêtre collée EN HAUT, clavier ouvert ou fermé (27/11/2026) : sa hauteur suit la zone visible
+            // (visualViewport, qui rétrécit avec le clavier) et, juste après l'entrée dans un champ, la page est
+            // ramenée en haut si iOS l'a fait défiler (1,5 s au plus — même principe que la recherche de Course).
+            const vv = window.visualViewport;
+            let finRecalage = 0;
+            const ajuster = () => {
+                if (!w.classList.contains('open')) return;
+                const feuille = w.querySelector('.dep-sheet');
+                if (vv) feuille.style.setProperty('--vv-h', vv.height + 'px');
+                if (Date.now() < finRecalage && (window.scrollY || (vv && vv.offsetTop))) window.scrollTo(0, 0);
+            };
+            if (vv) { vv.addEventListener('resize', ajuster); vv.addEventListener('scroll', ajuster); }
+            w.addEventListener('focusin', () => { finRecalage = Date.now() + 1500; ajuster(); setTimeout(ajuster, 300); });
+            w._ajuster = ajuster;
         })();
 
         // 5. Manipulation des lignes (Délégation d'événements)

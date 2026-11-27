@@ -327,7 +327,6 @@
         <div class="v2-sheet-wrap" id="sheet-depense" aria-hidden="true">
             <div class="v2-sheet-fond" data-close></div>
             <div class="v2-sheet dep-sheet" role="dialog" aria-modal="true" aria-labelledby="dep-titre">
-                <div class="v2-grab" data-close></div>
                 <div class="v2-sheet-head dep-head">
                     <button type="button" class="v2-rond" data-close aria-label="Fermer">✕</button>
                     <h3 id="dep-titre">Nouvelle dépense</h3>
@@ -353,17 +352,10 @@
                     <button type="button" data-pay-meth="MIXTE"><b>🔀</b>Mixte</button>
                 </div>
                 <div class="dep-mixte hidden" id="dep-mixte">
-                    <div class="dep-m-row">
-                        <span>💵 Espèces</span>
-                        <div class="dep-m-pas">
-                            <button type="button" class="mixte-btn" data-esp-pas="-5" aria-label="Retirer 5 € d'espèces">−</button>
-                            <div class="mixte-scrub" id="dep-esp-scrub"><div class="mixte-value" id="dep-esp">0 €</div></div>
-                            <button type="button" class="mixte-btn" data-esp-pas="5" aria-label="Ajouter 5 € d'espèces">+</button>
-                        </div>
-                    </div>
+                    <div class="dep-m-row"><span>💵 Espèces</span><input type="text" id="dep-especes" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part espèces"></div>
                     <div class="dep-m-row"><span>🎁 Carte cadeau</span><input type="text" id="dep-cadeau" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part carte cadeau"></div>
                     <div class="dep-m-row"><span>🎫 Tickets resto</span><input type="text" id="dep-ticket" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="0" aria-label="Part tickets resto"></div>
-                    <div class="dep-m-row dep-m-cb"><span>💳 Carte (reste automatique)</span><strong id="dep-cb">0,00 €</strong></div>
+                    <div class="dep-m-row dep-m-cb"><span>💳 Carte <small>(le reste)</small></span><strong id="dep-cb">0,00 €</strong></div>
                     <div class="dep-alerte" id="dep-alerte"></div>
                 </div>
                 <button type="button" class="btn-action bg-danger dep-suppr hidden" id="dep-suppr">🗑️ Supprimer la dépense</button>
